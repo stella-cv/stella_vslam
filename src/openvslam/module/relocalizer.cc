@@ -58,7 +58,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
 
     // Compute matching points for each candidate by using BoW tree matcher
     for (unsigned int i = 0; i < num_candidates; ++i) {
-        auto keyfrm = reloc_candidates.at(i);
+        const auto& keyfrm = reloc_candidates.at(i);
         if (keyfrm->will_be_erased()) {
             spdlog::debug("keyframe will be erased. candidate keyframe id is {}", keyfrm->id_);
             continue;
