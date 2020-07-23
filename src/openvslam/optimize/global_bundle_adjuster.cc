@@ -80,7 +80,7 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
     const float sqrt_chi_sq_3D = std::sqrt(chi_sq_3D);
 
     for (unsigned int i = 0; i < lms.size(); ++i) {
-        auto lm = lms.at(i);
+        const auto& lm = lms.at(i);
         if (!lm) {
             continue;
         }
@@ -159,7 +159,7 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
             continue;
         }
 
-        auto lm = lms.at(i);
+        const auto& lm = lms.at(i);
         if (!lm) {
             continue;
         }
