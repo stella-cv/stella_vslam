@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <random>
+#include <memory>
 
 #include <opencv2/core.hpp>
 
