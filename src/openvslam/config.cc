@@ -123,7 +123,7 @@ std::ostream& operator<<(std::ostream& os, const config& cfg) {
     os << std::endl;
 
     os << "ORB Configuration:" << std::endl;
-    cfg.orb_params_.show_parameters();
+    os << cvg.org_params_;
     os << std::endl;
 
     if (cfg.camera_->setup_type_ == camera::setup_type_t::Stereo || cfg.camera_->setup_type_ == camera::setup_type_t::RGBD) {
