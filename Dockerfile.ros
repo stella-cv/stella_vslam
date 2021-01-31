@@ -64,7 +64,6 @@ RUN set -x && \
   wget -q https://gitlab.com/libeigen/eigen/-/archive/${EIGEN3_VERSION}/eigen-${EIGEN3_VERSION}.tar.bz2 && \
   tar xf eigen-${EIGEN3_VERSION}.tar.bz2 && \
   rm -rf eigen-${EIGEN3_VERSION}.tar.bz2 && \
-  mv eigen-eigen-* eigen-${EIGEN3_VERSION} && \
   cd eigen-${EIGEN3_VERSION} && \
   mkdir -p build && \
   cd build && \
