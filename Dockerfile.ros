@@ -250,7 +250,7 @@ RUN set -x && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
-WORKDIR /openvslam/ros
+WORKDIR /openvslam/ros/1
 
 RUN set -x && \
   : "install cv_bridge" && \
@@ -269,7 +269,7 @@ RUN set -x && \
     -DBOW_FRAMEWORK=DBoW2"
 
 RUN set -x && \
-  sh -c "echo '#'\!'/bin/bash\nset -e\nsource /opt/ros/${ROS_DISTRO}/setup.bash\nsource /openvslam/ros/devel/setup.bash\nexec \"\$@\"' > /ros_entrypoint.sh" && \
+  sh -c "echo '#'\!'/bin/bash\nset -e\nsource /opt/ros/${ROS_DISTRO}/setup.bash\nsource /openvslam/ros/1/devel/setup.bash\nexec \"\$@\"' > /ros_entrypoint.sh" && \
   chmod u+x /ros_entrypoint.sh
 
 ENTRYPOINT ["/ros_entrypoint.sh"]
