@@ -3,7 +3,7 @@ language: cpp
 os:
   - osx
 osx_image:
-  - xcode12.3
+  - xcode10
 
 compiler:
   - clang
