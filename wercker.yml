@@ -1,5 +1,5 @@
 box:
-  id: shinsumicco/openvslam-env
+  id: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
 
 no-response-timeout: 20
 
