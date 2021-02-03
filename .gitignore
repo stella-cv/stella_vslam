@@ -39,3 +39,6 @@ cmake-build-release/
 *.exe
 *.out
 *.app
+
+# vcpkg
+/3rd/vcpkg/

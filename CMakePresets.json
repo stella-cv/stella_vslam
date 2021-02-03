@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 19,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "msvc-x64-static-debug",
+      "displayName": "MSVC Win64",
+      "description": "Default build using Visual Studio generator",
+      "generator": "Visual Studio 16 2019",
+      "binaryDir": "${sourceDir}/build/msvc-x64-static-debug",
+      "cacheVariables": {
+        "BUILD_EXAMPLES": {
+          "type": "BOOL",
+          "value": "OFF"
+        },
+        "USE_PANGOLIN_VIEWER": {
+          "type": "BOOL",
+          "value": "OFF"
+        },
+        "CMAKE_CXX_FLAGS": {
+          "type": "STRING",
+          "value": "/bigobj /W4 /MT /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127 /Zo /EHsc"
+        },
+        "BUILD_SHARED_LIBS": {
+          "type": "BOOL",
+          "value": "OFF"
+        },
+        "VCPKG_TARGET_TRIPLET": {
+          "type": "STRING",
+          "value": "x64-windows-static"
+        },
+        "CMAKE_INSTALL_PREFIX": {
+          "type": "PATH",
+          "value": "${sourceDir}/Install/Debug"
+        },
+        "CMAKE_TOOLCHAIN_FILE": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/3rd/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        }
+      },
+      "environment": {
+        "DBoW2_DIR": "${sourceDir}/../DBoW2/Install/Debug/lib/cmake/DBoW2"
+      }
+    },
+    {
+      "name": "msvc-x64-static-release",
+      "displayName": "MSVC Win64",
+      "description": "Default build using Visual Studio generator",
+      "generator": "Visual Studio 16 2019",
+      "binaryDir": "${sourceDir}/build/msvc-x64-static-release",
+      "cacheVariables": {
+        "BUILD_EXAMPLES": {
+          "type": "BOOL",
+          "value": "OFF"
+        },
+        "USE_PANGOLIN_VIEWER": {
+          "type": "BOOL",
+          "value": "OFF"
+        },
+        "CMAKE_CXX_FLAGS": {
+          "type": "STRING",
+          "value": "/bigobj /W4 /MT /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127 /O2 /EHsc"
+        },
+        "BUILD_SHARED_LIBS": {
+          "type": "BOOL",
+          "value": "OFF"
+        },
+        "VCPKG_TARGET_TRIPLET": {
+          "type": "STRING",
+          "value": "x64-windows-static"
+        },
+        "CMAKE_INSTALL_PREFIX": {
+          "type": "PATH",
+          "value": "${sourceDir}/Install/Release"
+        },
+        "CMAKE_TOOLCHAIN_FILE": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/3rd/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        }
+      },
+      "environment": {
+        "DBoW2_DIR": "${sourceDir}/../DBoW2/Install/Release/lib/cmake/DBoW2"
+      }
+    }
+  ]
+}
