@@ -45,9 +45,6 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE="../../openvslam/3rd/vcpkg/scripts/buildsystems/
 cmake --build . --target install --config Release
 
 
-cd ../../openvslam
-
-
 :openvslam
 
 echo =======================
@@ -61,5 +58,5 @@ cd Build
 
 
 cmake -S .. --preset=msvc-x64-static-debug
-
+cmake -S .. --preset=msvc-x64-static-release
 

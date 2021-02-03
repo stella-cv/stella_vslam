@@ -11,7 +11,7 @@
       "displayName": "MSVC Win64",
       "description": "Default build using Visual Studio generator",
       "generator": "Visual Studio 16 2019",
-      "binaryDir": "${sourceDir}/build/msvc-x64-static",
+      "binaryDir": "${sourceDir}/build/msvc-x64-static-debug",
       "cacheVariables": {
         "BUILD_EXAMPLES": {
           "type": "BOOL",
@@ -35,7 +35,7 @@
         },
         "CMAKE_INSTALL_PREFIX": {
           "type": "PATH",
-          "value": "./Install/Debug"
+          "value": "${sourceDir}/Install/Debug"
         },
         "CMAKE_TOOLCHAIN_FILE": {
           "type": "FILEPATH",
@@ -51,7 +51,7 @@
       "displayName": "MSVC Win64",
       "description": "Default build using Visual Studio generator",
       "generator": "Visual Studio 16 2019",
-      "binaryDir": "${sourceDir}/build/msvc-x64-static",
+      "binaryDir": "${sourceDir}/build/msvc-x64-static-release",
       "cacheVariables": {
         "BUILD_EXAMPLES": {
           "type": "BOOL",
@@ -75,7 +75,7 @@
         },
         "CMAKE_INSTALL_PREFIX": {
           "type": "PATH",
-          "value": "./Install/Release"
+          "value": "${sourceDir}/Install/Release"
         },
         "CMAKE_TOOLCHAIN_FILE": {
           "type": "FILEPATH",
