@@ -23,7 +23,7 @@
         },
         "CMAKE_CXX_FLAGS": {
           "type": "STRING",
-          "value": "/bigobj /W4 /MT /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127 /Zo"
+          "value": "/bigobj /W4 /MT /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127 /Zo /EHsc"
         },
         "BUILD_SHARED_LIBS": {
           "type": "BOOL",
@@ -63,7 +63,7 @@
         },
         "CMAKE_CXX_FLAGS": {
           "type": "STRING",
-          "value": "/bigobj /W4 /MT /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127 /O2"
+          "value": "/bigobj /W4 /MT /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127 /O2 /EHsc"
         },
         "BUILD_SHARED_LIBS": {
           "type": "BOOL",

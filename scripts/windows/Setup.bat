@@ -1,10 +1,14 @@
 @echo off
 
+set openvslam_root="%~dp0\..\.."
+
+
 echo =======================
 echo Setup VCPKG
 echo =======================
 
-cd %~dp0
+cd %openvslam_root%
+
 cd 3rd
 
 if exist vcpkg goto dbow2
@@ -21,7 +25,7 @@ echo =======================
 echo Setup DBOW2
 echo =======================
 
-cd %~dp0
+cd %openvslam_root%
 cd ..
 
 if exist DBoW2 goto openvslam
@@ -51,7 +55,7 @@ echo =======================
 echo Setup OpenVSLAM
 echo =======================
 
-cd %~dp0
+cd %openvslam_root%
 
 mkdir Build
 cd Build
