@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 19,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "msvc",
+      "displayName": "MSVC Win64",
+      "description": "Default build using Visual Studio generator",
+      "generator": "Visual Studio 16 2019",
+      "binaryDir": "${sourceDir}/build/msvc",
+      "cacheVariables": {
+        "BUILD_EXAMPLES": {
+          "type": "BOOL",
+          "value": "OFF"
+        },
+        "USE_PANGOLIN_VIEWER": {
+          "type": "BOOL",
+          "value": "OFF"
+        },
+        "CMAKE_CXX_FLAGS": {
+          "type": "STRING",
+          "value": "/bigobj"
+        },
+        "BUILD_SHARED_LIBS": {
+          "type": "BOOL",
+          "value": "OFF"
+        },
+        "VCPKG_TARGET_TRIPLET": {
+          "type": "STRING",
+          "value": "x64-windows-static"
+        },
+        "CMAKE_INSTALL_PREFIX": {
+          "type": "PATH",
+          "value": "./Install"
+        },
+        "CMAKE_TOOLCHAIN_FILE": {
+          "type": "FILEPATH",
+          "value": "${sourceDir}/3rd/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        }
+      },
+      "environment": {
+        "DBoW2_DIR": "${sourceDir}/../DBoW2/Install/Debug/lib/cmake/DBoW2"
+      }
+    }
+  ]
+}
