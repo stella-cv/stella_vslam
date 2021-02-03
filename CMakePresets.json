@@ -7,11 +7,19 @@
   },
   "configurePresets": [
     {
+<<<<<<< HEAD
       "name": "msvc-x64-static-debug",
       "displayName": "MSVC Win64",
       "description": "Default build using Visual Studio generator",
       "generator": "Visual Studio 16 2019",
       "binaryDir": "${sourceDir}/build/msvc-x64-static-debug",
+=======
+      "name": "msvc",
+      "displayName": "MSVC Win64",
+      "description": "Default build using Visual Studio generator",
+      "generator": "Visual Studio 16 2019",
+      "binaryDir": "${sourceDir}/build/msvc",
+>>>>>>> 61bbe6f... WIP: Add CMake presets for Windows build
       "cacheVariables": {
         "BUILD_EXAMPLES": {
           "type": "BOOL",
@@ -23,7 +31,11 @@
         },
         "CMAKE_CXX_FLAGS": {
           "type": "STRING",
+<<<<<<< HEAD
           "value": "/bigobj /W4 /MT /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127 /Zo /EHsc"
+=======
+          "value": "/bigobj"
+>>>>>>> 61bbe6f... WIP: Add CMake presets for Windows build
         },
         "BUILD_SHARED_LIBS": {
           "type": "BOOL",
@@ -35,7 +47,11 @@
         },
         "CMAKE_INSTALL_PREFIX": {
           "type": "PATH",
+<<<<<<< HEAD
           "value": "${sourceDir}/Install/Debug"
+=======
+          "value": "./Install"
+>>>>>>> 61bbe6f... WIP: Add CMake presets for Windows build
         },
         "CMAKE_TOOLCHAIN_FILE": {
           "type": "FILEPATH",
@@ -45,6 +61,7 @@
       "environment": {
         "DBoW2_DIR": "${sourceDir}/../DBoW2/Install/Debug/lib/cmake/DBoW2"
       }
+<<<<<<< HEAD
     },
     {
       "name": "msvc-x64-static-release",
@@ -85,6 +102,8 @@
       "environment": {
         "DBoW2_DIR": "${sourceDir}/../DBoW2/Install/Release/lib/cmake/DBoW2"
       }
+=======
+>>>>>>> 61bbe6f... WIP: Add CMake presets for Windows build
     }
   ]
 }
