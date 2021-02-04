@@ -31,7 +31,7 @@ else()
     endif()
     # SuiteSparse for g2o
     if(MSVC)
-	find_package(SuiteSparse CONFIG)
+        find_package(SuiteSparse CONFIG)
     else()
         find_package(SuiteSparse)
     endif()
