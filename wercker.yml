@@ -195,7 +195,10 @@ build_ros2:
       code: |
         (source /opt/ros/${ROS2_DISTRO}/setup.bash && source ros/2/install/setup.bash && ros2 run openvslam run_slam -v /datasets/orb_vocab/orb_vocab.dbow2 -c example/euroc/EuRoC_mono.yaml --map-db map.msg --ros-args -r /camera/image_raw:=/cam0/image_raw)&
         (source /opt/ros/${ROS1_DISTRO}/setup.bash && source /opt/ros/${ROS2_DISTRO}/setup.bash && ros2 bag play -s rosbag_v2 /datasets/EuRoC/MH_04_difficult.bag)
+        sleep 1
+        echo "pkill -SIGINT -f run_slam"
         pkill -SIGINT -f run_slam
+        sleep 10
     - script:
       name: run run_localization
       code: |
