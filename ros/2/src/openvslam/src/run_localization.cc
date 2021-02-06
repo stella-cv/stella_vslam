@@ -57,30 +57,33 @@ void localization(const std::shared_ptr<openvslam::config>& cfg, const std::stri
     socket_publisher::publisher publisher(cfg, &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
 #endif
 
-    std::thread thread([&]() {
-        ros->exec_.spin();
-    });
-
+    // TODO: Pangolin needs to run in the main thread on OSX
     // run the viewer in this thread
 #ifdef USE_PANGOLIN_VIEWER
-    viewer.run();
-    if (SLAM.terminate_is_requested()) {
-        // wait until the loop BA is finished
-        while (SLAM.loop_BA_is_running()) {
-            std::this_thread::sleep_for(std::chrono::microseconds(5000));
+    std::thread thread([&]() {
+        viewer.run();
+        if (SLAM.terminate_is_requested()) {
+            // wait until the loop BA is finished
+            while (SLAM.loop_BA_is_running()) {
+                std::this_thread::sleep_for(std::chrono::microseconds(5000));
+            }
+            rclcpp::shutdown();
         }
-        rclcpp::shutdown();
-    }
+    });
 #elif USE_SOCKET_PUBLISHER
-    publisher.run();
-    if (SLAM.terminate_is_requested()) {
-        // wait until the loop BA is finished
-        while (SLAM.loop_BA_is_running()) {
-            std::this_thread::sleep_for(std::chrono::microseconds(5000));
+    std::thread thread([&]() {
+        publisher.run();
+        if (SLAM.terminate_is_requested()) {
+            // wait until the loop BA is finished
+            while (SLAM.loop_BA_is_running()) {
+                std::this_thread::sleep_for(std::chrono::microseconds(5000));
+            }
+            rclcpp::shutdown();
         }
-        rclcpp::shutdown();
-    }
+    });
 #endif
+
+    ros->exec_.spin();
 
     // automatically close the viewer
 #ifdef USE_PANGOLIN_VIEWER
