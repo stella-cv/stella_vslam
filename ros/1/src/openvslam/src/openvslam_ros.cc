@@ -17,14 +17,13 @@ void system::publish_pose() {
     // SLAM get the motion matrix publisher
     auto cam_pose_wc = SLAM_.get_map_publisher()->get_current_cam_pose_wc();
 
-    // Extract rotation matrix and translation vector from 
+    // Extract rotation matrix and translation vector from
     Eigen::Matrix3d rot = cam_pose_wc.block<3, 3>(0, 0);
     Eigen::Vector3d trans = cam_pose_wc.block<3, 1>(0, 3);
     Eigen::Matrix3d cv_to_ros;
-    cv_to_ros <<
-        0, 0, 1,
+    cv_to_ros << 0, 0, 1,
         -1, 0, 0,
-        0,-1, 0;
+        0, -1, 0;
 
     // Transform from CV coordinate system to ROS coordinate system on camera coordinates
     Eigen::Quaterniond quat(cv_to_ros * rot * cv_to_ros.transpose());
