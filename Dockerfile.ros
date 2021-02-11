@@ -91,7 +91,7 @@ RUN set -x && \
     -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
     -DBUILD_SHARED_LIBS=ON \
     -DBUILD_UNITTESTS=OFF \
-    -DBUILD_WITH_MARCH_NATIVE=ON \
+    -DBUILD_WITH_MARCH_NATIVE=OFF \
     -DG2O_USE_CHOLMOD=ON \
     -DG2O_USE_CSPARSE=ON \
     -DG2O_USE_OPENGL=OFF \
@@ -104,7 +104,7 @@ RUN set -x && \
   make install && \
   cd /tmp && \
   rm -rf *
-ENV G2O_ROOT=${CMAKE_INSTALL_PREFIX}
+ENV g2o_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/g2o
 
 # OpenCV
 ARG OPENCV_VERSION=3.4.8
@@ -210,7 +210,7 @@ RUN set -x && \
   mkdir -p build && \
   cd build && \
   cmake \
-    -DBUILD_WITH_MARCH_NATIVE=ON \
+    -DBUILD_WITH_MARCH_NATIVE=OFF \
     -DUSE_PANGOLIN_VIEWER=ON \
     -DUSE_SOCKET_PUBLISHER=OFF \
     -DUSE_STACK_TRACE_LOGGER=ON \
@@ -262,7 +262,7 @@ RUN set -x && \
   : "build ROS packages" && \
   bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash; \
   catkin_make -j${NUM_THREADS} \
-    -DBUILD_WITH_MARCH_NATIVE=ON \
+    -DBUILD_WITH_MARCH_NATIVE=OFF \
     -DUSE_PANGOLIN_VIEWER=ON \
     -DUSE_SOCKET_PUBLISHER=OFF \
     -DUSE_STACK_TRACE_LOGGER=ON \
