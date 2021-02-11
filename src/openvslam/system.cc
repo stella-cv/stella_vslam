@@ -242,10 +242,7 @@ Mat44_t system::feed_monocular_frame(const cv::Mat& img, const double timestamp,
     frame_publisher_->update(tracker_);
     if (tracker_->tracking_state_ == tracker_state_t::Tracking) {
         map_publisher_->set_current_cam_pose(cam_pose_cw);
-        Mat44_t cam_pose_wc = Mat44_t::Identity();
-        cam_pose_wc.block<3, 3>(0, 0) = tracker_->curr_frm_.get_rotation_inv();
-        cam_pose_wc.block<3, 1>(0, 3) = tracker_->curr_frm_.get_cam_center();
-        map_publisher_->set_current_cam_pose_wc(cam_pose_wc);
+        map_publisher_->set_current_cam_pose_wc(tracker_->curr_frm_.get_cam_pose_inv());
     }
 
     return cam_pose_cw;
@@ -261,10 +258,7 @@ Mat44_t system::feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_
     frame_publisher_->update(tracker_);
     if (tracker_->tracking_state_ == tracker_state_t::Tracking) {
         map_publisher_->set_current_cam_pose(cam_pose_cw);
-        Mat44_t cam_pose_wc = Mat44_t::Identity();
-        cam_pose_wc.block<3, 3>(0, 0) = tracker_->curr_frm_.get_rotation_inv();
-        cam_pose_wc.block<3, 1>(0, 3) = tracker_->curr_frm_.get_cam_center();
-        map_publisher_->set_current_cam_pose_wc(cam_pose_wc);
+        map_publisher_->set_current_cam_pose_wc(tracker_->curr_frm_.get_cam_pose_inv());
     }
 
     return cam_pose_cw;
@@ -280,10 +274,7 @@ Mat44_t system::feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap,
     frame_publisher_->update(tracker_);
     if (tracker_->tracking_state_ == tracker_state_t::Tracking) {
         map_publisher_->set_current_cam_pose(cam_pose_cw);
-        Mat44_t cam_pose_wc = Mat44_t::Identity();
-        cam_pose_wc.block<3, 3>(0, 0) = tracker_->curr_frm_.get_rotation_inv();
-        cam_pose_wc.block<3, 1>(0, 3) = tracker_->curr_frm_.get_cam_center();
-        map_publisher_->set_current_cam_pose_wc(cam_pose_wc);
+        map_publisher_->set_current_cam_pose_wc(tracker_->curr_frm_.get_cam_pose_inv());
     }
 
     return cam_pose_cw;

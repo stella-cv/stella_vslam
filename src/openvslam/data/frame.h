@@ -104,6 +104,16 @@ public:
     void set_cam_pose(const g2o::SE3Quat& cam_pose_cw);
 
     /**
+     * Get camera pose
+     */
+    Mat44_t get_cam_pose() const;
+
+    /**
+     * Get the inverse of the camera pose
+     */
+    Mat44_t get_cam_pose_inv() const;
+
+    /**
      * Update rotation and translation using cam_pose_cw_
      */
     void update_pose_params();

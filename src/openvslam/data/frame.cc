@@ -135,6 +135,17 @@ void frame::set_cam_pose(const g2o::SE3Quat& cam_pose_cw) {
     set_cam_pose(util::converter::to_eigen_mat(cam_pose_cw));
 }
 
+Mat44_t frame::get_cam_pose() const {
+    return cam_pose_cw_;
+}
+
+Mat44_t frame::get_cam_pose_inv() const {
+    Mat44_t cam_pose_wc = Mat44_t::Identity();
+    cam_pose_wc.block<3, 3>(0, 0) = rot_wc_;
+    cam_pose_wc.block<3, 1>(0, 3) = cam_center_;
+    return cam_pose_wc;
+}
+
 void frame::update_pose_params() {
     rot_cw_ = cam_pose_cw_.block<3, 3>(0, 0);
     rot_wc_ = rot_cw_.transpose();
