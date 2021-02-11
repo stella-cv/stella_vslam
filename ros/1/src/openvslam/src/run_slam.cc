@@ -77,7 +77,12 @@ void tracking(const std::shared_ptr<openvslam::config>& cfg, const std::string& 
     });
 #endif
 
-    ros::spin();
+    ros::Rate pub_rate(10);
+    while (ros::ok()) {
+        ros->publish_pose();
+        pub_rate.sleep();
+        ros::spinOnce();
+    }
 
     // automatically close the viewer
 #ifdef USE_PANGOLIN_VIEWER
