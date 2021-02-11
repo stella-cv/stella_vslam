@@ -10,6 +10,7 @@
 #include <image_transport/subscriber_filter.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <cv_bridge/cv_bridge.h>
+#include <nav_msgs/Odometry.h>
 
 #include <opencv2/core/core.hpp>
 
@@ -17,13 +18,16 @@ namespace openvslam_ros {
 class system {
 public:
     system(const std::shared_ptr<openvslam::config>& cfg, const std::string& vocab_file_path, const std::string& mask_img_path);
+    void publish_pose();
     openvslam::system SLAM_;
     std::shared_ptr<openvslam::config> cfg_;
     ros::NodeHandle nh_;
+    ros::NodeHandle private_nh_;
     image_transport::ImageTransport it_;
     std::chrono::steady_clock::time_point tp_0_;
     cv::Mat mask_;
     std::vector<double> track_times_;
+    ros::Publisher pose_pub_;
 };
 
 class mono : public system {
