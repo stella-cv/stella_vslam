@@ -4,7 +4,7 @@
 
 # OpenVSLAM: A Versatile Visual SLAM Framework
 [![Wercker Status](https://app.wercker.com/status/402b9e7a1fae92493519fff03d513565/s/main "wercker status")](https://app.wercker.com/ymd-stella/openvslam/runs)
-[![Documentation Status](https://readthedocs.org/projects/openvslam-commnunity/badge/?version=latest)](https://openvslam-commnunity.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/openvslam-community/badge/?version=latest)](https://openvslam-community.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![Join the community on Spectrum](https://withspectrum.github.io/badge/badge.svg)](https://spectrum.chat/openvslam)
 
