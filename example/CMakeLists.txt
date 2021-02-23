@@ -56,6 +56,9 @@ list(APPEND EXECUTABLE_TARGETS run_video_localization)
 add_executable(run_euroc_slam run_euroc_slam.cc util/euroc_util.cc)
 list(APPEND EXECUTABLE_TARGETS run_euroc_slam)
 
+add_executable(run_euroc_localization run_euroc_localization.cc util/euroc_util.cc)
+list(APPEND EXECUTABLE_TARGETS run_euroc_localization)
+
 add_executable(run_kitti_slam run_kitti_slam.cc util/kitti_util.cc)
 list(APPEND EXECUTABLE_TARGETS run_kitti_slam)
 
