@@ -147,15 +147,10 @@ build_ros:
       name: build ros packages
       code: |
         cd ros/1
-        git clone --branch ${ROS_DISTRO} --depth 1 https://github.com/ros-perception/vision_opencv.git
-        cp -r vision_opencv/cv_bridge src/
-        rm -rf vision_opencv
-        source /opt/ros/${ROS_DISTRO}/setup.bash
         catkin_make -j$(($(nproc) / 2)) -DBUILD_WITH_MARCH_NATIVE=OFF -DUSE_PANGOLIN_VIEWER=OFF -DUSE_SOCKET_PUBLISHER=OFF -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2
     - script:
       name: run run_slam
       code: |
-        source /opt/ros/${ROS_DISTRO}/setup.bash
         source ros/1/devel/setup.bash
         roscore&
         rosrun openvslam run_slam -v /datasets/orb_vocab/orb_vocab.dbow2 -c example/euroc/EuRoC_mono.yaml --map-db map.msg /camera/image_raw:=/cam0/image_raw&
@@ -165,7 +160,6 @@ build_ros:
     - script:
       name: run run_localization
       code: |
-        source /opt/ros/${ROS_DISTRO}/setup.bash
         source ros/1/devel/setup.bash
         roscore&
         rosrun openvslam run_localization -v /datasets/orb_vocab/orb_vocab.dbow2 -c example/euroc/EuRoC_mono.yaml --map-db map.msg /camera/image_raw:=/cam0/image_raw&
@@ -188,16 +182,13 @@ build_ros2:
       code: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_WITH_MARCH_NATIVE=OFF -DUSE_PANGOLIN_VIEWER=OFF -DUSE_SOCKET_PUBLISHER=OFF -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2 -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
+        CMAKE_PREFIX_PATH=/opt/ros/${ROS_DISTRO}/lib/cmake cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_WITH_MARCH_NATIVE=OFF -DUSE_PANGOLIN_VIEWER=OFF -DUSE_SOCKET_PUBLISHER=OFF -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2 -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
         make -j $(($(nproc) / 2))
         make install
     - script:
       name: build ros2 packages
       code: |
         cd ros/2
-        git clone --branch ${ROS2_DISTRO} --depth 1 https://github.com/ros-perception/vision_opencv.git
-        cp -r vision_opencv/cv_bridge src/
-        rm -rf vision_opencv
         (source /opt/ros/${ROS2_DISTRO}/setup.bash && colcon build --parallel-workers $(($(nproc) / 2)) --cmake-args -DBUILD_WITH_MARCH_NATIVE=OFF -DUSE_PANGOLIN_VIEWER=OFF -DUSE_SOCKET_PUBLISHER=OFF -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2)
     - script:
       name: run run_slam

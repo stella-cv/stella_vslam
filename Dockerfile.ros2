@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ros:foxy
 ENV DEBIAN_FRONTEND noninteractive
 
 # install dependencies via apt
@@ -21,26 +21,15 @@ RUN set -x && \
     libgoogle-glog-dev \
     libatlas-base-dev \
     libsuitesparse-dev && \
-  : "OpenCV dependencies" && \
-  apt-get install -y -qq \
-    libgtk-3-dev \
-    libjpeg-dev \
-    libpng++-dev \
-    libtiff-dev \
-    libopenexr-dev \
-    libwebp-dev \
-    ffmpeg \
-    libavcodec-dev \
-    libavformat-dev \
-    libavutil-dev \
-    libswscale-dev \
-    libavresample-dev && \
   : "Pangolin dependencies" && \
   apt-get install -y -qq \
     libglew-dev && \
   : "other dependencies" && \
   apt-get install -y -qq \
-    libyaml-cpp-dev && \
+    libgoogle-glog-dev \
+    libyaml-cpp-dev \ 
+    libopencv-dev \
+    libeigen3-dev && \
   : "remove cache" && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
@@ -56,90 +45,6 @@ ENV LD_LIBRARY_PATH=${CMAKE_INSTALL_PREFIX}/lib:${LD_LIBRARY_PATH}
 
 ENV NVIDIA_VISIBLE_DEVICES ${NVIDIA_VISIBLE_DEVICES:-all}
 ENV NVIDIA_DRIVER_CAPABILITIES ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}graphics
-
-# Eigen
-ARG EIGEN3_VERSION=3.3.7
-WORKDIR /tmp
-RUN set -x && \
-  wget -q https://gitlab.com/libeigen/eigen/-/archive/${EIGEN3_VERSION}/eigen-${EIGEN3_VERSION}.tar.bz2 && \
-  tar xf eigen-${EIGEN3_VERSION}.tar.bz2 && \
-  rm -rf eigen-${EIGEN3_VERSION}.tar.bz2 && \
-  cd eigen-${EIGEN3_VERSION} && \
-  mkdir -p build && \
-  cd build && \
-  cmake \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
-    .. && \
-  make -j${NUM_THREADS} && \
-  make install && \
-  cd /tmp && \
-  rm -rf *
-ENV Eigen3_DIR=${CMAKE_INSTALL_PREFIX}/share/eigen3/cmake
-
-# g2o
-ARG G2O_COMMIT=9b41a4ea5ade8e1250b9c1b279f3a9c098811b5a
-WORKDIR /tmp
-RUN set -x && \
-  git clone https://github.com/RainerKuemmerle/g2o.git && \
-  cd g2o && \
-  git checkout ${G2O_COMMIT} && \
-  mkdir -p build && \
-  cd build && \
-  cmake \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
-    -DBUILD_SHARED_LIBS=ON \
-    -DBUILD_UNITTESTS=OFF \
-    -DBUILD_WITH_MARCH_NATIVE=OFF \
-    -DG2O_USE_CHOLMOD=OFF \
-    -DG2O_USE_CSPARSE=ON \
-    -DG2O_USE_OPENGL=OFF \
-    -DG2O_USE_OPENMP=ON \
-    -DG2O_BUILD_APPS=OFF \
-    -DG2O_BUILD_EXAMPLES=OFF \
-    -DG2O_BUILD_LINKED_APPS=OFF \
-    .. && \
-  make -j${NUM_THREADS} && \
-  make install && \
-  cd /tmp && \
-  rm -rf *
-ENV g2o_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/g2o
-
-# OpenCV
-ARG OPENCV_VERSION=3.4.8
-WORKDIR /tmp
-RUN set -x && \
-  wget -q https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip && \
-  unzip -q ${OPENCV_VERSION}.zip && \
-  rm -rf ${OPENCV_VERSION}.zip && \
-  cd opencv-${OPENCV_VERSION} && \
-  mkdir -p build && \
-  cd build && \
-  cmake \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
-    -DBUILD_DOCS=OFF \
-    -DBUILD_EXAMPLES=OFF \
-    -DBUILD_JASPER=OFF \
-    -DBUILD_OPENEXR=OFF \
-    -DBUILD_PERF_TESTS=OFF \
-    -DBUILD_TESTS=OFF \
-    -DBUILD_opencv_apps=OFF \
-    -DBUILD_opencv_dnn=OFF \
-    -DBUILD_opencv_ml=OFF \
-    -DBUILD_opencv_python_bindings_generator=OFF \
-    -DENABLE_CXX11=ON \
-    -DENABLE_FAST_MATH=ON \
-    -DWITH_EIGEN=ON \
-    -DWITH_FFMPEG=ON \
-    -DWITH_OPENMP=ON \
-    .. && \
-  make -j${NUM_THREADS} && \
-  make install && \
-  cd /tmp && \
-  rm -rf *
-ENV OpenCV_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/opencv4
 
 # DBoW2
 ARG DBOW2_COMMIT=687fcb74dd13717c46add667e3fbfa9828a7019f
@@ -204,12 +109,21 @@ RUN set -x && \
 ENV Pangolin_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/Pangolin
 
 # OpenVSLAM
+RUN set -x && \
+  : "OpenVSLAM dependencies" && \
+  apt-get update -y -qq && \
+  apt-get install -y -qq \
+    ros-${ROS_DISTRO}-libg2o && \
+  : "remove cache" && \
+  apt-get autoremove -y -qq && \
+  rm -rf /var/lib/apt/lists/*
+
 COPY . /openvslam/
 WORKDIR /openvslam/
 RUN set -x && \
   mkdir -p build && \
   cd build && \
-  cmake \
+  CMAKE_PREFIX_PATH=/opt/ros/${ROS_DISTRO}/lib/cmake cmake \
     -DBUILD_WITH_MARCH_NATIVE=OFF \
     -DUSE_PANGOLIN_VIEWER=ON \
     -DUSE_SOCKET_PUBLISHER=OFF \
@@ -222,27 +136,13 @@ RUN set -x && \
   chmod -R 777 ./*
 
 # ROS2
-ENV ROS_DISTRO eloquent
-
 RUN set -x && \
   apt-get update -y -qq && \
-  : "for ROS installation" && \
+  : "install ROS2 packages" && \
   apt-get install -y -qq \
-    lsb-release \
-    gnupg2 \
-    python3-pip && \
-  : "remove cache" && \
-  apt-get autoremove -y -qq && \
-  rm -rf /var/lib/apt/lists/*
-
-RUN set -x && \
-  sh -c 'echo "deb http://packages.ros.org/ros2/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros2-latest.list' && \
-  apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654 && \
-  apt-get update -y -qq && \
-  : "install ROS1 and ROS2" && \
-  apt-get install -y -qq \
-    ros-${ROS_DISTRO}-ros-base \
     ros-${ROS_DISTRO}-image-transport \
+    ros-${ROS_DISTRO}-cv-bridge \
+    python3-pip \
     python3-colcon-common-extensions && \
   pip3 install -U \
     argcomplete && \
@@ -251,17 +151,6 @@ RUN set -x && \
   rm -rf /var/lib/apt/lists/*
 
 WORKDIR /openvslam/ros/2
-
-RUN set -x && \
-  : "install cv_bridge" && \
-  apt-get update -y -qq && \
-  apt-get install -y -qq \
-    libboost-python-dev && \
-  apt-get autoremove -y -qq && \
-  rm -rf /var/lib/apt/lists/* && \
-  git clone --branch ${ROS_DISTRO} --depth 1 https://github.com/ros-perception/vision_opencv.git && \
-  cp -r vision_opencv/cv_bridge src/ && \
-  rm -rf vision_opencv
 
 RUN set -x && \
   : "build ROS2 packages" && \
