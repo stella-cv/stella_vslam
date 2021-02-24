@@ -8,6 +8,8 @@
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
 
+#include <fstream>
+
 namespace openvslam {
 namespace io {
 

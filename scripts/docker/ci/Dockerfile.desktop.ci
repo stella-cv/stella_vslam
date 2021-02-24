@@ -139,11 +139,30 @@ RUN set -x && \
   rm -rf *
 ENV OpenCV_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/opencv4
 
+# FBoW
+ARG FBoW_COMMIT=f17050994fff63d77a5c40583d34133fd567692c
+WORKDIR /tmp
+RUN set -x && \
+  git clone https://github.com/OpenVSLAM-Community/FBoW.git && \
+  cd FBoW && \
+  git checkout ${FBoW_COMMIT} && \
+  mkdir -p build && \
+  cd build && \
+  cmake \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
+    .. && \
+  make -j${NUM_THREADS} && \
+  make install && \
+  cd /tmp && \
+  rm -rf *
+ENV FBoW_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/FBoW
+
 # DBoW2
 ARG DBOW2_COMMIT=687fcb74dd13717c46add667e3fbfa9828a7019f
 WORKDIR /tmp
 RUN set -x && \
-  git clone https://github.com/shinsumicco/DBoW2.git && \
+  git clone https://github.com/OpenVSLAM-Community/DBoW2.git && \
   cd DBoW2 && \
   git checkout ${DBOW2_COMMIT} && \
   mkdir -p build && \
