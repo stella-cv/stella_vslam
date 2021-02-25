@@ -8,6 +8,18 @@
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![Join the community on Spectrum](https://withspectrum.github.io/badge/badge.svg)](https://spectrum.chat/openvslam)
 
+## CAUTION
+
+The license has been changed to GPLv3 according to https://github.com/xdspacelab/openvslam/wiki/Termination-of-the-release.
+OpenVSLAM is a derivative of ORB_SLAM2.
+The documentation will be updated in the next few days.
+
+(Since the contributors agreed to the BSD license and provided the code, they may not want the code they provide to be licensed under the GPL.
+For this reason, I would like to express my personal view.
+The license of the source code before the update is BSD, so it is possible to use a part of older versions according to BSD.
+This means that we are free to use older versions of the code you provided under the BSD license, as long as the contribution is not related to ORB_SLAM2.
+However please check carefully not to violate the license of ORB_SLAM2 when doing so.)
+
 ---
 
 > *NOTE:* This is a community fork of [xdspacelab/openvslam](https://github.com/xdspacelab/openvslam). It was created to continue active development of OpenVSLAM.
