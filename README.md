@@ -1,5 +1,5 @@
 <p align="center">
-<img src="https://raw.githubusercontent.com/xdspacelab/openvslam/master/docs/img/logo.png" width="435px">
+<img src="https://raw.githubusercontent.com/OpenVSLAM-Community/openvslam/main/docs/img/logo.png" width="435px">
 </p>
 
 # OpenVSLAM: A Versatile Visual SLAM Framework
@@ -16,9 +16,7 @@
 
 ## Overview
 
-[<img src="https://raw.githubusercontent.com/xdspacelab/openvslam/master/docs/img/teaser.png" width="640px">](https://arxiv.org/abs/1910.01122)
-
-[<img src="https://raw.githubusercontent.com/wiki/xdspacelab/openvslam/media/tracking.gif" width="640px">](https://www.youtube.com/watch?v=Ro_s3Lbx5ms)
+[<img src="https://raw.githubusercontent.com/OpenVSLAM-Community/openvslam/main/docs/img/teaser.png" width="640px">](https://arxiv.org/abs/1910.01122)
 
 [**[PrePrint]**](https://arxiv.org/abs/1910.01122) [**[YouTube]**](https://www.youtube.com/watch?v=Ro_s3Lbx5ms)
 
@@ -37,10 +35,10 @@ For example, visual SLAM algorithm using **equirectangular camera models** (e.g.
 
 Some code snippets to understand the core functionalities of the system are provided.
 You can employ these snippets for in your own programs.
-Please see the `*.cc` files in `./example` directory or check [Simple Tutorial](https://openvslam-community.readthedocs.io/en/master/simple_tutorial.html) and [Example](https://openvslam-community.readthedocs.io/en/master/example.html).
+Please see the `*.cc` files in `./example` directory or check [Simple Tutorial](https://openvslam-community.readthedocs.io/en/latest/simple_tutorial.html) and [Example](https://openvslam-community.readthedocs.io/en/latest/example.html).
 
 We provided [documentation](https://openvslam-community.readthedocs.io/) for installation and tutorial.
-Please contact us via [GitHub issues](https://github.com/xdspacelab/openvslam/issues) if you have any questions or notice any bugs about the software.
+Please contact us via [GitHub issues](https://github.com/OpenVSLAM-Community/openvslam/issues) if you have any questions or notice any bugs about the software.
 
 ## Motivation
 
@@ -50,18 +48,18 @@ In return, we hope this project will bring safe and reliable technologies for a 
 
 ## Installation
 
-Please see [**Installation**](https://openvslam-community.readthedocs.io/en/master/installation.html) chapter in the [documentation](https://openvslam-community.readthedocs.io/).
+Please see [**Installation**](https://openvslam-community.readthedocs.io/en/latest/installation.html) chapter in the [documentation](https://openvslam-community.readthedocs.io/).
 
-[**The instructions for Docker users**](https://openvslam-community.readthedocs.io/en/master/docker.html) are also provided.
+[**The instructions for Docker users**](https://openvslam-community.readthedocs.io/en/latest/docker.html) are also provided.
 
 ## Tutorial
 
-Please see [**Simple Tutorial**](https://openvslam-community.readthedocs.io/en/master/simple_tutorial.html) chapter in the [documentation](https://openvslam-community.readthedocs.io/).
+Please see [**Simple Tutorial**](https://openvslam-community.readthedocs.io/en/latest/simple_tutorial.html) chapter in the [documentation](https://openvslam-community.readthedocs.io/).
 
 A sample ORB vocabulary file can be downloaded from [here](https://drive.google.com/open?id=1wUPb328th8bUqhOk-i8xllt5mgRW4n84).
 Sample datasets are also provided at [here](https://drive.google.com/open?id=1A_gq8LYuENePhNHsuscLZQPhbJJwzAq4).
 
-If you would like to run visual SLAM with standard benchmarking datasets (e.g. KITTI Odometry dataset), please see [**SLAM with standard datasets**](https://openvslam-community.readthedocs.io/en/master/example.html#slam-with-standard-datasets) section in the [documentation](https://openvslam-community.readthedocs.io/).
+If you would like to run visual SLAM with standard benchmarking datasets (e.g. KITTI Odometry dataset), please see [**SLAM with standard datasets**](https://openvslam-community.readthedocs.io/en/latest/example.html#slam-with-standard-datasets) section in the [documentation](https://openvslam-community.readthedocs.io/).
 
 ## Community
 
