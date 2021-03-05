@@ -27,8 +27,6 @@ public:
     std::shared_ptr<rclcpp::Node> node_;
     rclcpp::executors::SingleThreadedExecutor exec_;
     rmw_qos_profile_t custom_qos_;
-    rclcpp::Time tp_0_;
-    double to_sec;
     cv::Mat mask_;
     std::vector<double> track_times_;
     std::shared_ptr<rclcpp::Publisher<nav_msgs::msg::Odometry>> pose_pub_;

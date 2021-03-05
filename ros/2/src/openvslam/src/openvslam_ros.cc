@@ -10,7 +10,7 @@
 namespace openvslam_ros {
 system::system(const std::shared_ptr<openvslam::config>& cfg, const std::string& vocab_file_path, const std::string& mask_img_path)
     : SLAM_(cfg, vocab_file_path), cfg_(cfg), node_(std::make_shared<rclcpp::Node>("run_slam")), custom_qos_(rmw_qos_profile_default),
-      tp_0_(node_->now()), mask_(mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE)), to_sec(pow(10.0, 9)),
+    mask_(mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE)),
       pose_pub_(node_->create_publisher<nav_msgs::msg::Odometry>("~/camera_pose", 1)) {
     custom_qos_.depth = 1;
     exec_.add_node(node_);
@@ -54,13 +54,13 @@ mono::mono(const std::shared_ptr<openvslam::config>& cfg, const std::string& voc
 }
 void mono::callback(const sensor_msgs::msg::Image::ConstSharedPtr& msg) {
     const rclcpp::Time tp_1 = node_->now();
-    const double timestamp = (tp_1 - tp_0_).nanoseconds();
+    const double timestamp = tp_1.nanoseconds();
     
     // input the current frame and estimate the camera pose
     SLAM_.feed_monocular_frame(cv_bridge::toCvShare(msg)->image, timestamp, mask_);
 
     const rclcpp::Time tp_2 = node_->now();
-    const double track_time = (tp_2 - tp_1).nanoseconds()/to_sec;
+    const double track_time = (tp_2 - tp_1).seconds();
 
     //track times in seconds
     track_times_.push_back(track_time);
@@ -88,13 +88,13 @@ void stereo::callback(const sensor_msgs::msg::Image::ConstPtr& left, const senso
     }
 
     const rclcpp::Time tp_1 = node_->now();
-    const double timestamp = (tp_1 - tp_0_).nanoseconds();
+    const double timestamp = tp_1.nanoseconds();
 
     // input the current frame and estimate the camera pose
     SLAM_.feed_stereo_frame(leftcv, rightcv, timestamp, mask_);
 
     const rclcpp::Time tp_2 = node_->now();
-    const double track_time = (tp_2 - tp_1).nanoseconds()/to_sec;
+    const double track_time = (tp_2 - tp_1).seconds();
 
     //track times in seconds
     track_times_.push_back(track_time);
