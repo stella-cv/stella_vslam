@@ -202,12 +202,8 @@ RUN set -x && \
   mkdir -p build && \
   cd build && \
   cmake \
-    -DBUILD_WITH_MARCH_NATIVE=OFF \
-    -DUSE_PANGOLIN_VIEWER=OFF \
     -DUSE_SOCKET_PUBLISHER=ON \
     -DUSE_STACK_TRACE_LOGGER=ON \
-    -DBOW_FRAMEWORK=DBoW2 \
-    -DBUILD_TESTS=OFF \
     .. && \
   make -j${NUM_THREADS} && \
   rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \

@@ -119,12 +119,7 @@ RUN set -x && \
   mkdir -p build && \
   cd build && \
   CMAKE_PREFIX_PATH=/opt/ros/${ROS_DISTRO}/lib/cmake cmake \
-    -DBUILD_WITH_MARCH_NATIVE=OFF \
-    -DUSE_PANGOLIN_VIEWER=ON \
-    -DUSE_SOCKET_PUBLISHER=OFF \
     -DUSE_STACK_TRACE_LOGGER=ON \
-    -DBOW_FRAMEWORK=DBoW2 \
-    -DBUILD_TESTS=OFF \
     .. && \
   make -j${NUM_THREADS} && \
   rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \
