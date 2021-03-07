@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+    <name>openvslam</name>
+    <version>0.1.1</version>
+    <description>OpenVSLAM: A Versatile Visual SLAM Framework</description>
+
+    <author>Shinya Sumikura</author>
+    <author>Mikiya Shibuya</author>
+    <author>Ken Sakurada</author>
+    <maintainer email="world.applepie@gmail.com">ymd-stella</maintainer>
+
+    <license>2-clause BSD</license>
+    <url type="website">https://openvslam-community.readthedocs.io/</url>
+
+    <buildtool_depend>cmake</buildtool_depend>
+
+    <depend>eigen</depend>
+    <depend>libg2o</depend>
+    <depend>libgoogle-glog-dev</depend>
+    <depend>libopencv-dev</depend>
+
+    <export>
+        <build_type>cmake</build_type>
+    </export>
+</package>

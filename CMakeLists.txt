@@ -135,12 +135,12 @@ set(INCLUDES_DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 # ----- Build selection -----
 
-set(USE_PANGOLIN_VIEWER ON CACHE BOOL "Enable Pangolin Viewer")
+set(USE_PANGOLIN_VIEWER OFF CACHE BOOL "Enable Pangolin Viewer")
 set(USE_SOCKET_PUBLISHER OFF CACHE BOOL "Enable Socket Publisher")
 
 add_subdirectory(src)
 
-set(BUILD_EXAMPLES ON CACHE BOOL "Build examples")
+set(BUILD_EXAMPLES OFF CACHE BOOL "Build examples")
 if(BUILD_EXAMPLES)
     add_subdirectory(example)
 endif()
