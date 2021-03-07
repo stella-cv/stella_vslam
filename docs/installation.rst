@@ -16,7 +16,7 @@ Cloning the repository:
 
 .. code-block:: bash
 
-       git clone https://github.com/xdspacelab/openvslam
+       git clone https://github.com/OpenVSLAM-Community/openvslam.git
 
 If you are Windows 10 user, please install the dependencies and OpenVSLAM with :ref:`SocketViewer support <subsection-dependencies-socketviewer>` on `Windows Subsystem for Linux (WSL) <https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux>`__.
 We have checked the correct operation of OpenVSLAM and SocketViewer on Ubuntu 16.04 running on WSL.
@@ -40,7 +40,7 @@ Requirements for OpenVSLAM
 
 * `SuiteSparse <http://faculty.cse.tamu.edu/davis/suitesparse.html>`_ : Required by g2o.
 
-* `DBoW2 <https://github.com/shinsumicco/DBoW2>`_ : **Please use the custom version of DBoW2** released in `https://github.com/shinsumicco/DBoW2 <https://github.com/shinsumicco/DBoW2>`_.
+* `DBoW2 <https://github.com/OpenVSLAM-Community/DBoW2>`_ : **Please use the custom version of DBoW2** released in `https://github.com/OpenVSLAM-Community/DBoW2 <https://github.com/OpenVSLAM-Community/DBoW2>`_.
 
 * `yaml-cpp <https://github.com/jbeder/yaml-cpp>`_ : version 0.6.0 or later.
 
@@ -231,7 +231,7 @@ Download, build and install **the custom DBoW2** from source.
 .. code-block:: bash
 
     cd /path/to/working/dir
-    git clone https://github.com/shinsumicco/DBoW2.git
+    git clone https://github.com/OpenVSLAM-Community/DBoW2.git
     cd DBoW2
     mkdir build && cd build
     cmake \

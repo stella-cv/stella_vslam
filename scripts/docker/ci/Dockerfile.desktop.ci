@@ -139,6 +139,25 @@ RUN set -x && \
   rm -rf *
 ENV OpenCV_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/opencv4
 
+# FBoW
+ARG FBoW_COMMIT=f17050994fff63d77a5c40583d34133fd567692c
+WORKDIR /tmp
+RUN set -x && \
+  git clone https://github.com/OpenVSLAM-Community/FBoW.git && \
+  cd FBoW && \
+  git checkout ${FBoW_COMMIT} && \
+  mkdir -p build && \
+  cd build && \
+  cmake \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
+    .. && \
+  make -j${NUM_THREADS} && \
+  make install && \
+  cd /tmp && \
+  rm -rf *
+ENV FBoW_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/FBoW
+
 # DBoW2
 ARG DBOW2_COMMIT=687fcb74dd13717c46add667e3fbfa9828a7019f
 WORKDIR /tmp
@@ -201,20 +220,68 @@ RUN set -x && \
   rm -rf *
 ENV Pangolin_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/Pangolin
 
-# OpenVSLAM
-COPY . /openvslam/
-WORKDIR /openvslam/
+# socket.io-client-cpp
+ARG SIOCLIENT_COMMIT=ff6ef08e45c594e33aa6bc19ebdd07954914efe0
+WORKDIR /tmp
 RUN set -x && \
+  git clone https://github.com/shinsumicco/socket.io-client-cpp.git && \
+  cd socket.io-client-cpp && \
+  git checkout ${SIOCLIENT_COMMIT} && \
+  git submodule init && \
+  git submodule update && \
   mkdir -p build && \
   cd build && \
   cmake \
-    -DUSE_PANGOLIN_VIEWER=ON \
-    -DBUILD_EXAMPLES=ON \
-    -DUSE_STACK_TRACE_LOGGER=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
+    -DBUILD_UNIT_TESTS=OFF \
     .. && \
   make -j${NUM_THREADS} && \
-  rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \
-  chmod -R 777 ./*
+  make install && \
+  cd /tmp && \
+  rm -rf *
+ENV sioclient_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/sioclient
 
-WORKDIR /openvslam/build/
-ENTRYPOINT ["/bin/bash"]
+# protobuf
+WORKDIR /tmp
+RUN set -x && \
+  apt-get update -y -qq && \
+  apt-get upgrade -y -qq --no-install-recommends && \
+  apt-get install -y -qq autogen autoconf libtool && \
+  wget -q https://github.com/google/protobuf/archive/v3.6.1.tar.gz && \
+  tar xf v3.6.1.tar.gz && \
+  cd protobuf-3.6.1 && \
+  ./autogen.sh && \
+  ./configure --prefix=${CMAKE_INSTALL_PREFIX} --enable-static=no && \
+  make -j${NUM_THREADS} && \
+  make install && \
+  cd /tmp && \
+  rm -rf * && \
+  apt-get purge -y -qq autogen autoconf libtool && \
+  apt-get autoremove -y -qq && \
+  rm -rf /var/lib/apt/lists/*
+
+RUN set -x && \
+  apt-get update -y -qq && \
+  : "ci dependencies" && \
+  apt-get install -y -qq \
+    ccache \
+    clang-format-6.0 && \
+  apt-get autoremove -y -qq && \
+  rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /datasets/
+COPY orb_vocab /datasets/orb_vocab
+RUN mkdir -p /datasets/EuRoC
+COPY MH_04 /datasets/EuRoC/MH_04
+
+# evo
+RUN set -x && \
+  apt-get update -y -qq && \
+  : "install evo" && \
+  apt-get install -y -qq \
+    python3-pip && \
+  pip3 install evo --upgrade --no-binary evo && \
+  : "remove cache" && \
+  apt-get autoremove -y -qq && \
+  rm -rf /var/lib/apt/lists/*

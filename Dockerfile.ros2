@@ -1,4 +1,4 @@
-FROM ros:noetic
+FROM ros:foxy
 ENV DEBIAN_FRONTEND noninteractive
 
 # install dependencies via apt
@@ -16,6 +16,11 @@ RUN set -x && \
     curl \
     tar \
     unzip && \
+  : "g2o dependencies" && \
+  apt-get install -y -qq \
+    libgoogle-glog-dev \
+    libatlas-base-dev \
+    libsuitesparse-dev && \
   : "Pangolin dependencies" && \
   apt-get install -y -qq \
     libglew-dev && \
@@ -125,31 +130,35 @@ RUN set -x && \
   rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \
   chmod -R 777 ./*
 
-# ROS
+# ROS2
 RUN set -x && \
   apt-get update -y -qq && \
-  : "install ROS packages" && \
+  : "install ROS2 packages" && \
   apt-get install -y -qq \
     ros-${ROS_DISTRO}-image-transport \
-    ros-${ROS_DISTRO}-cv-bridge && \
+    ros-${ROS_DISTRO}-cv-bridge \
+    python3-pip \
+    python3-colcon-common-extensions && \
+  pip3 install -U \
+    argcomplete && \
   : "remove cache" && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
-WORKDIR /openvslam/ros/1
+WORKDIR /openvslam/ros/2
 
 RUN set -x && \
-  : "build ROS packages" && \
+  : "build ROS2 packages" && \
   bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash; \
-  catkin_make -j${NUM_THREADS} \
-    -DBUILD_WITH_MARCH_NATIVE=OFF \
+  colcon build --parallel-workers ${NUM_THREADS} --cmake-args \
+    -DBUILD_WITH_MARCH_NATIVE=ON \
     -DUSE_PANGOLIN_VIEWER=ON \
     -DUSE_SOCKET_PUBLISHER=OFF \
     -DUSE_STACK_TRACE_LOGGER=ON \
     -DBOW_FRAMEWORK=DBoW2"
 
 RUN set -x && \
-  sh -c "echo '#'\!'/bin/bash\nset -e\nsource /opt/ros/${ROS_DISTRO}/setup.bash\nsource /openvslam/ros/1/devel/setup.bash\nexec \"\$@\"' > /ros_entrypoint.sh" && \
+  sh -c "echo '#'\!'/bin/bash\nset -e\nsource /opt/ros/${ROS_DISTRO}/setup.bash\nsource /openvslam/ros/2/install/setup.bash\nexec \"\$@\"' > /ros_entrypoint.sh" && \
   chmod u+x /ros_entrypoint.sh
 
 ENTRYPOINT ["/ros_entrypoint.sh"]

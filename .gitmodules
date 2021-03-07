@@ -1,0 +1,3 @@
+[submodule "3rd/FBoW"]
+	path = 3rd/FBoW
+	url = https://github.com/OpenVSLAM-Community/FBoW.git

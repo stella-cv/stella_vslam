@@ -139,7 +139,7 @@ ENV OpenCV_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/opencv4
 ARG DBOW2_COMMIT=687fcb74dd13717c46add667e3fbfa9828a7019f
 WORKDIR /tmp
 RUN set -x && \
-  git clone https://github.com/shinsumicco/DBoW2.git && \
+  git clone https://github.com/OpenVSLAM-Community/DBoW2.git && \
   cd DBoW2 && \
   git checkout ${DBOW2_COMMIT} && \
   mkdir -p build && \
@@ -202,12 +202,8 @@ RUN set -x && \
   mkdir -p build && \
   cd build && \
   cmake \
-    -DBUILD_WITH_MARCH_NATIVE=OFF \
-    -DUSE_PANGOLIN_VIEWER=OFF \
     -DUSE_SOCKET_PUBLISHER=ON \
     -DUSE_STACK_TRACE_LOGGER=ON \
-    -DBOW_FRAMEWORK=DBoW2 \
-    -DBUILD_TESTS=OFF \
     .. && \
   make -j${NUM_THREADS} && \
   rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \

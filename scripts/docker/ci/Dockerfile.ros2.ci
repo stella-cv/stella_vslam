@@ -1,4 +1,4 @@
-FROM ros:noetic
+FROM ros:foxy-ros1-bridge
 ENV DEBIAN_FRONTEND noninteractive
 
 # install dependencies via apt
@@ -113,44 +113,42 @@ RUN set -x && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
-COPY . /openvslam/
-WORKDIR /openvslam/
-RUN set -x && \
-  mkdir -p build && \
-  cd build && \
-  CMAKE_PREFIX_PATH=/opt/ros/${ROS_DISTRO}/lib/cmake cmake \
-    -DUSE_STACK_TRACE_LOGGER=ON \
-    .. && \
-  make -j${NUM_THREADS} && \
-  rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \
-  chmod -R 777 ./*
-
 # ROS
+ENV ROS1_DISTRO noetic
+ENV ROS2_DISTRO foxy
+
 RUN set -x && \
+  sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && \
   apt-get update -y -qq && \
-  : "install ROS packages" && \
+  : "install ROS1 and ROS2" && \
   apt-get install -y -qq \
-    ros-${ROS_DISTRO}-image-transport \
-    ros-${ROS_DISTRO}-cv-bridge && \
+    ros-${ROS2_DISTRO}-image-transport \
+    ros-${ROS2_DISTRO}-cv-bridge \
+    ros-${ROS2_DISTRO}-rosbag2-bag-v2-plugins \
+    ros-${ROS2_DISTRO}-ros2bag \
+    ros-${ROS2_DISTRO}-rosbag2-transport \
+    ros-${ROS2_DISTRO}-rosbag2-converter-default-plugins \
+    python3-pip \
+    python3-colcon-common-extensions && \
+  pip3 install -U \
+    argcomplete && \
   : "remove cache" && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
-WORKDIR /openvslam/ros/1
-
 RUN set -x && \
-  : "build ROS packages" && \
-  bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash; \
-  catkin_make -j${NUM_THREADS} \
-    -DBUILD_WITH_MARCH_NATIVE=OFF \
-    -DUSE_PANGOLIN_VIEWER=ON \
-    -DUSE_SOCKET_PUBLISHER=OFF \
-    -DUSE_STACK_TRACE_LOGGER=ON \
-    -DBOW_FRAMEWORK=DBoW2"
+  apt-get update -y -qq && \
+  : "ci dependencies" && \
+  apt-get install -y -qq \
+    ccache \
+    clang-format-6.0 && \
+  apt-get autoremove -y -qq && \
+  rm -rf /var/lib/apt/lists/*
 
-RUN set -x && \
-  sh -c "echo '#'\!'/bin/bash\nset -e\nsource /opt/ros/${ROS_DISTRO}/setup.bash\nsource /openvslam/ros/1/devel/setup.bash\nexec \"\$@\"' > /ros_entrypoint.sh" && \
-  chmod u+x /ros_entrypoint.sh
+RUN mkdir -p /datasets/
+COPY orb_vocab /datasets/orb_vocab
+RUN mkdir -p /datasets/EuRoC
+COPY MH_04_difficult.bag /datasets/EuRoC/MH_04_difficult.bag
 
-ENTRYPOINT ["/ros_entrypoint.sh"]
-CMD ["bash"]
+# unset entrypoint
+ENTRYPOINT []

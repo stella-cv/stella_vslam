@@ -111,7 +111,7 @@ set(OPENVSLAM_PROJECT_CONFIG ${OPENVSLAM_GENERATED_DIR}/${PROJECT_NAME}Config.cm
 set(OPENVSLAM_TARGETS_EXPORT_NAME ${PROJECT_NAME}Targets)
 set(OPENVSLAM_CONFIG_INSTALL_DIR lib/cmake/${PROJECT_NAME})
 set(OPENVSLAM_NAMESPACE "${PROJECT_NAME}::")
-set(OPENVSLAM_VERSION 1.0.0)
+set(OPENVSLAM_VERSION 0.1.1)
 
 # Create a version config file
 write_basic_package_version_file(${OPENVSLAM_VERSION_CONFIG}
@@ -135,12 +135,12 @@ set(INCLUDES_DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 # ----- Build selection -----
 
-set(USE_PANGOLIN_VIEWER ON CACHE BOOL "Enable Pangolin Viewer")
+set(USE_PANGOLIN_VIEWER OFF CACHE BOOL "Enable Pangolin Viewer")
 set(USE_SOCKET_PUBLISHER OFF CACHE BOOL "Enable Socket Publisher")
 
 add_subdirectory(src)
 
-set(BUILD_EXAMPLES ON CACHE BOOL "Build examples")
+set(BUILD_EXAMPLES OFF CACHE BOOL "Build examples")
 if(BUILD_EXAMPLES)
     add_subdirectory(example)
 endif()

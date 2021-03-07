@@ -91,21 +91,32 @@ else()
 endif()
 
 # Check BoW Framework
-set(BOW_FRAMEWORK "DBoW2" CACHE STRING "DBoW2 or FBoW")
+set(BOW_FRAMEWORK "FBoW" CACHE STRING "DBoW2 or FBoW")
 set_property(CACHE BOW_FRAMEWORK PROPERTY STRINGS "DBoW2" "FBoW")
 if(BOW_FRAMEWORK MATCHES "DBoW2")
     find_package(DBoW2 REQUIRED)
-    set(BoW_INCLUDE_DIR ${DBoW2_INCLUDE_DIRS})
+    set(BoW_INCLUDE_DIR ${DBoW2_INCLUDE_DIRS}})
     set(BoW_LIBRARY ${DBoW2_LIBS})
     target_compile_definitions(${PROJECT_NAME} PUBLIC USE_DBOW2)
+    message(STATUS "BoW framework: ${BOW_FRAMEWORK} (found in ${BoW_INCLUDE_DIR})")
 elseif(BOW_FRAMEWORK MATCHES "FBoW")
-    find_package(fbow REQUIRED)
-    set(BoW_INCLUDE_DIR ${fbow_INCLUDE_DIRS})
-    set(BoW_LIBRARY ${fBoW_LIBS})
+    find_package(fbow QUIET)
+    if(fbow_FOUND)
+        set(BoW_INCLUDE_DIR ${fbow_INCLUDE_DIRS}})
+        set(BoW_LIBRARY ${fbow_LIBS})
+        message(STATUS "BoW framework: ${BOW_FRAMEWORK} (found in ${BoW_INCLUDE_DIR})")
+    else()
+        add_subdirectory(${PROJECT_SOURCE_DIR}/3rd/FBoW ${PROJECT_BINARY_DIR}/3rd/FBoW)
+        target_include_directories(${PROJECT_NAME}
+                                   PUBLIC
+                                   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/3rd/FBoW/include>
+                                   $<INSTALL_INTERFACE:3rd/FBoW/include>)
+        set(BoW_LIBRARY fbow)
+        message(STATUS "BoW framework: ${BOW_FRAMEWORK} (Using submodule)")
+    endif()
 else()
     message(FATAL_ERROR "Invalid BoW framework: ${BOW_FRAMEWORK}")
 endif()
-message(STATUS "BoW framework: ${BOW_FRAMEWORK} (found in ${BoW_INCLUDE_DIR})")
 
 # ----- Configure OpenVSLAM library -----
 
@@ -114,11 +125,9 @@ target_include_directories(${PROJECT_NAME}
                            PUBLIC
                            $<BUILD_INTERFACE:${json_INCLUDE_DIR}>
                            $<BUILD_INTERFACE:${spdlog_INCLUDE_DIR}>
-                           $<BUILD_INTERFACE:${BoW_INCLUDE_DIR}>
                            $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>
                            $<INSTALL_INTERFACE:include/openvslam/3rd/json/include>
                            $<INSTALL_INTERFACE:include/openvslam/3rd/spdlog/include>
-                           $<INSTALL_INTERFACE:${BoW_INCLUDE_DIR}>
                            $<INSTALL_INTERFACE:include/>)
 
 # Link to required libraries
