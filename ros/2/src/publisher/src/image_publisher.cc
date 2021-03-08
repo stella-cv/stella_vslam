@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
     rmw_qos_profile_t custom_qos = rmw_qos_profile_default;
     custom_qos.depth = 1;
 
-    auto publisher = image_transport::create_publisher(node.get(), "/video/image_raw", custom_qos);
+    auto publisher = image_transport::create_publisher(node.get(), "/camera/image_raw", custom_qos);
 
     sensor_msgs::msg::Image::SharedPtr msg;
 

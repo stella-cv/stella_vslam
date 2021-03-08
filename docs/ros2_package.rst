@@ -87,13 +87,6 @@ For using video files (e.g. ``.mp4``) for visual SLAM or localization.
     source /path/to/openvslam/ros/2/install/setup.bash
     ros2 run publisher video -m /path/to/video.mp4
 
-Republish the ROS topic to ``/camera/image_raw``.
-
-.. code-block:: bash
-
-    ros2 run image_transport republish \
-        raw in:=/video/image_raw raw out:=/camera/image_raw
-
 
 Publish a Image Sequence
 ------------------------
@@ -104,13 +97,6 @@ For using image sequences for visual SLAM or localization.
 
     source /path/to/openvslam/ros/2/install/setup.bash
     ros2 run publisher image -i /path/to/images/
-
-Republish the ROS topic to ``/camera/image_raw``.
-
-.. code-block:: bash
-
-    ros2 run image_transport republish \
-        raw in:=/video/image_raw raw out:=/camera/image_raw
 
 Publish Images Captured by a USB Camera
 ------------------------------

@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     // initialize this node
     const ros::NodeHandle nh;
     image_transport::ImageTransport it(nh);
-    const image_transport::Publisher publisher = it.advertise("/video/image_raw", 1);
+    const image_transport::Publisher publisher = it.advertise("/camera/image_raw", 1);
 
     cv::Mat frame;
     cv::VideoCapture video;
