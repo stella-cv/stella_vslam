@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <chrono>
+#include <fstream>
 #include <numeric>
 
 #include <spdlog/spdlog.h>

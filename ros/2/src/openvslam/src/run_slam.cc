@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <chrono>
+#include <fstream>
 #include <numeric>
 
 #include <opencv2/core/core.hpp>
