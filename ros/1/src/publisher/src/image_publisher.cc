@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
     // initialize this node
     const ros::NodeHandle nh;
     image_transport::ImageTransport it(nh);
-    image_transport::Publisher publisher = it.advertise("/video/image_raw", 1);
+    image_transport::Publisher publisher = it.advertise("/camera/image_raw", 1);
 
     sensor_msgs::ImagePtr msg;
 

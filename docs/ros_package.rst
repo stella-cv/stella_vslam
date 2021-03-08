@@ -113,13 +113,6 @@ For using video files (e.g. ``.mp4``) for visual SLAM or localization.
     source /path/to/openvslam/ros/1/devel/setup.bash
     rosrun publisher video -m /path/to/video.mp4
 
-Republish the ROS topic to ``/camera/image_raw``.
-
-.. code-block:: bash
-
-    rosrun image_transport republish \
-        raw in:=/video/image_raw raw out:=/camera/image_raw
-
 
 Publish a Image Sequence
 ------------------------
@@ -130,13 +123,6 @@ For using image sequences for visual SLAM or localization.
 
     source /path/to/openvslam/ros/1/devel/setup.bash
     rosrun publisher image -i /path/to/images/
-
-Republish the ROS topic to ``/camera/image_raw``.
-
-.. code-block:: bash
-
-    rosrun image_transport republish \
-        raw in:=/video/image_raw raw out:=/camera/image_raw
 
 Publish Images of a USB Camera
 ------------------------------
