@@ -10,7 +10,7 @@
 namespace openvslam_ros {
 system::system(const std::shared_ptr<openvslam::config>& cfg, const std::string& vocab_file_path, const std::string& mask_img_path)
     : SLAM_(cfg, vocab_file_path), cfg_(cfg), node_(std::make_shared<rclcpp::Node>("run_slam")), custom_qos_(rmw_qos_profile_default),
-    mask_(mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE)),
+      mask_(mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE)),
       pose_pub_(node_->create_publisher<nav_msgs::msg::Odometry>("~/camera_pose", 1)) {
     custom_qos_.depth = 1;
     exec_.add_node(node_);
@@ -54,8 +54,8 @@ mono::mono(const std::shared_ptr<openvslam::config>& cfg, const std::string& voc
 }
 void mono::callback(const sensor_msgs::msg::Image::ConstSharedPtr& msg) {
     const rclcpp::Time tp_1 = node_->now();
-    const double timestamp = tp_1.nanoseconds();
-    
+    const double timestamp = tp_1.seconds();
+
     // input the current frame and estimate the camera pose
     SLAM_.feed_monocular_frame(cv_bridge::toCvShare(msg)->image, timestamp, mask_);
 
@@ -72,9 +72,9 @@ stereo::stereo(const std::shared_ptr<openvslam::config>& cfg, const std::string&
       rectifier_(rectify ? std::make_shared<openvslam::util::stereo_rectifier>(cfg) : nullptr),
       left_sf_(node_, "camera/left/image_raw"),
       right_sf_(node_, "camera/right/image_raw"),
-      sync_(left_sf_, right_sf_, 10){
-        sync_.registerCallback(&stereo::callback, this);
-    }
+      sync_(left_sf_, right_sf_, 10) {
+    sync_.registerCallback(&stereo::callback, this);
+}
 
 void stereo::callback(const sensor_msgs::msg::Image::ConstPtr& left, const sensor_msgs::msg::Image::ConstPtr& right) {
     auto leftcv = cv_bridge::toCvShare(left)->image;
@@ -88,7 +88,7 @@ void stereo::callback(const sensor_msgs::msg::Image::ConstPtr& left, const senso
     }
 
     const rclcpp::Time tp_1 = node_->now();
-    const double timestamp = tp_1.nanoseconds();
+    const double timestamp = tp_1.seconds();
 
     // input the current frame and estimate the camera pose
     SLAM_.feed_stereo_frame(leftcv, rightcv, timestamp, mask_);

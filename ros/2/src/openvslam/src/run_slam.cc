@@ -119,8 +119,8 @@ void tracking(const std::shared_ptr<openvslam::config>& cfg, const std::string& 
     if (track_times.size()) {
         std::sort(track_times.begin(), track_times.end());
         const auto total_track_time = std::accumulate(track_times.begin(), track_times.end(), 0.0);
-        RCLCPP_DEBUG(ros->node_->get_logger(),"Median tracking time: %f [s] ", track_times.at(track_times.size() / 2));
-        RCLCPP_DEBUG(ros->node_->get_logger(),"Mean tracking time: %f [s] ", total_track_time / track_times.size());
+        RCLCPP_DEBUG(ros->node_->get_logger(), "Median tracking time: %f [s] ", track_times.at(track_times.size() / 2));
+        RCLCPP_DEBUG(ros->node_->get_logger(), "Mean tracking time: %f [s] ", total_track_time / track_times.size());
     }
 }
 
