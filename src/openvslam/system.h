@@ -2,7 +2,7 @@
 #define OPENVSLAM_SYSTEM_H
 
 #include "openvslam/type.h"
-#include "openvslam/data/bow_vocabulary.h"
+#include "openvslam/data/bow_vocabulary_fwd.h"
 
 #include <string>
 #include <thread>
