@@ -27,10 +27,13 @@
 #endif
 
 void localization(const std::shared_ptr<openvslam::config>& cfg, const std::string& vocab_file_path,
-                  const std::string& mask_img_path, const std::string& map_db_path, const bool mapping) {
+                  const std::string& mask_img_path, const std::string& map_db_path, const bool mapping, const bool rectify) {
     std::shared_ptr<openvslam_ros::system> ros;
     if (cfg->camera_->setup_type_ == openvslam::camera::setup_type_t::Monocular) {
         ros = std::make_shared<openvslam_ros::mono>(cfg, vocab_file_path, mask_img_path);
+    }
+    else if (cfg->camera_->setup_type_ == openvslam::camera::setup_type_t::Stereo) {
+        ros = std::make_shared<openvslam_ros::stereo>(cfg, vocab_file_path, mask_img_path, rectify);
     }
     else {
         throw std::runtime_error("Invalid setup type: " + cfg->camera_->get_setup_type_string());
@@ -106,8 +109,8 @@ void localization(const std::shared_ptr<openvslam::config>& cfg, const std::stri
     if (track_times.size()) {
         std::sort(track_times.begin(), track_times.end());
         const auto total_track_time = std::accumulate(track_times.begin(), track_times.end(), 0.0);
-        std::cout << "median tracking time: " << track_times.at(track_times.size() / 2) << "[s]" << std::endl;
-        std::cout << "mean tracking time: " << total_track_time / track_times.size() << "[s]" << std::endl;
+        RCLCPP_DEBUG(ros->node_->get_logger(), "Median tracking time: %f [s] ", track_times.at(track_times.size() / 2));
+        RCLCPP_DEBUG(ros->node_->get_logger(), "Mean tracking time: %f [s] ", total_track_time / track_times.size());
     }
 }
 
@@ -128,6 +131,7 @@ int main(int argc, char* argv[]) {
     auto mapping = op.add<popl::Switch>("", "mapping", "perform mapping as well as localization");
     auto mask_img_path = op.add<popl::Value<std::string>>("", "mask", "mask image path", "");
     auto debug_mode = op.add<popl::Switch>("", "debug", "debug mode");
+    auto rectify = op.add<popl::Switch>("r", "rectify", "rectify stereo image");
     try {
         op.parse(argc, argv);
     }
@@ -173,7 +177,7 @@ int main(int argc, char* argv[]) {
     ProfilerStart("slam.prof");
 #endif
 
-    localization(cfg, vocab_file_path->value(), mask_img_path->value(), map_db_path->value(), mapping->is_set());
+    localization(cfg, vocab_file_path->value(), mask_img_path->value(), map_db_path->value(), mapping->is_set(), rectify->value());
 
 #ifdef USE_GOOGLE_PERFTOOLS
     ProfilerStop();
