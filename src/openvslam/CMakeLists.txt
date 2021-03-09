@@ -110,7 +110,7 @@ elseif(BOW_FRAMEWORK MATCHES "FBoW")
         target_include_directories(${PROJECT_NAME}
                                    PUBLIC
                                    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/3rd/FBoW/include>
-                                   $<INSTALL_INTERFACE:3rd/FBoW/include>)
+                                   $<INSTALL_INTERFACE:include/fbow>)
         set(BoW_LIBRARY fbow)
         message(STATUS "BoW framework: ${BOW_FRAMEWORK} (Using submodule)")
     endif()
