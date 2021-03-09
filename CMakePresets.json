@@ -35,7 +35,7 @@
         },
         "CMAKE_INSTALL_PREFIX": {
           "type": "PATH",
-          "value": "${sourceDir}/Install/Debug"
+          "value": "${sourceDir}/install/debug"
         },
         "CMAKE_TOOLCHAIN_FILE": {
           "type": "FILEPATH",
@@ -72,7 +72,7 @@
         },
         "CMAKE_INSTALL_PREFIX": {
           "type": "PATH",
-          "value": "${sourceDir}/Install/Release"
+          "value": "${sourceDir}/install/release"
         },
         "CMAKE_TOOLCHAIN_FILE": {
           "type": "FILEPATH",
