@@ -8,7 +8,7 @@ Overview
     :width: 640px
     :align: center
 
-.. image:: https://raw.githubusercontent.com/wiki/xdspacelab/openvslam/media/tracking.gif
+.. image:: https://raw.githubusercontent.com/wiki/OpenVSLAM-Community/openvslam/media/tracking.gif
     :width: 640px
     :align: center
 
@@ -32,7 +32,7 @@ Please see the ``*.cc`` files in ``./example`` directory or check  :ref:`Simple 
 Also, some examples to run OpenVSLAM on ROS framework are provided.
 Please check :ref:`ROS Package <chapter-ros-package>`.
 
-Please contact us via `GitHub issues <https://github.com/xdspacelab/openvslam/issues>`__ if you have any questions or notice any bugs about the software.
+Please contact us via `GitHub issues <https://github.com/OpenVSLAM-Community/openvslam/issues>`__ if you have any questions or notice any bugs about the software.
 
 .. _section-overview-installation:
 

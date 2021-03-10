@@ -10,7 +10,7 @@ Installation
 Source code
 ===========
 
-The source code can be viewed from this `GitHub repository <https://github.com/xdspacelab/openvslam>`_.
+The source code can be viewed from this `GitHub repository <https://github.com/OpenVSLAM-Community/openvslam>`_.
 
 Cloning the repository:
 

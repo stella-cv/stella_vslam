@@ -17,7 +17,7 @@
 
 |
 
-This is the `OpenVSLAM <https://github.com/xdspacelab/openvslam>`_ documentation.
+This is the `OpenVSLAM <https://github.com/OpenVSLAM-Community/openvslam>`_ documentation.
 
 Contents
 --------
