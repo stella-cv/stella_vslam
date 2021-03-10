@@ -23,7 +23,7 @@
         },
         "CMAKE_CXX_FLAGS": {
           "type": "STRING",
-          "value": "/bigobj /W4 /MT /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127 /Zo /EHsc"
+          "value": "/DNOMINMAX=1 /bigobj /W4 /MTd /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127 /Zo /EHsc"
         },
         "BUILD_SHARED_LIBS": {
           "type": "BOOL",
@@ -35,15 +35,12 @@
         },
         "CMAKE_INSTALL_PREFIX": {
           "type": "PATH",
-          "value": "${sourceDir}/Install/Debug"
+          "value": "${sourceDir}/install/debug"
         },
         "CMAKE_TOOLCHAIN_FILE": {
           "type": "FILEPATH",
           "value": "${sourceDir}/3rd/vcpkg/scripts/buildsystems/vcpkg.cmake"
         }
-      },
-      "environment": {
-        "DBoW2_DIR": "${sourceDir}/../DBoW2/Install/Debug/lib/cmake/DBoW2"
       }
     },
     {
@@ -63,7 +60,7 @@
         },
         "CMAKE_CXX_FLAGS": {
           "type": "STRING",
-          "value": "/bigobj /W4 /MT /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127 /O2 /EHsc"
+          "value": "/DNOMINMAX=1 /bigobj /W4 /MT /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127 /O2 /EHsc"
         },
         "BUILD_SHARED_LIBS": {
           "type": "BOOL",
@@ -75,15 +72,12 @@
         },
         "CMAKE_INSTALL_PREFIX": {
           "type": "PATH",
-          "value": "${sourceDir}/Install/Release"
+          "value": "${sourceDir}/install/release"
         },
         "CMAKE_TOOLCHAIN_FILE": {
           "type": "FILEPATH",
           "value": "${sourceDir}/3rd/vcpkg/scripts/buildsystems/vcpkg.cmake"
         }
-      },
-      "environment": {
-        "DBoW2_DIR": "${sourceDir}/../DBoW2/Install/Release/lib/cmake/DBoW2"
       }
     }
   ]
