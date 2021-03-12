@@ -19,6 +19,7 @@
     <depend>libg2o</depend>
     <depend>libgoogle-glog-dev</depend>
     <depend>libopencv-dev</depend>
+    <depend>yaml-cpp</depend>
 
     <export>
         <build_type>cmake</build_type>
