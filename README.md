@@ -39,6 +39,7 @@ You can employ these snippets for in your own programs.
 Please see the `*.cc` files in `./example` directory or check [Simple Tutorial](https://openvslam-community.readthedocs.io/en/latest/simple_tutorial.html) and [Example](https://openvslam-community.readthedocs.io/en/latest/example.html).
 
 We provided [documentation](https://openvslam-community.readthedocs.io/) for installation and tutorial.
+The repository for the ROS wrapper is [openvslam_ros](https://github.com/OpenVSLAM-Community/openvslam_ros).
 
 ## Motivation
 
