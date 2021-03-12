@@ -12,7 +12,7 @@ Installation
 Requirements
 ^^^^^^^^^^^^
 
-* `ROS2 <https://index.ros.org/doc/ros2//>`_ : Please use the version ``dashing`` or later.
+* `ROS2 <https://index.ros.org/doc/ros2//>`_ : ``foxy`` or later is recommended. (If you want to build it manually, you can use ``dashing`` or later.)
 
 * :ref:`OpenVSLAM <chapter-installation>` : Please build it with **OpenCV 3.x**.
 
@@ -43,15 +43,16 @@ Download repositories of ``image_common`` and ``vision_opencv``.
 
 .. code-block:: bash
 
-    cd /path/to/openvslam/ros/2/src
-    git clone -b dashing --single-branch https://github.com/ros-perception/image_common.git
+    midir -p ~/ros2_ws/src
+    cd ~/ros2_ws/src
+    git clone -b ${ROS_DISTRO} --single-branch https://github.com/ros-perception/image_common.git
     git clone -b ros2 --single-branch https://github.com/ros-perception/vision_opencv.git
 
 For using USB cam as a image source, donload a repository of ``demos`` and pick ``image_tools`` module.
 
 .. code-block:: bash
 
-    cd /path/to/openvslam/ros/2
+    cd ~/ros2_ws
     git clone https://github.com/ros2/demos.git
     cp -r demos/image_tools src/
     rm -rf demos
@@ -59,12 +60,19 @@ For using USB cam as a image source, donload a repository of ``demos`` and pick 
 Build Instructions
 ^^^^^^^^^^^^^^^^^^
 
+Download ``openvslam_ros``.
+
+.. code-block:: bash
+
+    cd ~/catkin_ws/src
+    git clone --branch ros2 --depth 1 https://github.com/OpenVSLAM-Community/openvslam_ros.git
+    
 When building with support for PangolinViewer, you have not specify any arguments.
 
 .. code-block:: bash
 
-    cd /path/to/openvslam/ros/2
-    colcon buld --symlink-install
+    cd ~/ros2_ws
+    colcon build --symlink-install
 
 The SocketViewer is not available right now. We will provide this feature soon.
 
@@ -84,7 +92,7 @@ For using video files (e.g. ``.mp4``) for visual SLAM or localization.
 
 .. code-block:: bash
 
-    source /path/to/openvslam/ros/2/install/setup.bash
+    source ~/ros2_ws/install/setup.bash
     ros2 run publisher video -m /path/to/video.mp4
 
 
@@ -95,7 +103,7 @@ For using image sequences for visual SLAM or localization.
 
 .. code-block:: bash
 
-    source /path/to/openvslam/ros/2/install/setup.bash
+    source ~/ros2_ws/install/setup.bash
     ros2 run publisher image -i /path/to/images/
 
 Publish Images Captured by a USB Camera
@@ -128,11 +136,11 @@ Tracking and Mapping
 --------------------
 
 We provide an example snippet for visual SLAM.
-The source code is placed at ``./openvslam/ros/src/openvslam/src/run_slam.cc``.
+The source code is placed at ``openvslam_ros/src/run_slam.cc``.
 
 .. code-block:: bash
 
-    source /path/to/openvslam/ros/2/install/setup.bash
+    source ~/ros2_ws/install/setup.bash
     ros2 run openvslam run_slam \
         -v /path/to/orb_vocab.dbow2 \
         -c /path/to/config.yaml
@@ -141,11 +149,11 @@ Localization
 ------------
 
 We provide an example snippet for localization based on a prebuilt map.
-The source code is placed at ``./ros/src/openvslam/src/run_localization.cc``.
+The source code is placed at ``openvslam_ros/src/run_localization.cc``.
 
 .. code-block:: bash
 
-    source /path/to/openvslam/ros/2/install/setup.bash
+    source ~/ros2_ws/install/setup.bash
     ros2 run openvslam run_localization \
         -v /path/to/orb_vocab.dbow2 \
         -c /path/to/config.yaml \
