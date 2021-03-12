@@ -12,7 +12,7 @@ Installation
 Requirements
 ^^^^^^^^^^^^
 
-* `ROS <http://wiki.ros.org/>`_ : Please use the version ``kinetic`` or later.
+* `ROS <http://wiki.ros.org/>`_ : ``noetic`` is recommended. (If you want to build it manually, you can use ``kinetic`` or later.)
 
 * :ref:`OpenVSLAM <chapter-installation>` : Please build it with **OpenCV 3.x**.
 
@@ -48,9 +48,9 @@ Download the source of ``cv_bridge``.
 
 .. code-block:: bash
 
-    cd /path/to/openvslam/ros/1
+    mkdir -p ~/catkin_ws/src
     git clone --branch ${ROS_DISTRO} --depth 1 https://github.com/ros-perception/vision_opencv.git
-    cp -r vision_opencv/cv_bridge src/
+    cp -r vision_opencv/cv_bridge ~/catkin_ws/src
     rm -rf vision_opencv
 
 .. NOTE ::
@@ -60,11 +60,18 @@ Download the source of ``cv_bridge``.
 Build Instructions
 ^^^^^^^^^^^^^^^^^^
 
+Download ``openvslam_ros``.
+
+.. code-block:: bash
+
+    cd ~/catkin_ws/src
+    git clone --branch ros --depth 1 https://github.com/OpenVSLAM-Community/openvslam_ros.git
+
 When building with support for PangolinViewer, please specify the following cmake options: ``-DUSE_PANGOLIN_VIEWER=ON`` and ``-DUSE_SOCKET_PUBLISHER=OFF`` as described in :ref:`build of OpenVSLAM <section-build-unix>`.
 
 .. code-block:: bash
 
-    cd /path/to/openvslam/ros/1
+    cd ~/catkin_ws
     catkin_make \
         -DBUILD_WITH_MARCH_NATIVE=ON \
         -DUSE_PANGOLIN_VIEWER=ON \
@@ -76,7 +83,7 @@ Alternatively, when building with support for SocketViewer, please specify the f
 
 .. code-block:: bash
 
-    cd /path/to/openvslam/ros/1
+    cd ~/catkin_ws
     catkin_make \
         -DBUILD_WITH_MARCH_NATIVE=ON \
         -DUSE_PANGOLIN_VIEWER=OFF \
@@ -110,7 +117,7 @@ For using video files (e.g. ``.mp4``) for visual SLAM or localization.
 
 .. code-block:: bash
 
-    source /path/to/openvslam/ros/1/devel/setup.bash
+    source ~/catkin_ws/devel/setup.bash
     rosrun publisher video -m /path/to/video.mp4
 
 
@@ -121,7 +128,7 @@ For using image sequences for visual SLAM or localization.
 
 .. code-block:: bash
 
-    source /path/to/openvslam/ros/1/devel/setup.bash
+    source ~/catkin_ws/devel/setup.bash
     rosrun publisher image -i /path/to/images/
 
 Publish Images of a USB Camera
@@ -159,11 +166,11 @@ Tracking and Mapping
 --------------------
 
 We provide an example snippet for visual SLAM.
-The source code is placed at ``./openvslam/ros/1/src/openvslam/src/run_slam.cc``.
+The source code is placed at ``openvslam_ros/src/run_slam.cc``.
 
 .. code-block:: bash
 
-    source /path/to/openvslam/ros/1/devel/setup.bash
+    source ~/catkin_ws/devel/setup.bash
     rosrun openvslam run_slam \
         -v /path/to/orb_vocab.dbow2 \
         -c /path/to/config.yaml
@@ -172,11 +179,11 @@ Localization
 ------------
 
 We provide an example snippet for localization based on a prebuilt map.
-The source code is placed at ``./ros/1/src/openvslam/src/run_localization.cc``.
+The source code is placed at ``openvslam_ros/src/run_localization.cc``.
 
 .. code-block:: bash
 
-    source /path/to/openvslam/ros/1/devel/setup.bash
+    source ~/catkin_ws/devel/setup.bash
     rosrun openvslam run_localization \
         -v /path/to/orb_vocab.dbow2 \
         -c /path/to/config.yaml \
