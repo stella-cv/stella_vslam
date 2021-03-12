@@ -164,3 +164,19 @@ build_tutorial:
       code: |
         cd build
         ./run_video_localization -v /datasets/orb_vocab/orb_vocab.dbow2 -m ./video_for_ci_1/video.mp4 -c ./video_for_ci_1/config.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
+
+rosdep_foxy:
+  box: ghcr.io/ymd-stella/openvslam-community/ros:foxy-ros-base
+  steps:
+    - script:
+      name: build ros2 packages
+      code: |
+        mkdir -p ../ros_ws/src
+        cp -r . ../ros_ws/src/openvslam
+        cd ../ros_ws/src/openvslam
+        git submodule update -i --recursive
+        cd ../..
+        apt update
+        rosdep install -y -i --from-paths src
+        export MAKEFLAGS="-j $(($(nproc) / 2))"
+        (source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --parallel-workers 1)
