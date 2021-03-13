@@ -60,36 +60,15 @@ Download the source of ``cv_bridge``.
 Build Instructions
 ^^^^^^^^^^^^^^^^^^
 
-Download ``openvslam_ros``.
+When building with support for PangolinViewer, please specify the following cmake options: ``-DUSE_PANGOLIN_VIEWER=ON`` and ``-DUSE_SOCKET_PUBLISHER=OFF`` as described in :ref:`build of OpenVSLAM <section-build-unix>`.
+openvslam and openvslam_ros need to be built with the same options.
 
 .. code-block:: bash
 
     cd ~/catkin_ws/src
     git clone --branch ros --depth 1 https://github.com/OpenVSLAM-Community/openvslam_ros.git
-
-When building with support for PangolinViewer, please specify the following cmake options: ``-DUSE_PANGOLIN_VIEWER=ON`` and ``-DUSE_SOCKET_PUBLISHER=OFF`` as described in :ref:`build of OpenVSLAM <section-build-unix>`.
-
-.. code-block:: bash
-
     cd ~/catkin_ws
-    catkin_make \
-        -DBUILD_WITH_MARCH_NATIVE=ON \
-        -DUSE_PANGOLIN_VIEWER=ON \
-        -DUSE_SOCKET_PUBLISHER=OFF \
-        -DUSE_STACK_TRACE_LOGGER=ON \
-        -DBOW_FRAMEWORK=DBoW2
-
-Alternatively, when building with support for SocketViewer, please specify the following cmake options: ``-DUSE_PANGOLIN_VIEWER=OFF`` and ``-DUSE_SOCKET_PUBLISHER=ON`` as described in :ref:`build of OpenVSLAM <section-build-unix>`.
-
-.. code-block:: bash
-
-    cd ~/catkin_ws
-    catkin_make \
-        -DBUILD_WITH_MARCH_NATIVE=ON \
-        -DUSE_PANGOLIN_VIEWER=OFF \
-        -DUSE_SOCKET_PUBLISHER=ON \
-        -DUSE_STACK_TRACE_LOGGER=ON \
-        -DBOW_FRAMEWORK=DBoW2
+    catkin_make -DUSE_PANGOLIN_VIEWER=ON -DUSE_SOCKET_PUBLISHER=OFF
 
 Examples
 ========
@@ -107,29 +86,7 @@ Run the core program required for ROS-based system in advance.
 Publisher
 ^^^^^^^^^
 
-Publishers continually broadcast images as a ROS topic.
-Please execute one of the following command snippets in the new terminal.
-
-Publish a Video File
---------------------
-
-For using video files (e.g. ``.mp4``) for visual SLAM or localization.
-
-.. code-block:: bash
-
-    source ~/catkin_ws/devel/setup.bash
-    rosrun publisher video -m /path/to/video.mp4
-
-
-Publish a Image Sequence
-------------------------
-
-For using image sequences for visual SLAM or localization.
-
-.. code-block:: bash
-
-    source ~/catkin_ws/devel/setup.bash
-    rosrun publisher image -i /path/to/images/
+If you want to input image sequences or videos into openvslam_ros, please use ROS2.
 
 Publish Images of a USB Camera
 ------------------------------
@@ -171,7 +128,7 @@ The source code is placed at ``openvslam_ros/src/run_slam.cc``.
 .. code-block:: bash
 
     source ~/catkin_ws/devel/setup.bash
-    rosrun openvslam run_slam \
+    rosrun openvslam_ros run_slam \
         -v /path/to/orb_vocab.dbow2 \
         -c /path/to/config.yaml
 
@@ -184,7 +141,7 @@ The source code is placed at ``openvslam_ros/src/run_localization.cc``.
 .. code-block:: bash
 
     source ~/catkin_ws/devel/setup.bash
-    rosrun openvslam run_localization \
+    rosrun openvslam_ros run_localization \
         -v /path/to/orb_vocab.dbow2 \
         -c /path/to/config.yaml \
         --map-db /path/to/map.msg

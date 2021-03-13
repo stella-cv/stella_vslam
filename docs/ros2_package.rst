@@ -60,21 +60,15 @@ For using USB cam as a image source, donload a repository of ``demos`` and pick 
 Build Instructions
 ^^^^^^^^^^^^^^^^^^
 
-Download ``openvslam_ros``.
+When building with support for PangolinViewer, please specify the following cmake options: ``-DUSE_PANGOLIN_VIEWER=ON`` and ``-DUSE_SOCKET_PUBLISHER=OFF`` as described in :ref:`build of OpenVSLAM <section-build-unix>`.
+openvslam and openvslam_ros need to be built with the same options.
 
 .. code-block:: bash
 
     cd ~/catkin_ws/src
     git clone --branch ros2 --depth 1 https://github.com/OpenVSLAM-Community/openvslam_ros.git
-    
-When building with support for PangolinViewer, you have not specify any arguments.
-
-.. code-block:: bash
-
     cd ~/ros2_ws
-    colcon build --symlink-install
-
-The SocketViewer is not available right now. We will provide this feature soon.
+    colcon build --symlink-install --cmake-args -DUSE_PANGOLIN_VIEWER=ON -DUSE_SOCKET_PUBLISHER=OFF
 
 Examples
 ========
@@ -82,29 +76,7 @@ Examples
 Publisher
 ^^^^^^^^^
 
-Publishers continually broadcast images as a ROS topic.
-Please execute one of the following command snippets in the new terminal.
-
-Publish a Video File
---------------------
-
-For using video files (e.g. ``.mp4``) for visual SLAM or localization.
-
-.. code-block:: bash
-
-    source ~/ros2_ws/install/setup.bash
-    ros2 run publisher video -m /path/to/video.mp4
-
-
-Publish a Image Sequence
-------------------------
-
-For using image sequences for visual SLAM or localization.
-
-.. code-block:: bash
-
-    source ~/ros2_ws/install/setup.bash
-    ros2 run publisher image -i /path/to/images/
+If you want to input image sequences or videos into openvslam_ros, please refer to `dataset_publisher_ros2 <https://github.com/mirellameelo/dataset_publisher_ros2>`_.
 
 Publish Images Captured by a USB Camera
 ------------------------------
@@ -141,7 +113,7 @@ The source code is placed at ``openvslam_ros/src/run_slam.cc``.
 .. code-block:: bash
 
     source ~/ros2_ws/install/setup.bash
-    ros2 run openvslam run_slam \
+    ros2 run openvslam_ros run_slam \
         -v /path/to/orb_vocab.dbow2 \
         -c /path/to/config.yaml
 
@@ -154,7 +126,7 @@ The source code is placed at ``openvslam_ros/src/run_localization.cc``.
 .. code-block:: bash
 
     source ~/ros2_ws/install/setup.bash
-    ros2 run openvslam run_localization \
+    ros2 run openvslam_ros run_localization \
         -v /path/to/orb_vocab.dbow2 \
         -c /path/to/config.yaml \
         --map-db /path/to/map.msg
