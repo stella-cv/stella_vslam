@@ -22,12 +22,8 @@ The later parts of this chapter explains what each of the commands do in more de
     $ ls
     run_video_slam   run_video_localization   lib/   ...
 
-    # download an ORB vocabulary from Google Drive
-    FILE_ID="1wUPb328th8bUqhOk-i8xllt5mgRW4n84"
-    curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${FILE_ID}" > /dev/null
-    CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
-    curl -sLb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=${FILE_ID}" -o orb_vocab.zip
-    unzip orb_vocab.zip
+    # download an ORB vocabulary from GitHub
+    curl -sL "https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2" -o orb_vocab.dbow2
 
     # download a sample dataset from Google Drive
     FILE_ID="1d8kADKWBptEqTF7jEVhKatBEdN7g0ikY"
@@ -228,8 +224,7 @@ After downloading and uncompressing a zip file, you will find a video file and a
 
 You can put the dataset in any directory where you have access to.
 
-| Additionally, please download a vocabulary file for DBoW2 from `Google Drive <https://drive.google.com/open?id=1wUPb328th8bUqhOk-i8xllt5mgRW4n84>`__ or `Baudu Wangpan <https://pan.baidu.com/s/1627YS4b-DC_0Ioya3gLTPQ>`__ (Pass: zb6v).
-| After uncompressing it, you will find ``orb_vocab.dbow2``.
+| Additionally, please download a vocabulary file for DBoW2 from `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
 
 For the rest of this chapter, we will use ``aist_living_lab_1`` and ``aist_living_lab_2`` datasets for our example.
 

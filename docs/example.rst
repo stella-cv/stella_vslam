@@ -35,7 +35,7 @@ The following options are allowed:
     -p, --map-db arg       store a map database at this path after SLAM
 
 | The camera that captures the video file must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
-| We provided a vocabulary file for DBoW2 at `here <https://drive.google.com/open?id=1wUPb328th8bUqhOk-i8xllt5mgRW4n84>`__. You can use ``orb_vocab.dbow2`` in the zip file.
+| We provided a vocabulary file for DBoW2 at `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
 
 Localization
 ^^^^^^^^^^^^
@@ -61,7 +61,7 @@ The following options are allowed:
     --debug                debug mode
 
 | The camera that captures the video file must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
-| We provided a vocabulary file for DBoW2 at `here <https://drive.google.com/open?id=1wUPb328th8bUqhOk-i8xllt5mgRW4n84>`__. You can use ``orb_vocab.dbow2`` in the zip file.
+| We provided a vocabulary file for DBoW2 at `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
 
 You can create a map database file by running one of the ``run_****_slam`` executables with ``--map-db map_file_name.msg`` option.
 
@@ -94,7 +94,7 @@ The following options are allowed:
     -p, --map-db arg       store a map database at this path after SLAM
 
 | The camera that captures the video file must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
-| We provided a vocabulary file for DBoW2 at `here <https://drive.google.com/open?id=1wUPb328th8bUqhOk-i8xllt5mgRW4n84>`__. You can use ``orb_vocab.dbow2`` in the zip file.
+| We provided a vocabulary file for DBoW2 at `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
 
 Localization
 ^^^^^^^^^^^^
@@ -120,7 +120,7 @@ The following options are allowed:
     --debug                debug mode
 
 | The camera that captures the video file must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
-| We provided a vocabulary file for DBoW2 at `here <https://drive.google.com/open?id=1wUPb328th8bUqhOk-i8xllt5mgRW4n84>`__. You can use ``orb_vocab.dbow2`` in the zip file.
+| We provided a vocabulary file for DBoW2 at `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
 
 You can create a map database file by running one of the ``run_****_slam`` executables with ``--map-db map_file_name.msg`` option.
 
@@ -148,8 +148,7 @@ After downloading and uncompressing it, you will find several sequences under th
     $ ls sequences/
     00  01  02  03  04  05  06  07  08  09  10  11  12  13  14  15  16  17  18  19  20  21
 
-In addition, download a vocabulary file for DBoW2 from `here <https://drive.google.com/open?id=1wUPb328th8bUqhOk-i8xllt5mgRW4n84>`__ and uncompress it.
-You can find ``orb_vocab.dbow2`` in the zip file.
+In addition, download a vocabulary file for DBoW2 from `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
 
 A configuration file for each sequence is contained under ``./example/kitti/``.
 
@@ -209,8 +208,7 @@ After downloading and uncompressing it, you will find several directories under 
     $ ls mav0/
     body.yaml  cam0  cam1  imu0  leica0  state_groundtruth_estimate0
 
-In addition, download a vocabulary file for DBoW2 from `here <https://drive.google.com/open?id=1wUPb328th8bUqhOk-i8xllt5mgRW4n84>`__ and uncompress it.
-You can find ``orb_vocab.dbow2`` in the zip file.
+In addition, download a vocabulary file for DBoW2 from `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
 
 We provided the two config files for EuRoC, ``./example/euroc/EuRoC_mono.yaml`` for monocular and ``./example/euroc/EuRoC_stereo.yaml`` for stereo.
 
@@ -304,7 +302,7 @@ The following options are allowed:
 | Please specify the camera number you want to use by ``-n`` option.
 | The camera must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
 | You can scale input images to the performance of your machine by ``-s`` option. Please modify the config accordingly.
-| We provided a vocabulary file for DBoW2 at `here <https://drive.google.com/open?id=1wUPb328th8bUqhOk-i8xllt5mgRW4n84>`__. You can use ``orb_vocab.dbow2`` in the zip file.
+| We provided a vocabulary file for DBoW2 at `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
 
 Localization
 ^^^^^^^^^^^^
@@ -330,4 +328,4 @@ The following options are allowed:
 | Please specify the camera number you want to use by ``-n`` option.
 | The camera must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
 | You can scale input images to the performance of your machine by ``-s`` option. Please modify the config accordingly.
-| We provided a vocabulary file for DBoW2 at `here <https://drive.google.com/open?id=1wUPb328th8bUqhOk-i8xllt5mgRW4n84>`__. You can use ``orb_vocab.dbow2`` in the zip file.
+| We provided a vocabulary file for DBoW2 at `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
