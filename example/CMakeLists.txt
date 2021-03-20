@@ -68,6 +68,7 @@ list(APPEND EXECUTABLE_TARGETS run_tum_rgbd_slam)
 foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
     # Set output directory for executables
     set_target_properties(${EXECUTABLE_TARGET} PROPERTIES
+                          RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}"
                           RUNTIME_OUTPUT_DIRECTORY_DEBUG "${PROJECT_BINARY_DIR}"
                           RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_BINARY_DIR}"
                           RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${PROJECT_BINARY_DIR}"
