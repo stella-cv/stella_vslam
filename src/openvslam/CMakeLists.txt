@@ -105,15 +105,13 @@ else()
 endif()
 
 if(BOW_FRAMEWORK MATCHES "DBoW2")
-    set(BoW_INCLUDE_DIR ${DBoW2_INCLUDE_DIRS}})
     set(BoW_LIBRARY ${DBoW2_LIBS})
     target_compile_definitions(${PROJECT_NAME} PUBLIC USE_DBOW2)
-    message(STATUS "BoW framework: ${BOW_FRAMEWORK} (found in ${BoW_INCLUDE_DIR})")
+    message(STATUS "BoW framework: ${BOW_FRAMEWORK} (found in ${DBoW2_INCLUDE_DIRS})")
 elseif(BOW_FRAMEWORK MATCHES "FBoW")
     if(fbow_FOUND)
-        set(BoW_INCLUDE_DIR ${fbow_INCLUDE_DIRS}})
         set(BoW_LIBRARY ${fbow_LIBS})
-        message(STATUS "BoW framework: ${BOW_FRAMEWORK} (found in ${BoW_INCLUDE_DIR})")
+        message(STATUS "BoW framework: ${BOW_FRAMEWORK} (found in ${fbow_INCLUDE_DIRS})")
     else()
         target_include_directories(${PROJECT_NAME}
                                 PUBLIC
