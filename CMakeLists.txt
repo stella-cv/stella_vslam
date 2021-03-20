@@ -53,10 +53,13 @@ endif()
 if(MSVC)
     # C4251: DLL export, C4244: floating->integer, C4305: double->float, C4267: size_t->any, C4127: constant condition
     add_compile_options(/W4 $<$<CONFIG:Debug>:/MTd>;$<$<CONFIG:Release>:/MT> /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127)
-    add_compile_options("$<$<CONFIG:Debug>:/Zo>;$<$<CONFIG:Release>:/O2>")
+    add_compile_options("$<$<CONFIG:Debug>:/Zo>;$<$<CONFIG:Release>:/O2>;$<$<CONFIG:None>:/O2>")
 else()
     add_compile_options(-Wall -Wextra)
-    add_compile_options("$<$<CONFIG:Debug>:-Og>;$<$<CONFIG:Release>:-O3;-ffast-math>")
+    add_compile_options(
+        "$<$<CONFIG:Debug>:-Og>"
+        "$<$<CONFIG:Release>:-O3;-ffast-math>"
+        "$<$<CONFIG:None>:-O3;-ffast-math>")
 endif()
 
 set(BUILD_WITH_MARCH_NATIVE OFF CACHE BOOL "Enable architecture-aware optimization")
