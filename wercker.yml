@@ -42,13 +42,13 @@ build_with_gui:
       code: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=ON -DUSE_PANGOLIN_VIEWER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2 -DBUILD_TESTS=ON ..
+        cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_PANGOLIN_VIEWER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2 -DBUILD_TESTS=ON ..
         make -j $(($(nproc) / 2))
     - script:
       name: cmake and make with socket publisher
       code: |
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=ON -DUSE_SOCKET_PUBLISHER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2 -DBUILD_TESTS=ON ..
+        cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_SOCKET_PUBLISHER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2 -DBUILD_TESTS=ON ..
         make -j $(($(nproc) / 2))
 
 build_without_gui:
@@ -64,7 +64,7 @@ build_without_gui:
       code: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2 -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
+        cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2 -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
         make -j $(($(nproc) / 2))
     - script:
       name: unit test
@@ -103,7 +103,7 @@ build_without_gui_fbow:
       code: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=FBoW -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
+        cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=FBoW -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
         make -j $(($(nproc) / 2))
     - script:
       name: unit test
@@ -158,7 +158,7 @@ build_tutorial:
       code: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2 -DBUILD_TESTS=ON -DUSE_OPENMP=OFF ..
+        cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2 -DBUILD_TESTS=ON -DUSE_OPENMP=OFF ..
         make -j $(($(nproc) / 2))
     - script:
       name: download a dataset
