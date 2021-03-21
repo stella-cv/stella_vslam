@@ -58,8 +58,8 @@ else()
     add_compile_options(-Wall -Wextra)
     add_compile_options(
         "$<$<CONFIG:Debug>:-Og>"
-        "$<$<CONFIG:Release>:-O3;-ffast-math>"
-        "$<$<CONFIG:None>:-O3;-ffast-math>")
+        "$<$<CONFIG:Release>:-O3>"
+        "$<$<CONFIG:None>:-O3>")
 endif()
 
 set(BUILD_WITH_MARCH_NATIVE OFF CACHE BOOL "Enable architecture-aware optimization")
