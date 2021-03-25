@@ -1,5 +1,6 @@
 #include "pangolin_viewer/color_scheme.h"
 
+#include <stdexcept>
 #include <cctype>
 
 namespace pangolin_viewer {
