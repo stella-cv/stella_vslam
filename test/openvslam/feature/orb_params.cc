@@ -9,6 +9,7 @@ using namespace openvslam;
 TEST(orb_params, load_yaml_without_rectangle_mask) {
     const std::string yaml =
         "Feature.max_num_keypoints: 3000\n"
+        "Feature.ini_max_num_keypoints: 5000\n"
         "Feature.scale_factor: 1.3\n"
         "Feature.num_levels: 12\n"
         "Feature.ini_fast_threshold: 25\n"
@@ -18,6 +19,7 @@ TEST(orb_params, load_yaml_without_rectangle_mask) {
     const auto params = feature::orb_params(yaml_node);
 
     EXPECT_EQ(params.max_num_keypts_, 3000);
+    EXPECT_EQ(params.ini_max_num_keypts_, 5000);
     EXPECT_FLOAT_EQ(params.scale_factor_, 1.3);
     EXPECT_EQ(params.num_levels_, 12);
     EXPECT_EQ(params.ini_fast_thr_, 25);
@@ -30,6 +32,7 @@ TEST(orb_params, load_yaml_with_rectangle_mask) {
         "Camera.cols: 640\n"
         "Camera.rows: 480\n"
         "Feature.max_num_keypoints: 3000\n"
+        "Feature.ini_max_num_keypoints: 5000\n"
         "Feature.scale_factor: 1.3\n"
         "Feature.num_levels: 12\n"
         "Feature.ini_fast_threshold: 25\n"
@@ -42,6 +45,7 @@ TEST(orb_params, load_yaml_with_rectangle_mask) {
     const auto params = feature::orb_params(yaml_node);
 
     EXPECT_EQ(params.max_num_keypts_, 3000);
+    EXPECT_EQ(params.ini_max_num_keypts_, 5000);
     EXPECT_FLOAT_EQ(params.scale_factor_, 1.3);
     EXPECT_EQ(params.num_levels_, 12);
     EXPECT_EQ(params.ini_fast_thr_, 25);
