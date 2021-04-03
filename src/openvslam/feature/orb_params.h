@@ -10,7 +10,8 @@ struct orb_params {
     orb_params() = default;
 
     //! Constructor
-    orb_params(const unsigned int max_num_keypts, const float scale_factor, const unsigned int num_levels,
+    orb_params(const unsigned int max_num_keypts, const unsigned int ini_max_num_keypts,
+               const float scale_factor, const unsigned int num_levels,
                const unsigned int ini_fast_thr, const unsigned int min_fast_thr,
                const std::vector<std::vector<float>>& mask_rects = {});
 
@@ -24,6 +25,7 @@ struct orb_params {
     void show_parameters() const;
 
     unsigned int max_num_keypts_ = 2000;
+    unsigned int ini_max_num_keypts_ = 4000;
     float scale_factor_ = 1.2;
     unsigned int num_levels_ = 8;
     unsigned int ini_fast_thr_ = 20;

@@ -30,7 +30,7 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
     extractor_left_ = new feature::orb_extractor(cfg_->orb_params_);
     if (camera_->setup_type_ == camera::setup_type_t::Monocular) {
         ini_extractor_left_ = new feature::orb_extractor(cfg_->orb_params_);
-        ini_extractor_left_->set_max_num_keypoints(ini_extractor_left_->get_max_num_keypoints() * 2);
+        ini_extractor_left_->set_max_num_keypoints(cfg_->orb_params_.ini_max_num_keypts_);
     }
     if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
         extractor_right_ = new feature::orb_extractor(cfg_->orb_params_);

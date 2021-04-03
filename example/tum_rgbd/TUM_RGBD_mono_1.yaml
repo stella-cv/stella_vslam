@@ -30,6 +30,7 @@ Camera.color_order: "RGB"
 #================#
 
 Feature.max_num_keypoints: 1000
+Feature.ini_max_num_keypoints: 2000
 Feature.scale_factor: 1.2
 Feature.num_levels: 8
 Feature.ini_fast_threshold: 20

@@ -55,6 +55,7 @@ StereoRectifier.R_right: [0.9999633526194376, -0.003625811871560086, 0.007755443
 #================#
 
 Feature.max_num_keypoints: 1000
+Feature.ini_max_num_keypoints: 2000
 Feature.scale_factor: 1.2
 Feature.num_levels: 8
 Feature.ini_fast_threshold: 20

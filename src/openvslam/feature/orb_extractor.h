@@ -15,7 +15,8 @@ public:
     orb_extractor() = delete;
 
     //! Constructor
-    orb_extractor(const unsigned int max_num_keypts, const float scale_factor, const unsigned int num_levels,
+    orb_extractor(const unsigned int max_num_keypts, const unsigned int ini_min_num_keypts,
+                  const float scale_factor, const unsigned int num_levels,
                   const unsigned int ini_fast_thr, const unsigned int min_fast_thr,
                   const std::vector<std::vector<float>>& mask_rects = {});
 
