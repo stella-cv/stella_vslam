@@ -345,6 +345,7 @@ When building with support for PangolinViewer, please specify the following cmak
         -DUSE_STACK_TRACE_LOGGER=ON \
         -DBOW_FRAMEWORK=DBoW2 \
         -DBUILD_TESTS=ON \
+        -DBUILD_EXAMPLES=ON \
         ..
     make -j4
 
@@ -361,6 +362,7 @@ When building with support for SocketViewer, please specify the following cmake 
         -DUSE_STACK_TRACE_LOGGER=ON \
         -DBOW_FRAMEWORK=DBoW2 \
         -DBUILD_TESTS=ON \
+        -DBUILD_EXAMPLES=ON \
         ..
     make -j4
 
