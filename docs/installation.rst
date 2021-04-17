@@ -341,6 +341,7 @@ When building with support for PangolinViewer, please specify the following cmak
     cmake \
         -DBUILD_WITH_MARCH_NATIVE=ON \
         -DUSE_PANGOLIN_VIEWER=ON \
+        -DINSTALL_PANGOLIN_VIEWER=ON \
         -DUSE_SOCKET_PUBLISHER=OFF \
         -DUSE_STACK_TRACE_LOGGER=ON \
         -DBOW_FRAMEWORK=DBoW2 \
