@@ -203,6 +203,7 @@ RUN set -x && \
   cd build && \
   cmake \
     -DUSE_SOCKET_PUBLISHER=ON \
+    -DBUILD_EXAMPLES=ON \
     -DUSE_STACK_TRACE_LOGGER=ON \
     .. && \
   make -j${NUM_THREADS} && \
