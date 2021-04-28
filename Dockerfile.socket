@@ -134,25 +134,6 @@ RUN set -x && \
   rm -rf *
 ENV OpenCV_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/opencv4
 
-# DBoW2
-ARG DBOW2_COMMIT=687fcb74dd13717c46add667e3fbfa9828a7019f
-WORKDIR /tmp
-RUN set -x && \
-  git clone https://github.com/OpenVSLAM-Community/DBoW2.git && \
-  cd DBoW2 && \
-  git checkout ${DBOW2_COMMIT} && \
-  mkdir -p build && \
-  cd build && \
-  cmake \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
-    .. && \
-  make -j${NUM_THREADS} && \
-  make install && \
-  cd /tmp && \
-  rm -rf *
-ENV DBoW2_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/DBoW2
-
 # socket.io-client-cpp
 ARG SIOCLIENT_COMMIT=ff6ef08e45c594e33aa6bc19ebdd07954914efe0
 WORKDIR /tmp
