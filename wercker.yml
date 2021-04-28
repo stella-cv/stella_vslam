@@ -42,13 +42,13 @@ build_with_gui:
       code: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_PANGOLIN_VIEWER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2 -DBUILD_TESTS=ON ..
+        cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_PANGOLIN_VIEWER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
         make -j $(($(nproc) / 2))
     - script:
       name: cmake and make with socket publisher
       code: |
         cd build
-        cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_SOCKET_PUBLISHER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2 -DBUILD_TESTS=ON ..
+        cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_SOCKET_PUBLISHER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
         make -j $(($(nproc) / 2))
 
 build_without_gui:
@@ -64,7 +64,7 @@ build_without_gui:
       code: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2 -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
+        cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
         make -j $(($(nproc) / 2))
     - script:
       name: unit test
@@ -81,13 +81,13 @@ build_without_gui:
       name: SLAM test (monocular) with EuRoC MAV dataset
       code: |
         cd build
-        ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.dbow2 -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_mono.msg
+        ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_mono.msg
         evo_rpe tum data.tum frame_trajectory.txt -as
     - script:
       name: SLAM test (stereo) with EuRoC MAV dataset
       code: |
         cd build
-        ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.dbow2 -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_stereo.msg
+        ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_stereo.msg
         evo_rpe tum data.tum frame_trajectory.txt -a
 
 build_without_gui_fbow:
@@ -158,7 +158,7 @@ build_tutorial:
       code: |
         mkdir build
         cd build
-        cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBOW_FRAMEWORK=DBoW2 -DBUILD_TESTS=ON -DUSE_OPENMP=OFF ..
+        cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON -DUSE_OPENMP=OFF ..
         make -j $(($(nproc) / 2))
     - script:
       name: download a dataset
@@ -174,12 +174,12 @@ build_tutorial:
       name: mapping test with the tutorial
       code: |
         cd build
-        ./run_video_slam -v /datasets/orb_vocab/orb_vocab.dbow2 -m ./video_for_ci_1/video.mp4 -c ./video_for_ci_1/config.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
+        ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ./video_for_ci_1/config.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
     - script:
       name: localization test with the tutorial
       code: |
         cd build
-        ./run_video_localization -v /datasets/orb_vocab/orb_vocab.dbow2 -m ./video_for_ci_1/video.mp4 -c ./video_for_ci_1/config.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
+        ./run_video_localization -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ./video_for_ci_1/config.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
 
 rosdep_foxy:
   box: ghcr.io/ymd-stella/openvslam-community/ros:foxy-ros-base
