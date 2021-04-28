@@ -57,7 +57,7 @@ Please see [**Installation**](https://openvslam-community.readthedocs.io/en/late
 
 Please see [**Simple Tutorial**](https://openvslam-community.readthedocs.io/en/latest/simple_tutorial.html) chapter in the [documentation](https://openvslam-community.readthedocs.io/).
 
-A sample ORB vocabulary file can be downloaded from [here](https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2).
+A sample ORB vocabulary file can be downloaded from [here](https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow).
 Sample datasets are also provided at [here](https://drive.google.com/open?id=1A_gq8LYuENePhNHsuscLZQPhbJJwzAq4).
 
 If you would like to run visual SLAM with standard benchmarking datasets (e.g. KITTI Odometry dataset), please see [**SLAM with standard datasets**](https://openvslam-community.readthedocs.io/en/latest/example.html#slam-with-standard-datasets) section in the [documentation](https://openvslam-community.readthedocs.io/).

@@ -35,7 +35,7 @@ The following options are allowed:
     -p, --map-db arg       store a map database at this path after SLAM
 
 | The camera that captures the video file must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
-| We provided a vocabulary file for DBoW2 at `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
+| We provided a vocabulary file for FBoW at `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 Localization
 ^^^^^^^^^^^^
@@ -61,7 +61,7 @@ The following options are allowed:
     --debug                debug mode
 
 | The camera that captures the video file must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
-| We provided a vocabulary file for DBoW2 at `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
+| We provided a vocabulary file for FBoW at `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 You can create a map database file by running one of the ``run_****_slam`` executables with ``--map-db map_file_name.msg`` option.
 
@@ -94,7 +94,7 @@ The following options are allowed:
     -p, --map-db arg       store a map database at this path after SLAM
 
 | The camera that captures the video file must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
-| We provided a vocabulary file for DBoW2 at `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
+| We provided a vocabulary file for FBoW at `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 Localization
 ^^^^^^^^^^^^
@@ -120,7 +120,7 @@ The following options are allowed:
     --debug                debug mode
 
 | The camera that captures the video file must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
-| We provided a vocabulary file for DBoW2 at `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
+| We provided a vocabulary file for FBoW at `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 You can create a map database file by running one of the ``run_****_slam`` executables with ``--map-db map_file_name.msg`` option.
 
@@ -148,7 +148,7 @@ After downloading and uncompressing it, you will find several sequences under th
     $ ls sequences/
     00  01  02  03  04  05  06  07  08  09  10  11  12  13  14  15  16  17  18  19  20  21
 
-In addition, download a vocabulary file for DBoW2 from `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
+In addition, download a vocabulary file for FBoW from `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 A configuration file for each sequence is contained under ``./example/kitti/``.
 
@@ -163,12 +163,12 @@ If you built examples with Pangolin Viewer support, a map viewer and frame viewe
     ...
     # monocular SLAM with sequence 00
     $ ./run_kitti_slam \
-        -v /path/to/orb_vocab/orb_vocab.dbow2 \
+        -v /path/to/orb_vocab/orb_vocab.fbow \
         -d /path/to/KITTI/Odometry/sequences/00/ \
         -c ../example/kitti/KITTI_mono_00-02.yaml
     # stereo SLAM with sequence 05
     $ ./run_kitti_slam \
-        -v /path/to/orb_vocab/orb_vocab.dbow2 \
+        -v /path/to/orb_vocab/orb_vocab.fbow \
         -d /path/to/KITTI/Odometry/sequences/05/ \
         -c ../example/kitti/KITTI_stereo_04-12.yaml
 
@@ -208,7 +208,7 @@ After downloading and uncompressing it, you will find several directories under 
     $ ls mav0/
     body.yaml  cam0  cam1  imu0  leica0  state_groundtruth_estimate0
 
-In addition, download a vocabulary file for DBoW2 from `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
+In addition, download a vocabulary file for FBoW from `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 We provided the two config files for EuRoC, ``./example/euroc/EuRoC_mono.yaml`` for monocular and ``./example/euroc/EuRoC_stereo.yaml`` for stereo.
 
@@ -223,12 +223,12 @@ If you have built examples with Pangolin Viewer support, a map viewer and frame 
     ...
     # monocular SLAM with any EuRoC sequence
     $ ./run_euroc_slam \
-        -v /path/to/orb_vocab/orb_vocab.dbow2 \
+        -v /path/to/orb_vocab/orb_vocab.fbow \
         -d /path/to/EuRoC/MAV/mav0/ \
         -c ../example/euroc/EuRoC_mono.yaml
     # stereo SLAM with any EuRoC sequence
     $ ./run_euroc_slam \
-        -v /path/to/orb_vocab/orb_vocab.dbow2 \
+        -v /path/to/orb_vocab/orb_vocab.fbow \
         -d /path/to/EuRoC/MAV/mav0/ \
         -c ../example/euroc/EuRoC_stereo.yaml
 
@@ -302,7 +302,7 @@ The following options are allowed:
 | Please specify the camera number you want to use by ``-n`` option.
 | The camera must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
 | You can scale input images to the performance of your machine by ``-s`` option. Please modify the config accordingly.
-| We provided a vocabulary file for DBoW2 at `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
+| We provided a vocabulary file for FBoW at `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 Localization
 ^^^^^^^^^^^^
@@ -328,4 +328,4 @@ The following options are allowed:
 | Please specify the camera number you want to use by ``-n`` option.
 | The camera must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
 | You can scale input images to the performance of your machine by ``-s`` option. Please modify the config accordingly.
-| We provided a vocabulary file for DBoW2 at `here <https://github.com/OpenVSLAM-Community/DBoW2_orb_vocab/raw/main/orb_vocab.dbow2>`__.
+| We provided a vocabulary file for FBoW at `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.

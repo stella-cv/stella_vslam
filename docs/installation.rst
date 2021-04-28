@@ -40,7 +40,7 @@ Requirements for OpenVSLAM
 
 * `SuiteSparse <http://faculty.cse.tamu.edu/davis/suitesparse.html>`_ : Required by g2o.
 
-* `DBoW2 <https://github.com/OpenVSLAM-Community/DBoW2>`_ : **Please use the custom version of DBoW2** released in `https://github.com/OpenVSLAM-Community/DBoW2 <https://github.com/OpenVSLAM-Community/DBoW2>`_.
+* `FBoW <https://github.com/OpenVSLAM-Community/FBoW>`_ : **Please use the custom version of FBoW** released in `https://github.com/OpenVSLAM-Community/FBoW <https://github.com/OpenVSLAM-Community/FBoW>`_.
 
 * `yaml-cpp <https://github.com/jbeder/yaml-cpp>`_ : version 0.6.0 or later.
 
@@ -226,13 +226,13 @@ Jump to :ref:`Common Installation Instructions <subsection-common-linux-macos>` 
 Common Installation Instructions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Download, build and install **the custom DBoW2** from source.
+Download, build and install **the custom FBoW** from source.
 
 .. code-block:: bash
 
     cd /path/to/working/dir
-    git clone https://github.com/OpenVSLAM-Community/DBoW2.git
-    cd DBoW2
+    git clone https://github.com/OpenVSLAM-Community/FBoW.git
+    cd FBoW
     mkdir build && cd build
     cmake \
         -DCMAKE_BUILD_TYPE=Release \
@@ -344,7 +344,6 @@ When building with support for PangolinViewer, please specify the following cmak
         -DINSTALL_PANGOLIN_VIEWER=ON \
         -DUSE_SOCKET_PUBLISHER=OFF \
         -DUSE_STACK_TRACE_LOGGER=ON \
-        -DBOW_FRAMEWORK=DBoW2 \
         -DBUILD_TESTS=ON \
         -DBUILD_EXAMPLES=ON \
         ..
@@ -361,23 +360,10 @@ When building with support for SocketViewer, please specify the following cmake 
         -DUSE_PANGOLIN_VIEWER=OFF \
         -DUSE_SOCKET_PUBLISHER=ON \
         -DUSE_STACK_TRACE_LOGGER=ON \
-        -DBOW_FRAMEWORK=DBoW2 \
         -DBUILD_TESTS=ON \
         -DBUILD_EXAMPLES=ON \
         ..
     make -j4
-
-.. NOTE ::
-
-    If ``cmake`` cannot find any dependencies, set the environment variables directly.
-    For example, when ``CMAKE_INSTALL_PREFIX`` is ``/usr/local``:
-
-    - ``Eigen3_DIR=/usr/local/share/eigen3/cmake``
-    - ``OpenCV_DIR=/usr/local/share/OpenCV``
-    - ``DBoW2_DIR=/usr/local/lib/cmake/DBoW2``
-    - ``g2o_DIR=/usr/local/lib/cmake/g2o``
-    - ``Pangolin_DIR=/usr/local/lib/cmake/Pangolin`` (if installed)
-    - ``sioclient_DIR=/usr/local/lib/cmake/sioclient`` (if installed)
 
 After building, check to see if it was successfully built by executing ``./run_kitti_slam -h``.
 

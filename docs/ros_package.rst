@@ -129,7 +129,7 @@ The source code is placed at ``openvslam_ros/src/run_slam.cc``.
 
     source ~/catkin_ws/devel/setup.bash
     rosrun openvslam_ros run_slam \
-        -v /path/to/orb_vocab.dbow2 \
+        -v /path/to/orb_vocab.fbow \
         -c /path/to/config.yaml
 
 Localization
@@ -142,6 +142,6 @@ The source code is placed at ``openvslam_ros/src/run_localization.cc``.
 
     source ~/catkin_ws/devel/setup.bash
     rosrun openvslam_ros run_localization \
-        -v /path/to/orb_vocab.dbow2 \
+        -v /path/to/orb_vocab.fbow \
         -c /path/to/config.yaml \
         --map-db /path/to/map.msg
