@@ -276,11 +276,6 @@ The frame viewer and map viewer should launch as well.
 If the two viewers are not launching correctly, check if you launched the command with the appropriate paths.
 
 
-.. NOTE ::
-
-    If OpenVSLAM terminates abnormaly soon after initialization, rebuild g2o and OpenVSLAM with ``-DBUILD_WITH_MARCH_NATIVE=OFF`` option for ``cmake`` configulation.
-
-
 .. image:: ./img/slam_frame_viewer_1.png
     :width: 640px
     :align: center

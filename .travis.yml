@@ -85,7 +85,6 @@ before_install:
         -DCMAKE_CXX_FLAGS=-std=c++11 \
         -DBUILD_SHARED_LIBS=ON \
         -DBUILD_UNITTESTS=OFF \
-        -DBUILD_WITH_MARCH_NATIVE=ON \
         -DG2O_BUILD_EXAMPLES=OFF \
         -DG2O_BUILD_APPS=OFF \
         -DG2O_USE_CHOLMOD=OFF \
@@ -161,7 +160,6 @@ install:
     cd ${TRAVIS_BUILD_DIR}
     mkdir -p build && cd build
     cmake \
-        -DBUILD_WITH_MARCH_NATIVE=ON \
         -DUSE_PANGOLIN_VIEWER=ON \
         -DUSE_SOCKET_PUBLISHER=OFF \
         -DUSE_STACK_TRACE_LOGGER=ON \
@@ -173,7 +171,6 @@ install:
     cd ${TRAVIS_BUILD_DIR}
     mkdir -p build && cd build
     cmake \
-        -DBUILD_WITH_MARCH_NATIVE=ON \
         -DUSE_PANGOLIN_VIEWER=OFF \
         -DUSE_SOCKET_PUBLISHER=ON \
         -DUSE_STACK_TRACE_LOGGER=ON \
@@ -185,7 +182,6 @@ install:
     cd ${TRAVIS_BUILD_DIR}
     mkdir -p build && cd build
     cmake \
-        -DBUILD_WITH_MARCH_NATIVE=ON \
         -DUSE_PANGOLIN_VIEWER=OFF \
         -DUSE_SOCKET_PUBLISHER=OFF \
         -DUSE_STACK_TRACE_LOGGER=ON \

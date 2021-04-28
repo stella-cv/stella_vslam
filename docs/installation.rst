@@ -256,7 +256,6 @@ Download, build and install g2o.
         -DCMAKE_CXX_FLAGS=-std=c++11 \
         -DBUILD_SHARED_LIBS=ON \
         -DBUILD_UNITTESTS=OFF \
-        -DBUILD_WITH_MARCH_NATIVE=ON \
         -DG2O_USE_CHOLMOD=OFF \
         -DG2O_USE_CSPARSE=ON \
         -DG2O_USE_OPENGL=OFF \
@@ -339,7 +338,6 @@ When building with support for PangolinViewer, please specify the following cmak
     cd /path/to/openvslam
     mkdir build && cd build
     cmake \
-        -DBUILD_WITH_MARCH_NATIVE=ON \
         -DUSE_PANGOLIN_VIEWER=ON \
         -DINSTALL_PANGOLIN_VIEWER=ON \
         -DUSE_SOCKET_PUBLISHER=OFF \
@@ -356,7 +354,6 @@ When building with support for SocketViewer, please specify the following cmake 
     cd /path/to/openvslam
     mkdir build && cd build
     cmake \
-        -DBUILD_WITH_MARCH_NATIVE=ON \
         -DUSE_PANGOLIN_VIEWER=OFF \
         -DUSE_SOCKET_PUBLISHER=ON \
         -DUSE_STACK_TRACE_LOGGER=ON \
@@ -381,10 +378,6 @@ After building, check to see if it was successfully built by executing ``./run_k
     --debug                debug mode
     --eval-log             store trajectory and tracking times for evaluation
     -p, --map-db arg       store a map database at this path after SLAM
-
-.. NOTE ::
-
-    If OpenVSLAM terminates abnormaly, rebuild g2o and OpenVSLAM with ``-DBUILD_WITH_MARCH_NATIVE=OFF`` option for ``cmake`` configulation.
 
 
 .. _section-server-setup:
