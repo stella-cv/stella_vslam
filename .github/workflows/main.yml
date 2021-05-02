@@ -28,4 +28,5 @@ jobs:
       - name: brew install
         run: |
           brew update
+          brew upgrade
           brew install ccache pkg-config cmake git suite-sparse libomp eigen ffmpeg opencv yaml-cpp glog gflags glew protobuf clang-format
