@@ -169,6 +169,8 @@ public:
     virtual nlohmann::json to_json() const = 0;
 };
 
+std::ostream& operator<<(std::ostream& os, const base& params);
+
 } // namespace camera
 } // namespace openvslam
 
