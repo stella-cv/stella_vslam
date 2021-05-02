@@ -6,8 +6,9 @@ namespace openvslam {
 namespace solve {
 
 essential_solver::essential_solver(const eigen_alloc_vector<Vec3_t>& bearings_1, const eigen_alloc_vector<Vec3_t>& bearings_2,
-                                   const std::vector<std::pair<int, int>>& matches_12)
-    : bearings_1_(bearings_1), bearings_2_(bearings_2), matches_12_(matches_12) {}
+                                   const std::vector<std::pair<int, int>>& matches_12, bool use_fixed_seed)
+    : bearings_1_(bearings_1), bearings_2_(bearings_2), matches_12_(matches_12),
+      random_engine_(util::create_random_engine(use_fixed_seed)) {}
 
 void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bool recompute) {
     const auto num_matches = static_cast<unsigned int>(matches_12_.size());
@@ -41,7 +42,7 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
 
     for (unsigned int iter = 0; iter < max_num_iter; iter++) {
         // 2-1. Create a minimum set
-        const auto indices = util::create_random_array(min_set_size, 0U, num_matches - 1);
+        const auto indices = util::create_random_array(min_set_size, 0U, num_matches - 1, random_engine_);
         for (unsigned int i = 0; i < min_set_size; ++i) {
             const auto idx = indices.at(i);
             min_set_bearings_1.at(i) = bearings_1_.at(matches_12_.at(idx).first);

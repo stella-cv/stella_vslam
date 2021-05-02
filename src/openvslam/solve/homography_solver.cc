@@ -7,8 +7,9 @@ namespace openvslam {
 namespace solve {
 
 homography_solver::homography_solver(const std::vector<cv::KeyPoint>& undist_keypts_1, const std::vector<cv::KeyPoint>& undist_keypts_2,
-                                     const std::vector<std::pair<int, int>>& matches_12, const float sigma)
-    : undist_keypts_1_(undist_keypts_1), undist_keypts_2_(undist_keypts_2), matches_12_(matches_12), sigma_(sigma) {}
+                                     const std::vector<std::pair<int, int>>& matches_12, const float sigma, bool use_fixed_seed)
+    : undist_keypts_1_(undist_keypts_1), undist_keypts_2_(undist_keypts_2), matches_12_(matches_12), sigma_(sigma),
+      random_engine_(util::create_random_engine(use_fixed_seed)) {}
 
 void homography_solver::find_via_ransac(const unsigned int max_num_iter, const bool recompute) {
     const auto num_matches = static_cast<unsigned int>(matches_12_.size());
@@ -53,7 +54,7 @@ void homography_solver::find_via_ransac(const unsigned int max_num_iter, const b
 
     for (unsigned int iter = 0; iter < max_num_iter; ++iter) {
         // 2-1. Create a minimum set
-        const auto indices = util::create_random_array(min_set_size, 0U, num_matches - 1);
+        const auto indices = util::create_random_array(min_set_size, 0U, num_matches - 1, random_engine_);
         for (unsigned int i = 0; i < min_set_size; ++i) {
             const auto idx = indices.at(i);
             min_set_keypts_1.at(i) = normalized_keypts_1.at(matches_12_.at(idx).first);

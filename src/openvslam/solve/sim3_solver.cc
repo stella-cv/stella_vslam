@@ -14,9 +14,11 @@ namespace solve {
 
 sim3_solver::sim3_solver(data::keyframe* keyfrm_1, data::keyframe* keyfrm_2,
                          const std::vector<data::landmark*>& matched_lms_in_keyfrm_2,
-                         const bool fix_scale, const unsigned int min_num_inliers)
+                         const bool fix_scale, const unsigned int min_num_inliers,
+                         bool use_fixed_seed)
     : keyfrm_1_(keyfrm_1), keyfrm_2_(keyfrm_2),
-      fix_scale_(fix_scale), min_num_inliers_(min_num_inliers) {
+      fix_scale_(fix_scale), min_num_inliers_(min_num_inliers),
+      random_engine_(util::create_random_engine(use_fixed_seed)) {
     // 3D points seen in the current keyframe (keyframe 1)
     const auto keyfrm_1_lms = keyfrm_1_->get_landmarks();
 
@@ -112,7 +114,7 @@ void sim3_solver::find_via_ransac(const unsigned int max_num_iter) {
     for (unsigned int iter = 0; iter < max_num_iter; ++iter) {
         // Randomly sample three 3D points into a matrix
         Mat33_t pts_1, pts_2;
-        const auto random_indices = util::create_random_array(3, 0, static_cast<int>(num_common_pts_ - 1));
+        const auto random_indices = util::create_random_array(3, 0, static_cast<int>(num_common_pts_ - 1), random_engine_);
         for (unsigned int i = 0; i < 3; ++i) {
             pts_1.block(0, i, 3, 1) = common_pts_in_keyfrm_1_.at(random_indices.at(i));
             pts_2.block(0, i, 3, 1) = common_pts_in_keyfrm_2_.at(random_indices.at(i));

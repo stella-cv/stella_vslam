@@ -6,7 +6,8 @@
 using namespace openvslam;
 
 TEST(random_array, create_random_array_1) {
-    const auto array = util::create_random_array(5, 1, 5);
+    auto random_engine = util::create_random_engine();
+    const auto array = util::create_random_array(5, 1, 5, random_engine);
 
     EXPECT_EQ(array.size(), 5);
     // We are creating a random array with no duplicates, so the minimum value should be 1 and the maximum value should be 5.
@@ -15,7 +16,8 @@ TEST(random_array, create_random_array_1) {
 }
 
 TEST(random_array, create_random_array_2) {
-    const auto array = util::create_random_array(10, 2, 11);
+    auto random_engine = util::create_random_engine();
+    const auto array = util::create_random_array(10, 2, 11, random_engine);
 
     EXPECT_EQ(array.size(), 10);
     // Since we are creating a random array with no duplicates, the size should not change even if we convert it to std::set
