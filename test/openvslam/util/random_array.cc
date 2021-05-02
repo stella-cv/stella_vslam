@@ -9,7 +9,7 @@ TEST(random_array, create_random_array_1) {
     const auto array = util::create_random_array(5, 1, 5);
 
     EXPECT_EQ(array.size(), 5);
-    // 重複なしのrandom arrayを作成しているので，最小値は1，最大値は5になるはず
+    // We are creating a random array with no duplicates, so the minimum value should be 1 and the maximum value should be 5.
     EXPECT_EQ(*std::min_element(array.begin(), array.end()), 1);
     EXPECT_EQ(*std::max_element(array.begin(), array.end()), 5);
 }
@@ -18,6 +18,6 @@ TEST(random_array, create_random_array_2) {
     const auto array = util::create_random_array(10, 2, 11);
 
     EXPECT_EQ(array.size(), 10);
-    // 重複なしのrandom arrayを作成しているので，std::setにしてもサイズは変わらないはず
+    // Since we are creating a random array with no duplicates, the size should not change even if we convert it to std::set
     EXPECT_EQ(array.size(), std::set<int>(array.begin(), array.end()).size());
 }
