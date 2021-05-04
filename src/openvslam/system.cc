@@ -238,6 +238,10 @@ void system::abort_loop_BA() {
     global_optimizer_->abort_loop_BA();
 }
 
+bool system::is_tracking(){
+    ((tracker_->tracking_state_ == tracker_state_t::Tracking) ? true : false);
+}
+
 Mat44_t system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     assert(camera_->setup_type_ == camera::setup_type_t::Monocular);
 

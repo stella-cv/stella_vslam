@@ -98,6 +98,9 @@ public:
     //! Abort the loop BA externally
     void abort_loop_BA();
 
+    //! The mapping module status: tracking state is true or not
+    bool is_tracking();
+
     //-----------------------------------------
     // data feeding methods
 
