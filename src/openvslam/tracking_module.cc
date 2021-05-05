@@ -53,6 +53,11 @@ double get_depthmap_factor(const camera::base* camera, const YAML::Node& yaml_no
     }
     return depthmap_factor;
 }
+
+unsigned int get_update_pose_keyframes(const YAML::Node& yaml_node) {
+    spdlog::debug("load update pose keyframes");
+    return yaml_node["update_pose_keyframes"].as<unsigned int>(3);
+}
 } // unnamed namespace
 
 namespace openvslam {
@@ -61,6 +66,7 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
                                  data::bow_vocabulary* bow_vocab, data::bow_database* bow_db)
     : camera_(cfg->camera_), true_depth_thr_(get_true_depth_thr(camera_, cfg->yaml_node_)),
       depthmap_factor_(get_depthmap_factor(camera_, cfg->yaml_node_)),
+      update_pose_keyframes_(get_update_pose_keyframes(cfg->yaml_node_)),
       system_(system), map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(cfg->camera_->setup_type_, map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
       frame_tracker_(camera_, 10), relocalizer_(bow_db_), pose_optimizer_(),
@@ -136,6 +142,10 @@ Mat44_t tracking_module::track_monocular_image(const cv::Mat& img, const double 
     const auto end = std::chrono::system_clock::now();
     elapsed_ms_ = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
+    if (!tracking_started_) {
+        tracking_started_ = true;
+    }
+
     return curr_frm_.cam_pose_cw_;
 }
 
@@ -155,6 +165,10 @@ Mat44_t tracking_module::track_stereo_image(const cv::Mat& left_img_rect, const 
 
     const auto end = std::chrono::system_clock::now();
     elapsed_ms_ = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    if (!tracking_started_) {
+        tracking_started_ = true;
+    }
 
     return curr_frm_.cam_pose_cw_;
 }
@@ -176,7 +190,26 @@ Mat44_t tracking_module::track_RGBD_image(const cv::Mat& img, const cv::Mat& dep
     const auto end = std::chrono::system_clock::now();
     elapsed_ms_ = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
+    if (!tracking_started_) {
+        tracking_started_ = true;
+    }
+
     return curr_frm_.cam_pose_cw_;
+}
+
+bool tracking_module::track_pose(const Mat44_t& pose) {
+    curr_frm_.set_cam_pose(pose);
+
+    const auto candidates = map_db_->get_close_keyframes(pose, update_pose_keyframes_);
+    const bool status = relocalizer_.reloc_by_candidates(curr_frm_, candidates);
+
+    if (status) {
+        last_reloc_frm_id_ = curr_frm_.id_;
+        tracking_state_ = tracker_state_t::Tracking;
+    } else {
+        tracking_state_ = tracker_state_t::Lost;
+    }
+    return status;
 }
 
 void tracking_module::reset() {
@@ -198,6 +231,7 @@ void tracking_module::reset() {
     last_reloc_frm_id_ = 0;
 
     tracking_state_ = tracker_state_t::NotInitialized;
+    tracking_started_ = false;
 }
 
 void tracking_module::track() {

@@ -79,6 +79,14 @@ public:
     std::vector<keyframe*> get_all_keyframes() const;
 
     /**
+     * Get closest keyframes to a given pose
+     * @param pose Given pose
+     * @param limit The number of closest keyframes to get
+     * @return Vector closest keyframes
+     */
+    std::vector<keyframe*> get_close_keyframes(const Mat44_t& pose, const unsigned int limit) const;
+
+    /**
      * Get the number of keyframes
      * @return
      */

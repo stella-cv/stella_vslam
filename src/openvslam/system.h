@@ -114,6 +114,12 @@ public:
     Mat44_t feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
     //-----------------------------------------
+    // pose initializing/updating
+
+    //! Update current position and try to relocalize
+    bool update_pose(const Mat44_t& pose);
+
+    //-----------------------------------------
     // management for pause
 
     //! Pause the tracking module
@@ -206,6 +212,9 @@ private:
 
     //! mutex for flags of enable/disable loop detector
     mutable std::mutex mtx_loop_detector_;
+
+    //! mutex for tracking
+    mutable std::mutex mtx_tracking_;
 };
 
 } // namespace openvslam

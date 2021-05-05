@@ -80,6 +80,9 @@ public:
     //! (Note: RGB and Depth images must be aligned)
     Mat44_t track_RGBD_image(const cv::Mat& img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
+    //! Update current frame position and request relocalization
+    bool track_pose(const Mat44_t& pose);
+
     //-----------------------------------------
     // management for reset process
 
@@ -113,6 +116,9 @@ public:
     //! depthmap factor (pixel_value / depthmap_factor = true_depth)
     double depthmap_factor_ = 1.0;
 
+    //! number of keyframes to relocalize with when updating by pose
+    unsigned int update_pose_keyframes_ = 3;
+
     //-----------------------------------------
     // variables
 
@@ -120,6 +126,8 @@ public:
     tracker_state_t tracking_state_ = tracker_state_t::NotInitialized;
     //! last tracking state
     tracker_state_t last_tracking_state_ = tracker_state_t::NotInitialized;
+    //! indicator that tracking was started
+    bool tracking_started_ = false;
 
     //! current frame and its image
     data::frame curr_frm_;

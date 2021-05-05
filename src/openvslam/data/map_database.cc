@@ -71,6 +71,69 @@ std::vector<keyframe*> map_database::get_all_keyframes() const {
     return keyframes;
 }
 
+std::vector<keyframe*> map_database::get_close_keyframes(const Mat44_t& pose,
+                                                         const unsigned int limit) const {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+
+    // Auxilary vector of {keyframe_id, correlation_value} pair
+    // to have a key-frames sorted by their correlation with given pose
+    std::vector<std::pair<unsigned int, double>> correlations;
+
+    Vec3_t Ma = pose.block<3, 1>(0, 0);
+    Vec3_t Mt = pose.block<3, 1>(0, 3);
+    for (const auto id_keyframe : keyframes_) {
+        Vec3_t Na = id_keyframe.second->get_cam_pose().block<3, 1>(0, 0);
+        Vec3_t Nt = id_keyframe.second->get_cam_pose().block<3, 1>(0, 3);
+        // Angle between two cameras related to given pose and selected keyframe.
+        //
+        // Some background: there are two rotation matrixes: M and N,
+        // where M - is a pose rotation matrix, N - keyframe rotation matrix.
+        // Let's suppose we have a vector "a" in a coordinate system.
+        // After two rotations will be applied, "a" will be transformd to:
+        // b = M * a
+        // c = N * a
+        // in the same coordinate system.
+        //
+        // Angle between two vectors "b" and "c" is being calculated as follows:
+        // cos(angle) = (b, c) / ( len(b) * len(c) ).
+        // Since all "a", "b", "c" vectors have 1-length, the formula will be as follows:
+        // cos(angle) = (M * a, N * a)
+        //
+        // In OpenVSLAM camera direction (camera's normal) coincides with the OX axis.
+        // So, a = (1,0,0).
+        // Therefore, we have:
+        // cos(angle) = ( (M[0,0],M[1,0],M[2,0]) * (N[0,0],N[1,0],N[2,0]) )
+        double cos_angle = Ma.transpose() * Na;
+        // Distance between given pose and selected keyframe
+        double dist = std::sqrt(\
+            (Nt(0) - Mt(0)) * (Nt(0) - Mt(0)) +\
+            (Nt(1) - Mt(1)) * (Nt(1) - Mt(1)) +\
+            (Nt(2) - Mt(2)) * (Nt(2) - Mt(2)) );
+        // Heuristical correlation between pose and selected keyframe:
+        // correlation should take maximum value when current pose and closest keyframe
+        // are looking to the same side, and it should be decreased with increasing the distance
+        // between given pose and selected keyframe.
+        double correlation = cos_angle / dist;
+        correlations.push_back(std::make_pair(id_keyframe.first, correlation));
+    }
+
+    // Sorting correlations
+    auto sort_func = [](const std::pair<unsigned int, double> &a,
+                        const std::pair<unsigned int, double> &b) {
+        return a.second < b.second;
+    };
+    std::sort(correlations.begin(), correlations.end(), sort_func);
+
+    // Choose the required amount of closest key-frames
+    std::vector<keyframe *> keyframes;
+    for (std::vector<std::pair<unsigned int, double>>::reverse_iterator i = correlations.rbegin();
+         i != correlations.rend() && keyframes.size() < limit; i++) {
+         keyframes.push_back(keyframes_.at(i->first));
+    }
+
+    return keyframes;
+}
+
 unsigned int map_database::get_num_keyframes() const {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
     return keyframes_.size();

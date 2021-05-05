@@ -187,7 +187,9 @@ const std::shared_ptr<publish::frame_publisher> system::get_frame_publisher() co
 }
 
 void system::enable_mapping_module() {
-    std::lock_guard<std::mutex> lock(mtx_mapping_);
+    std::lock_guard<std::mutex> lock1(mtx_mapping_);
+    std::lock_guard<std::mutex> lock2(mtx_tracking_);
+
     if (!system_is_running_) {
         spdlog::critical("please call system::enable_mapping_module() after system::startup()");
     }
@@ -198,7 +200,9 @@ void system::enable_mapping_module() {
 }
 
 void system::disable_mapping_module() {
-    std::lock_guard<std::mutex> lock(mtx_mapping_);
+    std::lock_guard<std::mutex> lock1(mtx_mapping_);
+    std::lock_guard<std::mutex> lock2(mtx_tracking_);
+
     if (!system_is_running_) {
         spdlog::critical("please call system::disable_mapping_module() after system::startup()");
     }
@@ -239,6 +243,8 @@ void system::abort_loop_BA() {
 }
 
 Mat44_t system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
+    std::lock_guard<std::mutex> lock(mtx_tracking_);
+
     assert(camera_->setup_type_ == camera::setup_type_t::Monocular);
 
     check_reset_request();
@@ -255,6 +261,8 @@ Mat44_t system::feed_monocular_frame(const cv::Mat& img, const double timestamp,
 }
 
 Mat44_t system::feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
+    std::lock_guard<std::mutex> lock(mtx_tracking_);
+
     assert(camera_->setup_type_ == camera::setup_type_t::Stereo);
 
     check_reset_request();
@@ -271,6 +279,8 @@ Mat44_t system::feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_
 }
 
 Mat44_t system::feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask) {
+    std::lock_guard<std::mutex> lock(mtx_tracking_);
+
     assert(camera_->setup_type_ == camera::setup_type_t::RGBD);
 
     check_reset_request();
@@ -286,15 +296,42 @@ Mat44_t system::feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap,
     return cam_pose_cw;
 }
 
+bool system::update_pose(const Mat44_t& pose) {
+    std::lock_guard<std::mutex> lock(mtx_tracking_);
+
+    if (!tracker_->tracking_started_) {
+        // We can not process until tracking starts.
+        // Otherwise this may cause crashes in frame_publisher_.
+        spdlog::warn("Can not update the pose: tracking was not started");
+        return false;
+    }
+
+    const bool status = tracker_->track_pose(pose);
+
+    frame_publisher_->update(tracker_);
+    // Even if state is lost, still update the pose in map_publisher_
+    // to clearly show new camera position
+    map_publisher_->set_current_cam_pose(tracker_->curr_frm_.get_cam_pose());
+    map_publisher_->set_current_cam_pose_wc(tracker_->curr_frm_.get_cam_pose_inv());
+
+    return status;
+}
+
 void system::pause_tracker() {
+    std::lock_guard<std::mutex> lock(mtx_tracking_);
+
     tracker_->request_pause();
 }
 
 bool system::tracker_is_paused() const {
+    std::lock_guard<std::mutex> lock(mtx_tracking_);
+
     return tracker_->is_paused();
 }
 
 void system::resume_tracker() {
+    std::lock_guard<std::mutex> lock(mtx_tracking_);
+
     tracker_->resume();
 }
 

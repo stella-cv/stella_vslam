@@ -28,6 +28,10 @@ public:
     //! Relocalize the specified frame
     bool relocalize(data::frame& curr_frm);
 
+    //! Relocalize the specified frame by given candidates list
+    bool reloc_by_candidates(data::frame& curr_frm,
+                             const std::vector<openvslam::data::keyframe*> &reloc_candidates);
+
 private:
     //! Extract valid (non-deleted) landmarks from landmark vector
     std::vector<unsigned int> extract_valid_indices(const std::vector<data::landmark*>& landmarks) const;
