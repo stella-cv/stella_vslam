@@ -22,7 +22,7 @@ namespace socket_publisher {
 
 class publisher {
 public:
-    publisher(const std::shared_ptr<openvslam::config>& cfg, openvslam::system* system,
+    publisher(const YAML::Node& yaml_node, openvslam::system* system,
               const std::shared_ptr<openvslam::publish::frame_publisher>& frame_publisher,
               const std::shared_ptr<openvslam::publish::map_publisher>& map_publisher);
 

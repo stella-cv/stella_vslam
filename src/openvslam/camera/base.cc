@@ -23,7 +23,7 @@ base::~base() {
 }
 
 setup_type_t base::load_setup_type(const YAML::Node& yaml_node) {
-    const auto setup_type_str = yaml_node["Camera.setup"].as<std::string>();
+    const auto setup_type_str = yaml_node["setup"].as<std::string>();
     if (setup_type_str == "monocular") {
         return camera::setup_type_t::Monocular;
     }
@@ -46,7 +46,7 @@ setup_type_t base::load_setup_type(const std::string& setup_type_str) {
 }
 
 model_type_t base::load_model_type(const YAML::Node& yaml_node) {
-    const auto model_type_str = yaml_node["Camera.model"].as<std::string>();
+    const auto model_type_str = yaml_node["model"].as<std::string>();
     if (model_type_str == "perspective") {
         return camera::model_type_t::Perspective;
     }
@@ -71,11 +71,11 @@ model_type_t base::load_model_type(const std::string& model_type_str) {
 }
 
 color_order_t base::load_color_order(const YAML::Node& yaml_node) {
-    if (!yaml_node["Camera.color_order"]) {
+    if (!yaml_node["color_order"]) {
         return color_order_t::Gray;
     }
 
-    const auto color_order_str = yaml_node["Camera.color_order"].as<std::string>();
+    const auto color_order_str = yaml_node["color_order"].as<std::string>();
     if (color_order_str == "Gray") {
         return color_order_t::Gray;
     }

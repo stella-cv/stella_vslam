@@ -4,49 +4,52 @@
 # Camera Model #
 #==============#
 
-Camera.name: "KITTI monocular 04-12"
-Camera.setup: "monocular"
-Camera.model: "perspective"
+Camera:
+  name: "KITTI monocular 04-12"
+  setup: "monocular"
+  model: "perspective"
 
-Camera.fx: 707.0912
-Camera.fy: 707.0912
-Camera.cx: 601.8873
-Camera.cy: 183.1104
+  fx: 707.0912
+  fy: 707.0912
+  cx: 601.8873
+  cy: 183.1104
 
-Camera.k1: 0.0
-Camera.k2: 0.0
-Camera.p1: 0.0
-Camera.p2: 0.0
-Camera.k3: 0.0
+  k1: 0.0
+  k2: 0.0
+  p1: 0.0
+  p2: 0.0
+  k3: 0.0
 
-Camera.fps: 10.0
-Camera.cols: 1226
-Camera.rows: 370
+  fps: 10.0
+  cols: 1226
+  rows: 370
 
-Camera.color_order: "Gray"
+  color_order: "Gray"
 
 #================#
 # ORB Parameters #
 #================#
 
-Feature.max_num_keypoints: 2000
-Feature.ini_max_num_keypoints: 4000
-Feature.scale_factor: 1.2
-Feature.num_levels: 8
-Feature.ini_fast_threshold: 20
-Feature.min_fast_threshold: 7
+Feature:
+  max_num_keypoints: 2000
+  ini_max_num_keypoints: 4000
+  scale_factor: 1.2
+  num_levels: 8
+  ini_fast_threshold: 20
+  min_fast_threshold: 7
 
 #===========================#
 # PangolinViewer Parameters #
 #===========================#
 
-PangolinViewer.keyframe_size: 0.06
-PangolinViewer.keyframe_line_width: 1
-PangolinViewer.graph_line_width: 1
-PangolinViewer.point_size: 2
-PangolinViewer.camera_size: 0.07
-PangolinViewer.camera_line_width: 2
-PangolinViewer.viewpoint_x: 0
-PangolinViewer.viewpoint_y: -20
-PangolinViewer.viewpoint_z: -0.1
-PangolinViewer.viewpoint_f: 2800
+PangolinViewer:
+  keyframe_size: 0.06
+  keyframe_line_width: 1
+  graph_line_width: 1
+  point_size: 2
+  camera_size: 0.07
+  camera_line_width: 2
+  viewpoint_x: 0
+  viewpoint_y: -20
+  viewpoint_z: -0.1
+  viewpoint_f: 2800

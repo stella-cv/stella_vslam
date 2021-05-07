@@ -30,18 +30,18 @@ radial_division::radial_division(const std::string& name, const setup_type_t& se
 }
 
 radial_division::radial_division(const YAML::Node& yaml_node)
-    : radial_division(yaml_node["Camera.name"].as<std::string>(),
+    : radial_division(yaml_node["name"].as<std::string>(),
                       load_setup_type(yaml_node),
                       load_color_order(yaml_node),
-                      yaml_node["Camera.cols"].as<unsigned int>(),
-                      yaml_node["Camera.rows"].as<unsigned int>(),
-                      yaml_node["Camera.fps"].as<double>(),
-                      yaml_node["Camera.fx"].as<double>(),
-                      yaml_node["Camera.fy"].as<double>(),
-                      yaml_node["Camera.cx"].as<double>(),
-                      yaml_node["Camera.cy"].as<double>(),
-                      yaml_node["Camera.distortion"].as<double>(),
-                      yaml_node["Camera.focal_x_baseline"].as<double>(0.0)) {}
+                      yaml_node["cols"].as<unsigned int>(),
+                      yaml_node["rows"].as<unsigned int>(),
+                      yaml_node["fps"].as<double>(),
+                      yaml_node["fx"].as<double>(),
+                      yaml_node["fy"].as<double>(),
+                      yaml_node["cx"].as<double>(),
+                      yaml_node["cy"].as<double>(),
+                      yaml_node["distortion"].as<double>(),
+                      yaml_node["focal_x_baseline"].as<double>(0.0)) {}
 
 radial_division::~radial_division() {
     spdlog::debug("DESTRUCT: camera::radial_division");

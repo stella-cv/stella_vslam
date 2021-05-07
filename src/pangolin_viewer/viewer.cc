@@ -6,27 +6,28 @@
 #include "openvslam/data/landmark.h"
 #include "openvslam/publish/frame_publisher.h"
 #include "openvslam/publish/map_publisher.h"
+#include "openvslam/util/yaml.h"
 
 #include <opencv2/highgui.hpp>
 
 namespace pangolin_viewer {
 
-viewer::viewer(const std::shared_ptr<openvslam::config>& cfg, openvslam::system* system,
+viewer::viewer(const YAML::Node& yaml_node, openvslam::system* system,
                const std::shared_ptr<openvslam::publish::frame_publisher>& frame_publisher,
                const std::shared_ptr<openvslam::publish::map_publisher>& map_publisher)
     : system_(system), frame_publisher_(frame_publisher), map_publisher_(map_publisher),
-      interval_ms_(1000.0f / cfg->yaml_node_["PangolinViewer.fps"].as<float>(30.0)),
-      viewpoint_x_(cfg->yaml_node_["PangolinViewer.viewpoint_x"].as<float>(0.0)),
-      viewpoint_y_(cfg->yaml_node_["PangolinViewer.viewpoint_y"].as<float>(-10.0)),
-      viewpoint_z_(cfg->yaml_node_["PangolinViewer.viewpoint_z"].as<float>(-0.1)),
-      viewpoint_f_(cfg->yaml_node_["PangolinViewer.viewpoint_f"].as<float>(2000.0)),
-      keyfrm_size_(cfg->yaml_node_["PangolinViewer.keyframe_size"].as<float>(0.1)),
-      keyfrm_line_width_(cfg->yaml_node_["PangolinViewer.keyframe_line_width"].as<unsigned int>(1)),
-      graph_line_width_(cfg->yaml_node_["PangolinViewer.graph_line_width"].as<unsigned int>(1)),
-      point_size_(cfg->yaml_node_["PangolinViewer.point_size"].as<unsigned int>(2)),
-      camera_size_(cfg->yaml_node_["PangolinViewer.camera_size"].as<float>(0.15)),
-      camera_line_width_(cfg->yaml_node_["PangolinViewer.camera_line_width"].as<unsigned int>(2)),
-      cs_(cfg->yaml_node_["PangolinViewer.color_scheme"].as<std::string>("black")),
+      interval_ms_(1000.0f / yaml_node["fps"].as<float>(30.0)),
+      viewpoint_x_(yaml_node["viewpoint_x"].as<float>(0.0)),
+      viewpoint_y_(yaml_node["viewpoint_y"].as<float>(-10.0)),
+      viewpoint_z_(yaml_node["viewpoint_z"].as<float>(-0.1)),
+      viewpoint_f_(yaml_node["viewpoint_f"].as<float>(2000.0)),
+      keyfrm_size_(yaml_node["keyframe_size"].as<float>(0.1)),
+      keyfrm_line_width_(yaml_node["keyframe_line_width"].as<unsigned int>(1)),
+      graph_line_width_(yaml_node["graph_line_width"].as<unsigned int>(1)),
+      point_size_(yaml_node["point_size"].as<unsigned int>(2)),
+      camera_size_(yaml_node["camera_size"].as<float>(0.15)),
+      camera_line_width_(yaml_node["camera_line_width"].as<unsigned int>(2)),
+      cs_(yaml_node["color_scheme"].as<std::string>("black")),
       mapping_mode_(system->mapping_module_is_enabled()),
       loop_detection_mode_(system->loop_detector_is_enabled()) {}
 

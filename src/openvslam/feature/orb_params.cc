@@ -27,13 +27,13 @@ orb_params::orb_params(const unsigned int max_num_keypts, const unsigned int ini
 }
 
 orb_params::orb_params(const YAML::Node& yaml_node)
-    : orb_params(yaml_node["Feature.max_num_keypoints"].as<unsigned int>(2000),
-                 yaml_node["Feature.ini_max_num_keypoints"].as<unsigned int>(4000),
-                 yaml_node["Feature.scale_factor"].as<float>(1.2),
-                 yaml_node["Feature.num_levels"].as<unsigned int>(8),
-                 yaml_node["Feature.ini_fast_threshold"].as<unsigned int>(20),
-                 yaml_node["Feature.min_fast_threshold"].as<unsigned int>(7),
-                 yaml_node["Feature.mask_rectangles"].as<std::vector<std::vector<float>>>(std::vector<std::vector<float>>())) {}
+    : orb_params(yaml_node["max_num_keypoints"].as<unsigned int>(2000),
+                 yaml_node["ini_max_num_keypoints"].as<unsigned int>(4000),
+                 yaml_node["scale_factor"].as<float>(1.2),
+                 yaml_node["num_levels"].as<unsigned int>(8),
+                 yaml_node["ini_fast_threshold"].as<unsigned int>(20),
+                 yaml_node["min_fast_threshold"].as<unsigned int>(7),
+                 yaml_node["mask_rectangles"].as<std::vector<std::vector<float>>>(std::vector<std::vector<float>>())) {}
 
 std::vector<float> orb_params::calc_scale_factors(const unsigned int num_scale_levels, const float scale_factor) {
     std::vector<float> scale_factors(num_scale_levels, 1.0);

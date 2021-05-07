@@ -17,10 +17,8 @@ namespace socket_publisher {
 std::string data_serializer::serialized_reset_signal_{};
 
 data_serializer::data_serializer(const std::shared_ptr<openvslam::publish::frame_publisher>& frame_publisher,
-                                 const std::shared_ptr<openvslam::publish::map_publisher>& map_publisher,
-                                 const unsigned int image_width, const unsigned int image_height)
+                                 const std::shared_ptr<openvslam::publish::map_publisher>& map_publisher)
     : frame_publisher_(frame_publisher), map_publisher_(map_publisher),
-      image_width_(image_width), image_height_(image_height),
       keyframe_hash_map_(new std::unordered_map<unsigned int, double>), point_hash_map_(new std::unordered_map<unsigned int, double>) {
     const auto tags = std::vector<std::string>{"RESET_ALL"};
     const auto messages = std::vector<std::string>{"reset all data"};

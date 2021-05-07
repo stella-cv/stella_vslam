@@ -19,14 +19,14 @@ stereo_rectifier::stereo_rectifier(camera::base* camera, const YAML::Node& yaml_
     // set image size
     const cv::Size img_size(camera->cols_, camera->rows_);
     // set camera matrices
-    const auto K_l = parse_vector_as_mat(cv::Size(3, 3), yaml_node["StereoRectifier.K_left"].as<std::vector<double>>());
-    const auto K_r = parse_vector_as_mat(cv::Size(3, 3), yaml_node["StereoRectifier.K_right"].as<std::vector<double>>());
+    const auto K_l = parse_vector_as_mat(cv::Size(3, 3), yaml_node["K_left"].as<std::vector<double>>());
+    const auto K_r = parse_vector_as_mat(cv::Size(3, 3), yaml_node["K_right"].as<std::vector<double>>());
     // set rotation matrices
-    const auto R_l = parse_vector_as_mat(cv::Size(3, 3), yaml_node["StereoRectifier.R_left"].as<std::vector<double>>());
-    const auto R_r = parse_vector_as_mat(cv::Size(3, 3), yaml_node["StereoRectifier.R_right"].as<std::vector<double>>());
+    const auto R_l = parse_vector_as_mat(cv::Size(3, 3), yaml_node["R_left"].as<std::vector<double>>());
+    const auto R_r = parse_vector_as_mat(cv::Size(3, 3), yaml_node["R_right"].as<std::vector<double>>());
     // set distortion parameters depending on the camera model
-    const auto D_l_vec = yaml_node["StereoRectifier.D_left"].as<std::vector<double>>();
-    const auto D_r_vec = yaml_node["StereoRectifier.D_right"].as<std::vector<double>>();
+    const auto D_l_vec = yaml_node["D_left"].as<std::vector<double>>();
+    const auto D_r_vec = yaml_node["D_right"].as<std::vector<double>>();
     const auto D_l = parse_vector_as_mat(cv::Size(1, D_l_vec.size()), D_l_vec);
     const auto D_r = parse_vector_as_mat(cv::Size(1, D_r_vec.size()), D_r_vec);
     // get camera matrix after rectification
@@ -66,7 +66,7 @@ cv::Mat stereo_rectifier::parse_vector_as_mat(const cv::Size& shape, const std::
 }
 
 camera::model_type_t stereo_rectifier::load_model_type(const YAML::Node& yaml_node) {
-    const auto model_type_str = yaml_node["StereoRectifier.model"].as<std::string>("perspective");
+    const auto model_type_str = yaml_node["model"].as<std::string>("perspective");
     if (model_type_str == "perspective") {
         return camera::model_type_t::Perspective;
     }

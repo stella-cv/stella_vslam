@@ -26,25 +26,25 @@ config::config(const YAML::Node& yaml_node, const std::string& config_file_path)
     //========================//
 
     spdlog::debug("load camera model type");
-    const auto camera_model_type = camera::base::load_model_type(yaml_node_);
+    const auto camera_model_type = camera::base::load_model_type(yaml_node_["Camera"]);
 
     spdlog::debug("load camera model parameters");
     try {
         switch (camera_model_type) {
             case camera::model_type_t::Perspective: {
-                camera_ = new camera::perspective(yaml_node_);
+                camera_ = new camera::perspective(yaml_node_["Camera"]);
                 break;
             }
             case camera::model_type_t::Fisheye: {
-                camera_ = new camera::fisheye(yaml_node_);
+                camera_ = new camera::fisheye(yaml_node_["Camera"]);
                 break;
             }
             case camera::model_type_t::Equirectangular: {
-                camera_ = new camera::equirectangular(yaml_node_);
+                camera_ = new camera::equirectangular(yaml_node_["Camera"]);
                 break;
             }
             case camera::model_type_t::RadialDivision: {
-                camera_ = new camera::radial_division(yaml_node_);
+                camera_ = new camera::radial_division(yaml_node_["Camera"]);
                 break;
             }
         }
@@ -62,7 +62,7 @@ config::config(const YAML::Node& yaml_node, const std::string& config_file_path)
 
     spdlog::debug("load ORB parameters");
     try {
-        orb_params_ = feature::orb_params(yaml_node_);
+        orb_params_ = feature::orb_params(yaml_node_["Feature"]);
     }
     catch (const std::exception& e) {
         spdlog::debug("failed in loading ORB parameters: {}", e.what());
