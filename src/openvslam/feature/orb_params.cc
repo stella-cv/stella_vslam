@@ -35,25 +35,6 @@ orb_params::orb_params(const YAML::Node& yaml_node)
                  yaml_node["Feature.min_fast_threshold"].as<unsigned int>(7),
                  yaml_node["Feature.mask_rectangles"].as<std::vector<std::vector<float>>>(std::vector<std::vector<float>>())) {}
 
-void orb_params::show_parameters() const {
-    std::cout << "- number of keypoints: " << max_num_keypts_ << std::endl;
-    std::cout << "- initial number of keypoints: " << ini_max_num_keypts_ << std::endl;
-    std::cout << "- scale factor: " << scale_factor_ << std::endl;
-    std::cout << "- number of levels: " << num_levels_ << std::endl;
-    std::cout << "- initial fast threshold: " << ini_fast_thr_ << std::endl;
-    std::cout << "- minimum fast threshold: " << min_fast_thr << std::endl;
-    if (!mask_rects_.empty()) {
-        std::cout << "- mask rectangles:" << std::endl;
-        for (const auto& mask_rect : mask_rects_) {
-            std::cout << "  - ["
-                      << mask_rect.at(0) << ", "
-                      << mask_rect.at(1) << ", "
-                      << mask_rect.at(2) << ", "
-                      << mask_rect.at(3) << "]" << std::endl;
-        }
-    }
-}
-
 std::vector<float> orb_params::calc_scale_factors(const unsigned int num_scale_levels, const float scale_factor) {
     std::vector<float> scale_factors(num_scale_levels, 1.0);
     for (unsigned int level = 1; level < num_scale_levels; ++level) {

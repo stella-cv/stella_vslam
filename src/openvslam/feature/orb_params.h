@@ -21,9 +21,6 @@ struct orb_params {
     //! Destructor
     virtual ~orb_params() = default;
 
-    //! Dump parameter values to the standard output
-    void show_parameters() const;
-
     unsigned int max_num_keypts_ = 2000;
     unsigned int ini_max_num_keypts_ = 4000;
     float scale_factor_ = 1.2;
