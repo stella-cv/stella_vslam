@@ -169,6 +169,11 @@ public:
      */
     float compute_median_depth(const bool abs = false) const;
 
+    /**
+     * Whether or not the camera setting is capable of obtaining depth information
+     */
+    bool depth_is_avaliable() const;
+
     //-----------------------------------------
     // flags
 
