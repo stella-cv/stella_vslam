@@ -84,6 +84,8 @@ private:
     const unsigned int num_ba_iters_;
     //! initial scaling factor (only for monocular initializer)
     const float scaling_factor_;
+    //! Use fixed random seed for RANSAC if true
+    const bool use_fixed_seed_;
 
     //-----------------------------------------
     // for monocular camera model

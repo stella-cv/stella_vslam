@@ -4,6 +4,7 @@
 #include "openvslam/type.h"
 
 #include <vector>
+#include <random>
 
 #include <opencv2/core.hpp>
 
@@ -16,7 +17,7 @@ public:
 
     //! Constructor
     essential_solver(const eigen_alloc_vector<Vec3_t>& bearings_1, const eigen_alloc_vector<Vec3_t>& bearings_2,
-                     const std::vector<std::pair<int, int>>& matches_12);
+                     const std::vector<std::pair<int, int>>& matches_12, bool use_fixed_seed = false);
 
     //! Destructor
     virtual ~essential_solver() = default;
@@ -73,6 +74,8 @@ private:
     Mat33_t best_E_21_;
     //! inlier matches computed via RANSAC
     std::vector<bool> is_inlier_match_;
+    //! random engine for RANSAC
+    std::mt19937 random_engine_;
 };
 
 } // namespace solve

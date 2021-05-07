@@ -22,7 +22,8 @@ initializer::initializer(const camera::setup_type_t setup_type,
       parallax_deg_thr_(yaml_node["Initializer.parallax_deg_threshold"].as<float>(1.0)),
       reproj_err_thr_(yaml_node["Initializer.reprojection_error_threshold"].as<float>(4.0)),
       num_ba_iters_(yaml_node["Initializer.num_ba_iterations"].as<unsigned int>(20)),
-      scaling_factor_(yaml_node["Initializer.scaling_factor"].as<float>(1.0)) {
+      scaling_factor_(yaml_node["Initializer.scaling_factor"].as<float>(1.0)),
+      use_fixed_seed_(yaml_node["Initializer.use_fixed_seed"].as<bool>(false)) {
     spdlog::debug("CONSTRUCT: module::initializer");
 }
 
@@ -121,13 +122,15 @@ void initializer::create_initializer(data::frame& curr_frm) {
         case camera::model_type_t::RadialDivision: {
             initializer_ = std::unique_ptr<initialize::perspective>(new initialize::perspective(init_frm_,
                                                                                                 num_ransac_iters_, min_num_triangulated_,
-                                                                                                parallax_deg_thr_, reproj_err_thr_));
+                                                                                                parallax_deg_thr_, reproj_err_thr_,
+                                                                                                use_fixed_seed_));
             break;
         }
         case camera::model_type_t::Equirectangular: {
             initializer_ = std::unique_ptr<initialize::bearing_vector>(new initialize::bearing_vector(init_frm_,
                                                                                                       num_ransac_iters_, min_num_triangulated_,
-                                                                                                      parallax_deg_thr_, reproj_err_thr_));
+                                                                                                      parallax_deg_thr_, reproj_err_thr_,
+                                                                                                      use_fixed_seed_));
             break;
         }
     }
@@ -147,8 +150,9 @@ bool initializer::try_initialize_for_monocular(data::frame& curr_frm) {
         return false;
     }
 
-    // try to initialize with the current frame
+    // try to initialize with the initial frame and the current frame
     assert(initializer_);
+    spdlog::debug("try to initialize with the initial frame and the current frame: frame {} - frame {}", init_frm_.id_, curr_frm.id_);
     return initializer_->initialize(curr_frm, init_matches_);
 }
 

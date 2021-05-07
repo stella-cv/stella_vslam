@@ -15,9 +15,9 @@ namespace initialize {
 
 perspective::perspective(const data::frame& ref_frm,
                          const unsigned int num_ransac_iters, const unsigned int min_num_triangulated,
-                         const float parallax_deg_thr, const float reproj_err_thr)
+                         const float parallax_deg_thr, const float reproj_err_thr, bool use_fixed_seed)
     : base(ref_frm, num_ransac_iters, min_num_triangulated, parallax_deg_thr, reproj_err_thr),
-      ref_cam_matrix_(get_camera_matrix(ref_frm.camera_)) {
+      ref_cam_matrix_(get_camera_matrix(ref_frm.camera_)), use_fixed_seed_(use_fixed_seed) {
     spdlog::debug("CONSTRUCT: initialize::perspective");
 }
 
@@ -45,8 +45,9 @@ bool perspective::initialize(const data::frame& cur_frm, const std::vector<int>&
     cur_cam_matrix_ = get_camera_matrix(cur_frm.camera_);
 
     // compute H and F matrices
-    auto homography_solver = solve::homography_solver(ref_undist_keypts_, cur_undist_keypts_, ref_cur_matches_, 1.0);
-    auto fundamental_solver = solve::fundamental_solver(ref_undist_keypts_, cur_undist_keypts_, ref_cur_matches_, 1.0);
+    const float sigma = 1.0f;
+    auto homography_solver = solve::homography_solver(ref_undist_keypts_, cur_undist_keypts_, ref_cur_matches_, sigma, use_fixed_seed_);
+    auto fundamental_solver = solve::fundamental_solver(ref_undist_keypts_, cur_undist_keypts_, ref_cur_matches_, sigma, use_fixed_seed_);
     std::thread thread_for_H(&solve::homography_solver::find_via_ransac, &homography_solver, num_ransac_iters_, true);
     std::thread thread_for_F(&solve::fundamental_solver::find_via_ransac, &fundamental_solver, num_ransac_iters_, true);
     thread_for_H.join();
@@ -59,11 +60,13 @@ bool perspective::initialize(const data::frame& cur_frm, const std::vector<int>&
 
     // select a case according to the score
     if (0.40 < rel_score_H && homography_solver.solution_is_valid()) {
+        spdlog::debug("reconstruct_with_H");
         const Mat33_t H_ref_to_cur = homography_solver.get_best_H_21();
         const auto is_inlier_match = homography_solver.get_inlier_matches();
         return reconstruct_with_H(H_ref_to_cur, is_inlier_match);
     }
     else if (fundamental_solver.solution_is_valid()) {
+        spdlog::debug("reconstruct_with_F");
         const Mat33_t F_ref_to_cur = fundamental_solver.get_best_F_21();
         const auto is_inlier_match = fundamental_solver.get_inlier_matches();
         return reconstruct_with_F(F_ref_to_cur, is_inlier_match);

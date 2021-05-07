@@ -10,9 +10,10 @@ namespace solve {
 
 pnp_solver::pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings, const std::vector<cv::KeyPoint>& valid_keypts,
                        const eigen_alloc_vector<Vec3_t>& valid_landmarks, const std::vector<float>& scale_factors,
-                       const unsigned int min_num_inliers)
+                       const unsigned int min_num_inliers, bool use_fixed_seed)
     : num_matches_(valid_bearings.size()), valid_bearings_(valid_bearings),
-      valid_landmarks_(valid_landmarks), min_num_inliers_(min_num_inliers) {
+      valid_landmarks_(valid_landmarks), min_num_inliers_(min_num_inliers),
+      random_engine_(util::create_random_engine(use_fixed_seed)) {
     spdlog::debug("CONSTRUCT: solve::pnp_solver");
 
     max_cos_errors_.clear();
@@ -64,7 +65,7 @@ void pnp_solver::find_via_ransac(const unsigned int max_num_iter, const bool rec
 
     for (unsigned int iter = 0; iter < max_num_iter; ++iter) {
         // 2-1. Create a minimum set
-        const auto random_indices = util::create_random_array(min_set_size, 0U, num_matches_ - 1);
+        const auto random_indices = util::create_random_array(min_set_size, 0U, num_matches_ - 1, random_engine_);
         assert(random_indices.size() == min_set_size);
 
         min_set_bearings.clear();

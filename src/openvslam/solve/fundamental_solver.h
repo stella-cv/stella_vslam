@@ -4,6 +4,7 @@
 #include "openvslam/type.h"
 
 #include <vector>
+#include <random>
 
 #include <opencv2/core.hpp>
 
@@ -16,7 +17,7 @@ public:
 
     //! Constructor
     fundamental_solver(const std::vector<cv::KeyPoint>& undist_keypts_1, const std::vector<cv::KeyPoint>& undist_keypts_2,
-                       const std::vector<std::pair<int, int>>& matches_12, const float sigma);
+                       const std::vector<std::pair<int, int>>& matches_12, const float sigma, bool use_fixed_seed = false);
 
     //! Destructor
     virtual ~fundamental_solver() = default;
@@ -77,6 +78,8 @@ private:
     Mat33_t best_F_21_;
     //! inlier matches computed via RANSAC
     std::vector<bool> is_inlier_match_;
+    //! random engine for RANSAC
+    std::mt19937 random_engine_;
 };
 
 } // namespace solve

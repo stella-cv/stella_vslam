@@ -5,6 +5,7 @@
 #include "openvslam/type.h"
 
 #include <vector>
+#include <random>
 
 namespace openvslam {
 namespace solve {
@@ -16,7 +17,7 @@ public:
     //! Constructor
     pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings, const std::vector<cv::KeyPoint>& valid_keypts,
                const eigen_alloc_vector<Vec3_t>& valid_landmarks, const std::vector<float>& scale_factors,
-               const unsigned int min_num_inliers = 10);
+               const unsigned int min_num_inliers = 10, bool use_fixed_seed = false);
 
     //! Destructor
     virtual ~pnp_solver();
@@ -76,6 +77,8 @@ private:
     Vec3_t best_trans_cw_;
     //! inlier matches computed via RANSAC
     std::vector<bool> is_inlier_match;
+    //! random engine for RANSAC
+    std::mt19937 random_engine_;
 
     //-----------------------------------------
     // quoted from EPnP implementation

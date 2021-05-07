@@ -4,6 +4,7 @@
 #include "openvslam/data/keyframe.h"
 
 #include <vector>
+#include <random>
 
 #include <opencv2/core.hpp>
 
@@ -17,7 +18,8 @@ public:
     //! Constructor
     sim3_solver(data::keyframe* keyfrm_1, data::keyframe* keyfrm_2,
                 const std::vector<data::landmark*>& matched_lms_in_keyfrm_2,
-                const bool fix_scale = true, const unsigned int min_num_inliers = 20);
+                const bool fix_scale = true, const unsigned int min_num_inliers = 20,
+                bool use_fixed_seed = false);
 
     //! Destructor
     virtual ~sim3_solver() = default;
@@ -105,6 +107,9 @@ protected:
 
     //! RANSACのパラメータ
     unsigned int min_num_inliers_;
+
+    //! random engine for RANSAC
+    std::mt19937 random_engine_;
 };
 
 } // namespace solve

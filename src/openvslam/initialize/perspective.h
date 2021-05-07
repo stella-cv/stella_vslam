@@ -23,7 +23,7 @@ public:
     //! Constructor
     perspective(const data::frame& ref_frm,
                 const unsigned int num_ransac_iters, const unsigned int min_num_triangulated,
-                const float parallax_deg_thr, const float reproj_err_thr);
+                const float parallax_deg_thr, const float reproj_err_thr, bool use_fixed_seed = false);
 
     //! Destructor
     ~perspective() override;
@@ -47,6 +47,9 @@ private:
     const Mat33_t ref_cam_matrix_;
     //! camera matrix of the current frame
     Mat33_t cur_cam_matrix_;
+
+    //! Use fixed random seed for RANSAC if true
+    const bool use_fixed_seed_;
 };
 
 } // namespace initialize
