@@ -92,6 +92,7 @@ std::vector<float> orb_params::calc_inv_level_sigma_sq(const unsigned int num_sc
 
 std::ostream& operator<<(std::ostream& os, const orb_params& oparam) {
     os << "- number of keypoints: " << oparam.max_num_keypts_ << std::endl;
+    os << "- initial number of keypoints: " << oparam.ini_max_num_keypts_ << std::endl;
     os << "- scale factor: " << oparam.scale_factor_ << std::endl;
     os << "- number of levels: " << oparam.num_levels_ << std::endl;
     os << "- initial fast threshold: " << oparam.ini_fast_thr_ << std::endl;
