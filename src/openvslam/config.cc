@@ -119,7 +119,7 @@ config::~config() {
 
 std::ostream& operator<<(std::ostream& os, const config& cfg) {
     os << "Camera Configuration:" << std::endl;
-    os << cfg.camera_;
+    os << *cfg.camera_;
     os << std::endl;
 
     os << "ORB Configuration:" << std::endl;
