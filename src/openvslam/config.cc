@@ -118,62 +118,7 @@ config::~config() {
 }
 
 std::ostream& operator<<(std::ostream& os, const config& cfg) {
-    os << "Camera Configuration:" << std::endl;
-    os << *cfg.camera_;
-    os << std::endl;
-
-    os << "ORB Configuration:" << std::endl;
-    os << cfg.orb_params_;
-    os << std::endl;
-
-    if (cfg.camera_->setup_type_ == camera::setup_type_t::Stereo || cfg.camera_->setup_type_ == camera::setup_type_t::RGBD) {
-        os << "Stereo Configuration:" << std::endl;
-        os << "- true baseline: " << cfg.camera_->true_baseline_ << std::endl;
-        os << "- true depth threshold: " << cfg.true_depth_thr_ << std::endl;
-        os << "- depth threshold factor: " << cfg.true_depth_thr_ / cfg.camera_->true_baseline_ << std::endl;
-        os << std::endl;
-    }
-    if (cfg.camera_->setup_type_ == camera::setup_type_t::RGBD) {
-        os << "Depth Image Configuration:" << std::endl;
-        os << "- depthmap factor: " << cfg.depthmap_factor_ << std::endl;
-        os << std::endl;
-    }
-
-    const std::vector<std::string> shown_entries = {"Camera", "Feature", "depth_threshold", "depthmap_factor"};
-
-    // extract entries which have not shown yet
-    std::map<std::string, YAML::Node> remained_nodes;
-    for (const auto& kv : cfg.yaml_node_) {
-        const auto entry = kv.first.as<std::string>();
-        // avoid displaying parameters twice
-        const bool entry_was_shown = std::any_of(shown_entries.begin(), shown_entries.end(),
-                                                 [&entry](const std::string& qry) { return util::string_startswith(entry, qry); });
-        if (entry_was_shown) {
-            continue;
-        }
-        remained_nodes[entry] = kv.second;
-    }
-
-    os << "Other Configuration:" << std::endl;
-    std::string prev_entry = "";
-    for (const auto& node : remained_nodes) {
-        const auto& entry = node.first;
-        // split with '.'
-        const auto splitted_entry = util::split_string(entry, '.');
-        // show parameter hierarchically
-        if (prev_entry != splitted_entry.at(0)) {
-            os << "  " << splitted_entry.at(0) << ":" << std::endl;
-        }
-        prev_entry = splitted_entry.at(0);
-        os << "  - " << splitted_entry.at(1) << ": ";
-        try {
-            os << cfg.yaml_node_[entry].as<std::string>() << std::endl;
-        }
-        catch (const std::exception&) {
-            os << cfg.yaml_node_[entry] << std::endl;
-        }
-    }
-
+    os << cfg.yaml_node_;
     return os;
 }
 
