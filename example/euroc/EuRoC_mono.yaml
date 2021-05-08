@@ -38,12 +38,6 @@ Feature:
   ini_fast_threshold: 20
   min_fast_threshold: 7
 
-#=====================#
-# Tracking Parameters #
-#=====================#
-
-depth_threshold: 35
-
 #===========================#
 # PangolinViewer Parameters #
 #===========================#
