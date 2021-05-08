@@ -4,6 +4,7 @@
 #include "pangolin_viewer/color_scheme.h"
 
 #include "openvslam/type.h"
+#include "openvslam/util/yaml.h"
 
 #include <memory>
 #include <mutex>
@@ -28,12 +29,12 @@ class viewer {
 public:
     /**
      * Constructor
-     * @param cfg
+     * @param yaml_node
      * @param system
      * @param frame_publisher
      * @param map_publisher
      */
-    viewer(const std::shared_ptr<openvslam::config>& cfg, openvslam::system* system,
+    viewer(const YAML::Node& yaml_node, openvslam::system* system,
            const std::shared_ptr<openvslam::publish::frame_publisher>& frame_publisher,
            const std::shared_ptr<openvslam::publish::map_publisher>& map_publisher);
 

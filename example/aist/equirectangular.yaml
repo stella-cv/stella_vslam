@@ -1,0 +1,32 @@
+# Equirectangular model for RICOH THETA S
+
+#==============#
+# Camera Model #
+#==============#
+
+Camera:
+  name: "RICOH THETA S 960"
+  setup: "monocular"
+  model: "equirectangular"
+
+  fps: 30.0
+  cols: 1920
+  rows: 960
+
+  color_order: "RGB"
+
+#================#
+# ORB Parameters #
+#================#
+
+Feature:
+  max_num_keypoints: 2000
+  scale_factor: 1.2
+  num_levels: 8
+  ini_fast_threshold: 20
+  min_fast_threshold: 7
+  mask_rectangles:
+    - [0.0, 1.0, 0.0, 0.1]
+    - [0.0, 1.0, 0.84, 1.0]
+    - [0.0, 0.2, 0.7, 1.0]
+    - [0.8, 1.0, 0.7, 1.0]

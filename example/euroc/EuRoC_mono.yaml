@@ -4,37 +4,39 @@
 # Camera Model #
 #==============#
 
-Camera.name: "EuRoC monocular"
-Camera.setup: "monocular"
-Camera.model: "perspective"
+Camera:
+  name: "EuRoC monocular"
+  setup: "monocular"
+  model: "perspective"
 
-Camera.fx: 458.654
-Camera.fy: 457.296
-Camera.cx: 367.215
-Camera.cy: 248.375
+  fx: 458.654
+  fy: 457.296
+  cx: 367.215
+  cy: 248.375
 
-Camera.k1: -0.28340811
-Camera.k2: 0.07395907
-Camera.p1: 0.00019359
-Camera.p2: 1.76187114e-05
-Camera.k3: 0.0
+  k1: -0.28340811
+  k2: 0.07395907
+  p1: 0.00019359
+  p2: 1.76187114e-05
+  k3: 0.0
 
-Camera.fps: 20.0
-Camera.cols: 752
-Camera.rows: 480
+  fps: 20.0
+  cols: 752
+  rows: 480
 
-Camera.color_order: "Gray"
+  color_order: "Gray"
 
 #================#
 # ORB Parameters #
 #================#
 
-Feature.max_num_keypoints: 1000
-Feature.ini_max_num_keypoints: 2000
-Feature.scale_factor: 1.2
-Feature.num_levels: 8
-Feature.ini_fast_threshold: 20
-Feature.min_fast_threshold: 7
+Feature:
+  max_num_keypoints: 1000
+  ini_max_num_keypoints: 2000
+  scale_factor: 1.2
+  num_levels: 8
+  ini_fast_threshold: 20
+  min_fast_threshold: 7
 
 #=====================#
 # Tracking Parameters #
@@ -46,13 +48,14 @@ depth_threshold: 35
 # PangolinViewer Parameters #
 #===========================#
 
-PangolinViewer.keyframe_size: 0.07
-PangolinViewer.keyframe_line_width: 1
-PangolinViewer.graph_line_width: 1
-PangolinViewer.point_size: 2
-PangolinViewer.camera_size: 0.08
-PangolinViewer.camera_line_width: 3
-PangolinViewer.viewpoint_x: 0
-PangolinViewer.viewpoint_y: -0.65
-PangolinViewer.viewpoint_z: -1.9
-PangolinViewer.viewpoint_f: 400
+PangolinViewer:
+  keyframe_size: 0.07
+  keyframe_line_width: 1
+  graph_line_width: 1
+  point_size: 2
+  camera_size: 0.08
+  camera_line_width: 3
+  viewpoint_x: 0
+  viewpoint_y: -0.65
+  viewpoint_z: -1.9
+  viewpoint_f: 400

@@ -30,8 +30,7 @@ namespace socket_publisher {
 class data_serializer {
 public:
     data_serializer(const std::shared_ptr<openvslam::publish::frame_publisher>& frame_publisher,
-                    const std::shared_ptr<openvslam::publish::map_publisher>& map_publisher,
-                    const unsigned int image_width, const unsigned int image_height);
+                    const std::shared_ptr<openvslam::publish::map_publisher>& map_publisher);
 
     std::string serialize_messages(const std::vector<std::string>& tags, const std::vector<std::string>& messages);
 
@@ -44,8 +43,6 @@ public:
 private:
     const std::shared_ptr<openvslam::publish::frame_publisher> frame_publisher_;
     const std::shared_ptr<openvslam::publish::map_publisher> map_publisher_;
-    const unsigned int image_width_;
-    const unsigned int image_height_;
     std::unique_ptr<std::unordered_map<unsigned int, double>> keyframe_hash_map_;
     std::unique_ptr<std::unordered_map<unsigned int, double>> point_hash_map_;
 

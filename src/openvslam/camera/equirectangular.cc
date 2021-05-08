@@ -18,11 +18,11 @@ equirectangular::equirectangular(const std::string& name, const color_order_t& c
 }
 
 equirectangular::equirectangular(const YAML::Node& yaml_node)
-    : equirectangular(yaml_node["Camera.name"].as<std::string>(),
+    : equirectangular(yaml_node["name"].as<std::string>(),
                       load_color_order(yaml_node),
-                      yaml_node["Camera.cols"].as<unsigned int>(),
-                      yaml_node["Camera.rows"].as<unsigned int>(),
-                      yaml_node["Camera.fps"].as<double>()) {}
+                      yaml_node["cols"].as<unsigned int>(),
+                      yaml_node["rows"].as<unsigned int>(),
+                      yaml_node["fps"].as<double>()) {}
 
 equirectangular::~equirectangular() {
     spdlog::debug("DESTRUCT: camera::equirectangular");

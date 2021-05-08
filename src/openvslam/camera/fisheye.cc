@@ -31,21 +31,21 @@ fisheye::fisheye(const std::string& name, const setup_type_t& setup_type, const 
 }
 
 fisheye::fisheye(const YAML::Node& yaml_node)
-    : fisheye(yaml_node["Camera.name"].as<std::string>(),
+    : fisheye(yaml_node["name"].as<std::string>(),
               load_setup_type(yaml_node),
               load_color_order(yaml_node),
-              yaml_node["Camera.cols"].as<unsigned int>(),
-              yaml_node["Camera.rows"].as<unsigned int>(),
-              yaml_node["Camera.fps"].as<double>(),
-              yaml_node["Camera.fx"].as<double>(),
-              yaml_node["Camera.fy"].as<double>(),
-              yaml_node["Camera.cx"].as<double>(),
-              yaml_node["Camera.cy"].as<double>(),
-              yaml_node["Camera.k1"].as<double>(),
-              yaml_node["Camera.k2"].as<double>(),
-              yaml_node["Camera.k3"].as<double>(),
-              yaml_node["Camera.k4"].as<double>(),
-              yaml_node["Camera.focal_x_baseline"].as<double>(0.0)) {}
+              yaml_node["cols"].as<unsigned int>(),
+              yaml_node["rows"].as<unsigned int>(),
+              yaml_node["fps"].as<double>(),
+              yaml_node["fx"].as<double>(),
+              yaml_node["fy"].as<double>(),
+              yaml_node["cx"].as<double>(),
+              yaml_node["cy"].as<double>(),
+              yaml_node["k1"].as<double>(),
+              yaml_node["k2"].as<double>(),
+              yaml_node["k3"].as<double>(),
+              yaml_node["k4"].as<double>(),
+              yaml_node["focal_x_baseline"].as<double>(0.0)) {}
 
 fisheye::~fisheye() {
     spdlog::debug("DESTRUCT: camera::fisheye");

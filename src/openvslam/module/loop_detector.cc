@@ -15,8 +15,8 @@ namespace module {
 loop_detector::loop_detector(data::bow_database* bow_db, data::bow_vocabulary* bow_vocab, const YAML::Node& yaml_node, const bool fix_scale_in_Sim3_estimation)
     : bow_db_(bow_db), bow_vocab_(bow_vocab), transform_optimizer_(fix_scale_in_Sim3_estimation),
       fix_scale_in_Sim3_estimation_(fix_scale_in_Sim3_estimation),
-      num_final_matches_thr_(yaml_node["LoopDetector.num_final_matches_threshold"].as<unsigned int>(40)),
-      min_continuity_(yaml_node["LoopDetector.min_continuity"].as<unsigned int>(3)) {}
+      num_final_matches_thr_(yaml_node["num_final_matches_threshold"].as<unsigned int>(40)),
+      min_continuity_(yaml_node["min_continuity"].as<unsigned int>(3)) {}
 
 void loop_detector::enable_loop_detector() {
     loop_detector_is_enabled_ = true;

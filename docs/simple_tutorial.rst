@@ -40,12 +40,12 @@ The later parts of this chapter explains what each of the commands do in more de
     unzip aist_living_lab_2.zip
 
     # run tracking and mapping
-    ./run_video_slam -v ./orb_vocab/orb_vocab.fbow -m ./aist_living_lab_1/video.mp4 -c ./aist_living_lab_1/config.yaml --frame-skip 3 --no-sleep --map-db map.msg
+    ./run_video_slam -v ./orb_vocab/orb_vocab.fbow -m ./aist_living_lab_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --map-db map.msg
     # click the [Terminate] button to close the viewer
     # you can find map.msg in the current directory
 
     # run localization
-    ./run_video_localization -v ./orb_vocab/orb_vocab.fbow -m ./aist_living_lab_2/video.mp4 -c ./aist_living_lab_2/config.yaml --frame-skip 3 --no-sleep --map-db map.msg
+    ./run_video_localization -v ./orb_vocab/orb_vocab.fbow -m ./aist_living_lab_2/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --map-db map.msg
 
 
 Sample Datasets
@@ -213,7 +213,7 @@ Fisheye Datasets
       - `link <https://pan.baidu.com/s/11gqp2t-A2kHRntyN8ueqSQ>`__ (Pass: gumj)
 
 
-After downloading and uncompressing a zip file, you will find a video file and a config file under the uncompressed directory.
+After downloading and uncompressing a zip file, you will find a video file and a config file (old format) under the uncompressed directory.
 
 
 .. code-block:: bash
@@ -266,7 +266,7 @@ The paths should be changed accordingly.
 
     $ ./run_video_slam \
         -v /path/to/orb_vocab/orb_vocab.fbow \
-        -c /path/to/aist_living_lab_1/config.yaml \
+        -c /path/to/openvslam/example/aist/equirectangular.yaml \
         -m /path/to/aist_living_lab_1/video.mp4 \
         --frame-skip 3 \
         --map-db aist_living_lab_1_map.msg
@@ -288,7 +288,7 @@ If the two viewers are not launching correctly, check if you launched the comman
 
 .. code-block:: none
 
-    [2019-05-20 17:52:41.677] [I] config file loaded: /path/to/aist_living_lab_1/aist_living_lab_1/config.yaml
+    [2019-05-20 17:52:41.677] [I] config file loaded: /path/to/openvslam/example/aist/equirectangular.yaml
       ___               __   _____ _      _   __  __  
      / _ \ _ __  ___ _ _\ \ / / __| |    /_\ |  \/  | 
     | (_) | '_ \/ -_) ' \\ V /\__ \ |__ / _ \| |\/| | 
@@ -401,7 +401,7 @@ The paths should be changed accordingly.
 
     $ ./run_video_localization \
         -v /path/to/orb_vocab/orb_vocab.fbow \
-        -c /path/to/aist_living_lab_2/config.yaml \
+        -c /path/to/openvslam/example/aist/equirectangular.yaml \
         -m /path/to/aist_living_lab_2/video.mp4 \
         --frame-skip 3 \
         --map-db aist_living_lab_1_map.msg
@@ -421,7 +421,7 @@ You can see if the current frame is being localized, based on the prebuild map.
 
 .. code-block:: none
 
-    [2019-05-20 17:58:54.728] [I] config file loaded: /path/to/aist_living_lab_2/config.yaml
+    [2019-05-20 17:58:54.728] [I] config file loaded: /path/to/openvslam/example/aist/equirectangular.yaml
       ___               __   _____ _      _   __  __  
      / _ \ _ __  ___ _ _\ \ / / __| |    /_\ |  \/  | 
     | (_) | '_ \/ -_) ' \\ V /\__ \ |__ / _ \| |\/| | 
