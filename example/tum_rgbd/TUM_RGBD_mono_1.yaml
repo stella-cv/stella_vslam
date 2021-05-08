@@ -38,6 +38,13 @@ Feature:
   ini_fast_threshold: 20
   min_fast_threshold: 7
 
+#====================#
+# Mapping Parameters #
+#====================#
+
+Mapping:
+  baseline_dist_thr_ratio: 0.02
+
 #===========================#
 # PangolinViewer Parameters #
 #===========================#

@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_MAPPING_MODULE_H
 #define OPENVSLAM_MAPPING_MODULE_H
 
+#include "openvslam/config.h"
 #include "openvslam/camera/base.h"
 #include "openvslam/module/local_map_cleaner.h"
 #include "openvslam/optimize/local_bundle_adjuster.h"
@@ -9,8 +10,11 @@
 #include <atomic>
 #include <memory>
 
+#include <yaml-cpp/yaml.h>
+
 namespace openvslam {
 
+class config;
 class tracking_module;
 class global_optimization_module;
 
@@ -26,7 +30,7 @@ class map_database;
 class mapping_module {
 public:
     //! Constructor
-    mapping_module(data::map_database* map_db, const bool is_monocular);
+    mapping_module(const YAML::Node& yaml_node, data::map_database* map_db, const bool is_monocular);
 
     //! Destructor
     ~mapping_module();
@@ -222,6 +226,18 @@ private:
 
     //! current keyframe which is used in the current mapping
     data::keyframe* cur_keyfrm_ = nullptr;
+
+    //-----------------------------------------
+    // configurations
+
+    //! If true, use baseline_dist_thr_ratio_ in mapping_module::create_new_landmarks. Otherwise use baseline_dist_thr_.
+    bool use_baseline_dist_thr_ratio_ = true;
+
+    //! Create new landmarks if the baseline distance is greater than the median depth times baseline_dist_thr_ratio_ of the reference keyframe.
+    double baseline_dist_thr_ratio_ = 0.02;
+
+    //! Create new landmarks if the baseline distance is greater than baseline_dist_thr_ of the reference keyframe.
+    double baseline_dist_thr_ = 1.0;
 };
 
 } // namespace openvslam
