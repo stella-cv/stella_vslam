@@ -56,57 +56,10 @@ config::config(const YAML::Node& yaml_node, const std::string& config_file_path)
         throw;
     }
 
-    //=====================//
-    // Load ORB Parameters //
-    //=====================//
-
-    spdlog::debug("load ORB parameters");
-    try {
-        orb_params_ = feature::orb_params(yaml_node_["Feature"]);
-    }
-    catch (const std::exception& e) {
-        spdlog::debug("failed in loading ORB parameters: {}", e.what());
-        delete camera_;
-        camera_ = nullptr;
-        throw;
-    }
-
-    //==========================//
-    // Load Tracking Parameters //
-    //==========================//
-
-    spdlog::debug("load tracking parameters");
-
-    spdlog::debug("load depth threshold");
     if (camera_->setup_type_ == camera::setup_type_t::Stereo || camera_->setup_type_ == camera::setup_type_t::RGBD) {
-        // Ignore if the depth value is over the fixed multiple length of the baseline
-        const auto depth_thr_factor = yaml_node_["depth_threshold"].as<double>(40.0);
-
-        switch (camera_->model_type_) {
-            case camera::model_type_t::Perspective: {
-                auto camera = static_cast<camera::perspective*>(camera_);
-                true_depth_thr_ = camera->true_baseline_ * depth_thr_factor;
-                break;
-            }
-            case camera::model_type_t::Fisheye: {
-                auto camera = static_cast<camera::fisheye*>(camera_);
-                true_depth_thr_ = camera->true_baseline_ * depth_thr_factor;
-                break;
-            }
-            case camera::model_type_t::Equirectangular: {
-                throw std::runtime_error("Not implemented: Stereo or RGBD of equirectangular camera model");
-            }
-            case camera::model_type_t::RadialDivision: {
-                auto camera = static_cast<camera::radial_division*>(camera_);
-                true_depth_thr_ = camera->true_baseline_ * depth_thr_factor;
-                break;
-            }
+        if (camera_->model_type_ == camera::model_type_t::Equirectangular) {
+            throw std::runtime_error("Not implemented: Stereo or RGBD of equirectangular camera model");
         }
-    }
-
-    spdlog::debug("load depthmap factor");
-    if (camera_->setup_type_ == camera::setup_type_t::RGBD) {
-        depthmap_factor_ = yaml_node_["depthmap_factor"].as<double>(1.0);
     }
 }
 
