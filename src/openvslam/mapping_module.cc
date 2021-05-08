@@ -16,9 +16,9 @@
 
 namespace openvslam {
 
-mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* map_db, const bool is_monocular)
-    : local_map_cleaner_(new module::local_map_cleaner(is_monocular)), map_db_(map_db),
-      local_bundle_adjuster_(new optimize::local_bundle_adjuster()), is_monocular_(is_monocular) {
+mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* map_db)
+    : local_map_cleaner_(new module::local_map_cleaner()), map_db_(map_db),
+      local_bundle_adjuster_(new optimize::local_bundle_adjuster()) {
     spdlog::debug("CONSTRUCT: mapping_module");
     spdlog::debug("load mapping parameters");
 
@@ -157,7 +157,7 @@ void mapping_module::mapping_with_new_keyframe() {
     store_new_keyframe();
 
     // remove redundant landmarks
-    local_map_cleaner_->remove_redundant_landmarks(cur_keyfrm_->id_);
+    local_map_cleaner_->remove_redundant_landmarks(cur_keyfrm_->id_, cur_keyfrm_->depth_is_avaliable());
 
     // triangulate new landmarks between the current frame and each of the covisibilities
     create_new_landmarks();
@@ -220,7 +220,8 @@ void mapping_module::create_new_landmarks() {
     // get the covisibilities of `cur_keyfrm_`
     // in order to triangulate landmarks between `cur_keyfrm_` and each of the covisibilities
     constexpr unsigned int num_covisibilities = 10;
-    const auto cur_covisibilities = cur_keyfrm_->graph_node_->get_top_n_covisibilities(num_covisibilities * (is_monocular_ ? 2 : 1));
+    const unsigned int heuristic_ratio = cur_keyfrm_->depth_is_avaliable() ? 1 : 2;
+    const auto cur_covisibilities = cur_keyfrm_->graph_node_->get_top_n_covisibilities(num_covisibilities * heuristic_ratio);
 
     // lowe's_ratio will not be used
     match::robust robust_matcher(0.0, false);
@@ -318,7 +319,8 @@ void mapping_module::triangulate_with_two_keyframes(data::keyframe* keyfrm_1, da
 
 void mapping_module::update_new_keyframe() {
     // get the targets to check landmark fusion
-    const auto fuse_tgt_keyfrms = get_second_order_covisibilities(is_monocular_ ? 20 : 10, 5);
+    const unsigned int num_covisibilities = cur_keyfrm_->depth_is_avaliable() ? 10 : 20;
+    const auto fuse_tgt_keyfrms = get_second_order_covisibilities(num_covisibilities, 5);
 
     // resolve the duplication of landmarks between the current keyframe and the targets
     fuse_landmark_duplication(fuse_tgt_keyfrms);
