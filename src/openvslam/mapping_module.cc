@@ -16,10 +16,26 @@
 
 namespace openvslam {
 
-mapping_module::mapping_module(data::map_database* map_db, const bool is_monocular)
+mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* map_db, const bool is_monocular)
     : local_map_cleaner_(new module::local_map_cleaner(is_monocular)), map_db_(map_db),
       local_bundle_adjuster_(new optimize::local_bundle_adjuster()), is_monocular_(is_monocular) {
     spdlog::debug("CONSTRUCT: mapping_module");
+    spdlog::debug("load mapping parameters");
+
+    spdlog::debug("load monocular mappping parameters");
+    if (yaml_node["baseline_dist_thr"]) {
+        if (yaml_node["baseline_dist_thr_ratio"]) {
+            throw std::runtime_error("Do not set both baseline_dist_thr_ratio and baseline_dist_thr.");
+        }
+        baseline_dist_thr_ = yaml_node["baseline_dist_thr"].as<double>(1.0);
+        use_baseline_dist_thr_ratio_ = false;
+        spdlog::debug("Use baseline_dist_thr: {}", baseline_dist_thr_);
+    }
+    else {
+        baseline_dist_thr_ratio_ = yaml_node["baseline_dist_thr_ratio"].as<double>(0.02);
+        use_baseline_dist_thr_ratio_ = true;
+        spdlog::debug("Use baseline_dist_thr_ratio: {}", baseline_dist_thr_ratio_);
+    }
 }
 
 mapping_module::~mapping_module() {
@@ -227,16 +243,16 @@ void mapping_module::create_new_landmarks() {
         // compute the baseline between the current and neighbor keyframes
         const Vec3_t baseline_vec = ngh_cam_center - cur_cam_center;
         const auto baseline_dist = baseline_vec.norm();
-        if (is_monocular_) {
-            // if the scene scale is much smaller than the baseline, abort the triangulation
+
+        // if the scene scale is much smaller than the baseline, abort the triangulation
+        if (use_baseline_dist_thr_ratio_) {
             const float median_depth_in_ngh = ngh_keyfrm->compute_median_depth(true);
-            if (baseline_dist < 0.02 * median_depth_in_ngh) {
+            if (baseline_dist < baseline_dist_thr_ratio_ * median_depth_in_ngh) {
                 continue;
             }
         }
         else {
-            // for stereo setups, it needs longer baseline than the stereo baseline
-            if (baseline_dist < ngh_keyfrm->camera_->true_baseline_) {
+            if (baseline_dist < baseline_dist_thr_) {
                 continue;
             }
         }

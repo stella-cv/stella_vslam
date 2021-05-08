@@ -66,6 +66,13 @@ Feature:
   ini_fast_threshold: 20
   min_fast_threshold: 7
 
+#====================#
+# Mapping Parameters #
+#====================#
+
+Mapping:
+  baseline_dist_thr: 0.10108726432
+
 #========================#
 # Initializer Parameters #
 #========================#

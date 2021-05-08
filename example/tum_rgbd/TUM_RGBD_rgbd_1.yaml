@@ -46,6 +46,13 @@ Feature:
 depth_threshold: 40.0
 depthmap_factor: 5000.0
 
+#====================#
+# Mapping Parameters #
+#====================#
+
+Mapping:
+  baseline_dist_thr: 0.07471049682
+
 #===========================#
 # PangolinViewer Parameters #
 #===========================#

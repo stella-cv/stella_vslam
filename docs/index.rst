@@ -29,6 +29,7 @@ Contents
     ./installation
     ./simple_tutorial
     ./example
+    ./parameters
     ./docker
     ./ros
     ./trouble_shooting

@@ -45,6 +45,13 @@ Feature:
 
 depth_threshold: 40
 
+#====================#
+# Mapping Parameters #
+#====================#
+
+Mapping:
+  baseline_dist_thr: 0.53715058825
+
 #========================#
 # Initializer Parameters #
 #========================#

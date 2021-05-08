@@ -42,3 +42,10 @@ Feature:
 
 Initializer:
   scaling_factor: 5.0
+
+#====================#
+# Mapping Parameters #
+#====================#
+
+Mapping:
+  baseline_dist_thr_ratio: 0.02
