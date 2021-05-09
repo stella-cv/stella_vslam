@@ -8,7 +8,7 @@ Overview
     :width: 640px
     :align: center
 
-.. image:: https://raw.githubusercontent.com/wiki/OpenVSLAM-Community/openvslam/media/tracking.gif
+.. image:: https://j.gifs.com/81m1QL.gif
     :width: 640px
     :align: center
 

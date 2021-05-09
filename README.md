@@ -17,7 +17,7 @@
 
 [<img src="https://raw.githubusercontent.com/OpenVSLAM-Community/openvslam/main/docs/img/teaser.png" width="640px">](https://arxiv.org/abs/1910.01122)
 
-[<img src="https://j.gifs.com/81m1QL.gif" width="640px">](https://www.youtube.com/watch?v=Ro_s3Lbx5ms)
+<img src="https://j.gifs.com/81m1QL.gif" width="640px">
 
 [**[PrePrint]**](https://arxiv.org/abs/1910.01122) [**[YouTube]**](https://www.youtube.com/watch?v=Ro_s3Lbx5ms)
 
