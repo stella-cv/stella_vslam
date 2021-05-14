@@ -67,7 +67,7 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
       keyfrm_inserter_(cfg->camera_->setup_type_, true_depth_thr_, map_db, bow_db, 0, cfg->camera_->fps_) {
     spdlog::debug("CONSTRUCT: tracking_module");
 
-    feature::orb_params orb_params = get_orb_params(cfg->yaml_node_["Feature"]);
+    feature::orb_params orb_params = get_orb_params(util::yaml_optional_ref(cfg->yaml_node_, "Feature"));
     extractor_left_ = new feature::orb_extractor(orb_params);
     if (camera_->setup_type_ == camera::setup_type_t::Monocular) {
         ini_extractor_left_ = new feature::orb_extractor(orb_params);
