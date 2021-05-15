@@ -27,7 +27,7 @@ Camera
     * - cx, cy
       - Principal point (pixel)
     * - k1, k2, p1, p2, k3
-      - Distortion parameters for perspective camera
+      - Distortion parameters for perspective camera. When using StereoRectifier, there is no distortion after stereo rectification.
     * - k1, k2, k3, k4
       - Distortion parameters for fisheye camera
     * - distortion
@@ -82,6 +82,24 @@ Mapping
     * - baseline_dist_thr
       - For two frames of baseline below the threshold, no triangulation will be performed.
 
+.. _section-parameters-stereo-rectifier:
+
+StereoRectifier
+===============
+
+.. list-table::
+    :header-rows: 1
+    :widths: 1, 3
+
+    * - Name
+      - Description
+    * - K_left, K_right
+      - Intrinsic parameters. The 3x3 matrix are written in row-major order.
+    * - D_left, D_right
+      - Distortion parameters. The 5 parameters are k1, k2, p1, p2, k3.
+    * - R_left, R_right
+      - Stereo-recitification parameters. The 3x3 matrix are written in row-major order.
+    
 .. _section-parameters-pangolin:
 
 PangolinViewer
