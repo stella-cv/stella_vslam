@@ -95,3 +95,5 @@ Others
       - Description
     * - depth_threshold
       - The ratio used to determine the depth threshold
+    * - depthmap_factor
+      - The ratio used to convert depth image pixel values to distance.
