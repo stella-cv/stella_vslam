@@ -5,7 +5,7 @@ Parameters
 ==========
 
 
-.. _section-parameters-mapping:
+.. _section-parameters-camera:
 
 Camera
 ======
@@ -41,6 +41,7 @@ Camera
     * - focal_x_baseline
       - For stereo cameras, it is the value of the baseline between the left and right cameras multiplied by the focal length fx. 
 
+.. _section-parameters-feature:
 
 Feature
 =======
@@ -64,6 +65,8 @@ Feature
     * - min_fast_threshold
       - FAST threshold for try second time
       
+.. _section-parameters-mapping:
+
 Mapping
 =======
 
