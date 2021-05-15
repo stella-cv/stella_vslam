@@ -39,7 +39,8 @@ Camera
     * - color_order
       - Gray, RGB, RGBA, BGR, BGRA
     * - focal_x_baseline
-      - For stereo cameras, it is the value of the baseline between the left and right cameras multiplied by the focal length fx. 
+      - For stereo cameras, it is the value of the baseline between the left and right cameras multiplied by the focal length fx.
+        For RGBD cameras, if the measurement method is stereo, set it based on its baseline. If the measurement method is other than that, set the appropriate value based on the relationship between depth accuracy and baseline.
 
 .. _section-parameters-feature:
 
