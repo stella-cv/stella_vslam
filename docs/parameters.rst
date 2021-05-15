@@ -23,15 +23,15 @@ Camera
     * - model
       - perspective, fisheye, equirectangular, radial_division
     * - fx, fy
-      - Focal length
+      - Focal length (pixel)
     * - cx, cy
-      - Principal point
+      - Principal point (pixel)
     * - k1, k2, p1, p2, k3
       - Distortion parameters
     * - fps
       - Framerate of input images
     * - cols, rows
-      - Resolution
+      - Resolution (pixel)
     * - color_order
       - Gray, RGB, RGBA, BGR, BGRA
 
