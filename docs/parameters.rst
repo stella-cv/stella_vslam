@@ -82,6 +82,32 @@ Mapping
     * - baseline_dist_thr
       - For two frames of baseline below the threshold, no triangulation will be performed.
 
+.. _section-parameters-pangolin:
+
+PangolinViewer
+==============
+
+.. list-table::
+    :header-rows: 1
+    :widths: 1, 3
+
+    * - Name
+      - Description
+    * - keyframe_size
+      - 
+    * - keyframe_line_width
+      - 
+    * - graph_line_width
+      - 
+    * - point_size
+      - 
+    * - camera_size
+      - 
+    * - camera_line_width
+      - 
+    * - viewpoint_x, viewpoint_y, viewpoint_z, viewpoint_f
+      - 
+      
 .. _section-parameters-others:
 
 Others
