@@ -81,3 +81,17 @@ Mapping
         Either baseline_dist_thr or this one should be specified. If not specified, baseline_dist_thr_ratio will be used.
     * - baseline_dist_thr
       - For two frames of baseline below the threshold, no triangulation will be performed.
+
+.. _section-parameters-others:
+
+Others
+======
+
+.. list-table::
+    :header-rows: 1
+    :widths: 1, 3
+
+    * - Name
+      - Description
+    * - depth_threshold
+      - The ratio used to determine the depth threshold
