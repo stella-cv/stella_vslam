@@ -374,6 +374,10 @@ float keyframe::compute_median_depth(const bool abs) const {
     return depths.at((depths.size() - 1) / 2);
 }
 
+bool keyframe::depth_is_avaliable() const {
+    return camera_->setup_type_ != camera::setup_type_t::Monocular;
+}
+
 void keyframe::set_not_to_be_erased() {
     cannot_be_erased_ = true;
 }

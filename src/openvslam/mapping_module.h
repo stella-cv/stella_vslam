@@ -30,7 +30,7 @@ class map_database;
 class mapping_module {
 public:
     //! Constructor
-    mapping_module(const YAML::Node& yaml_node, data::map_database* map_db, const bool is_monocular);
+    mapping_module(const YAML::Node& yaml_node, data::map_database* map_db);
 
     //! Destructor
     ~mapping_module();
@@ -217,9 +217,6 @@ private:
 
     //-----------------------------------------
     // others
-
-    //! flag which indicates the tracking camera is monocular or not
-    const bool is_monocular_;
 
     //! flag for keyframe acceptability
     std::atomic<bool> keyfrm_acceptability_{true};

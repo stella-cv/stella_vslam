@@ -17,7 +17,7 @@ public:
     /**
      * Constructor
      */
-    explicit local_map_cleaner(const bool is_monocular);
+    explicit local_map_cleaner();
 
     /**
      * Destructor
@@ -46,7 +46,7 @@ public:
     /**
      * Remove redundant landmarks
      */
-    unsigned int remove_redundant_landmarks(const unsigned int cur_keyfrm_id);
+    unsigned int remove_redundant_landmarks(const unsigned int cur_keyfrm_id, const bool depth_is_avaliable);
 
     /**
      * Remove redundant keyframes
@@ -61,9 +61,6 @@ public:
 private:
     //! origin keyframe ID
     unsigned int origin_keyfrm_id_ = 0;
-
-    //! flag which indicates the tracking camera is monocular or not
-    const bool is_monocular_;
 
     //! fresh landmarks to check their redundancy
     std::list<data::landmark*> fresh_landmarks_;

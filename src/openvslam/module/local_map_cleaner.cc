@@ -5,17 +5,16 @@
 namespace openvslam {
 namespace module {
 
-local_map_cleaner::local_map_cleaner(const bool is_monocular)
-    : is_monocular_(is_monocular) {}
+local_map_cleaner::local_map_cleaner() {}
 
 void local_map_cleaner::reset() {
     fresh_landmarks_.clear();
 }
 
-unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cur_keyfrm_id) {
+unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cur_keyfrm_id, const bool depth_is_avaliable) {
     constexpr float observed_ratio_thr = 0.3;
     constexpr unsigned int num_reliable_keyfrms = 2;
-    const unsigned int num_obs_thr = is_monocular_ ? 2 : 3;
+    const unsigned int num_obs_thr = depth_is_avaliable ? 3 : 2;
 
     // states of observed landmarks
     enum class lm_state_t { Valid,
@@ -126,7 +125,7 @@ void local_map_cleaner::count_redundant_observations(data::keyframe* keyfrm, uns
 
         // if depth is within the valid range, it won't be considered
         const auto depth = keyfrm->depths_.at(idx);
-        if (!is_monocular_ && (depth < 0.0 || keyfrm->depth_thr_ < depth)) {
+        if (keyfrm->depth_is_avaliable() && (depth < 0.0 || keyfrm->depth_thr_ < depth)) {
             continue;
         }
 
