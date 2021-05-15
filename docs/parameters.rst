@@ -35,6 +35,28 @@ Camera
     * - color_order
       - Gray, RGB, RGBA, BGR, BGRA
 
+Feature
+=======
+
+.. list-table::
+    :header-rows: 1
+    :widths: 1, 3
+
+    * - Name
+      - Description
+    * - max_num_keypoints
+      - Maximum number of feature points per frame to be used for SLAM.
+    * - ini_max_num_keypoints
+      - Maximum number of feature points per frame to be used for Initialization. It is only used for monocular camera models.
+    * - scale_factor
+      - Scale of the image pyramid
+    * - num_levels
+      - Number of levels of in the image pyramid
+    * - ini_fast_threshold
+      - FAST threshold for try first
+    * - min_fast_threshold
+      - FAST threshold for try second time
+      
 Mapping
 =======
 
