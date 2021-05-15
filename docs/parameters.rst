@@ -99,7 +99,22 @@ StereoRectifier
       - Distortion parameters. The 5 parameters are k1, k2, p1, p2, k3.
     * - R_left, R_right
       - Stereo-recitification parameters. The 3x3 matrix are written in row-major order.
-    
+
+
+.. _section-parameters-initializer:
+
+Initializer
+===========
+
+.. list-table::
+    :header-rows: 1
+    :widths: 1, 3
+
+    * - Name
+      - Description
+    * - num_min_triangulated_pts
+      - Minimum number of triangulated points
+          
 .. _section-parameters-pangolin:
 
 PangolinViewer
