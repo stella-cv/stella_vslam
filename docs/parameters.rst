@@ -27,13 +27,20 @@ Camera
     * - cx, cy
       - Principal point (pixel)
     * - k1, k2, p1, p2, k3
-      - Distortion parameters
+      - Distortion parameters for perspective camera
+    * - k1, k2, k3, k4
+      - Distortion parameters for fisheye camera
+    * - distortion
+      - Distortion parameters for radial_division camera
     * - fps
       - Framerate of input images
     * - cols, rows
       - Resolution (pixel)
     * - color_order
       - Gray, RGB, RGBA, BGR, BGRA
+    * - focal_x_baseline
+      - For stereo cameras, it is the value of the baseline between the left and right cameras multiplied by the focal length fx. 
+
 
 Feature
 =======
