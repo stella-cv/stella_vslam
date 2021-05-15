@@ -289,7 +289,7 @@ void frame::extract_orb(const cv::Mat& img, const cv::Mat& mask, const image_sid
     }
 }
 
-void frame::compute_stereo_from_depth(const cv::Mat& right_img_depth) {
+void frame::compute_stereo_from_depth(const cv::Mat& img_depth) {
     assert(camera_->setup_type_ == camera::setup_type_t::RGBD);
 
     // Initialize with invalid value
@@ -303,7 +303,7 @@ void frame::compute_stereo_from_depth(const cv::Mat& right_img_depth) {
         const float x = keypt.pt.x;
         const float y = keypt.pt.y;
 
-        const float depth = right_img_depth.at<float>(y, x);
+        const float depth = img_depth.at<float>(y, x);
 
         if (depth <= 0) {
             continue;
