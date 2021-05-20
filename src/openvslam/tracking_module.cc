@@ -142,10 +142,6 @@ Mat44_t tracking_module::track_monocular_image(const cv::Mat& img, const double 
     const auto end = std::chrono::system_clock::now();
     elapsed_ms_ = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    if (!tracking_started_) {
-        tracking_started_ = true;
-    }
-
     return curr_frm_.cam_pose_cw_;
 }
 
@@ -165,10 +161,6 @@ Mat44_t tracking_module::track_stereo_image(const cv::Mat& left_img_rect, const 
 
     const auto end = std::chrono::system_clock::now();
     elapsed_ms_ = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-    if (!tracking_started_) {
-        tracking_started_ = true;
-    }
 
     return curr_frm_.cam_pose_cw_;
 }
@@ -190,26 +182,27 @@ Mat44_t tracking_module::track_RGBD_image(const cv::Mat& img, const cv::Mat& dep
     const auto end = std::chrono::system_clock::now();
     elapsed_ms_ = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    if (!tracking_started_) {
-        tracking_started_ = true;
-    }
-
     return curr_frm_.cam_pose_cw_;
 }
 
-bool tracking_module::track_pose(const Mat44_t& pose) {
-    curr_frm_.set_cam_pose(pose);
+void tracking_module::request_update_pose(const Mat44_t& pose) {
+    std::lock_guard<std::mutex> lock(mtx_update_pose_);
+    update_pose_is_requested_ = true;
+    request_pose_ = pose;
+}
 
-    const auto candidates = map_db_->get_close_keyframes(pose, update_pose_keyframes_);
-    const bool status = relocalizer_.reloc_by_candidates(curr_frm_, candidates);
+bool tracking_module::update_pose_is_requested() {
+    std::lock_guard<std::mutex> lock(mtx_update_pose_);
+    return update_pose_is_requested_;
+}
 
-    if (status) {
-        last_reloc_frm_id_ = curr_frm_.id_;
-        tracking_state_ = tracker_state_t::Tracking;
-    } else {
-        tracking_state_ = tracker_state_t::Lost;
+bool tracking_module::finish_update_pose_request() {
+    std::lock_guard<std::mutex> lock(mtx_update_pose_);
+    if (update_pose_is_requested_) {
+        update_pose_is_requested_ = false;
+        return true;
     }
-    return status;
+    return false;
 }
 
 void tracking_module::reset() {
@@ -231,7 +224,6 @@ void tracking_module::reset() {
     last_reloc_frm_id_ = 0;
 
     tracking_state_ = tracker_state_t::NotInitialized;
-    tracking_started_ = false;
 }
 
 void tracking_module::track() {
@@ -355,7 +347,8 @@ bool tracking_module::initialize() {
 
 bool tracking_module::track_current_frame() {
     bool succeeded = false;
-    if (tracking_state_ == tracker_state_t::Tracking) {
+
+    if (tracking_state_ == tracker_state_t::Tracking && !update_pose_is_requested()) {
         // Tracking mode
         if (velocity_is_valid_ && last_reloc_frm_id_ + 2 < curr_frm_.id_) {
             // if the motion model is valid
@@ -367,8 +360,24 @@ bool tracking_module::track_current_frame() {
         if (!succeeded) {
             succeeded = frame_tracker_.robust_match_based_track(curr_frm_, last_frm_, ref_keyfrm_);
         }
+    } else if (update_pose_is_requested()) {
+        // Force relocalization by pose
+        curr_frm_.set_cam_pose(request_pose_);
+
+        curr_frm_.compute_bow();
+        const auto candidates = map_db_->get_close_keyframes(request_pose_, update_pose_keyframes_);
+        if (candidates.size() != 0) {
+            succeeded = relocalizer_.reloc_by_candidates(curr_frm_, candidates);
+        }
+
+        if (succeeded) {
+            last_reloc_frm_id_ = curr_frm_.id_;
+            tracking_state_ = tracker_state_t::Tracking;
+        } else {
+            tracking_state_ = tracker_state_t::Lost;
+        }
     }
-    else {
+    if (tracking_state_ != tracker_state_t::Tracking) {
         // Lost mode
         // try to relocalize
         succeeded = relocalizer_.relocalize(curr_frm_);
@@ -376,6 +385,7 @@ bool tracking_module::track_current_frame() {
             last_reloc_frm_id_ = curr_frm_.id_;
         }
     }
+
     return succeeded;
 }
 

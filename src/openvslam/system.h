@@ -116,8 +116,8 @@ public:
     //-----------------------------------------
     // pose initializing/updating
 
-    //! Update current position and try to relocalize
-    bool update_pose(const Mat44_t& pose);
+    //! Try to update the pose to a given one
+    void update_pose(const Mat44_t& pose);
 
     //-----------------------------------------
     // management for pause

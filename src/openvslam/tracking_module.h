@@ -80,8 +80,10 @@ public:
     //! (Note: RGB and Depth images must be aligned)
     Mat44_t track_RGBD_image(const cv::Mat& img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
-    //! Update current frame position and request relocalization
-    bool track_pose(const Mat44_t& pose);
+    //! Request to update the pose to a given one
+    void request_update_pose(const Mat44_t& pose);
+    //! Finish update request. Returns true in case of request was made.
+    bool finish_update_pose_request();
 
     //-----------------------------------------
     // management for reset process
@@ -126,8 +128,6 @@ public:
     tracker_state_t tracking_state_ = tracker_state_t::NotInitialized;
     //! last tracking state
     tracker_state_t last_tracking_state_ = tracker_state_t::NotInitialized;
-    //! indicator that tracking was started
-    bool tracking_started_ = false;
 
     //! current frame and its image
     data::frame curr_frm_;
@@ -261,6 +261,15 @@ protected:
 
     //! Pause of the tracking module is requested or not
     bool pause_is_requested_ = false;
+
+    //! Update into a given position is requested or not
+    bool update_pose_is_requested();
+    //! Mutex for update pose into a given position
+    mutable std::mutex mtx_update_pose_;
+    //! Indicator of update pose request
+    bool update_pose_is_requested_ = false;
+    //! Requested pose to update
+    Mat44_t request_pose_;
 };
 
 } // namespace openvslam
