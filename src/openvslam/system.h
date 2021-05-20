@@ -209,6 +209,9 @@ private:
 
     //! mutex for flags of enable/disable loop detector
     mutable std::mutex mtx_loop_detector_;
+
+    //! mutex for tracking
+    mutable std::mutex mtx_tracking_;
 };
 
 } // namespace openvslam

@@ -239,6 +239,7 @@ void system::abort_loop_BA() {
 }
 
 bool system::is_tracking(){
+    std::lock_guard<std::mutex> lock(mtx_tracking_);
     ((tracker_->tracking_state_ == tracker_state_t::Tracking) ? true : false);
 }
 
