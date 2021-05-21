@@ -70,15 +70,15 @@ public:
 
     //! Track a monocular frame
     //! (NOTE: distorted images are acceptable if calibrated)
-    Mat44_t track_monocular_image(const cv::Mat& img, const double timestamp, const cv::Mat& mask = cv::Mat{});
+    std::shared_ptr<Mat44_t> track_monocular_image(const cv::Mat& img, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
     //! Track a stereo frame
     //! (Note: Left and Right images must be stereo-rectified)
-    Mat44_t track_stereo_image(const cv::Mat& left_img_rect, const cv::Mat& right_img_rect, const double timestamp, const cv::Mat& mask = cv::Mat{});
+    std::shared_ptr<Mat44_t> track_stereo_image(const cv::Mat& left_img_rect, const cv::Mat& right_img_rect, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
     //! Track an RGBD frame
     //! (Note: RGB and Depth images must be aligned)
-    Mat44_t track_RGBD_image(const cv::Mat& img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask = cv::Mat{});
+    std::shared_ptr<Mat44_t> track_RGBD_image(const cv::Mat& img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
     //-----------------------------------------
     // management for reset process
