@@ -136,11 +136,11 @@ std::shared_ptr<Mat44_t> tracking_module::track_monocular_image(const cv::Mat& i
     const auto end = std::chrono::system_clock::now();
     elapsed_ms_ = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    std::shared_ptr<Mat44_t> cam_pose_cw = nullptr;
+    std::shared_ptr<Mat44_t> cam_pose_wc = nullptr;
     if (curr_frm_.cam_pose_cw_is_valid_) {
-        cam_pose_cw = std::allocate_shared<Mat44_t>(Eigen::aligned_allocator<Mat44_t>(), curr_frm_.get_cam_pose());
+        cam_pose_wc = std::allocate_shared<Mat44_t>(Eigen::aligned_allocator<Mat44_t>(), curr_frm_.get_cam_pose_inv());
     }
-    return cam_pose_cw;
+    return cam_pose_wc;
 }
 
 std::shared_ptr<Mat44_t> tracking_module::track_stereo_image(const cv::Mat& left_img_rect, const cv::Mat& right_img_rect, const double timestamp, const cv::Mat& mask) {
@@ -160,11 +160,11 @@ std::shared_ptr<Mat44_t> tracking_module::track_stereo_image(const cv::Mat& left
     const auto end = std::chrono::system_clock::now();
     elapsed_ms_ = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    std::shared_ptr<Mat44_t> cam_pose_cw = nullptr;
+    std::shared_ptr<Mat44_t> cam_pose_wc = nullptr;
     if (curr_frm_.cam_pose_cw_is_valid_) {
-        cam_pose_cw = std::allocate_shared<Mat44_t>(Eigen::aligned_allocator<Mat44_t>(), curr_frm_.get_cam_pose());
+        cam_pose_wc = std::allocate_shared<Mat44_t>(Eigen::aligned_allocator<Mat44_t>(), curr_frm_.get_cam_pose_inv());
     }
-    return cam_pose_cw;
+    return cam_pose_wc;
 }
 
 std::shared_ptr<Mat44_t> tracking_module::track_RGBD_image(const cv::Mat& img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask) {
@@ -184,11 +184,11 @@ std::shared_ptr<Mat44_t> tracking_module::track_RGBD_image(const cv::Mat& img, c
     const auto end = std::chrono::system_clock::now();
     elapsed_ms_ = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    std::shared_ptr<Mat44_t> cam_pose_cw = nullptr;
+    std::shared_ptr<Mat44_t> cam_pose_wc = nullptr;
     if (curr_frm_.cam_pose_cw_is_valid_) {
-        cam_pose_cw = std::allocate_shared<Mat44_t>(Eigen::aligned_allocator<Mat44_t>(), curr_frm_.get_cam_pose());
+        cam_pose_wc = std::allocate_shared<Mat44_t>(Eigen::aligned_allocator<Mat44_t>(), curr_frm_.get_cam_pose_inv());
     }
-    return cam_pose_cw;
+    return cam_pose_wc;
 }
 
 void tracking_module::reset() {
