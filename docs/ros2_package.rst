@@ -12,13 +12,13 @@ Installation
 Requirements
 ^^^^^^^^^^^^
 
-* `ROS2 <https://index.ros.org/doc/ros2//>`_ : ``foxy`` or later is recommended. (If you want to build it manually, you can use ``dashing`` or later.)
+* `ROS2 <https://index.ros.org/doc/ros2//>`_ : ``foxy`` or later.
 
-* :ref:`OpenVSLAM <chapter-installation>` : Please build it with **OpenCV 3.x**.
+* :ref:`OpenVSLAM <chapter-installation>`
 
 * `image_common <https://index.ros.org/r/image_common/github-ros-perception-image_common>`_ : Required by this ROS package examples.
 
-* `vision_opencv <https://index.ros.org/r/vision_opencv/github-ros-perception-vision_opencv>`_ : Please build it with the same version of OpenCV used in OpenVSLAM. (**We recommend building it from source.**)
+* `vision_opencv <https://index.ros.org/r/vision_opencv/github-ros-perception-vision_opencv>`_ : Please build it with the same version of OpenCV used in OpenVSLAM.
 
 * `image_tools <https://index.ros.org/p/image_tools/#dashing>`_ : An optional requirement to use USB cameras.
 

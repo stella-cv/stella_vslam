@@ -110,7 +110,7 @@ Prerequisites for Unix
 Installing for Linux
 ^^^^^^^^^^^^^^^^^^^^
 
-Tested for **Ubuntu 16.04**.
+Tested for **Ubuntu 18.04**.
 
 Install the dependencies via ``apt``.
 

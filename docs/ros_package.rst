@@ -12,20 +12,20 @@ Installation
 Requirements
 ^^^^^^^^^^^^
 
-* `ROS <http://wiki.ros.org/>`_ : ``noetic`` is recommended. (If you want to build it manually, you can use ``kinetic`` or later.)
+* `ROS <http://wiki.ros.org/>`_ : ``noetic`` is recommended. (If you have built OpenCV (3.3.1 or later) manually, you can use ``melodic`` or later.)
 
-* :ref:`OpenVSLAM <chapter-installation>` : Please build it with **OpenCV 3.x**.
+* :ref:`OpenVSLAM <chapter-installation>`
 
 * `image_transport <http://wiki.ros.org/image_transport>`_ : Required by this ROS package examples.
 
-* `cv_bridge <http://wiki.ros.org/cv_bridge>`_ : Please build it with the same version of OpenCV used in OpenVSLAM. (**We recommend building it from source.**)
+* `cv_bridge <http://wiki.ros.org/cv_bridge>`_ : Please build it with the same version of OpenCV used in OpenVSLAM.
 
 .. _section-prerequisites:
 
 Prerequisites
 ^^^^^^^^^^^^^
 
-Tested for **Ubuntu 16.04**.
+Tested for **Ubuntu 18.04**.
 
 Please install the following dependencies.
 
@@ -52,10 +52,6 @@ Download the source of ``cv_bridge``.
     git clone --branch ${ROS_DISTRO} --depth 1 https://github.com/ros-perception/vision_opencv.git
     cp -r vision_opencv/cv_bridge ~/catkin_ws/src
     rm -rf vision_opencv
-
-.. NOTE ::
-
-    We recommend building ``cv_bridge`` from the source even if it has been installed via ``apt``.
 
 Build Instructions
 ^^^^^^^^^^^^^^^^^^
