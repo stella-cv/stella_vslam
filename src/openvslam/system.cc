@@ -246,8 +246,7 @@ Mat44_t system::feed_monocular_frame(const cv::Mat& img, const double timestamp,
     const Mat44_t cam_pose_cw = tracker_->track_monocular_image(img, timestamp, mask);
 
     frame_publisher_->update(tracker_);
-    if (tracker_->tracking_state_ == tracker_state_t::Tracking ||
-        tracker_->finish_update_pose_request()) {
+    if (tracker_->tracking_state_ == tracker_state_t::Tracking) {
         map_publisher_->set_current_cam_pose(cam_pose_cw);
         map_publisher_->set_current_cam_pose_wc(tracker_->curr_frm_.get_cam_pose_inv());
     }
@@ -263,8 +262,7 @@ Mat44_t system::feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_
     const Mat44_t cam_pose_cw = tracker_->track_stereo_image(left_img, right_img, timestamp, mask);
 
     frame_publisher_->update(tracker_);
-    if (tracker_->tracking_state_ == tracker_state_t::Tracking ||
-        tracker_->finish_update_pose_request()) {
+    if (tracker_->tracking_state_ == tracker_state_t::Tracking) {
         map_publisher_->set_current_cam_pose(cam_pose_cw);
         map_publisher_->set_current_cam_pose_wc(tracker_->curr_frm_.get_cam_pose_inv());
     }
@@ -280,8 +278,7 @@ Mat44_t system::feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap,
     const Mat44_t cam_pose_cw = tracker_->track_RGBD_image(rgb_img, depthmap, timestamp, mask);
 
     frame_publisher_->update(tracker_);
-    if (tracker_->tracking_state_ == tracker_state_t::Tracking ||
-        tracker_->finish_update_pose_request()) {
+    if (tracker_->tracking_state_ == tracker_state_t::Tracking) {
         map_publisher_->set_current_cam_pose(cam_pose_cw);
         map_publisher_->set_current_cam_pose_wc(tracker_->curr_frm_.get_cam_pose_inv());
     }
@@ -291,6 +288,10 @@ Mat44_t system::feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap,
 
 void system::update_pose(const Mat44_t& pose) {
     tracker_->request_update_pose(pose);
+    // Even if state will be lost, still update the pose in map_publisher_
+    // to clearly show new camera position
+    map_publisher_->set_current_cam_pose(pose);
+    map_publisher_->set_current_cam_pose_wc(pose.inverse());
 }
 
 void system::pause_tracker() {

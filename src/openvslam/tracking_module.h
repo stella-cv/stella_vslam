@@ -82,8 +82,6 @@ public:
 
     //! Request to update the pose to a given one
     void request_update_pose(const Mat44_t& pose);
-    //! Finish update request. Returns true in case of request was made.
-    bool finish_update_pose_request();
 
     //-----------------------------------------
     // management for reset process
@@ -118,8 +116,9 @@ public:
     //! depthmap factor (pixel_value / depthmap_factor = true_depth)
     double depthmap_factor_ = 1.0;
 
-    //! number of keyframes to relocalize with when updating by pose
-    unsigned int update_pose_keyframes_ = 3;
+    //! closest keyframes thresholds (by distance and angle) to relocalize with when updating by pose
+    double pose_reloc_distance_threshold_ = 0.2;
+    double cos_angle_reloc_threshold_ = 0.9;
 
     //-----------------------------------------
     // variables
@@ -262,14 +261,18 @@ protected:
     //! Pause of the tracking module is requested or not
     bool pause_is_requested_ = false;
 
-    //! Update into a given position is requested or not
-    bool update_pose_is_requested();
     //! Mutex for update pose into a given position
     mutable std::mutex mtx_update_pose_;
+    //! Update into a given position is requested or not
+    bool update_pose_is_requested();
+    //! Get requested for relocalization pose
+    Mat44_t& get_requested_pose();
+    //! Finish update request. Returns true in case of request was made.
+    void finish_update_pose_request();
     //! Indicator of update pose request
     bool update_pose_is_requested_ = false;
     //! Requested pose to update
-    Mat44_t request_pose_;
+    Mat44_t requested_pose_;
 };
 
 } // namespace openvslam

@@ -72,17 +72,12 @@ std::vector<keyframe*> map_database::get_all_keyframes() const {
 }
 
 std::vector<keyframe*> map_database::get_close_keyframes(const Mat44_t& pose,
-                                                         const unsigned int limit) const {
+                                                         const double distance_threshold,
+                                                         const double cos_angle_threshold) const {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
-    // Auxilary vectors of <keyframe_id, angle or distance> pairs
-    // to have all key-frames sorted by their angle and distance
-    // closeness to a given pose
-    std::vector<std::pair<unsigned int, double>> angles;
-    std::vector<std::pair<unsigned int, double>> distances;
-    // Final closeness score map.
-    // Structure: std::map<keyframe_id, closeness_score>
-    std::map<unsigned int, unsigned int> score;
+    // Close (within given thresholds) keyframes
+    std::vector<keyframe*> filtered_keyframes;
 
     // Calculate angles and distances between given pose and all keyframes
     Mat33_t M = pose.block<3, 3>(0, 0);
@@ -91,50 +86,15 @@ std::vector<keyframe*> map_database::get_close_keyframes(const Mat44_t& pose,
         Mat33_t N = id_keyframe.second->get_cam_pose().block<3, 3>(0, 0);
         Vec3_t Nt = id_keyframe.second->get_cam_pose().block<3, 1>(0, 3);
         // Angle between two cameras related to given pose and selected keyframe
-        const double cos_angle = ((M * N.transpose()).trace() - 1 ) / 2;
-        angles.push_back(std::make_pair(id_keyframe.first, cos_angle));
+        const double cos_angle = ((M * N.transpose()).trace() - 1) / 2;
         // Distance between given pose and selected keyframe
         const double dist = (Nt - Mt).norm();
-        distances.push_back(std::make_pair(id_keyframe.first, dist));
-    }
-
-    // Sorting function for angles and distances
-    auto sort_func = [](const std::pair<unsigned int, double> &a,
-                        const std::pair<unsigned int, double> &b) {
-        return a.second < b.second;
-    };
-    // Sort angles and distances to get the best matches per each category
-    std::sort(angles.begin(), angles.end(), sort_func);
-    std::sort(distances.begin(), distances.end(), sort_func);
-
-    // Calculate closeness score as sum of positions in sorted arrays of angles and distances.
-    // Smaller values are better.
-    const unsigned int size = angles.size();
-    for (unsigned int i = 0; i < size; i++) {
-        score[angles[i].first] = size - i - 1;
-    }
-    for (unsigned int i = 0; i < size; i++) {
-        score[distances[i].first] += i;
-    }
-
-    // Arrange score from minimum to maximum
-    std::multimap<unsigned int, unsigned int> best_score;
-    for (const auto item : score) {
-        best_score.insert({item.second, item.first});
-    }
-
-    // Choose the required amount of closest key-frames
-    std::vector<keyframe *> keyframes;
-    unsigned int i = 0;
-    for (const auto item : best_score) {
-        if (i >= limit) {
-            break;
+        if (dist < distance_threshold && cos_angle > cos_angle_threshold) {
+            filtered_keyframes.push_back(id_keyframe.second);
         }
-        keyframes.push_back(keyframes_.at(item.second));
-        i++;
     }
 
-    return keyframes;
+    return filtered_keyframes;
 }
 
 unsigned int map_database::get_num_keyframes() const {
