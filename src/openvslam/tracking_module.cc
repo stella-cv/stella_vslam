@@ -366,7 +366,7 @@ bool tracking_module::track_current_frame() {
 
         curr_frm_.compute_bow();
         const auto candidates = map_db_->get_close_keyframes(request_pose_, update_pose_keyframes_);
-        if (candidates.size() != 0) {
+        if (!candidates.empty()) {
             succeeded = relocalizer_.reloc_by_candidates(curr_frm_, candidates);
         }
 
