@@ -210,9 +210,7 @@ Mat44_t& tracking_module::get_requested_pose() {
 
 void tracking_module::finish_update_pose_request() {
     std::lock_guard<std::mutex> lock(mtx_update_pose_);
-    if (update_pose_is_requested_) {
-        update_pose_is_requested_ = false;
-    }
+    update_pose_is_requested_ = false;
 }
 
 void tracking_module::reset() {
