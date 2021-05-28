@@ -80,8 +80,9 @@ public:
     //! (Note: RGB and Depth images must be aligned)
     Mat44_t track_RGBD_image(const cv::Mat& img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
-    //! Request to update the pose to a given one
-    void request_update_pose(const Mat44_t& pose);
+    //! Request to update the pose to a given one.
+    //! Return failure in case if previous request was not finished yet.
+    bool request_update_pose(const Mat44_t& pose);
 
     //-----------------------------------------
     // management for reset process
@@ -117,8 +118,8 @@ public:
     double depthmap_factor_ = 1.0;
 
     //! closest keyframes thresholds (by distance and angle) to relocalize with when updating by pose
-    double pose_reloc_distance_threshold_ = 0.2;
-    double cos_angle_reloc_threshold_ = 0.9;
+    double reloc_distance_threshold_ = 0.2;
+    double reloc_angle_threshold_ = 0.45;
 
     //-----------------------------------------
     // variables
@@ -261,8 +262,8 @@ protected:
     //! Pause of the tracking module is requested or not
     bool pause_is_requested_ = false;
 
-    //! Mutex for update pose into a given position
-    mutable std::mutex mtx_update_pose_;
+    //! Mutex for update pose request into given position
+    mutable std::mutex mtx_update_pose_request_;
     //! Update into a given position is requested or not
     bool update_pose_is_requested();
     //! Get requested for relocalization pose

@@ -73,11 +73,13 @@ std::vector<keyframe*> map_database::get_all_keyframes() const {
 
 std::vector<keyframe*> map_database::get_close_keyframes(const Mat44_t& pose,
                                                          const double distance_threshold,
-                                                         const double cos_angle_threshold) const {
+                                                         const double angle_threshold) const {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
     // Close (within given thresholds) keyframes
     std::vector<keyframe*> filtered_keyframes;
+
+    const double cos_angle_threshold = std::cos(angle_threshold);
 
     // Calculate angles and distances between given pose and all keyframes
     Mat33_t M = pose.block<3, 3>(0, 0);

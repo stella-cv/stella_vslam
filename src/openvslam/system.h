@@ -116,8 +116,9 @@ public:
     //-----------------------------------------
     // pose initializing/updating
 
-    //! Try to update the pose to a given one
-    void update_pose(const Mat44_t& pose);
+    //! Request to update the pose to a given one.
+    //! Return failure in case if previous request was not finished.
+    bool update_pose(const Mat44_t& pose);
 
     //-----------------------------------------
     // management for pause

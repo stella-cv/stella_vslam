@@ -82,12 +82,12 @@ public:
      * Get closest keyframes to a given pose
      * @param pose Given pose
      * @param distance_threshold Maximum distance where close keyframes could be found
-     * @param cos_angle_threshold Minimum cosine of angle between given pose and close keyframes
+     * @param angle_threshold Maximum angle between given pose and close keyframes
      * @return Vector closest keyframes
      */
     std::vector<keyframe*> get_close_keyframes(const Mat44_t& pose,
                                                const double distance_threshold,
-                                               const double cos_angle_threshold) const;
+                                               const double angle_threshold) const;
 
     /**
      * Get the number of keyframes

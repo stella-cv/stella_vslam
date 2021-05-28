@@ -286,12 +286,15 @@ Mat44_t system::feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap,
     return cam_pose_cw;
 }
 
-void system::update_pose(const Mat44_t& pose) {
-    tracker_->request_update_pose(pose);
-    // Even if state will be lost, still update the pose in map_publisher_
-    // to clearly show new camera position
-    map_publisher_->set_current_cam_pose(pose);
-    map_publisher_->set_current_cam_pose_wc(pose.inverse());
+bool system::update_pose(const Mat44_t& pose) {
+    bool status = tracker_->request_update_pose(pose);
+    if (status) {
+        // Even if state will be lost, still update the pose in map_publisher_
+        // to clearly show new camera position
+        map_publisher_->set_current_cam_pose(pose);
+        map_publisher_->set_current_cam_pose_wc(pose.inverse());
+    }
+    return status;
 }
 
 void system::pause_tracker() {

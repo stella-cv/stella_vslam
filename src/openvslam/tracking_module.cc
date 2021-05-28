@@ -54,14 +54,14 @@ double get_depthmap_factor(const camera::base* camera, const YAML::Node& yaml_no
     return depthmap_factor;
 }
 
-double get_pose_reloc_distance_threshold(const YAML::Node& yaml_node) {
+double get_reloc_distance_threshold(const YAML::Node& yaml_node) {
     spdlog::debug("load maximum distance threshold where close keyframes could be found");
     return yaml_node["reloc_distance_threshold"].as<double>(0.2);
 }
 
-double get_cos_angle_reloc_threshold(const YAML::Node& yaml_node) {
-    spdlog::debug("load minimum cosine of angle between given pose and close keyframes threshold");
-    return yaml_node["angle_reloc_threshold"].as<double>(0.9);
+double get_reloc_angle_threshold(const YAML::Node& yaml_node) {
+    spdlog::debug("load maximum angle threshold between given pose and close keyframes");
+    return yaml_node["reloc_angle_threshold"].as<double>(0.45);
 }
 
 } // unnamed namespace
@@ -72,8 +72,8 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
                                  data::bow_vocabulary* bow_vocab, data::bow_database* bow_db)
     : camera_(cfg->camera_), true_depth_thr_(get_true_depth_thr(camera_, cfg->yaml_node_)),
       depthmap_factor_(get_depthmap_factor(camera_, cfg->yaml_node_)),
-      pose_reloc_distance_threshold_(get_pose_reloc_distance_threshold(cfg->yaml_node_)),
-      cos_angle_reloc_threshold_(get_cos_angle_reloc_threshold(cfg->yaml_node_)),
+      reloc_distance_threshold_(get_reloc_distance_threshold(cfg->yaml_node_)),
+      reloc_angle_threshold_(get_reloc_angle_threshold(cfg->yaml_node_)),
       system_(system), map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(cfg->camera_->setup_type_, map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
       frame_tracker_(camera_, 10), relocalizer_(bow_db_), pose_optimizer_(),
@@ -192,24 +192,29 @@ Mat44_t tracking_module::track_RGBD_image(const cv::Mat& img, const cv::Mat& dep
     return curr_frm_.cam_pose_cw_;
 }
 
-void tracking_module::request_update_pose(const Mat44_t& pose) {
-    std::lock_guard<std::mutex> lock(mtx_update_pose_);
+bool tracking_module::request_update_pose(const Mat44_t& pose) {
+    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
+    if (update_pose_is_requested_) {
+        spdlog::warn("Can not process new pose update request while previous was not finished");
+        return false;
+    }
     update_pose_is_requested_ = true;
     requested_pose_ = pose;
+    return true;
 }
 
 bool tracking_module::update_pose_is_requested() {
-    std::lock_guard<std::mutex> lock(mtx_update_pose_);
+    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
     return update_pose_is_requested_;
 }
 
 Mat44_t& tracking_module::get_requested_pose() {
-    std::lock_guard<std::mutex> lock(mtx_update_pose_);
+    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
     return requested_pose_;
 }
 
 void tracking_module::finish_update_pose_request() {
-    std::lock_guard<std::mutex> lock(mtx_update_pose_);
+    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
     update_pose_is_requested_ = false;
 }
 
@@ -362,8 +367,8 @@ bool tracking_module::track_current_frame() {
 
         curr_frm_.compute_bow();
         const auto candidates = map_db_->get_close_keyframes(get_requested_pose(),
-                                                             pose_reloc_distance_threshold_,
-                                                             cos_angle_reloc_threshold_);
+                                                             reloc_distance_threshold_,
+                                                             reloc_angle_threshold_);
         if (!candidates.empty()) {
             succeeded = relocalizer_.reloc_by_candidates(curr_frm_, candidates);
             if (succeeded) {
