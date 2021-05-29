@@ -32,6 +32,12 @@ bool relocalizer::relocalize(data::frame& curr_frm) {
     if (reloc_candidates.empty()) {
         return false;
     }
+
+    return reloc_by_candidates(curr_frm, reloc_candidates);
+}
+
+bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
+                                      const std::vector<openvslam::data::keyframe*>& reloc_candidates) {
     const auto num_candidates = reloc_candidates.size();
 
     std::vector<std::vector<data::landmark*>> matched_landmarks(num_candidates);

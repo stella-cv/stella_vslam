@@ -144,8 +144,8 @@ PangolinViewer
       
 .. _section-parameters-others:
 
-Others
-======
+Tracker
+=======
 
 .. list-table::
     :header-rows: 1
@@ -154,6 +154,10 @@ Others
     * - Name
       - Description
     * - depth_threshold
-      - The ratio used to determine the depth threshold
+      - The ratio used to determine the depth threshold.
     * - depthmap_factor
       - The ratio used to convert depth image pixel values to distance.
+    * - reloc_distance_threshold
+      - Maximum distance threshold (in meters) where close keyframes could be found when doing a relocalization by pose.
+    * - reloc_angle_threshold
+      - Maximum angle threshold (in radians) between given pose and close keyframes when doing a relocalization by pose.

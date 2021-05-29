@@ -53,6 +53,17 @@ double get_depthmap_factor(const camera::base* camera, const YAML::Node& yaml_no
     }
     return depthmap_factor;
 }
+
+double get_reloc_distance_threshold(const YAML::Node& yaml_node) {
+    spdlog::debug("load maximum distance threshold where close keyframes could be found");
+    return yaml_node["reloc_distance_threshold"].as<double>(0.2);
+}
+
+double get_reloc_angle_threshold(const YAML::Node& yaml_node) {
+    spdlog::debug("load maximum angle threshold between given pose and close keyframes");
+    return yaml_node["reloc_angle_threshold"].as<double>(0.45);
+}
+
 } // unnamed namespace
 
 namespace openvslam {
@@ -61,6 +72,8 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
                                  data::bow_vocabulary* bow_vocab, data::bow_database* bow_db)
     : camera_(cfg->camera_), true_depth_thr_(get_true_depth_thr(camera_, cfg->yaml_node_)),
       depthmap_factor_(get_depthmap_factor(camera_, cfg->yaml_node_)),
+      reloc_distance_threshold_(get_reloc_distance_threshold(cfg->yaml_node_)),
+      reloc_angle_threshold_(get_reloc_angle_threshold(cfg->yaml_node_)),
       system_(system), map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(cfg->camera_->setup_type_, map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
       frame_tracker_(camera_, 10), relocalizer_(bow_db_), pose_optimizer_(),
@@ -189,6 +202,32 @@ std::shared_ptr<Mat44_t> tracking_module::track_RGBD_image(const cv::Mat& img, c
         cam_pose_wc = std::allocate_shared<Mat44_t>(Eigen::aligned_allocator<Mat44_t>(), curr_frm_.get_cam_pose_inv());
     }
     return cam_pose_wc;
+}
+
+bool tracking_module::request_update_pose(const Mat44_t& pose) {
+    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
+    if (update_pose_is_requested_) {
+        spdlog::warn("Can not process new pose update request while previous was not finished");
+        return false;
+    }
+    update_pose_is_requested_ = true;
+    requested_pose_ = pose;
+    return true;
+}
+
+bool tracking_module::update_pose_is_requested() {
+    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
+    return update_pose_is_requested_;
+}
+
+Mat44_t& tracking_module::get_requested_pose() {
+    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
+    return requested_pose_;
+}
+
+void tracking_module::finish_update_pose_request() {
+    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
+    update_pose_is_requested_ = false;
 }
 
 void tracking_module::reset() {
@@ -333,6 +372,28 @@ bool tracking_module::initialize() {
 
 bool tracking_module::track_current_frame() {
     bool succeeded = false;
+
+    if (update_pose_is_requested()) {
+        // Force relocalization by pose
+        curr_frm_.set_cam_pose(get_requested_pose());
+
+        curr_frm_.compute_bow();
+        const auto candidates = map_db_->get_close_keyframes(get_requested_pose(),
+                                                             reloc_distance_threshold_,
+                                                             reloc_angle_threshold_);
+        if (!candidates.empty()) {
+            succeeded = relocalizer_.reloc_by_candidates(curr_frm_, candidates);
+            if (succeeded) {
+                last_reloc_frm_id_ = curr_frm_.id_;
+            }
+        }
+        else {
+            curr_frm_.cam_pose_cw_is_valid_ = false;
+        }
+        finish_update_pose_request();
+        return succeeded;
+    }
+
     if (tracking_state_ == tracker_state_t::Tracking) {
         // Tracking mode
         if (velocity_is_valid_ && last_reloc_frm_id_ + 2 < curr_frm_.id_) {
@@ -354,6 +415,7 @@ bool tracking_module::track_current_frame() {
             last_reloc_frm_id_ = curr_frm_.id_;
         }
     }
+
     return succeeded;
 }
 

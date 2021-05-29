@@ -114,6 +114,13 @@ public:
     std::shared_ptr<Mat44_t> feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
     //-----------------------------------------
+    // pose initializing/updating
+
+    //! Request to update the pose to a given one.
+    //! Return failure in case if previous request was not finished.
+    bool update_pose(const Mat44_t& pose);
+
+    //-----------------------------------------
     // management for pause
 
     //! Pause the tracking module
