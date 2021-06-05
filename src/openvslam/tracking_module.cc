@@ -292,7 +292,7 @@ void tracking_module::track() {
         update_last_frame();
 
         // set the reference keyframe of the current frame
-        curr_frm_.ref_keyfrm_ = ref_keyfrm_;
+        curr_frm_.ref_keyfrm_ = last_frm_.ref_keyfrm_;
 
         auto succeeded = track_current_frame();
 
@@ -401,10 +401,10 @@ bool tracking_module::track_current_frame() {
             succeeded = frame_tracker_.motion_based_track(curr_frm_, last_frm_, velocity_);
         }
         if (!succeeded) {
-            succeeded = frame_tracker_.bow_match_based_track(curr_frm_, last_frm_, ref_keyfrm_);
+            succeeded = frame_tracker_.bow_match_based_track(curr_frm_, last_frm_, curr_frm_.ref_keyfrm_);
         }
         if (!succeeded) {
-            succeeded = frame_tracker_.robust_match_based_track(curr_frm_, last_frm_, ref_keyfrm_);
+            succeeded = frame_tracker_.robust_match_based_track(curr_frm_, last_frm_, curr_frm_.ref_keyfrm_);
         }
     }
     else {
@@ -528,8 +528,7 @@ void tracking_module::update_local_map() {
 
     // update the reference keyframe for the current frame
     if (nearest_covisibility) {
-        ref_keyfrm_ = nearest_covisibility;
-        curr_frm_.ref_keyfrm_ = ref_keyfrm_;
+        curr_frm_.ref_keyfrm_ = nearest_covisibility;
     }
 
     map_db_->set_local_landmarks(local_landmarks_);
@@ -615,15 +614,16 @@ bool tracking_module::new_keyframe_is_needed() const {
     }
 
     // check the new keyframe is needed
-    return keyfrm_inserter_.new_keyframe_is_needed(curr_frm_, num_tracked_lms_, *ref_keyfrm_);
+    return keyfrm_inserter_.new_keyframe_is_needed(curr_frm_, num_tracked_lms_, *curr_frm_.ref_keyfrm_);
 }
 
 void tracking_module::insert_new_keyframe() {
     // insert the new keyframe
     const auto ref_keyfrm = keyfrm_inserter_.insert_new_keyframe(curr_frm_);
     // set the reference keyframe with the new keyframe
-    ref_keyfrm_ = ref_keyfrm ? ref_keyfrm : ref_keyfrm_;
-    curr_frm_.ref_keyfrm_ = ref_keyfrm_;
+    if (ref_keyfrm) {
+        curr_frm_.ref_keyfrm_ = ref_keyfrm;
+    }
 }
 
 void tracking_module::request_pause() {

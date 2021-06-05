@@ -213,8 +213,6 @@ protected:
     //! keyframe inserter
     module::keyframe_inserter keyfrm_inserter_;
 
-    //! reference keyframe
-    data::keyframe* ref_keyfrm_ = nullptr;
     //! local keyframes
     std::vector<data::keyframe*> local_keyfrms_;
     //! local landmarks
