@@ -213,8 +213,6 @@ protected:
     //! keyframe inserter
     module::keyframe_inserter keyfrm_inserter_;
 
-    //! reference keyframe
-    data::keyframe* ref_keyfrm_ = nullptr;
     //! local keyframes
     std::vector<data::keyframe*> local_keyfrms_;
     //! local landmarks
@@ -230,9 +228,9 @@ protected:
     unsigned int last_reloc_frm_id_ = 0;
 
     //! motion model
-    Mat44_t velocity_;
+    Mat44_t twist_;
     //! motion model is valid or not
-    bool velocity_is_valid_ = false;
+    bool twist_is_valid_ = false;
 
     //! current camera pose from reference keyframe
     //! (to update last camera pose at the beginning of each tracking)
