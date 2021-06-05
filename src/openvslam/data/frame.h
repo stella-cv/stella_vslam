@@ -16,7 +16,8 @@
 #include <DBoW2/BowVector.h>
 #include <DBoW2/FeatureVector.h>
 #else
-#include <fbow/fbow.h>
+#include <fbow/bow_vector.h>
+#include <fbow/bow_feat_vector.h>
 #endif
 
 namespace openvslam {
