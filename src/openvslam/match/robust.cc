@@ -9,7 +9,7 @@
 #ifdef USE_DBOW2
 #include <DBoW2/FeatureVector.h>
 #else
-#include <fbow/fbow.h>
+#include <fbow/bow_feat_vector.h>
 #endif
 
 namespace openvslam {
