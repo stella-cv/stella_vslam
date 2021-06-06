@@ -112,7 +112,8 @@ void local_bundle_adjuster::optimize(openvslam::data::keyframe* curr_keyfrm, boo
     // 3. Convert each of the keyframe to the g2o vertex, then set it to the optimizer
 
     // Container of the shot vertices
-    internal::se3::shot_vertex_container keyfrm_vtx_container(0, local_keyfrms.size() + fixed_keyfrms.size());
+    auto vtx_id_offset = std::make_shared<unsigned int>(0);
+    internal::se3::shot_vertex_container keyfrm_vtx_container(vtx_id_offset, local_keyfrms.size() + fixed_keyfrms.size());
     // Save the converted keyframes
     std::unordered_map<unsigned int, data::keyframe*> all_keyfrms;
 
@@ -137,7 +138,7 @@ void local_bundle_adjuster::optimize(openvslam::data::keyframe* curr_keyfrm, boo
     // 4. Connect the vertices of the keyframe and the landmark by using an edge of reprojection constraint
 
     // Container of the landmark vertices
-    internal::landmark_vertex_container lm_vtx_container(keyfrm_vtx_container.get_max_vertex_id() + 1, local_lms.size());
+    internal::landmark_vertex_container lm_vtx_container(vtx_id_offset, local_lms.size());
 
     // Container of the reprojection edges
     using reproj_edge_wrapper = internal::se3::reproj_edge_wrapper<data::keyframe>;

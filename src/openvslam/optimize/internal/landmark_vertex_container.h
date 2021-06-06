@@ -6,6 +6,7 @@
 #include "openvslam/optimize/internal/landmark_vertex.h"
 
 #include <unordered_map>
+#include <memory>
 
 namespace openvslam {
 
@@ -19,7 +20,7 @@ namespace internal {
 class landmark_vertex_container {
 public:
     //! Constructor
-    explicit landmark_vertex_container(const unsigned int offset, const unsigned int num_reserve = 200);
+    explicit landmark_vertex_container(const std::shared_ptr<unsigned int> offset, const unsigned int num_reserve = 200);
 
     //! Destructor
     virtual ~landmark_vertex_container() = default;
@@ -51,9 +52,6 @@ public:
     //! Contains the specified landmark or not
     bool contain(data::landmark* lm) const;
 
-    //! Get maximum vertex ID
-    unsigned int get_max_vertex_id() const;
-
     // iterators to sweep landmark vertices
     using iterator = std::unordered_map<unsigned int, landmark_vertex*>::iterator;
     using const_iterator = std::unordered_map<unsigned int, landmark_vertex*>::const_iterator;
@@ -64,18 +62,23 @@ public:
 
 private:
     //! vertex ID = offset + landmark ID
-    const unsigned int offset_ = 0;
+    const std::shared_ptr<unsigned int> offset_ = nullptr;
 
     //! key: landmark ID, value: vertex
     std::unordered_map<unsigned int, landmark_vertex*> vtx_container_;
 
-    //! max vertex ID
-    unsigned int max_vtx_id_ = 0;
+    //! key: landmark ID, value: vertex ID
+    std::unordered_map<unsigned int, unsigned int> vtx_id_container_;
+
+    //! key: vertex ID, value: frame/keyframe ID
+    std::unordered_map<unsigned int, unsigned int> id_container_;
 };
 
-inline landmark_vertex_container::landmark_vertex_container(const unsigned int offset, const unsigned int num_reserve)
+inline landmark_vertex_container::landmark_vertex_container(const std::shared_ptr<unsigned int> offset, const unsigned int num_reserve)
     : offset_(offset) {
     vtx_container_.reserve(num_reserve);
+    vtx_id_container_.reserve(num_reserve);
+    id_container_.reserve(num_reserve);
 }
 
 inline landmark_vertex* landmark_vertex_container::create_vertex(data::landmark* lm, const bool is_constant) {
@@ -84,18 +87,17 @@ inline landmark_vertex* landmark_vertex_container::create_vertex(data::landmark*
 
 inline landmark_vertex* landmark_vertex_container::create_vertex(const unsigned int id, const Vec3_t& pos_w, const bool is_constant) {
     // vertexを作成
-    const auto vtx_id = offset_ + id;
+    const auto vtx_id = *offset_;
+    (*offset_)++;
     auto vtx = new landmark_vertex();
     vtx->setId(vtx_id);
     vtx->setEstimate(pos_w);
     vtx->setFixed(is_constant);
     vtx->setMarginalized(true);
     // databaseに登録
+    id_container_[vtx_id] = id;
+    vtx_id_container_[id] = vtx_id;
     vtx_container_[id] = vtx;
-    // max IDを更新
-    if (max_vtx_id_ < vtx_id) {
-        max_vtx_id_ = vtx_id;
-    }
     // 作成したvertexをreturn
     return vtx;
 }
@@ -113,23 +115,19 @@ inline unsigned int landmark_vertex_container::get_vertex_id(data::landmark* lm)
 }
 
 inline unsigned int landmark_vertex_container::get_vertex_id(const unsigned int id) const {
-    return offset_ + id;
+    return vtx_id_container_.at(id);
 }
 
 inline unsigned int landmark_vertex_container::get_id(landmark_vertex* vtx) const {
-    return vtx->id() - offset_;
+    return get_id(vtx->id());
 }
 
 inline unsigned int landmark_vertex_container::get_id(const unsigned int vtx_id) const {
-    return vtx_id - offset_;
+    return id_container_.at(vtx_id);
 }
 
 inline bool landmark_vertex_container::contain(data::landmark* lm) const {
     return 0 != vtx_container_.count(lm->id_);
-}
-
-inline unsigned int landmark_vertex_container::get_max_vertex_id() const {
-    return max_vtx_id_;
 }
 
 inline landmark_vertex_container::iterator landmark_vertex_container::begin() {

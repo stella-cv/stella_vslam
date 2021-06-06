@@ -45,7 +45,8 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
     // 3. Convert each of the keyframe to the g2o vertex, then set it to the optimizer
 
     // Container of the shot vertices
-    internal::se3::shot_vertex_container keyfrm_vtx_container(0, keyfrms.size());
+    auto vtx_id_offset = std::make_shared<unsigned int>(0);
+    internal::se3::shot_vertex_container keyfrm_vtx_container(vtx_id_offset, keyfrms.size());
 
     // Set the keyframes to the optimizer
     for (const auto keyfrm : keyfrms) {
@@ -63,7 +64,7 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
     // 4. Connect the vertices of the keyframe and the landmark by using reprojection edge
 
     // Container of the landmark vertices
-    internal::landmark_vertex_container lm_vtx_container(keyfrm_vtx_container.get_max_vertex_id() + 1, lms.size());
+    internal::landmark_vertex_container lm_vtx_container(vtx_id_offset, lms.size());
 
     // Container of the reprojection edges
     using reproj_edge_wrapper = internal::se3::reproj_edge_wrapper<data::keyframe>;

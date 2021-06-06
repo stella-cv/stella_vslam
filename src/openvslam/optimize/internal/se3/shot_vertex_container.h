@@ -7,6 +7,7 @@
 #include "openvslam/optimize/internal/se3/shot_vertex.h"
 
 #include <unordered_map>
+#include <memory>
 
 namespace openvslam {
 
@@ -22,7 +23,7 @@ namespace se3 {
 class shot_vertex_container {
 public:
     //! Constructor
-    explicit shot_vertex_container(const unsigned int offset = 0, const unsigned int num_reserve = 50);
+    explicit shot_vertex_container(const std::shared_ptr<unsigned int> offset, const unsigned int num_reserve = 50);
 
     //! Destructor
     virtual ~shot_vertex_container() = default;
@@ -60,9 +61,6 @@ public:
     //! Convert vertex ID to shot (frame/keyframe) ID
     unsigned int get_id(unsigned int vtx_id) const;
 
-    //! Get maximum vertex ID
-    unsigned int get_max_vertex_id() const;
-
     //! Contains the specified keyframe or not
     bool contain(data::keyframe* keyfrm) const;
 
@@ -75,19 +73,23 @@ public:
     const_iterator end() const;
 
 private:
-    //! vertex ID = offset + shot (frame/keyframe) ID
-    const unsigned int offset_ = 0;
+    const std::shared_ptr<unsigned int> offset_ = nullptr;
 
-    //! key: shot (frame/keyframe) ID, value: vertex
+    //! key: vertex ID, value: vertex
     std::unordered_map<unsigned int, shot_vertex*> vtx_container_;
 
-    //! max vertex ID
-    unsigned int max_vtx_id_ = 0;
+    //! key: frame/keyframe ID, value: vertex ID
+    std::unordered_map<unsigned int, unsigned int> vtx_id_container_;
+
+    //! key: vertex ID, value: frame/keyframe ID
+    std::unordered_map<unsigned int, unsigned int> id_container_;
 };
 
-inline shot_vertex_container::shot_vertex_container(const unsigned int offset, const unsigned int num_reserve)
+inline shot_vertex_container::shot_vertex_container(const std::shared_ptr<unsigned int> offset, const unsigned int num_reserve)
     : offset_(offset) {
     vtx_container_.reserve(num_reserve);
+    vtx_id_container_.reserve(num_reserve);
+    id_container_.reserve(num_reserve);
 }
 
 inline shot_vertex* shot_vertex_container::create_vertex(data::frame* frm, const bool is_constant) {
@@ -100,17 +102,16 @@ inline shot_vertex* shot_vertex_container::create_vertex(data::keyframe* keyfrm,
 
 inline shot_vertex* shot_vertex_container::create_vertex(const unsigned int id, const Mat44_t& cam_pose_cw, const bool is_constant) {
     // vertexを作成
-    const auto vtx_id = offset_ + id;
+    const auto vtx_id = *offset_;
+    (*offset_)++;
     auto vtx = new shot_vertex();
     vtx->setId(vtx_id);
     vtx->setEstimate(util::converter::to_g2o_SE3(cam_pose_cw));
     vtx->setFixed(is_constant);
     // databaseに登録
+    id_container_[vtx_id] = id;
+    vtx_id_container_[id] = vtx_id;
     vtx_container_[id] = vtx;
-    // max IDを更新
-    if (max_vtx_id_ < vtx_id) {
-        max_vtx_id_ = vtx_id;
-    }
     // 作成したvertexをreturn
     return vtx;
 }
@@ -136,19 +137,15 @@ inline unsigned int shot_vertex_container::get_vertex_id(data::keyframe* keyfrm)
 }
 
 inline unsigned int shot_vertex_container::get_vertex_id(unsigned int id) const {
-    return offset_ + id;
+    return vtx_id_container_.at(id);
 }
 
 inline unsigned int shot_vertex_container::get_id(shot_vertex* vtx) {
-    return vtx->id() - offset_;
+    return get_id(vtx->id());
 }
 
 inline unsigned int shot_vertex_container::get_id(unsigned int vtx_id) const {
-    return vtx_id - offset_;
-}
-
-inline unsigned int shot_vertex_container::get_max_vertex_id() const {
-    return max_vtx_id_;
+    return id_container_.at(vtx_id);
 }
 
 inline bool shot_vertex_container::contain(data::keyframe* keyfrm) const {
