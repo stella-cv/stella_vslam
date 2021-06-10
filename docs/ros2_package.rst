@@ -91,7 +91,7 @@ Republish the ROS topic to ``/camera/image_raw``.
 
 .. code-block:: bash
 
-    rosrun image_transport republish \
+    ros2 run image_transport republish \
         raw in:=image raw out:=/camera/image_raw
 
 Subscriber
