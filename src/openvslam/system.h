@@ -118,7 +118,7 @@ public:
 
     //! Request to update the pose to a given one.
     //! Return failure in case if previous request was not finished.
-    bool update_pose(const Mat44_t& pose);
+    bool update_pose(const Mat44_t& cam_pose_wc);
 
     //-----------------------------------------
     // management for pause
