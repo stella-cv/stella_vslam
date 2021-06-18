@@ -286,13 +286,14 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
     return cam_pose_wc;
 }
 
-bool system::update_pose(const Mat44_t& pose) {
-    bool status = tracker_->request_update_pose(pose);
+bool system::update_pose(const Mat44_t& cam_pose_wc) {
+    const Mat44_t cam_pose_cw = cam_pose_wc.inverse();
+    bool status = tracker_->request_update_pose(cam_pose_cw);
     if (status) {
         // Even if state will be lost, still update the pose in map_publisher_
         // to clearly show new camera position
-        map_publisher_->set_current_cam_pose(pose);
-        map_publisher_->set_current_cam_pose_wc(pose.inverse());
+        map_publisher_->set_current_cam_pose(cam_pose_cw);
+        map_publisher_->set_current_cam_pose_wc(cam_pose_wc);
     }
     return status;
 }
