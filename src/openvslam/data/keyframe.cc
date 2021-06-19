@@ -74,15 +74,12 @@ keyframe::keyframe(const unsigned int id, const unsigned int src_frm_id, const d
     // set pose parameters (cam_pose_wc_, cam_center_) using cam_pose_cw_
     set_cam_pose(cam_pose_cw);
 
-    // TODO: should set the pointers of landmarks_ using add_landmark()
-
-    // TODO: should compute connected_keyfrms_and_weights_
-    // TODO: should compute ordered_connected_keyfrms_
-    // TODO: should compute ordered_weights_
-
-    // TODO: should set spanning_parent_ using set_spanning_parent()
-    // TODO: should set spanning_children_ using add_spanning_child()
-    // TODO: should set loop_edges_ using add_loop_edge()
+    // The following process needs to take place:
+    //   should set the pointers of landmarks_ using add_landmark()
+    //   should set connections using graph_node->update_connections()
+    //   should set spanning_parent_ using graph_node->set_spanning_parent()
+    //   should set spanning_children_ using graph_node->add_spanning_child()
+    //   should set loop_edges_ using graph_node->add_loop_edge()
 }
 
 nlohmann::json keyframe::to_json() const {
