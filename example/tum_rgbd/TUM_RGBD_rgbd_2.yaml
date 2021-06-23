@@ -44,7 +44,7 @@ Feature:
 #=====================#
 
 depth_threshold: 40.0
-depthmap_factor: 5000.0
+depthmap_factor: 5000.0 # Note: Set it to 1.0 for the rosbag format data set.
 
 #====================#
 # Mapping Parameters #
