@@ -25,6 +25,8 @@ We have checked the correct operation of OpenVSLAM and SocketViewer on Ubuntu 16
 
 :ref:`Docker <chapter-docker>` systems can be used instead of preparing the dependencies manually.
 
+If you're using Ubuntu, there are easy setup scripts in scripts/ubuntu. see scripts/ubuntu/Readme.md  
+
 .. _section-dependencies:
 
 Dependencies
