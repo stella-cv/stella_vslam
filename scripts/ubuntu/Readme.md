@@ -40,7 +40,7 @@ Now buid and start docker container as below.
 - If you don't have a GPU, edit the last line of "build_openvslam_docker.sh" as deleting "--gpu all".
 
 ## Run samples
-If you finish the all above procedure, you will see the terminal inside a docker as "build_openvslam_docker.sh". Please input below commands in the terminal.
+If you finish all the above procedure, you will see the terminal inside a docker as "root@*****:/openvslam/build#". Please input below commands in the terminal.
 #### run tracking and mapping
 ```
 ./run_video_slam -v /vocab/orb_vocab.fbow -m /dataset/aist_living_lab_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --map-db map.msg
@@ -54,8 +54,9 @@ You can use it for the below tracking demo.
 ```
 
 ## Run OpenVSLAM on your own video
-If you want to run OpenVSLAM for your own mp4 video, put the panoramic transformed mp4 video in /dataset, and copy example/aist/equirectangular.yaml to example/yourown.yaml and edit the image size.
+If you want to run OpenVSLAM for your own mp4 video, for example equirectangular camera, put the panoramic transformed mp4 video in /dataset, and copy example/aist/equirectangular.yaml to example/yourown.yaml and edit the image size.
 Then run ./scripts/ubuntu/build_openvslam_docker.sh and run the above "run tracking and mapping" command but changing to your mp4 and yaml file.
+For other camera type like perspective, fisheye, stereo, and RGBD, it will be almost the same procedure but copy other yaml file instead of example/aist/equirectangular.yaml. You can find several samples in examle.
 
 
 # confirmed environment

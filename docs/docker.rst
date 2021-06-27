@@ -13,12 +13,13 @@ Instructions for PangolinViewer
 ``Dockerfile.desktop`` can be used for easy installation.
 This chapter provides instructions on building and running examples with PangolinViewer support using Docker.
 
-The instructions are tested on Ubuntu 16.04 and 18.04.
+The instructions are tested on Ubuntu 16.04 and 18.04 and 20.04.
 Docker for Mac are NOT supported due to OpenGL forwarding.
 
 Note that **docker host machines with NVIDIA graphics cards are NOT officially supported yet.**
 
 .. NOTE ::
+    If you're using Ubuntu, there are easy setup scripts in scripts/ubuntu. see scripts/ubuntu/Readme.md  
 
     If you plan on using a machine with NVIDIA graphics card(s), please use `nvidia-docker2 <https://github.com/NVIDIA/nvidia-docker>`_ and the version 390 or later of NVIDIA driver.
     These examples depend on X11 forwarding with OpenGL for visualization.
