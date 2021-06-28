@@ -56,7 +56,7 @@ You can use it for the below tracking demo.
 ## Run OpenVSLAM on your own video
 If you want to run OpenVSLAM for your own mp4 video, for example equirectangular camera, put the panoramic transformed mp4 video in /dataset, and copy example/aist/equirectangular.yaml to example/yourown.yaml and edit the image size.
 Then run ./scripts/ubuntu/build_openvslam_docker.sh and run the above "run tracking and mapping" command but changing to your mp4 and yaml file.
-For other camera type like perspective, fisheye, stereo, and RGBD, it will be almost the same procedure but copy other yaml file instead of example/aist/equirectangular.yaml. You can find several samples in examle.
+For other camera type like perspective, fisheye, stereo, and RGBD, it will be almost the same procedure but copy other yaml file instead of example/aist/equirectangular.yaml. You can find several examples in openvslam/examples.
 
 
 # confirmed environment
