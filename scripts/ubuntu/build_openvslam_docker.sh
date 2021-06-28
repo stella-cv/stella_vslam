@@ -6,7 +6,7 @@ TOPDIR=$PWD/../../ #openvslam directory
     cd $TOPDIR
 
     # Building Docker Image
-    docker build -t openvslam-desktop -f Dockerfile.desktop . --build-arg NUM_THREADS=7
+    docker build -t openvslam-desktop -f Dockerfile.desktop . --build-arg NUM_THREADS=`expr $(nproc) - 1`
 
     # Starting Docker Container
     # before launching the container, allow display access from local users

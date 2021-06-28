@@ -43,7 +43,7 @@ You can accelerate the build of the docker image with ``--build-arg NUM_THREADS=
 .. code-block:: bash
 
     # building the docker image with four threads
-    docker build -t openvslam-desktop -f Dockerfile.desktop . --build-arg NUM_THREADS=4
+    docker build -t openvslam-desktop -f Dockerfile.desktop . --build-arg NUM_THREADS=`expr $(nproc) - 1`
 
 Starting Docker Container
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -109,7 +109,7 @@ You can accelerate the build of the docker image with ``--build-arg NUM_THREADS=
 .. code-block:: bash
 
     # building the docker image with four threads
-    docker build -t openvslam-socket -f Dockerfile.socket . --build-arg NUM_THREADS=4
+    docker build -t openvslam-socket -f Dockerfile.socket . --build-arg NUM_THREADS=`expr $(nproc) - 1`
 
 Docker Image of Server
 ``````````````````````
