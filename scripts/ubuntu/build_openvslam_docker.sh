@@ -1,6 +1,6 @@
 #!/bin/sh
 
-TOPDIR=$PWD/../../ #openvslam directory
+TOPDIR="$(dirname $(realpath "$0"))"/../../ #openvslam directory
 
 ( 
     cd $TOPDIR
@@ -12,7 +12,12 @@ TOPDIR=$PWD/../../ #openvslam directory
     # before launching the container, allow display access from local users
     xhost +local:
     # launch the container
-    docker run -it --rm --gpus all -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix:ro --volume ${TOPDIR}/dataset:/dataset:ro --volume ${TOPDIR}/vocab:/vocab:ro openvslam-desktop
+    GPU_OPTION=
+    if command -v nvidia-container-toolkit &> /dev/null ; then
+	GPU_OPTION="--gpus all"
+    fi
+    docker run -it --rm ${GPU_OPTION} -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix:ro --volume ${TOPDIR}/dataset:/dataset:ro --volume ${TOPDIR}/vocab:/vocab:ro openvslam-desktop
+
 )
 
 # reference

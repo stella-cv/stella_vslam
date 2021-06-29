@@ -1,6 +1,6 @@
 #!/bin/sh
 
-TOPDIR=$PWD/../../ #openvslam directory
+TOPDIR="$(dirname $(realpath "$0"))"/../../ #openvslam directory
 
 # create data directory to store downloaded data
 mkdir $TOPDIR/dataset

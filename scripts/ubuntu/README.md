@@ -49,9 +49,6 @@ Now buid and start docker container as below.
 ./build_openvslam_docker.sh
 ```
 
-### note
-- If you don't have a GPU, edit the last line of "build_openvslam_docker.sh" as deleting "--gpu all".
-
 ## Run samples
 
 If you finish all the above procedure, you will see the terminal inside a docker as "root@*****:/openvslam/build#". Please input below commands in the terminal.
