@@ -40,12 +40,12 @@ The later parts of this chapter explains what each of the commands do in more de
     unzip aist_living_lab_2.zip
 
     # run tracking and mapping
-    ./run_video_slam -v ./orb_vocab/orb_vocab.fbow -m ./aist_living_lab_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --map-db map.msg
+    ./run_video_slam -v ./orb_vocab.fbow -m ./aist_living_lab_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --map-db map.msg
     # click the [Terminate] button to close the viewer
     # you can find map.msg in the current directory
 
     # run localization
-    ./run_video_localization -v ./orb_vocab/orb_vocab.fbow -m ./aist_living_lab_2/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --map-db map.msg
+    ./run_video_localization -v ./orb_vocab.fbow -m ./aist_living_lab_2/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --map-db map.msg
 
 
 Sample Datasets
