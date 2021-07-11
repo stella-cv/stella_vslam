@@ -9,8 +9,6 @@ using namespace openvslam;
 TEST(orb_params, load_yaml_without_rectangle_mask) {
     const std::string yaml =
         "Feature:\n"
-        "  max_num_keypoints: 3000\n"
-        "  ini_max_num_keypoints: 5000\n"
         "  scale_factor: 1.3\n"
         "  num_levels: 12\n"
         "  ini_fast_threshold: 25\n"
@@ -19,8 +17,6 @@ TEST(orb_params, load_yaml_without_rectangle_mask) {
     const auto yaml_node = YAML::Load(yaml);
     const auto params = feature::orb_params(yaml_node["Feature"]);
 
-    EXPECT_EQ(params.max_num_keypts_, 3000);
-    EXPECT_EQ(params.ini_max_num_keypts_, 5000);
     EXPECT_FLOAT_EQ(params.scale_factor_, 1.3);
     EXPECT_EQ(params.num_levels_, 12);
     EXPECT_EQ(params.ini_fast_thr_, 25);
@@ -34,8 +30,6 @@ TEST(orb_params, load_yaml_with_rectangle_mask) {
         "  cols: 640\n"
         "  rows: 480\n"
         "Feature:\n"
-        "  max_num_keypoints: 3000\n"
-        "  ini_max_num_keypoints: 5000\n"
         "  scale_factor: 1.3\n"
         "  num_levels: 12\n"
         "  ini_fast_threshold: 25\n"
@@ -47,8 +41,6 @@ TEST(orb_params, load_yaml_with_rectangle_mask) {
     const auto yaml_node = YAML::Load(yaml);
     const auto params = feature::orb_params(yaml_node["Feature"]);
 
-    EXPECT_EQ(params.max_num_keypts_, 3000);
-    EXPECT_EQ(params.ini_max_num_keypts_, 5000);
     EXPECT_FLOAT_EQ(params.scale_factor_, 1.3);
     EXPECT_EQ(params.num_levels_, 12);
     EXPECT_EQ(params.ini_fast_thr_, 25);
@@ -73,7 +65,6 @@ TEST(orb_params, load_yaml_with_rectangle_mask_exception_1) {
         "  cols: 640\n"
         "  rows: 480\n"
         "Feature:\n"
-        "  max_num_keypoints: 3000\n"
         "  scale_factor: 1.3\n"
         "  num_levels: 12\n"
         "  ini_fast_threshold: 25\n"
@@ -93,7 +84,6 @@ TEST(orb_params, load_yaml_with_rectangle_mask_exception_2) {
         "  cols: 640\n"
         "  rows: 480\n"
         "Feature:\n"
-        "  max_num_keypoints: 3000\n"
         "  scale_factor: 1.3\n"
         "  num_levels: 12\n"
         "  ini_fast_threshold: 25\n"
@@ -113,7 +103,6 @@ TEST(orb_params, load_yaml_with_rectangle_mask_exception_3) {
         "  cols: 640\n"
         "  rows: 480\n"
         "Feature:\n"
-        "  max_num_keypoints: 3000\n"
         "  scale_factor: 1.3\n"
         "  num_levels: 12\n"
         "  ini_fast_threshold: 25\n"
@@ -133,7 +122,6 @@ TEST(orb_params, load_yaml_with_rectangle_mask_exception_4) {
         "  cols: 640\n"
         "  rows: 480\n"
         "Feature:\n"
-        "  max_num_keypoints: 3000\n"
         "  scale_factor: 1.3\n"
         "  num_levels: 12\n"
         "  ini_fast_threshold: 25\n"
@@ -153,7 +141,6 @@ TEST(orb_params, load_yaml_with_rectangle_mask_exception_5) {
         "  cols: 640\n"
         "  rows: 480\n"
         "Feature:\n"
-        "  max_num_keypoints: 3000\n"
         "  scale_factor: 1.3\n"
         "  num_levels: 12\n"
         "  ini_fast_threshold: 25\n"

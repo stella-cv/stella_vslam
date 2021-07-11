@@ -81,13 +81,13 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
     spdlog::debug("CONSTRUCT: tracking_module");
 
     feature::orb_params orb_params = get_orb_params(util::yaml_optional_ref(cfg->yaml_node_, "Feature"));
-    extractor_left_ = new feature::orb_extractor(orb_params);
+    const auto tracking_params = util::yaml_optional_ref(cfg->yaml_node_, "Tracking");
+    extractor_left_ = new feature::orb_extractor(tracking_params["max_num_keypoints"].as<unsigned int>(2000), orb_params);
     if (camera_->setup_type_ == camera::setup_type_t::Monocular) {
-        ini_extractor_left_ = new feature::orb_extractor(orb_params);
-        ini_extractor_left_->set_max_num_keypoints(orb_params.ini_max_num_keypts_);
+        ini_extractor_left_ = new feature::orb_extractor(tracking_params["ini_max_num_keypoints"].as<unsigned int>(4000), orb_params);
     }
     if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
-        extractor_right_ = new feature::orb_extractor(orb_params);
+        extractor_right_ = new feature::orb_extractor(tracking_params["max_num_keypoints"].as<unsigned int>(2000), orb_params);
     }
 }
 
