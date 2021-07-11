@@ -21,6 +21,9 @@ jobs:
 
   clang-format:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v2
       - uses: DoozyX/clang-format-lint-action@v0.12
@@ -34,6 +37,9 @@ jobs:
 
   build_with_gui:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     container:
       image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
     steps:
@@ -60,6 +66,9 @@ jobs:
 
   build_without_gui:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     container:
       image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
     steps:
@@ -105,6 +114,9 @@ jobs:
 
   build_tutorial:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     container:
       image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
     steps:
@@ -143,15 +155,18 @@ jobs:
 
   rosdep_foxy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     container:
       image: ghcr.io/ymd-stella/openvslam-community/ros:foxy-ros-base
     steps:
       - uses: actions/checkout@v2
       - name: build ros2 packages
         run: |
-          mkdir -p ../ros_ws/src
-          cp -r . ../ros_ws/src/openvslam
-          cd ../ros_ws/src/openvslam
+          mkdir -p /ros_ws/src
+          cp -r . /ros_ws/src/openvslam
+          cd /ros_ws/src/openvslam
           git submodule update -i --recursive
           cd ../..
           rosdep update
