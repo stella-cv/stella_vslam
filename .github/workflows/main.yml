@@ -38,6 +38,10 @@ jobs:
       image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: .ccache
+          key: ${{ runner.os }}-ccache
       - name: cmake and make with pangolin viewer
         run: |
           mkdir build
@@ -56,6 +60,10 @@ jobs:
       image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: .ccache
+          key: ${{ runner.os }}-ccache
       - name: cmake and make
         run: |
           mkdir build
@@ -93,6 +101,10 @@ jobs:
       image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: .ccache
+          key: ${{ runner.os }}-ccache
       - name: cmake and make
         run: |
           mkdir build
