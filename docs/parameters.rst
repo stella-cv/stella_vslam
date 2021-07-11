@@ -53,10 +53,6 @@ Feature
 
     * - Name
       - Description
-    * - max_num_keypoints
-      - Maximum number of feature points per frame to be used for SLAM.
-    * - ini_max_num_keypoints
-      - Maximum number of feature points per frame to be used for Initialization. It is only used for monocular camera models.
     * - scale_factor
       - Scale of the image pyramid
     * - num_levels
@@ -65,7 +61,31 @@ Feature
       - FAST threshold for try first
     * - min_fast_threshold
       - FAST threshold for try second time
+
+.. _section-parameters-tracking:
+
+      Tracking
+      ========
       
+      .. list-table::
+          :header-rows: 1
+          :widths: 1, 3
+      
+          * - Name
+            - Description
+          * - max_num_keypoints
+            - Maximum number of feature points per frame to be used for SLAM.
+          * - ini_max_num_keypoints
+            - Maximum number of feature points per frame to be used for Initialization. It is only used for monocular camera models.
+          * - depth_threshold
+            - The ratio used to determine the depth threshold.
+          * - depthmap_factor
+            - The ratio used to convert depth image pixel values to distance.
+          * - reloc_distance_threshold
+            - Maximum distance threshold (in meters) where close keyframes could be found when doing a relocalization by pose.
+          * - reloc_angle_threshold
+            - Maximum angle threshold (in radians) between given pose and close keyframes when doing a relocalization by pose.
+     
 .. _section-parameters-mapping:
 
 Mapping
@@ -141,23 +161,3 @@ PangolinViewer
       - 
     * - viewpoint_x, viewpoint_y, viewpoint_z, viewpoint_f
       - 
-      
-.. _section-parameters-others:
-
-Tracker
-=======
-
-.. list-table::
-    :header-rows: 1
-    :widths: 1, 3
-
-    * - Name
-      - Description
-    * - depth_threshold
-      - The ratio used to determine the depth threshold.
-    * - depthmap_factor
-      - The ratio used to convert depth image pixel values to distance.
-    * - reloc_distance_threshold
-      - Maximum distance threshold (in meters) where close keyframes could be found when doing a relocalization by pose.
-    * - reloc_angle_threshold
-      - Maximum angle threshold (in radians) between given pose and close keyframes when doing a relocalization by pose.

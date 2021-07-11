@@ -70,10 +70,10 @@ namespace openvslam {
 
 tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* system, data::map_database* map_db,
                                  data::bow_vocabulary* bow_vocab, data::bow_database* bow_db)
-    : camera_(cfg->camera_), true_depth_thr_(get_true_depth_thr(camera_, cfg->yaml_node_)),
-      depthmap_factor_(get_depthmap_factor(camera_, cfg->yaml_node_)),
-      reloc_distance_threshold_(get_reloc_distance_threshold(cfg->yaml_node_)),
-      reloc_angle_threshold_(get_reloc_angle_threshold(cfg->yaml_node_)),
+    : camera_(cfg->camera_), true_depth_thr_(get_true_depth_thr(camera_, util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
+      depthmap_factor_(get_depthmap_factor(camera_, util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
+      reloc_distance_threshold_(get_reloc_distance_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
+      reloc_angle_threshold_(get_reloc_angle_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
       system_(system), map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(cfg->camera_->setup_type_, map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
       frame_tracker_(camera_, 10), relocalizer_(bow_db_), pose_optimizer_(),
