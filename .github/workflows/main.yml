@@ -1,32 +1,152 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
-# Controls when the action will run. 
 on:
-  # Triggers the workflow on push or pull request events but only for the main branch
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
 
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    runs-on: macos-latest
+  # build_macos:
+  #   runs-on: macos-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: brew install
+  #       run: |
+  #         brew update
+  #         brew upgrade
+  #         brew install ccache pkg-config cmake git suite-sparse libomp eigen ffmpeg opencv yaml-cpp glog gflags glew protobuf clang-format
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
+  clang-format:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+      - uses: DoozyX/clang-format-lint-action@v0.12
+        with:
+          source: '.'
+          exclude: './3rd'
+          extensions: 'h,cc'
+          clangFormatVersion: 6
+          style: file
+          inplace: False
 
-      - name: brew install
+  build_with_gui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: cmake and make with pangolin viewer
         run: |
-          brew update
-          brew upgrade
-          brew install ccache pkg-config cmake git suite-sparse libomp eigen ffmpeg opencv yaml-cpp glog gflags glew protobuf clang-format
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_PANGOLIN_VIEWER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
+          make -j $(($(nproc) / 2))
+      - name: cmake and make with socket publisher
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_SOCKET_PUBLISHER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
+          make -j $(($(nproc) / 2))
+
+  build_without_gui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: cmake and make
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
+          make -j $(($(nproc) / 2))
+      - name: unit test
+        run: |
+          cd build
+          ctest -V
+      - name: Convert groundtruth to TUM format (data.tum)
+        run: |
+          cd build
+          python3 ../scripts/dataset_tools/compute_euroc_cam_tf.py > tf.json
+          evo_traj euroc --transform_right tf.json /datasets/EuRoC/MH_04/state_groundtruth_estimate0/data.csv --save_as_tum
+      - name: SLAM test (monocular) with EuRoC MAV dataset
+        run: |
+          cd build
+          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_mono.msg
+          evo_rpe tum data.tum frame_trajectory.txt -as
+      - name: SLAM test (stereo) with EuRoC MAV dataset
+        run: |
+          cd build
+          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_stereo.msg
+          evo_rpe tum data.tum frame_trajectory.txt -a
+      - name: Localization test (monocular) with EuRoC MAV dataset
+        run: |
+          cd build
+          ./run_euroc_localization -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_mono.msg
+          evo_rpe tum data.tum frame_trajectory.txt -as
+
+  build_tutorial:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: cmake and make
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON -DUSE_OPENMP=OFF ..
+          make -j $(($(nproc) / 2))
+      - name: download a dataset
+        run: |
+          cd build
+          FILE_ID="1TXjREzkht3iRz__qVx4oYRW1GXsv37ct"
+          curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${FILE_ID}" > /dev/null
+          CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
+          curl -sLb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=${FILE_ID}" -o video_for_ci_1.zip
+          unzip video_for_ci_1.zip
+          rm video_for_ci_1.zip
+      - name: mapping test with the tutorial
+        run: |
+          cd build
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
+      - name: localization test with the tutorial
+        run: |
+          cd build
+          ./run_video_localization -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
+
+  rosdep_foxy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ghcr.io/ymd-stella/openvslam-community/ros:foxy-ros-base
+    steps:
+      - uses: actions/checkout@v2
+      - name: build ros2 packages
+        run: |
+          mkdir -p /ros_ws/src
+          cp -r . /ros_ws/src/openvslam
+          cd /ros_ws/src/openvslam
+          git submodule update -i --recursive
+          cd ../..
+          rosdep update
+          apt update
+          rosdep install -y -i --from-paths src
+          export MAKEFLAGS="-j $(($(nproc) / 2))"
+          (source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --parallel-workers 1)
