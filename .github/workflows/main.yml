@@ -42,6 +42,10 @@ jobs:
         with:
           path: .ccache
           key: ${{ runner.os }}-ccache
+      - name: set ccache directory
+        run: |
+          export CCACHE_DIR=${PWD}/.ccache
+          ccache -s
       - name: cmake and make with pangolin viewer
         run: |
           mkdir build
@@ -64,6 +68,10 @@ jobs:
         with:
           path: .ccache
           key: ${{ runner.os }}-ccache
+      - name: set ccache directory
+        run: |
+          export CCACHE_DIR=${PWD}/.ccache
+          ccache -s
       - name: cmake and make
         run: |
           mkdir build
@@ -105,6 +113,10 @@ jobs:
         with:
           path: .ccache
           key: ${{ runner.os }}-ccache
+      - name: set ccache directory
+        run: |
+          export CCACHE_DIR=${PWD}/.ccache
+          ccache -s
       - name: cmake and make
         run: |
           mkdir build
