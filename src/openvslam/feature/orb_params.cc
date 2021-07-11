@@ -5,12 +5,10 @@
 namespace openvslam {
 namespace feature {
 
-orb_params::orb_params(const unsigned int max_num_keypts, const unsigned int ini_max_num_keypts,
-                       const float scale_factor, const unsigned int num_levels,
+orb_params::orb_params(const float scale_factor, const unsigned int num_levels,
                        const unsigned int ini_fast_thr, const unsigned int min_fast_thr,
                        const std::vector<std::vector<float>>& mask_rects)
-    : max_num_keypts_(max_num_keypts), ini_max_num_keypts_(ini_max_num_keypts),
-      scale_factor_(scale_factor), num_levels_(num_levels),
+    : scale_factor_(scale_factor), num_levels_(num_levels),
       ini_fast_thr_(ini_fast_thr), min_fast_thr(min_fast_thr),
       mask_rects_(mask_rects) {
     for (const auto& v : mask_rects_) {
@@ -27,9 +25,7 @@ orb_params::orb_params(const unsigned int max_num_keypts, const unsigned int ini
 }
 
 orb_params::orb_params(const YAML::Node& yaml_node)
-    : orb_params(yaml_node["max_num_keypoints"].as<unsigned int>(2000),
-                 yaml_node["ini_max_num_keypoints"].as<unsigned int>(4000),
-                 yaml_node["scale_factor"].as<float>(1.2),
+    : orb_params(yaml_node["scale_factor"].as<float>(1.2),
                  yaml_node["num_levels"].as<unsigned int>(8),
                  yaml_node["ini_fast_threshold"].as<unsigned int>(20),
                  yaml_node["min_fast_threshold"].as<unsigned int>(7),
@@ -72,8 +68,6 @@ std::vector<float> orb_params::calc_inv_level_sigma_sq(const unsigned int num_sc
 }
 
 std::ostream& operator<<(std::ostream& os, const orb_params& oparam) {
-    os << "- number of keypoints: " << oparam.max_num_keypts_ << std::endl;
-    os << "- initial number of keypoints: " << oparam.ini_max_num_keypts_ << std::endl;
     os << "- scale factor: " << oparam.scale_factor_ << std::endl;
     os << "- number of levels: " << oparam.num_levels_ << std::endl;
     os << "- initial fast threshold: " << oparam.ini_fast_thr_ << std::endl;

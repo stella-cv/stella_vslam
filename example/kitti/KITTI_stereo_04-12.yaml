@@ -27,23 +27,24 @@ Camera:
 
   color_order: "Gray"
 
+#=====================#
+# Tracking Parameters #
+#=====================#
+
+Tracking:
+  max_num_keypoints: 2000
+  ini_max_num_keypoints: 4000
+  depth_threshold: 40
+
 #================#
 # ORB Parameters #
 #================#
 
 Feature:
-  max_num_keypoints: 2000
-  ini_max_num_keypoints: 4000
   scale_factor: 1.2
   num_levels: 8
   ini_fast_threshold: 12
   min_fast_threshold: 7
-
-#=====================#
-# Tracking Parameters #
-#=====================#
-
-depth_threshold: 40
 
 #====================#
 # Mapping Parameters #

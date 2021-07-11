@@ -15,13 +15,13 @@ public:
     orb_extractor() = delete;
 
     //! Constructor
-    orb_extractor(const unsigned int max_num_keypts, const unsigned int ini_min_num_keypts,
+    orb_extractor(const unsigned int max_num_keypts,
                   const float scale_factor, const unsigned int num_levels,
                   const unsigned int ini_fast_thr, const unsigned int min_fast_thr,
                   const std::vector<std::vector<float>>& mask_rects = {});
 
     //! Constructor
-    explicit orb_extractor(const orb_params& orb_params);
+    orb_extractor(const unsigned int max_num_keypts, const orb_params& orb_params);
 
     //! Destructor
     virtual ~orb_extractor() = default;
@@ -121,6 +121,9 @@ private:
 
     //! Compute orb descriptor of a keypoint
     void compute_orb_descriptor(const cv::KeyPoint& keypt, const cv::Mat& image, uchar* desc) const;
+
+    //! Number of feature points to be extracted
+    unsigned int max_num_keypts_;
 
     //! parameters for ORB extraction
     orb_params orb_params_;

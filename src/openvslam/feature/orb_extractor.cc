@@ -53,17 +53,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace openvslam {
 namespace feature {
 
-orb_extractor::orb_extractor(const unsigned int max_num_keypts, const unsigned int ini_min_num_keypts,
+orb_extractor::orb_extractor(const unsigned int max_num_keypts,
                              const float scale_factor, const unsigned int num_levels,
                              const unsigned int ini_fast_thr, const unsigned int min_fast_thr,
                              const std::vector<std::vector<float>>& mask_rects)
-    : orb_extractor(orb_params{max_num_keypts, ini_min_num_keypts,
-                               scale_factor, num_levels,
-                               ini_fast_thr, min_fast_thr,
-                               mask_rects}) {}
+    : orb_extractor(max_num_keypts, orb_params{scale_factor, num_levels,
+                                               ini_fast_thr, min_fast_thr,
+                                               mask_rects}) {}
 
-orb_extractor::orb_extractor(const orb_params& orb_params)
-    : orb_params_(orb_params) {
+orb_extractor::orb_extractor(const unsigned int max_num_keypts, const orb_params& orb_params)
+    : max_num_keypts_(max_num_keypts), orb_params_(orb_params) {
     // initialize parameters
     initialize();
 }
@@ -147,11 +146,11 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
 }
 
 unsigned int orb_extractor::get_max_num_keypoints() const {
-    return orb_params_.max_num_keypts_;
+    return max_num_keypts_;
 }
 
 void orb_extractor::set_max_num_keypoints(const unsigned int max_num_keypts) {
-    orb_params_.max_num_keypts_ = max_num_keypts;
+    max_num_keypts_ = max_num_keypts;
     initialize();
 }
 
@@ -215,7 +214,7 @@ void orb_extractor::initialize() {
 
     // compute the desired number of keypoints per scale
     double desired_num_keypts_per_scale
-        = orb_params_.max_num_keypts_ * (1.0 - 1.0 / orb_params_.scale_factor_)
+        = max_num_keypts_ * (1.0 - 1.0 / orb_params_.scale_factor_)
           / (1.0 - std::pow(1.0 / orb_params_.scale_factor_, static_cast<double>(orb_params_.num_levels_)));
     unsigned int total_num_keypts = 0;
     for (unsigned int level = 0; level < orb_params_.num_levels_ - 1; ++level) {
@@ -223,7 +222,7 @@ void orb_extractor::initialize() {
         total_num_keypts += num_keypts_per_level_.at(level);
         desired_num_keypts_per_scale *= 1.0 / orb_params_.scale_factor_;
     }
-    num_keypts_per_level_.at(orb_params_.num_levels_ - 1) = std::max(static_cast<int>(orb_params_.max_num_keypts_) - static_cast<int>(total_num_keypts), 0);
+    num_keypts_per_level_.at(orb_params_.num_levels_ - 1) = std::max(static_cast<int>(max_num_keypts_) - static_cast<int>(total_num_keypts), 0);
 
     // Preparate  for computation of orientation
     u_max_.resize(fast_half_patch_size_ + 1);
@@ -303,7 +302,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
         const unsigned int num_rows = std::ceil(height / cell_size) + 1;
 
         std::vector<cv::KeyPoint> keypts_to_distribute;
-        keypts_to_distribute.reserve(orb_params_.max_num_keypts_ * 10);
+        keypts_to_distribute.reserve(max_num_keypts_ * 10);
 
 #ifdef USE_OPENMP
 #pragma omp parallel for
@@ -372,7 +371,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
         }
 
         std::vector<cv::KeyPoint>& keypts_at_level = all_keypts.at(level);
-        keypts_at_level.reserve(orb_params_.max_num_keypts_);
+        keypts_at_level.reserve(max_num_keypts_);
 
         // Distribute keypoints via tree
         keypts_at_level = distribute_keypoints_via_tree(keypts_to_distribute,

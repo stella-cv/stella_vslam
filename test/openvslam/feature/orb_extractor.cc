@@ -23,7 +23,7 @@ using namespace openvslam;
 
 TEST(orb_extractor, extract_toy_sample_1) {
     const auto params = feature::orb_params();
-    auto extractor = feature::orb_extractor(params);
+    auto extractor = feature::orb_extractor(1000, params);
 
     // image
     auto img = cv::Mat(600, 600, CV_8UC1);
@@ -50,7 +50,7 @@ TEST(orb_extractor, extract_toy_sample_1) {
 
 TEST(orb_extractor, extract_toy_sample_2) {
     const auto params = feature::orb_params();
-    auto extractor = feature::orb_extractor(params);
+    auto extractor = feature::orb_extractor(1000, params);
 
     // image
     auto img = cv::Mat(2000, 2000, CV_8UC1);
@@ -77,7 +77,7 @@ TEST(orb_extractor, extract_toy_sample_2) {
 
 TEST(orb_extractor, extract_without_mask_1) {
     const auto params = feature::orb_params();
-    auto extractor = feature::orb_extractor(params);
+    auto extractor = feature::orb_extractor(1000, params);
 
     // image
     const auto img = cv::imread(std::string(TEST_DATA_DIR) + "./equirectangular_image_001.jpg", cv::IMREAD_GRAYSCALE);
@@ -96,7 +96,7 @@ TEST(orb_extractor, extract_without_mask_1) {
 
 TEST(orb_extractor, extract_without_mask_2) {
     const auto params = feature::orb_params();
-    auto extractor = feature::orb_extractor(params);
+    auto extractor = feature::orb_extractor(1000, params);
 
     // image
     const auto img = cv::imread(std::string(TEST_DATA_DIR) + "./equirectangular_image_002.jpg", cv::IMREAD_GRAYSCALE);
@@ -115,7 +115,7 @@ TEST(orb_extractor, extract_without_mask_2) {
 
 TEST(orb_extractor, extract_with_image_mask_1) {
     const auto params = feature::orb_params();
-    auto extractor = feature::orb_extractor(params);
+    auto extractor = feature::orb_extractor(1000, params);
 
     // image
     const auto img = cv::imread(std::string(TEST_DATA_DIR) + "./equirectangular_image_001.jpg", cv::IMREAD_GRAYSCALE);
@@ -152,7 +152,7 @@ TEST(orb_extractor, extract_with_image_mask_1) {
 
 TEST(orb_extractor, extract_with_image_mask_2) {
     const auto params = feature::orb_params();
-    auto extractor = feature::orb_extractor(params);
+    auto extractor = feature::orb_extractor(1000, params);
 
     // image
     const auto img = cv::imread(std::string(TEST_DATA_DIR) + "./equirectangular_image_002.jpg", cv::IMREAD_GRAYSCALE);
@@ -189,7 +189,7 @@ TEST(orb_extractor, extract_with_image_mask_2) {
 
 TEST(orb_extractor, extract_with_image_mask_3) {
     const auto params = feature::orb_params();
-    auto extractor = feature::orb_extractor(params);
+    auto extractor = feature::orb_extractor(1000, params);
 
     // image
     const auto img = cv::imread(std::string(TEST_DATA_DIR) + "./equirectangular_image_001.jpg", cv::IMREAD_GRAYSCALE);
@@ -231,7 +231,7 @@ TEST(orb_extractor, extract_with_rectangle_mask_1) {
     auto params = feature::orb_params();
     // mask (上下20%をマスク)
     params.mask_rects_ = {{0.0, 1.0, 0.0, 0.2}, {0.0, 1.0, 0.8, 1.0}};
-    auto extractor = feature::orb_extractor(params);
+    auto extractor = feature::orb_extractor(1000, params);
 
     // image
     const auto img = cv::imread(std::string(TEST_DATA_DIR) + "./equirectangular_image_001.jpg", cv::IMREAD_GRAYSCALE);
@@ -265,7 +265,7 @@ TEST(orb_extractor, extract_with_rectangle_mask_2) {
     auto params = feature::orb_params();
     // mask (上下20%をマスク)
     params.mask_rects_ = {{0.0, 0.2, 0.0, 1.0}, {0.8, 1.0, 0.0, 1.0}};
-    auto extractor = feature::orb_extractor(params);
+    auto extractor = feature::orb_extractor(1000, params);
 
     // image
     const auto img = cv::imread(std::string(TEST_DATA_DIR) + "./equirectangular_image_002.jpg", cv::IMREAD_GRAYSCALE);
@@ -299,7 +299,7 @@ TEST(orb_extractor, extract_with_rectangle_mask_3) {
     auto params = feature::orb_params();
     // mask (上下左右20%をマスク)
     params.mask_rects_ = {{0.0, 0.2, 0.0, 1.0}, {0.8, 1.0, 0.0, 1.0}, {0.0, 1.0, 0.0, 0.2}, {0.0, 1.0, 0.8, 1.0}};
-    auto extractor = feature::orb_extractor(params);
+    auto extractor = feature::orb_extractor(1000, params);
 
     // image
     const auto img = cv::imread(std::string(TEST_DATA_DIR) + "./equirectangular_image_002.jpg", cv::IMREAD_GRAYSCALE);
@@ -333,7 +333,7 @@ TEST(orb_extractor, extract_with_rectangle_mask_3) {
 
 TEST(orb_extractor, extract_toy_sample_3) {
     const auto params = feature::orb_params();
-    auto extractor = feature::orb_extractor(params);
+    auto extractor = feature::orb_extractor(1000, params);
 
     // image
     auto img = cv::Mat(1200, 600, CV_8UC1);
@@ -360,7 +360,7 @@ TEST(orb_extractor, extract_toy_sample_3) {
 
 TEST(orb_extractor, extract_without_mask_3) {
     const auto params = feature::orb_params();
-    auto extractor = feature::orb_extractor(params);
+    auto extractor = feature::orb_extractor(1000, params);
 
     // image
     const auto img_land = cv::imread(std::string(TEST_DATA_DIR) + "./equirectangular_image_001.jpg", cv::IMREAD_GRAYSCALE);
@@ -382,7 +382,7 @@ TEST(orb_extractor, extract_without_mask_3) {
 
 TEST(orb_extractor, extract_without_mask_4) {
     const auto params = feature::orb_params();
-    auto extractor = feature::orb_extractor(params);
+    auto extractor = feature::orb_extractor(1000, params);
 
     // image
     const auto img_land = cv::imread(std::string(TEST_DATA_DIR) + "./equirectangular_image_002.jpg", cv::IMREAD_GRAYSCALE);

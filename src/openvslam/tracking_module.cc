@@ -70,10 +70,10 @@ namespace openvslam {
 
 tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* system, data::map_database* map_db,
                                  data::bow_vocabulary* bow_vocab, data::bow_database* bow_db)
-    : camera_(cfg->camera_), true_depth_thr_(get_true_depth_thr(camera_, cfg->yaml_node_)),
-      depthmap_factor_(get_depthmap_factor(camera_, cfg->yaml_node_)),
-      reloc_distance_threshold_(get_reloc_distance_threshold(cfg->yaml_node_)),
-      reloc_angle_threshold_(get_reloc_angle_threshold(cfg->yaml_node_)),
+    : camera_(cfg->camera_), true_depth_thr_(get_true_depth_thr(camera_, util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
+      depthmap_factor_(get_depthmap_factor(camera_, util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
+      reloc_distance_threshold_(get_reloc_distance_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
+      reloc_angle_threshold_(get_reloc_angle_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
       system_(system), map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(cfg->camera_->setup_type_, map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
       frame_tracker_(camera_, 10), relocalizer_(bow_db_), pose_optimizer_(),
@@ -81,13 +81,13 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
     spdlog::debug("CONSTRUCT: tracking_module");
 
     feature::orb_params orb_params = get_orb_params(util::yaml_optional_ref(cfg->yaml_node_, "Feature"));
-    extractor_left_ = new feature::orb_extractor(orb_params);
+    const auto tracking_params = util::yaml_optional_ref(cfg->yaml_node_, "Tracking");
+    extractor_left_ = new feature::orb_extractor(tracking_params["max_num_keypoints"].as<unsigned int>(2000), orb_params);
     if (camera_->setup_type_ == camera::setup_type_t::Monocular) {
-        ini_extractor_left_ = new feature::orb_extractor(orb_params);
-        ini_extractor_left_->set_max_num_keypoints(orb_params.ini_max_num_keypts_);
+        ini_extractor_left_ = new feature::orb_extractor(tracking_params["ini_max_num_keypoints"].as<unsigned int>(4000), orb_params);
     }
     if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
-        extractor_right_ = new feature::orb_extractor(orb_params);
+        extractor_right_ = new feature::orb_extractor(tracking_params["max_num_keypoints"].as<unsigned int>(2000), orb_params);
     }
 }
 

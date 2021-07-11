@@ -51,23 +51,24 @@ StereoRectifier:
   D_right: [-0.28368365, 0.07451284, -0.00010473, -3.555907e-05, 0.0]
   R_right: [0.9999633526194376, -0.003625811871560086, 0.007755443660172947, 0.003680398547259526, 0.9999684752771629, -0.007035845251224894, -0.007729688520722713, 0.007064130529506649, 0.999945173484644]
 
+#=====================#
+# Tracking Parameters #
+#=====================#
+
+Tracking:
+  max_num_keypoints: 1000
+  ini_max_num_keypoints: 2000
+  depth_threshold: 40
+
 #================#
 # ORB Parameters #
 #================#
 
 Feature:
-  max_num_keypoints: 1000
-  ini_max_num_keypoints: 2000
   scale_factor: 1.2
   num_levels: 8
   ini_fast_threshold: 20
   min_fast_threshold: 7
-
-#=====================#
-# Tracking Parameters #
-#=====================#
-
-depth_threshold: 40
 
 #====================#
 # Mapping Parameters #

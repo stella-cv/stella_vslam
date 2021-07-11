@@ -26,13 +26,19 @@ Camera:
 
   color_order: "RGB"
 
+#=====================#
+# Tracking Parameters #
+#=====================#
+
+Tracking:
+  max_num_keypoints: 1000
+  ini_max_num_keypoints: 2000
+
 #================#
 # ORB Parameters #
 #================#
 
 Feature:
-  max_num_keypoints: 1000
-  ini_max_num_keypoints: 2000
   scale_factor: 1.2
   num_levels: 8
   ini_fast_threshold: 20
