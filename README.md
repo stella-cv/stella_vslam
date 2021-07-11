@@ -3,7 +3,7 @@
 </p>
 
 # OpenVSLAM: A Versatile Visual SLAM Framework
-[![Wercker Status](https://app.wercker.com/status/402b9e7a1fae92493519fff03d513565/s/main "wercker status")](https://app.wercker.com/ymd-stella/openvslam/runs)
+[![CI](https://github.com/OpenVSLAM-Community/openvslam_ros/actions/workflows/main.yml/badge.svg)](https://github.com/OpenVSLAM-Community/openvslam_ros/actions/workflows/main.yml)
 [![Documentation Status](https://readthedocs.org/projects/openvslam-community/badge/?version=latest)](https://openvslam-community.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 
