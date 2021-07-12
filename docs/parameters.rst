@@ -161,3 +161,21 @@ PangolinViewer
       - 
     * - viewpoint_x, viewpoint_y, viewpoint_z, viewpoint_f
       - 
+
+SocketPublisher
+==============
+
+.. list-table::
+    :header-rows: 1
+    :widths: 1, 3
+
+    * - Name
+      - Description
+    * - emitting_interval
+      - 
+    * - image_quality
+      - 
+    * - server_uri
+      - 
+    * - publish_points
+      - If true, pointcloud transfer is enabled. The default is true. Pointcloud transfer is slow, so disabling pointcloud transfer may be useful to improve performance of SocketViewer.
