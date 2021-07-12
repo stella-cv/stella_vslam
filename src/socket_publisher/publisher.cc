@@ -13,7 +13,9 @@ publisher::publisher(const YAML::Node& yaml_node, openvslam::system* system,
       emitting_interval_(yaml_node["emitting_interval"].as<unsigned int>(15000)),
       image_quality_(yaml_node["image_quality"].as<unsigned int>(20)),
       client_(new socket_client(yaml_node["server_uri"].as<std::string>("http://127.0.0.1:3000"))) {
-    data_serializer_ = std::unique_ptr<data_serializer>(new data_serializer(frame_publisher, map_publisher));
+    data_serializer_ = std::unique_ptr<data_serializer>(new data_serializer(
+        frame_publisher, map_publisher,
+        yaml_node["publish_points"].as<bool>(true)));
 
     client_->set_signal_callback(std::bind(&publisher::callback, this, std::placeholders::_1));
 }

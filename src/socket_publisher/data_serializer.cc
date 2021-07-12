@@ -17,8 +17,9 @@ namespace socket_publisher {
 std::string data_serializer::serialized_reset_signal_{};
 
 data_serializer::data_serializer(const std::shared_ptr<openvslam::publish::frame_publisher>& frame_publisher,
-                                 const std::shared_ptr<openvslam::publish::map_publisher>& map_publisher)
-    : frame_publisher_(frame_publisher), map_publisher_(map_publisher),
+                                 const std::shared_ptr<openvslam::publish::map_publisher>& map_publisher,
+                                 bool publish_points)
+    : frame_publisher_(frame_publisher), map_publisher_(map_publisher), publish_points_(publish_points),
       keyframe_hash_map_(new std::unordered_map<unsigned int, double>), point_hash_map_(new std::unordered_map<unsigned int, double>) {
     const auto tags = std::vector<std::string>{"RESET_ALL"};
     const auto messages = std::vector<std::string>{"reset all data"};
@@ -49,7 +50,9 @@ std::string data_serializer::serialize_map_diff() {
 
     std::vector<openvslam::data::landmark*> all_landmarks;
     std::set<openvslam::data::landmark*> local_landmarks;
-    map_publisher_->get_landmarks(all_landmarks, local_landmarks);
+    if (publish_points_) {
+        map_publisher_->get_landmarks(all_landmarks, local_landmarks);
+    }
 
     const auto current_camera_pose = map_publisher_->get_current_cam_pose();
 
