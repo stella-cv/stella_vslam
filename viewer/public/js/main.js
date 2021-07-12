@@ -22,6 +22,7 @@ let property = {
     CurrentFrameSize: 1.0,
     DrawGraph: true,
     DrawGrid: true,
+    DrawPoints: true,
     LocalizationMode: false,
     ResetSignal: function () { },
     StopSignal: function () { }
@@ -63,15 +64,15 @@ function init() {
     trackStats.domElement.style.top = "48px";
     document.getElementById("Stats-output").appendChild(trackStats.domElement);
 
+    // create a camera
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 1000);
+
     initGui();
     initTumbnail();
     initProtobuf();
 
     // create a scene, that holds all elements such as cameras and points.
     scene = new THREE.Scene();
-
-    // create a camera
-    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 1000);
 
     // create a render and set the setSize
     renderer = new THREE.WebGLRenderer({ antialias: false });
@@ -155,8 +156,10 @@ function initGui() {
     gui.add(property, 'LandmarkSize', 0, 4, 0.1).onChange(setPointSize);
     gui.add(property, 'KeyframeSize', 0, 4, 0.1).onChange(setKeyframeSize);
     gui.add(property, 'CurrentFrameSize', 0, 4, 0.1).onChange(setCurrentframeSize);
+    gui.add(camera, 'far', 1000, 1000000, 1000).onChange(setFar);
     gui.add(property, 'DrawGraph').onChange(setGraphVis);
     gui.add(property, 'DrawGrid').onChange(setGridVis);
+    gui.add(property, 'DrawPoints').onChange(setPointsVis);
     gui.add(property, 'LocalizationMode').onChange(setLocalizationMode);
     gui.add(property, 'ResetSignal').domElement.children[0].innerHTML = "<button onclick='onClickReset()'>reset</button>";
     gui.add(property, 'StopSignal').domElement.children[0].innerHTML = "<button onclick='onClickTerminate()'>terminate</button>";
@@ -186,11 +189,17 @@ function setCurrentframeSize(val) {
     val = Math.pow(2, val);
     cameraFrames.setCurrentFrameSize(val);
 }
+function setFar(val) {
+    camera.updateProjectionMatrix();
+}
 function setGraphVis(val) {
     cameraFrames.setGraphVisibility(val);
 }
 function setGridVis(val) {
     grid.visible = val;
+}
+function setPointsVis(val) {
+    pointCloud.setPointsVisibility(val);
 }
 function setLocalizationMode(val) {
     if (val == true) {

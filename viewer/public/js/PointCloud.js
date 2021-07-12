@@ -172,4 +172,9 @@ class PointCloud {
     setPointSize(val) {
         this.cloudMaterial.size = val
     }
+
+    setPointsVisibility(visibility) {
+        this.cloudMaterial.visible = visibility;
+    }
+
 }
