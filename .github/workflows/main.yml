@@ -74,6 +74,7 @@ jobs:
       - name: unit test
         run: |
           cd build
+          export BOW_VOCAB=/datasets/orb_vocab/orb_vocab.fbow
           ctest -V
       - name: Convert groundtruth to TUM format (data.tum)
         run: |
