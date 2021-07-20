@@ -29,6 +29,9 @@ foreach(SOURCE_PATH ${SOURCE_PATHS})
     # Create test executable
     add_executable(${TEST_EXECUTABLE_NAME} ${SOURCE_PATH})
     target_compile_definitions(${TEST_EXECUTABLE_NAME} PRIVATE TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data/")
+    if(BOW_FRAMEWORK MATCHES "DBoW2")
+        target_compile_definitions(${TEST_EXECUTABLE_NAME} PUBLIC USE_DBOW2)
+    endif()
     target_include_directories(${TEST_EXECUTABLE_NAME} SYSTEM
                                PRIVATE
                                ${PROJECT_SOURCE_DIR}/src
