@@ -131,9 +131,9 @@ target_include_directories(${PROJECT_NAME}
                            PUBLIC
                            "$<BUILD_INTERFACE:${json_INCLUDE_DIR}>"
                            "$<BUILD_INTERFACE:${spdlog_INCLUDE_DIR}>"
-                           "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>""
+                           "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>"
                            "$<INSTALL_INTERFACE:include/openvslam/3rd/json/include>"
-                           "$<INSTALL_INTERFACE:include/openvslam/3rd/spdlog/include>""
+                           "$<INSTALL_INTERFACE:include/openvslam/3rd/spdlog/include>"
                            "$<INSTALL_INTERFACE:include/>")
 
 # Link to required libraries
