@@ -115,8 +115,8 @@ elseif(BOW_FRAMEWORK MATCHES "FBoW")
     else()
         target_include_directories(${PROJECT_NAME}
                                 PUBLIC
-                                $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/3rd/FBoW/include>
-                                $<INSTALL_INTERFACE:include/fbow>)
+                                "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/3rd/FBoW/include>"
+                                "$<INSTALL_INTERFACE:include/fbow>")
         set(BoW_LIBRARY fbow)
         message(STATUS "BoW framework: ${BOW_FRAMEWORK} (Using submodule)")
     endif()
@@ -129,12 +129,12 @@ endif()
 # Include directories
 target_include_directories(${PROJECT_NAME}
                            PUBLIC
-                           $<BUILD_INTERFACE:${json_INCLUDE_DIR}>
-                           $<BUILD_INTERFACE:${spdlog_INCLUDE_DIR}>
-                           $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>
-                           $<INSTALL_INTERFACE:include/openvslam/3rd/json/include>
-                           $<INSTALL_INTERFACE:include/openvslam/3rd/spdlog/include>
-                           $<INSTALL_INTERFACE:include/>)
+                           "$<BUILD_INTERFACE:${json_INCLUDE_DIR}>"
+                           "$<BUILD_INTERFACE:${spdlog_INCLUDE_DIR}>"
+                           "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>"
+                           "$<INSTALL_INTERFACE:include/openvslam/3rd/json/include>"
+                           "$<INSTALL_INTERFACE:include/openvslam/3rd/spdlog/include>"
+                           "$<INSTALL_INTERFACE:include/>")
 
 # Link to required libraries
 target_link_libraries(${PROJECT_NAME}
