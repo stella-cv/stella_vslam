@@ -299,7 +299,7 @@ Tracking and Mapping
     $ ./run_tum_rgbd_slam \
         -v /path/to/orb_vocab/orb_vocab.fbow \
         -d /path/to/rgbd_dataset_freiburg3_calibration_rgb_depth/ \
-        -c ../example/tum_rgbd/TUM_RGBD_mono_3.yaml \
+        -c ../example/tum_rgbd/TUM_RGBD_rgbd_3.yaml \
         --no-sleep \
         --auto-term \
         --map-db fr3_slam_rgbd.msg
@@ -335,7 +335,7 @@ Localization
     $ ./run_tum_rgbd_localization \
         -v /path/to/orb_vocab/orb_vocab.fbow \
         -d /path/to/rgbd_dataset_freiburg3_calibration_rgb_depth/ \
-        -c ../example/tum_rgbd/TUM_RGBD_rgbd_3.yaml \
+        -c ../example/tum_rgbd/TUM_RGBD_mono_3.yaml \
         --no-sleep \
         --auto-term \
         --map-db fr3_slam_mono.msg
