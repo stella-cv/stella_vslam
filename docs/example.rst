@@ -254,24 +254,116 @@ The following options are allowed:
 TUM RGBD dataset
 ^^^^^^^^^^^^^^^^
 
-Will be written soon.
+`TUM RGBD dataset <https://vision.in.tum.de/data/datasets/rgbd-dataset>`_ is a benchmarking dataset fcontaining RGB-D data and ground-truth data with the goal to establish a novel benchmark for the evaluation of visual odometry and visual SLAM systems.
+The source code is placed at ``./example/run_tum_rgbd_localization.cc``.
+
+Start by downloading the various dataset from `here <https://vision.in.tum.de/data/datasets/rgbd-dataset/download>`__. 
+One of many example datasets can be found from  `here <https://vision.in.tum.de/rgbd/dataset/freiburg3/rgbd_dataset_freiburg3_calibration_rgb_depth.tgz>`__. 
+Download the ``.tgz`` file of a dataset you plan on using.
+
+After downloading and uncompressing it, you will find two directories and few text files under the ``rgbd_dataset_freiburg3_calibration_rgb_depth/`` directory.
+
+.. code-block:: bash
+
+    $ ls rgbd_dataset_freiburg3_calibration_rgb_depth
+    accelerometer.txt  depth  depth.txt  groundtruth.txt  rgb  rgb.txt
+
+If you would like to preprocess dataset then you can usee tool from `here <https://vision.in.tum.de/data/datasets/rgbd-dataset/tools>`__.
+
+In addition, download a vocabulary file for FBoW from `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
+
+We provided the config files for RGBD dataset at, ``./example/tum_rgbd``.
+
+For above specific example we shall use two config files, ``./example/tum_rgbd/TUM_RGBD_mono_3.yaml`` for monocular and ``./example/tum_rgbd/TUM_RGBD_rgbd_3.yaml`` for RGBD.
+
+Tracking and Mapping
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+    # at the build directory of OpenVSLAM
+    $ ls
+    ...
+    run_tum_rgbd_slam
+    ...
+    # monocular SLAM with rgbd_dataset_freiburg3_calibration_rgb_depth
+    $ ./run_tum_rgbd_slam \
+        -v /path/to/orb_vocab/orb_vocab.fbow \
+        -d /path/to/rgbd_dataset_freiburg3_calibration_rgb_depth/ \
+        -c ../example/tum_rgbd/TUM_RGBD_mono_3.yaml \
+        --no-sleep \
+        --auto-term \
+        --map-db fr3_slam_mono.msg
+
+    # RGBD SLAM with rgbd_dataset_freiburg3_calibration_rgb_depth
+    $ ./run_tum_rgbd_slam \
+        -v /path/to/orb_vocab/orb_vocab.fbow \
+        -d /path/to/rgbd_dataset_freiburg3_calibration_rgb_depth/ \
+        -c ../example/tum_rgbd/TUM_RGBD_mono_3.yaml \
+        --no-sleep \
+        --auto-term \
+        --map-db fr3_slam_rgbd.msg
 
 The following options are allowed:
 
 .. code-block:: bash
 
-    $ ./run_tum_slam -h
+    $ ./run_tum_rgbd_slam -h
     Allowed options:
     -h, --help             produce help message
     -v, --vocab arg        vocabulary file path
     -d, --data-dir arg     directory path which contains dataset
-    -a, --assoc arg        association file path
     -c, --config arg       config file path
     --frame-skip arg (=1)  interval of frame skip
     --no-sleep             not wait for next frame in real time
     --auto-term            automatically terminate the viewer
     --debug                debug mode
     --eval-log             store trajectory and tracking times for evaluation
+    -p, --map-db arg       store a map database at this path after SLAM
+
+Localization
+^^^^^^^^^^^^
+
+.. code-block:: bash
+
+    # at the build directory of OpenVSLAM
+    $ ls
+    ...
+    run_tum_rgbd_localization
+    ...
+    # monocular localization with rgbd_dataset_freiburg3_calibration_rgb_depth
+    $ ./run_tum_rgbd_localization \
+        -v /path/to/orb_vocab/orb_vocab.fbow \
+        -d /path/to/rgbd_dataset_freiburg3_calibration_rgb_depth/ \
+        -c ../example/tum_rgbd/TUM_RGBD_rgbd_3.yaml \
+        --no-sleep \
+        --auto-term \
+        --map-db fr3_slam_mono.msg
+
+    # RGBD SLAM with rgbd_dataset_freiburg3_calibration_rgb_depth
+    $ ./run_tum_rgbd_localization \
+        -v /path/to/orb_vocab/orb_vocab.fbow \
+        -d /path/to/rgbd_dataset_freiburg3_calibration_rgb_depth/ \
+        -c ../example/tum_rgbd/TUM_RGBD_rgbd_3.yaml \
+        --no-sleep \
+        --auto-term \
+        --map-db fr3_slam_rgbd.msg
+
+The following options are allowed:
+
+.. code-block:: bash
+
+    $ ./run_tum_rgbd_localization -h
+    Allowed options:
+    -h, --help             produce help message
+    -v, --vocab arg        vocabulary file path
+    -d, --data-dir arg     directory path which contains dataset
+    -c, --config arg       config file path
+    --frame-skip arg (=1)  interval of frame skip
+    --no-sleep             not wait for next frame in real time
+    --auto-term            automatically terminate the viewer
+    --debug                debug mode
+    --mapping              perform mapping as well as localization
     -p, --map-db arg       store a map database at this path after SLAM
 
 .. _section-example-uvc-camera:
