@@ -31,9 +31,9 @@
 #endif
 
 void mono_localization(const std::shared_ptr<openvslam::config>& cfg,
-                   const std::string& vocab_file_path, const std::string& sequence_dir_path,
-                   const unsigned int frame_skip, const bool no_sleep, const bool auto_term,
-                   const bool mapping, const std::string& map_db_path) {
+                       const std::string& vocab_file_path, const std::string& sequence_dir_path,
+                       const unsigned int frame_skip, const bool no_sleep, const bool auto_term,
+                       const bool mapping, const std::string& map_db_path) {
     tum_rgbd_sequence sequence(sequence_dir_path);
     const auto frames = sequence.get_frames();
 
@@ -127,8 +127,6 @@ void mono_localization(const std::shared_ptr<openvslam::config>& cfg,
     // shutdown the SLAM process
     SLAM.shutdown();
 
-
-
     std::sort(track_times.begin(), track_times.end());
     const auto total_track_time = std::accumulate(track_times.begin(), track_times.end(), 0.0);
     std::cout << "median tracking time: " << track_times.at(track_times.size() / 2) << "[s]" << std::endl;
@@ -136,9 +134,9 @@ void mono_localization(const std::shared_ptr<openvslam::config>& cfg,
 }
 
 void rgbd_localization(const std::shared_ptr<openvslam::config>& cfg,
-                   const std::string& vocab_file_path, const std::string& sequence_dir_path,
-                   const unsigned int frame_skip, const bool no_sleep, const bool auto_term,
-                   const bool mapping, const std::string& map_db_path) {
+                       const std::string& vocab_file_path, const std::string& sequence_dir_path,
+                       const unsigned int frame_skip, const bool no_sleep, const bool auto_term,
+                       const bool mapping, const std::string& map_db_path) {
     tum_rgbd_sequence sequence(sequence_dir_path);
     const auto frames = sequence.get_frames();
 
@@ -233,8 +231,6 @@ void rgbd_localization(const std::shared_ptr<openvslam::config>& cfg,
     // shutdown the SLAM process
     SLAM.shutdown();
 
-
-
     std::sort(track_times.begin(), track_times.end());
     const auto total_track_time = std::accumulate(track_times.begin(), track_times.end(), 0.0);
     std::cout << "median tracking time: " << track_times.at(track_times.size() / 2) << "[s]" << std::endl;
@@ -308,13 +304,13 @@ int main(int argc, char* argv[]) {
     // run localization
     if (cfg->camera_->setup_type_ == openvslam::camera::setup_type_t::Monocular) {
         mono_localization(cfg, vocab_file_path->value(), data_dir_path->value(),
-                      frame_skip->value(), no_sleep->is_set(), auto_term->is_set(),
-                      mapping->is_set(), map_db_path->value());
+                          frame_skip->value(), no_sleep->is_set(), auto_term->is_set(),
+                          mapping->is_set(), map_db_path->value());
     }
     else if (cfg->camera_->setup_type_ == openvslam::camera::setup_type_t::RGBD) {
         rgbd_localization(cfg, vocab_file_path->value(), data_dir_path->value(),
-                      frame_skip->value(), no_sleep->is_set(), auto_term->is_set(),
-                      mapping->is_set(), map_db_path->value());
+                          frame_skip->value(), no_sleep->is_set(), auto_term->is_set(),
+                          mapping->is_set(), map_db_path->value());
     }
     else {
         throw std::runtime_error("Invalid setup type: " + cfg->camera_->get_setup_type_string());
