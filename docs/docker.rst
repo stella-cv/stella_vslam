@@ -71,7 +71,7 @@ After launching the container, the shell interface will be launched in the docke
     root@ddad048b5fff:/openvslam/build# ls
     lib                     run_image_slam          run_video_slam
     run_euroc_slam          run_kitti_slam          run_tum_slam
-    run_image_localization  run_video_localization
+    run_image_localization  run_video_localization  run_tum_rgbd_localization
 
 See :ref:`Tutorial <chapter-simple-tutorial>` to run SLAM examples in the container.
 
