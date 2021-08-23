@@ -358,6 +358,7 @@ When building with support for SocketViewer, please specify the following cmake 
     cmake \
         -DUSE_PANGOLIN_VIEWER=OFF \
         -DUSE_SOCKET_PUBLISHER=ON \
+        -DINSTALL_SOCKET_PUBLISHER=ON \
         -DUSE_STACK_TRACE_LOGGER=ON \
         -DBUILD_TESTS=ON \
         -DBUILD_EXAMPLES=ON \
