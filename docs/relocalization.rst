@@ -25,56 +25,32 @@ This is useful when the previous location cannot be used as prior information, f
 
 Steps in Relocalization
 ========================
+1. Acquire relocalization candidates,ie get the current frames
 
-1. Estimate the camera pose 
+2. Compute matching points for each candidate by using BoW tree matcher
 
-2. Apply pose optimizer
+3. Discard the candidate if the number of 2D-3D matches is less than the threshold
 
-3. Apply projection match to increase 2D-3D matches
+4. Setup an PnP solver with the current 2D-3D matches
 
-4. Re-apply the pose optimizer
+5. Estimate the camera pose using EPnP (+ RANSAC)
+
+6. Apply pose optimizer
+
+7. Apply projection match to increase 2D-3D matches
+
+8. Re-apply the pose optimizer
+
+9. Apply projection match again if the number of the observations is less than the threshold
+
+10. Apply projection match again, then set the 2D-3D matches
+
+11. Discard if the number of the observations is less than the threshold and do the pose estimation again
+
+12. If the number of observation is greater than threshold succeed in relocalization
 
 
-To run the relocalization
+.. _section-run-relocalizatoin:
 
-.. code-block:: bash
-
-    # at the build directory of openvslam ...
-    $ pwd
-    /path/to/openvslam/build/
-    $ ls
-    run_video_slam   run_video_localization   lib/   ...
-    # run the following
-    ./run_video_localization -v ./orb_vocab.fbow -m ./aist_living_lab_2/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --map-db map.msg
-
-
-.. code-block:: bash
-
-    Required Arguments:
-
-    -v, --vocab arg        vocabulary file path
-    -m, --video arg        video file path
-    -c, --config arg       config file path
-    -p, --map-db arg       path to a prebuilt map database
-    --frame-skip arg (=1)  interval of frame skip
-    --no-sleep             not wait for next frame in real time
-
-    Allowed options:
-
-    -h, --help             produce help message
-    -v, --vocab arg        vocabulary file path
-    -m, --video arg        video file path
-    -c, --config arg       config file path
-    -p, --map-db arg       path to a prebuilt map database
-    --mapping              perform mapping as well as localization
-    --mask arg             mask image path
-    --frame-skip arg (=1)  interval of frame skip
-    --no-sleep             not wait for next frame in real time
-    --auto-term            automatically terminate the viewer
-    --debug                debug mode
-
-| The camera that captures the video file must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
-| We provided a vocabulary file for FBoW at `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
-
-You can create a map database file by running one of the ``run_****_slam`` executables with ``--map-db map_file_name.msg`` option.
+| See the details on how to run the relocalization at `here <https://openvslam-community.readthedocs.io/en/latest/simple_tutorial.html#simple-tutorial>`__.
 
