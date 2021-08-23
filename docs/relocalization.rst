@@ -9,20 +9,16 @@ Relocalization
 .. _section-what-is-relocalizatoin:
 
 
-What is Relocalization ?
-===============================
+What is Relocalization? Why it is needed?
+=========================================
 
-A visual simultaneous localization and mapping (SLAM) system usually contains a relocalization module to recover the camera pose after tracking failure. The core of this module is to establish correspondences between map points and key points in the image, which is typically achieved by local image feature matching.
+In Visual SLAM, the robot/camera explores its environment while 
 
+1. estimates its location using the map and the last location as prior information (Tracking), and simultaneously
+2. update the map (the database that records landmarks) of environment (Mapping).
 
-
-.. _section-when-do-we-need-relocalizatoin:
-
-
-When doe we need Relocalization ?
-===================================
-
-In Visual SLAM, the robot/camera begins from the origin and explores its environment while keeping a record of its location with respect to the origin  and creating a map of the environment.As the name suggests it's "re"-localization .That is when the robot in it's current state is not aware of it's position in the map mainly due to when visual odometry fails,Which is the robot is unable to track it's position due to lack of sufficient matching between the current frame and it's previous frames.So visual place recognition helps the robot to "re-localize" by finding a confident match from the entire database that is, the robot's position is re-estimated with respect to the map 
+Relocalization module can estimate the location without using any prior information other than the map (with the high cost of computation). 
+This is useful when the previous location cannot be used as prior information, for example when tracking fails.
 
 
 .. _section-steps-in-relocalizatoin:
