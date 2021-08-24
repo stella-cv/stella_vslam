@@ -25,7 +25,7 @@ This is useful when the previous location cannot be used as prior information, f
 
 Steps in Relocalization
 ========================
-1. Acquire relocalization candidates,ie get the current frames
+1. Acquire relocalization candidate keyframes (Used as a reference keyframe for relocalization)
 
 2. Compute matching points for each candidate by using BoW tree matcher
 
