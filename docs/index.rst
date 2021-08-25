@@ -22,14 +22,21 @@ Contents
 
 .. toctree::
     :maxdepth: 2
+    :caption: Getting started
 
     ./overview
     ./installation
     ./simple_tutorial
-    ./example
-    ./parameters
     ./docker
     ./ros
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Advanced features
+
+    ./example
+    ./parameters
+    ./relocalization
     ./trouble_shooting
 
 Cite Us
