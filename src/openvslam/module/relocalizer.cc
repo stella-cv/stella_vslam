@@ -42,6 +42,8 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
 
     std::vector<std::vector<data::landmark*>> matched_landmarks(num_candidates);
 
+    spdlog::debug("Number of candidates: {}", num_candidates);
+
     // Compute matching points for each candidate by using BoW tree matcher
     for (unsigned int i = 0; i < num_candidates; ++i) {
         auto keyfrm = reloc_candidates.at(i);
@@ -52,7 +54,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         const auto num_matches = bow_matcher_.match_frame_and_keyframe(keyfrm, curr_frm, matched_landmarks.at(i));
         // Discard the candidate if the number of 2D-3D matches is less than the threshold
         if (num_matches < min_num_bow_matches_) {
-            spdlog::debug("Number of Candidates: {}.Number of 2D-3D matches of less than threshold. id: {} ", num_candidates, curr_frm.id_);
+            spdlog::debug("Number of 2D-3D matches ({}) < threshold ({}). candidate keyframe id is {} ", num_matches, min_num_bow_matches_, keyfrm->id_);
             continue;
         }
 
@@ -90,7 +92,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         auto num_valid_obs = pose_optimizer_.optimize(curr_frm);
         // Discard the candidate if the number of the inliers is less than the threshold
         if (num_valid_obs < min_num_bow_matches_ / 2) {
-            spdlog::debug("Number of candidates: {}, number of inliers < threshold. id: {}", num_candidates, curr_frm.id_);
+            spdlog::debug("Number of inliers ({}) < threshold ({}). candidate keyframe id is {}", num_valid_obs, min_num_bow_matches_ / 2, keyfrm->id_);
             continue;
         }
 
@@ -108,7 +110,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         auto num_found = proj_matcher_.match_frame_and_keyframe(curr_frm, reloc_candidates.at(i), already_found_landmarks, 10, 100);
         // Discard the candidate if the number of the inliers is less than the threshold
         if (num_valid_obs + num_found < min_num_valid_obs_) {
-            spdlog::debug("Number of candidates: {}, number of inliers < threshold. id: {}", num_candidates, curr_frm.id_);
+            spdlog::debug("Number of inliers ({}) < threshold ({}). candidate keyframe  id is {}", num_valid_obs + num_found, min_num_valid_obs_, keyfrm->id_);
             continue;
         }
 
@@ -131,7 +133,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
 
             // Discard if the number of the observations is less than the threshold
             if (num_valid_obs + num_additional < min_num_valid_obs_) {
-                spdlog::debug("Number of candidates: {}, number of observatoins < threshold. id: {}", num_candidates, curr_frm.id_);
+                spdlog::debug("number of observations ({}) < threshold ({}). candidate keyframe id is {}", num_valid_obs + num_additional, min_num_valid_obs_, keyfrm->id_);
                 continue;
             }
 
@@ -140,7 +142,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
 
             // Discard if falling below the threshold
             if (num_valid_obs < min_num_valid_obs_) {
-                spdlog::debug("Number of candidates: {}, number of observatoins < threshold. id: {}", num_candidates, curr_frm.id_);
+                spdlog::debug("Number of observatoins ({}) < threshold ({}). candidate keyframe id is {}", num_valid_obs, min_num_valid_obs_, keyfrm->id_);
                 continue;
             }
         }
