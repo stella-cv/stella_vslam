@@ -54,7 +54,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         const auto num_matches = bow_matcher_.match_frame_and_keyframe(keyfrm, curr_frm, matched_landmarks.at(i));
         // Discard the candidate if the number of 2D-3D matches is less than the threshold
         if (num_matches < min_num_bow_matches_) {
-            spdlog::debug("Number of 2D-3D matches ({}) < threshold ({}). candidate keyframe id is {} ", num_matches, min_num_bow_matches_, keyfrm->id_);
+            spdlog::debug("Number of 2D-3D matches ({}) < threshold ({}). candidate keyframe id is {}", num_matches, min_num_bow_matches_, keyfrm->id_);
             continue;
         }
 
