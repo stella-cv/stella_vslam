@@ -110,7 +110,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         auto num_found = proj_matcher_.match_frame_and_keyframe(curr_frm, reloc_candidates.at(i), already_found_landmarks, 10, 100);
         // Discard the candidate if the number of the inliers is less than the threshold
         if (num_valid_obs + num_found < min_num_valid_obs_) {
-            spdlog::debug("Number of inliers ({}) < threshold ({}). candidate keyframe  id is {}", num_valid_obs + num_found, min_num_valid_obs_, keyfrm->id_);
+            spdlog::debug("Number of inliers ({}) < threshold ({}). candidate keyframe id is {}", num_valid_obs + num_found, min_num_valid_obs_, keyfrm->id_);
             continue;
         }
 
