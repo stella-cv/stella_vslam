@@ -42,7 +42,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
 
     std::vector<std::vector<data::landmark*>> matched_landmarks(num_candidates);
 
-    spdlog::debug("Number of candidates: {}", num_candidates);
+    spdlog::debug("Start relocalization. Number of candidate keyframes is {}", num_candidates);
 
     // Compute matching points for each candidate by using BoW tree matcher
     for (unsigned int i = 0; i < num_candidates; ++i) {
@@ -133,7 +133,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
 
             // Discard if the number of the observations is less than the threshold
             if (num_valid_obs + num_additional < min_num_valid_obs_) {
-                spdlog::debug("number of observations ({}) < threshold ({}). candidate keyframe id is {}", num_valid_obs + num_additional, min_num_valid_obs_, keyfrm->id_);
+                spdlog::debug("Number of observations ({}) < threshold ({}). candidate keyframe id is {}", num_valid_obs + num_additional, min_num_valid_obs_, keyfrm->id_);
                 continue;
             }
 
