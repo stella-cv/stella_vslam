@@ -179,3 +179,19 @@ SocketPublisher
       - 
     * - publish_points
       - If true, pointcloud transfer is enabled. The default is true. Pointcloud transfer is slow, so disabling pointcloud transfer may be useful to improve performance of SocketViewer.
+
+LoopDetector
+============
+
+.. list-table::
+    :header-rows: 1
+    :widths: 1, 3
+
+    * - Name
+      - Description
+    * - enabled
+      - flag which indicates the loop detector is enabled or not
+    * - num_final_matches_threshold
+      - the threshold of the number of mutual matches after the Sim3 estimation
+    * - min_continuity
+      - the threshold of the continuity of continuously detected keyframe set
