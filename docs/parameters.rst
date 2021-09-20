@@ -114,6 +114,8 @@ StereoRectifier
 
     * - Name
       - Description
+    * - model
+      - camera model type before rectification
     * - K_left, K_right
       - Intrinsic parameters. The 3x3 matrix are written in row-major order.
     * - D_left, D_right
