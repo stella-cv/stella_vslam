@@ -24,20 +24,24 @@ find_package(g2o REQUIRED
 if(TARGET g2o::csparse)
     set(${CXSPARSE_LIBRARIES} g2o::csparse)
 else()
+
     # CXSparse for g2o
     find_package(CXSparse)
     if(CXSPARSE_FOUND)
         include_directories(${CXSPARSE_INCLUDE_DIRS})
     endif()
+
     # SuiteSparse for g2o
     if(MSVC)
         find_package(SuiteSparse CONFIG)
     else()
         find_package(SuiteSparse)
     endif()
+
     if(SUITESPARSE_FOUND)
         include_directories(${SUITESPARSE_INCLUDE_DIRS})
     endif()
+
 endif()
 
 # Check BoW Framework
@@ -45,11 +49,25 @@ set(BOW_FRAMEWORK "FBoW" CACHE STRING "DBoW2 or FBoW")
 set_property(CACHE BOW_FRAMEWORK PROPERTY STRINGS "DBoW2" "FBoW")
 if(BOW_FRAMEWORK MATCHES "DBoW2")
     find_package(DBoW2 REQUIRED)
+
 elseif(BOW_FRAMEWORK MATCHES "FBoW")
     find_package(fbow QUIET)
+
     if(NOT fbow_FOUND)
         add_subdirectory(${PROJECT_SOURCE_DIR}/3rd/FBoW ${PROJECT_BINARY_DIR}/3rd/FBoW)
     endif()
+
+    # Set output directory of the fbow library, same as openvslam
+    set_target_properties(fbow PROPERTIES
+                      OUTPUT_NAME fbow
+                      ARCHIVE_OUTPUT_DIRECTORY                "${PROJECT_BINARY_DIR}"
+                      LIBRARY_OUTPUT_DIRECTORY                "${PROJECT_BINARY_DIR}"
+                      RUNTIME_OUTPUT_DIRECTORY                "${PROJECT_BINARY_DIR}"
+                      RUNTIME_OUTPUT_DIRECTORY_DEBUG          "${PROJECT_BINARY_DIR}"
+                      RUNTIME_OUTPUT_DIRECTORY_RELEASE        "${PROJECT_BINARY_DIR}"
+                      RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL     "${PROJECT_BINARY_DIR}"
+                      RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${PROJECT_BINARY_DIR}")
+
 else()
     message(FATAL_ERROR "Invalid BoW framework: ${BOW_FRAMEWORK}")
 endif()
@@ -72,8 +90,15 @@ add_library(${PROJECT_NAME}
 # Set output directory of the library
 set_target_properties(${PROJECT_NAME} PROPERTIES
                       OUTPUT_NAME openvslam
-                      ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib
-                      LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+                      ARCHIVE_OUTPUT_DIRECTORY                "${PROJECT_BINARY_DIR}"
+                      LIBRARY_OUTPUT_DIRECTORY                "${PROJECT_BINARY_DIR}"
+                      RUNTIME_OUTPUT_DIRECTORY                "${PROJECT_BINARY_DIR}"
+                      RUNTIME_OUTPUT_DIRECTORY_DEBUG          "${PROJECT_BINARY_DIR}"
+                      RUNTIME_OUTPUT_DIRECTORY_RELEASE        "${PROJECT_BINARY_DIR}"
+                      RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL     "${PROJECT_BINARY_DIR}"
+                      RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${PROJECT_BINARY_DIR}")
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC NOMINMAX=1 OPENVSLAM_EXPORT=1)
 
 # ----- Compile configuration -----
 
@@ -159,6 +184,12 @@ target_link_libraries(${PROJECT_NAME}
                       ${BoW_LIBRARY}
                       PRIVATE
                       ${LAPACK_LIBRARIES})
+
+# Fix, in debug mode g2o/openvslam needs libcxsparse.dll but libcxsparsed.dll is copied
+if(MSVC)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rename "${PROJECT_BINARY_DIR}/libcxsparsed.dll" "${PROJECT_BINARY_DIR}/libcxsparse.dll")
+endif()
 
 # ----- Install configuration -----
 

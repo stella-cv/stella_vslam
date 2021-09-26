@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_MODULE_KEYFRAME_INSERTER_H
 #define OPENVSLAM_MODULE_KEYFRAME_INSERTER_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/camera/base.h"
 #include "openvslam/data/frame.h"
 #include "openvslam/data/keyframe.h"
@@ -17,7 +19,7 @@ class map_database;
 
 namespace module {
 
-class keyframe_inserter {
+class DECLSPEC keyframe_inserter {
 public:
     keyframe_inserter(const camera::setup_type_t setup_type, const float true_depth_thr,
                       data::map_database* map_db, data::bow_database* bow_db,

@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.1)
+
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
 project(openvslam LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 
 if(POLICY CMP0042)
     cmake_policy(SET CMP0042 NEW)
@@ -11,8 +15,9 @@ if(POLICY CMP0074)
     cmake_policy(SET CMP0074 OLD)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-
+if(NOT MSVC)
+    list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+endif()
 # ----- Set build type -----
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -51,9 +56,19 @@ endif()
 
 # Note: add_compile_options() accepts only "simple" generator-expressions :-(
 if(MSVC)
-    # C4251: DLL export, C4244: floating->integer, C4305: double->float, C4267: size_t->any, C4127: constant condition
-    add_compile_options(/W4 $<$<CONFIG:Debug>:/MTd>;$<$<CONFIG:Release>:/MT> /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127)
+
+    # Static/dynamic linking of runtime libs
+    if(${BUILD_SHARED_LIBS})
+        add_compile_options($<$<CONFIG:Debug>:/MDd>;$<$<CONFIG:Release>:/MD>)
+    elseif()
+        add_compile_options($<$<CONFIG:Debug>:/MTd>;$<$<CONFIG:Release>:/MT>)
+    endif()
+
     add_compile_options("$<$<CONFIG:Debug>:/Zo>;$<$<CONFIG:Release>:/O2>;$<$<CONFIG:None>:/O2>")
+
+    # C4251: DLL export, C4244: floating->integer, C4305: double->float, C4267: size_t->any, C4127: constant condition
+    add_compile_options(/W4 /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127 /bigobj)
+
 else()
     add_compile_options(-Wall -Wextra)
     add_compile_options(

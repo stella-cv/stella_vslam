@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_MODULE_LOCAL_MAP_CLEANER_H
 #define OPENVSLAM_MODULE_LOCAL_MAP_CLEANER_H
 
+
+#include "openvslam/platform.h"
 #include <list>
 
 namespace openvslam {
@@ -12,7 +14,7 @@ class landmark;
 
 namespace module {
 
-class local_map_cleaner {
+class DECLSPEC local_map_cleaner {
 public:
     /**
      * Constructor

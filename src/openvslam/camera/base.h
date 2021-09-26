@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_CAMERA_BASE_H
 #define OPENVSLAM_CAMERA_BASE_H
 
+#include "openvslam/platform.h"
 #include "openvslam/type.h"
 
 #include <string>
@@ -53,7 +54,7 @@ struct image_bounds {
     float max_y_ = 0.0;
 };
 
-class base {
+class DECLSPEC base {
 public:
     //! Constructor
     base(const std::string& name, const setup_type_t setup_type, const model_type_t model_type, const color_order_t color_order,

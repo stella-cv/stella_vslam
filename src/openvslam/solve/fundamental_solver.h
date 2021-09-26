@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_SOLVE_FUNDAMENTAL_SOLVER_H
 #define OPENVSLAM_SOLVE_FUNDAMENTAL_SOLVER_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/type.h"
 
 #include <vector>
@@ -11,7 +13,7 @@
 namespace openvslam {
 namespace solve {
 
-class fundamental_solver {
+class DECLSPEC fundamental_solver {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

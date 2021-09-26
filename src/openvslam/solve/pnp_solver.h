@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_SOLVE_PNP_SOLVER_H
 #define OPENVSLAM_SOLVE_PNP_SOLVER_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/util/converter.h"
 #include "openvslam/type.h"
 
@@ -10,7 +12,7 @@
 namespace openvslam {
 namespace solve {
 
-class pnp_solver {
+class DECLSPEC pnp_solver {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

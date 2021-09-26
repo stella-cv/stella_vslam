@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_UTIL_RANDOM_ARRAY_H
 #define OPENVSLAM_UTIL_RANDOM_ARRAY_H
 
+#include "openvslam/platform.h"
+
 #include <vector>
 #include <random>
 #include <memory>

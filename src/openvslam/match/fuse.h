@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_MATCH_FUSE_H
 #define OPENVSLAM_MATCH_FUSE_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/type.h"
 #include "openvslam/match/base.h"
 
@@ -13,7 +15,7 @@ class landmark;
 
 namespace match {
 
-class fuse final : public base {
+class DECLSPEC fuse final : public base {
 public:
     explicit fuse(const float lowe_ratio = 0.6)
         : base(lowe_ratio, true) {}

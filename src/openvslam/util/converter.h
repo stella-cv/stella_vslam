@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_UTIL_CONVERTER_H
 #define OPENVSLAM_UTIL_CONVERTER_H
 
+#include "openvslam/platform.h"
 #include "openvslam/type.h"
 
 #include <Eigen/Dense>
@@ -11,7 +12,7 @@
 namespace openvslam {
 namespace util {
 
-class converter {
+class DECLSPEC converter {
 public:
     //! descriptor vector
     static std::vector<cv::Mat> to_desc_vec(const cv::Mat& desc);

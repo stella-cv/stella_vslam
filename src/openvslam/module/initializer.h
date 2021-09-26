@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_MODULE_INITIALIZER_H
 #define OPENVSLAM_MODULE_INITIALIZER_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/data/frame.h"
 #include "openvslam/initialize/base.h"
 
@@ -26,7 +28,7 @@ enum class initializer_state_t {
     Succeeded
 };
 
-class initializer {
+class DECLSPEC initializer {
 public:
     initializer() = delete;
 

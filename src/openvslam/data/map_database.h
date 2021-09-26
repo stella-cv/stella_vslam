@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_DATA_MAP_DATABASE_H
 #define OPENVSLAM_DATA_MAP_DATABASE_H
 
+#include "openvslam/platform.h"
 #include "openvslam/data/bow_vocabulary.h"
 #include "openvslam/data/frame_statistics.h"
 
@@ -24,7 +25,7 @@ class landmark;
 class camera_database;
 class bow_database;
 
-class map_database {
+class DECLSPEC map_database {
 public:
     /**
      * Constructor

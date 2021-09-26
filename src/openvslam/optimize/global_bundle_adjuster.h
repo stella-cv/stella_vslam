@@ -1,6 +1,9 @@
 #ifndef OPENVSLAM_OPTIMIZE_GLOBAL_BUNDLE_ADJUSTER_H
 #define OPENVSLAM_OPTIMIZE_GLOBAL_BUNDLE_ADJUSTER_H
 
+
+#include "openvslam/platform.h"
+
 namespace openvslam {
 
 namespace data {
@@ -9,7 +12,7 @@ class map_database;
 
 namespace optimize {
 
-class global_bundle_adjuster {
+class DECLSPEC global_bundle_adjuster {
 public:
     /**
      * Constructor

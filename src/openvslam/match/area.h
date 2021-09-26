@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_MATCH_AREA_H
 #define OPENVSLAM_MATCH_AREA_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/match/base.h"
 
 namespace openvslam {
@@ -11,7 +13,7 @@ class frame;
 
 namespace match {
 
-class area final : public base {
+class DECLSPEC area final : public base {
 public:
     area(const float lowe_ratio, const bool check_orientation)
         : base(lowe_ratio, check_orientation) {}

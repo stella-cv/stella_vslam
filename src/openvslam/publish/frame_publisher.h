@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_PUBLISH_FRAME_PUBLISHER_H
 #define OPENVSLAM_PUBLISH_FRAME_PUBLISHER_H
 
+#include "openvslam/platform.h"
 #include "openvslam/config.h"
 #include "openvslam/tracking_module.h"
 
@@ -19,7 +20,7 @@ class map_database;
 
 namespace publish {
 
-class frame_publisher {
+class DECLSPEC frame_publisher {
 public:
     /**
      * Constructor

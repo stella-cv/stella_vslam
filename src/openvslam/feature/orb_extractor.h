@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_FEATURE_ORB_EXTRACTOR_H
 #define OPENVSLAM_FEATURE_ORB_EXTRACTOR_H
 
+#include "openvslam/platform.h"
 #include "openvslam/feature/orb_params.h"
 #include "openvslam/feature/orb_extractor_node.h"
 
@@ -10,7 +11,7 @@
 namespace openvslam {
 namespace feature {
 
-class orb_extractor {
+class DECLSPEC orb_extractor {
 public:
     orb_extractor() = delete;
 

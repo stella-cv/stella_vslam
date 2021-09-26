@@ -1,12 +1,14 @@
 #ifndef OPENVSLAM_OPTIMIZE_GRAPH_OPTIMIZER_H
 #define OPENVSLAM_OPTIMIZE_GRAPH_OPTIMIZER_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/module/type.h"
 
 #include <map>
 #include <set>
 
-namespace openvslam {
+namespace DECLSPEC openvslam {
 
 namespace data {
 class keyframe;

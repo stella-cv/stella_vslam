@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_MATCH_PROJECTION_H
 #define OPENVSLAM_MATCH_PROJECTION_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/type.h"
 #include "openvslam/match/base.h"
 
@@ -16,7 +18,7 @@ class landmark;
 
 namespace match {
 
-class projection final : public base {
+class DECLSPEC projection final : public base {
 public:
     explicit projection(const float lowe_ratio = 0.6, const bool check_orientation = true)
         : base(lowe_ratio, check_orientation) {}

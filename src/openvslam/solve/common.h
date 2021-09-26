@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_SOLVE_UTIL_H
 #define OPENVSLAM_SOLVE_UTIL_H
 
+
 #include "openvslam/type.h"
 
 #include <vector>

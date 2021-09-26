@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_MODULE_RELOCALIZER_H
 #define OPENVSLAM_MODULE_RELOCALIZER_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/match/bow_tree.h"
 #include "openvslam/match/projection.h"
 #include "openvslam/optimize/pose_optimizer.h"
@@ -15,7 +17,7 @@ class bow_database;
 
 namespace module {
 
-class relocalizer {
+class DECLSPEC relocalizer {
 public:
     //! Constructor
     explicit relocalizer(data::bow_database* bow_db,

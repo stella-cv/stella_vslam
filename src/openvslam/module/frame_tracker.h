@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_MODULE_FRAME_TRACKER_H
 #define OPENVSLAM_MODULE_FRAME_TRACKER_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/type.h"
 #include "openvslam/optimize/pose_optimizer.h"
 
@@ -17,7 +19,7 @@ class keyframe;
 
 namespace module {
 
-class frame_tracker {
+class DECLSPEC frame_tracker {
 public:
     explicit frame_tracker(camera::base* camera, const unsigned int num_matches_thr = 20);
 

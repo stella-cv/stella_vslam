@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_INITIALIZE_BEARING_VECTOR_H
 #define OPENVSLAM_INITIALIZE_BEARING_VECTOR_H
 
+#include "openvslam/platform.h"
 #include "openvslam/type.h"
 #include "openvslam/initialize/base.h"
 
@@ -14,7 +15,7 @@ class frame;
 
 namespace initialize {
 
-class bearing_vector final : public base {
+class DECLSPEC bearing_vector final : public base {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

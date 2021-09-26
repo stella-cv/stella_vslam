@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_MATCH_ROBUST_H
 #define OPENVSLAM_MATCH_ROBUST_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/type.h"
 #include "openvslam/match/base.h"
 
@@ -14,7 +16,7 @@ class landmark;
 
 namespace match {
 
-class robust final : public base {
+class DECLSPEC robust final : public base {
 public:
     explicit robust(const float lowe_ratio, const bool check_orientation)
         : base(lowe_ratio, check_orientation) {}

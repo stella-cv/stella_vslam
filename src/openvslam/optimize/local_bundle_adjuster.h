@@ -1,7 +1,10 @@
 #ifndef OPENVSLAM_OPTIMIZE_LOCAL_BUNDLE_ADJUSTER_H
 #define OPENVSLAM_OPTIMIZE_LOCAL_BUNDLE_ADJUSTER_H
 
-namespace openvslam {
+
+#include "openvslam/platform.h"
+
+namespace DECLSPEC openvslam {
 
 namespace data {
 class keyframe;

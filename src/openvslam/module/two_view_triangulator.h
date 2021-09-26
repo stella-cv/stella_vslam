@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_MODULE_TWO_VIEW_TRIANGULATOR_H
 #define OPENVSLAM_MODULE_TWO_VIEW_TRIANGULATOR_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/type.h"
 
 namespace openvslam {
@@ -15,7 +17,7 @@ class keyframe;
 
 namespace module {
 
-class two_view_triangulator {
+class DECLSPEC two_view_triangulator {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

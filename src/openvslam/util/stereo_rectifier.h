@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_UTIL_STEREO_RECTIFIER_H
 #define OPENVSLAM_UTIL_STEREO_RECTIFIER_H
 
+#include "openvslam/platform.h"
 #include "openvslam/config.h"
 #include "openvslam/camera/base.h"
 
@@ -9,7 +10,7 @@
 namespace openvslam {
 namespace util {
 
-class stereo_rectifier {
+class DECLSPEC stereo_rectifier {
 public:
     //! Constructor
     explicit stereo_rectifier(const std::shared_ptr<config>& cfg);

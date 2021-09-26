@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_DATA_BOW_DATABASE_H
 #define OPENVSLAM_DATA_BOW_DATABASE_H
 
+#include "openvslam/platform.h"
 #include "openvslam/data/bow_vocabulary.h"
 
 #include <mutex>
@@ -16,7 +17,7 @@ namespace data {
 class frame;
 class keyframe;
 
-class bow_database {
+class DECLSPEC bow_database {
 public:
     /**
      * Constructor

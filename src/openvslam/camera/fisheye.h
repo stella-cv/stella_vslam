@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_CAMERA_FISHEYE_H
 #define OPENVSLAM_CAMERA_FISHEYE_H
 
+#include "openvslam/platform.h"
 #include "openvslam/camera/base.h"
 
 #include <opencv2/calib3d.hpp>
@@ -8,7 +9,7 @@
 namespace openvslam {
 namespace camera {
 
-class fisheye final : public base {
+class DECLSPEC fisheye final : public base {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

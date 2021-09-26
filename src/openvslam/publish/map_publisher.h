@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_PUBLISH_MAP_PUBLISHER_H
 #define OPENVSLAM_PUBLISH_MAP_PUBLISHER_H
 
+#include "openvslam/platform.h"
 #include "openvslam/type.h"
 
 #include <mutex>
@@ -17,7 +18,7 @@ class map_database;
 
 namespace publish {
 
-class map_publisher {
+class DECLSPEC map_publisher {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

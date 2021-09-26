@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_MATCH_BOW_TREE_H
 #define OPENVSLAM_MATCH_BOW_TREE_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/match/base.h"
 
 namespace openvslam {
@@ -13,7 +15,7 @@ class landmark;
 
 namespace match {
 
-class bow_tree final : public base {
+class DECLSPEC bow_tree final : public base {
 public:
     explicit bow_tree(const float lowe_ratio = 0.6, const bool check_orientation = true)
         : base(lowe_ratio, check_orientation) {}

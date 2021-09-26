@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_MODULE_LOOP_DETECTOR_H
 #define OPENVSLAM_MODULE_LOOP_DETECTOR_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/data/bow_vocabulary.h"
 #include "openvslam/module/type.h"
 #include "openvslam/optimize/transform_optimizer.h"
@@ -16,7 +18,7 @@ class bow_database;
 
 namespace module {
 
-class loop_detector {
+class DECLSPEC loop_detector {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

@@ -37,7 +37,7 @@ if "%param_1%" == "setup" (
     git clone -b 2020.11-1 https://github.com/microsoft/vcpkg.git
     cd vcpkg
     call bootstrap-vcpkg.bat
-    call vcpkg.exe install g2o suitesparse yaml-cpp eigen3 glog opencv --triplet x64-windows-static
+    call vcpkg.exe install ceres[cxsparse] g2o suitesparse yaml-cpp eigen3 glog opencv[ffmpeg] --triplet x64-windows
 )
 
 

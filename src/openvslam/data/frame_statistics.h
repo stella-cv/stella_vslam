@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_DATA_FRAME_STATISTICS_H
 #define OPENVSLAM_DATA_FRAME_STATISTICS_H
 
+#include "openvslam/platform.h"
 #include "openvslam/type.h"
 
 #include <vector>
@@ -12,7 +13,7 @@ namespace data {
 class frame;
 class keyframe;
 
-class frame_statistics {
+class DECLSPEC frame_statistics {
 public:
     /**
      * Constructor

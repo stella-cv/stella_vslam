@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_DATA_KEYFRAME_H
 #define OPENVSLAM_DATA_KEYFRAME_H
 
+#include "openvslam/platform.h"
 #include "openvslam/type.h"
 #include "openvslam/camera/base.h"
 #include "openvslam/data/graph_node.h"
@@ -34,7 +35,7 @@ class landmark;
 class map_database;
 class bow_database;
 
-class keyframe {
+class DECLSPEC keyframe {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

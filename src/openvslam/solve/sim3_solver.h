@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_SOLVE_SIM3_SOLVER_H
 #define OPENVSLAM_SOLVE_SIM3_SOLVER_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/data/keyframe.h"
 
 #include <vector>
@@ -11,7 +13,7 @@
 namespace openvslam {
 namespace solve {
 
-class sim3_solver {
+class DECLSPEC sim3_solver {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

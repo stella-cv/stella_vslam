@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_INITIALIZE_BASE_H
 #define OPENVSLAM_INITIALIZE_BASE_H
 
+#include "openvslam/platform.h"
 #include "openvslam/type.h"
 
 #include <vector>
@@ -17,7 +18,7 @@ class frame;
 
 namespace initialize {
 
-class base {
+class DECLSPEC base {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

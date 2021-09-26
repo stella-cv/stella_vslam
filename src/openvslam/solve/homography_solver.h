@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_SOLVE_HOMOGRAPHY_SOLVER_H
 #define OPENVSLAM_SOLVE_HOMOGRAPHY_SOLVER_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/camera/base.h"
 
 #include <vector>
@@ -11,7 +13,7 @@
 namespace openvslam {
 namespace solve {
 
-class homography_solver {
+class DECLSPEC homography_solver {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

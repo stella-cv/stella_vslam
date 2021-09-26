@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_CONFIG_H
 #define OPENVSLAM_CONFIG_H
 
+#include "openvslam/platform.h"
 #include "openvslam/camera/base.h"
 #include "openvslam/feature/orb_params.h"
 
@@ -8,7 +9,7 @@
 
 namespace openvslam {
 
-class config {
+class DECLSPEC config {
 public:
     //! Constructor
     explicit config(const std::string& config_file_path);

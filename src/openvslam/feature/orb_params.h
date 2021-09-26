@@ -1,12 +1,14 @@
 #ifndef OPENVSLAM_FEATURE_ORB_PARAMS_H
 #define OPENVSLAM_FEATURE_ORB_PARAMS_H
 
+#include "openvslam/platform.h"
+
 #include <yaml-cpp/yaml.h>
 
 namespace openvslam {
 namespace feature {
 
-struct orb_params {
+struct DECLSPEC orb_params {
     orb_params() = default;
 
     //! Constructor

@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_CAMERA_PERSPECTIVE_H
 #define OPENVSLAM_CAMERA_PERSPECTIVE_H
 
+#include "openvslam/platform.h"
 #include "openvslam/camera/base.h"
 
 #if CV_MAJOR_VERSION == 3
@@ -12,7 +13,7 @@
 namespace openvslam {
 namespace camera {
 
-class perspective final : public base {
+class DECLSPEC perspective final : public base {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

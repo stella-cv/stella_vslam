@@ -1,6 +1,7 @@
 #ifndef OPENVSLAM_DATA_LANDMARK_H
 #define OPENVSLAM_DATA_LANDMARK_H
 
+#include "openvslam/platform.h"
 #include "openvslam/type.h"
 
 #include <map>
@@ -19,7 +20,7 @@ class keyframe;
 
 class map_database;
 
-class landmark {
+class DECLSPEC landmark {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 

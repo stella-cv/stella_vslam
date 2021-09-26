@@ -1,6 +1,9 @@
 #ifndef OPENVSLAM_OPTIMIZE_POSE_OPTIMIZER_H
 #define OPENVSLAM_OPTIMIZE_POSE_OPTIMIZER_H
 
+
+#include "openvslam/platform.h"
+
 namespace openvslam {
 
 namespace data {
@@ -9,7 +12,7 @@ class frame;
 
 namespace optimize {
 
-class pose_optimizer {
+class DECLSPEC pose_optimizer {
 public:
     /**
      * Constructor

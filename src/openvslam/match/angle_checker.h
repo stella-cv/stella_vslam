@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_MATCH_ANGLE_CHECKER_H
 #define OPENVSLAM_MATCH_ANGLE_CHECKER_H
 
+
+#include "openvslam/platform.h"
 #include <cassert>
 #include <vector>
 #include <numeric>
@@ -12,7 +14,7 @@ namespace openvslam {
 namespace match {
 
 template<typename T>
-class angle_checker {
+class DECLSPEC angle_checker {
 public:
     /**
      * Constructor

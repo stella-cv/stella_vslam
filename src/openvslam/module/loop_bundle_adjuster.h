@@ -1,6 +1,9 @@
 #ifndef OPENVSLAM_MODULE_LOOP_BUNDLE_ADJUSTER_H
 #define OPENVSLAM_MODULE_LOOP_BUNDLE_ADJUSTER_H
 
+
+#include "openvslam/platform.h"
+
 namespace openvslam {
 
 class mapping_module;
@@ -11,7 +14,7 @@ class map_database;
 
 namespace module {
 
-class loop_bundle_adjuster {
+class DECLSPEC loop_bundle_adjuster {
 public:
     /**
      * Constructor

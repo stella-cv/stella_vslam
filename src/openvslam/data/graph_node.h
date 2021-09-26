@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_DATA_GRAPH_NODE_H
 #define OPENVSLAM_DATA_GRAPH_NODE_H
 
+#include "openvslam/platform.h"
+
 #include <mutex>
 #include <vector>
 #include <map>
@@ -11,7 +13,7 @@ namespace data {
 
 class keyframe;
 
-class graph_node {
+class DECLSPEC graph_node {
 public:
     /**
      * Constructor

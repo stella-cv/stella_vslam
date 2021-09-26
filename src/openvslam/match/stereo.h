@@ -1,6 +1,8 @@
 #ifndef OPENVSLAM_MATCH_STEREO_H
 #define OPENVSLAM_MATCH_STEREO_H
 
+
+#include "openvslam/platform.h"
 #include "openvslam/match/base.h"
 
 namespace openvslam {
@@ -11,7 +13,7 @@ class frame;
 
 namespace match {
 
-class stereo {
+class DECLSPEC stereo {
 public:
     stereo() = delete;
 

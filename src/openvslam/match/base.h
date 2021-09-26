@@ -1,6 +1,9 @@
 #ifndef OPENVSLAM_MATCH_BASE_H
 #define OPENVSLAM_MATCH_BASE_H
 
+
+#include "openvslam/platform.h"
+
 #include <array>
 #include <algorithm>
 #include <numeric>
@@ -62,7 +65,7 @@ inline unsigned int compute_descriptor_distance_64(const cv::Mat& desc_1, const 
     return dist;
 }
 
-class base {
+class DECLSPEC base {
 public:
     base(const float lowe_ratio, const bool check_orientation)
         : lowe_ratio_(lowe_ratio), check_orientation_(check_orientation) {}
