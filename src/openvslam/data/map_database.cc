@@ -67,14 +67,14 @@ std::vector<std::shared_ptr<keyframe>> map_database::get_all_keyframes() const {
     return keyframes;
 }
 
-std::vector<keyframe*> map_database::get_close_keyframes_2d(const Mat44_t& pose,
-                                                            const Vec3_t& normal_vector,
-                                                            const double distance_threshold,
-                                                            const double angle_threshold) const {
+std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes_2d(const Mat44_t& pose,
+                                                                            const Vec3_t& normal_vector,
+                                                                            const double distance_threshold,
+                                                                            const double angle_threshold) const {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
     // Close (within given thresholds) keyframes
-    std::vector<keyframe*> filtered_keyframes;
+    std::vector<std::shared_ptr<keyframe>> filtered_keyframes;
 
     const double cos_angle_threshold = std::cos(angle_threshold);
 
@@ -96,13 +96,13 @@ std::vector<keyframe*> map_database::get_close_keyframes_2d(const Mat44_t& pose,
     return filtered_keyframes;
 }
 
-std::vector<keyframe*> map_database::get_close_keyframes(const Mat44_t& pose,
-                                                         const double distance_threshold,
-                                                         const double angle_threshold) const {
+std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes(const Mat44_t& pose,
+                                                                         const double distance_threshold,
+                                                                         const double angle_threshold) const {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
     // Close (within given thresholds) keyframes
-    std::vector<keyframe*> filtered_keyframes;
+    std::vector<std::shared_ptr<keyframe>> filtered_keyframes;
 
     const double cos_angle_threshold = std::cos(angle_threshold);
 

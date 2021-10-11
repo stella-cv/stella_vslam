@@ -72,13 +72,13 @@ std::vector<std::shared_ptr<keyframe>> bow_database::acquire_loop_candidates(con
     // Count up the number of nodes, words which are shared with query_keyframe, for all the keyframes in DoW database
 
     // Not searching near frames of query_keyframe
-    std::set<keyframe*> keyfrms_to_reject;
+    std::set<std::shared_ptr<keyframe>> keyfrms_to_reject;
     if (!reject_by_graph_distance_) {
         keyfrms_to_reject = qry_keyfrm->graph_node_->get_connected_keyframes();
         keyfrms_to_reject.insert(qry_keyfrm);
     }
     else {
-        std::vector<std::pair<keyframe*, int>> targets;
+        std::vector<std::pair<std::shared_ptr<keyframe>, int>> targets;
         targets.emplace_back(qry_keyfrm, 0);
         keyfrms_to_reject.insert(qry_keyfrm);
         while (!targets.empty()) {

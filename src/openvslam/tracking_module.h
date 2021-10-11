@@ -170,7 +170,7 @@ protected:
     bool relocalize_by_pose(const pose_request& request);
 
     //! Get close keyframes
-    std::vector<data::keyframe*> get_close_keyframes(const pose_request& request);
+    std::vector<std::shared_ptr<data::keyframe>> get_close_keyframes(const pose_request& request);
 
     //! Update the motion model using the current and last frames
     void update_motion_model();

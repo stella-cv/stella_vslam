@@ -48,7 +48,7 @@ bool relocalizer::relocalize(data::frame& curr_frm) {
 }
 
 bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
-                                      const std::vector<openvslam::data::keyframe*>& reloc_candidates,
+                                      const std::vector<std::shared_ptr<openvslam::data::keyframe>>& reloc_candidates,
                                       bool use_robust_matcher) {
     const auto num_candidates = reloc_candidates.size();
 

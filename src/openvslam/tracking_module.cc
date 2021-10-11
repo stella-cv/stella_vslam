@@ -452,7 +452,7 @@ bool tracking_module::relocalize_by_pose(const pose_request& request) {
     return succeeded;
 }
 
-std::vector<data::keyframe*> tracking_module::get_close_keyframes(const pose_request& request) {
+std::vector<std::shared_ptr<data::keyframe>> tracking_module::get_close_keyframes(const pose_request& request) {
     if (request.mode_2d_) {
         return map_db_->get_close_keyframes_2d(
             request.pose_,

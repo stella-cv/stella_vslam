@@ -36,7 +36,7 @@ public:
 
     //! Relocalize the specified frame by given candidates list
     bool reloc_by_candidates(data::frame& curr_frm,
-                             const std::vector<openvslam::data::keyframe*>& reloc_candidates,
+                             const std::vector<std::shared_ptr<openvslam::data::keyframe>>& reloc_candidates,
                              bool use_robust_matcher = false);
 
 private:
