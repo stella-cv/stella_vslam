@@ -348,6 +348,7 @@ When building with support for PangolinViewer, please specify the following cmak
         -DBUILD_EXAMPLES=ON \
         ..
     make -j4
+    make install
 
 When building with support for SocketViewer, please specify the following cmake options: ``-DUSE_PANGOLIN_VIEWER=OFF`` and ``-DUSE_SOCKET_PUBLISHER=ON``.
 
@@ -364,6 +365,7 @@ When building with support for SocketViewer, please specify the following cmake 
         -DBUILD_EXAMPLES=ON \
         ..
     make -j4
+    make install
 
 After building, check to see if it was successfully built by executing ``./run_kitti_slam -h``.
 
