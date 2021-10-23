@@ -96,6 +96,32 @@ jobs:
           cd build
           ./run_euroc_localization -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_mono.msg
           evo_rpe tum data.tum frame_trajectory.txt -as
+      - name: download a dataset
+        run: |
+          cd build
+          FILE_ID="1bdkqaR99GKjg4orhqHxQkwqyi227tfCd"
+          curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${FILE_ID}" > /dev/null
+          CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
+          curl -sLb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=${FILE_ID}" -o openvslam_test_dataset.zip
+          unzip openvslam_test_dataset.zip
+          rm openvslam_test_dataset.zip
+          cp ../example/aist/equirectangular.yaml equirectangular.yaml
+          sed -e 's/fps: .*/fps: 24.0/g' equirectangular.yaml > config.yaml
+      - name: SLAM test with equirectangular dataset (1)
+        run: |
+          cd build
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m openvslam_test_dataset/1/equirectangular/video.mp4 -c config.yaml --no-sleep --debug --eval-log --map-db equirectangular_map.msg
+          evo_rpe tum ./openvslam_test_dataset/1/gt.tum frame_trajectory.txt -as
+      - name: SLAM test with equirectangular dataset (2)
+        run: |
+          cd build
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m openvslam_test_dataset/2/equirectangular/video.mp4 -c config.yaml --no-sleep --debug --eval-log --map-db equirectangular_map.msg
+          evo_rpe tum ./openvslam_test_dataset/2/gt.tum frame_trajectory.txt -as
+      - name: SLAM test with equirectangular dataset (3)
+        run: |
+          cd build
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m openvslam_test_dataset/3/equirectangular/video.mp4 -c config.yaml --no-sleep --debug --eval-log --map-db equirectangular_map.msg
+          evo_rpe tum ./openvslam_test_dataset/3/gt.tum frame_trajectory.txt -as
 
   build_tutorial:
     runs-on: ubuntu-latest
