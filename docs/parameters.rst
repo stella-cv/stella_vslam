@@ -102,6 +102,8 @@ Mapping
         Either baseline_dist_thr or this one should be specified. If not specified, baseline_dist_thr_ratio will be used.
     * - baseline_dist_thr
       - For two frames of baseline below the threshold, no triangulation will be performed.
+    * - redundant_obs_ratio_thr
+      - 
 
 .. _section-parameters-stereo-rectifier:
 
