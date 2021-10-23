@@ -22,7 +22,9 @@ public:
      * Constructor
      * @param bow_vocab
      */
-    explicit bow_database(bow_vocabulary* bow_vocab);
+    explicit bow_database(bow_vocabulary* bow_vocab,
+                          bool reject_by_graph_distance = false,
+                          int min_distance_on_graph = 50);
 
     /**
      * Destructor
@@ -116,6 +118,15 @@ protected:
 
     //! BoW vocabulary
     bow_vocabulary* bow_vocab_;
+
+    //-----------------------------------------
+    // Parameters
+
+    //! If true, reject by distance on essential graph
+    int reject_by_graph_distance_;
+
+    //! Minimum distance to allow for loop candidates
+    int min_distance_on_graph_;
 
     //-----------------------------------------
     // temporary variables

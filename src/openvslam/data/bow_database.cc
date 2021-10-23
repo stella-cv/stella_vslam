@@ -7,8 +7,12 @@
 namespace openvslam {
 namespace data {
 
-bow_database::bow_database(bow_vocabulary* bow_vocab)
-    : bow_vocab_(bow_vocab) {
+bow_database::bow_database(bow_vocabulary* bow_vocab,
+                           bool reject_by_graph_distance,
+                           int min_distance_on_graph)
+    : bow_vocab_(bow_vocab),
+      reject_by_graph_distance_(reject_by_graph_distance),
+      min_distance_on_graph_(min_distance_on_graph) {
     spdlog::debug("CONSTRUCT: data::bow_database");
 }
 
@@ -68,8 +72,46 @@ std::vector<keyframe*> bow_database::acquire_loop_candidates(keyframe* qry_keyfr
     // Count up the number of nodes, words which are shared with query_keyframe, for all the keyframes in DoW database
 
     // Not searching near frames of query_keyframe
-    auto keyfrms_to_reject = qry_keyfrm->graph_node_->get_connected_keyframes();
-    keyfrms_to_reject.insert(qry_keyfrm);
+    std::set<keyframe*> keyfrms_to_reject;
+    if (!reject_by_graph_distance_) {
+        keyfrms_to_reject = qry_keyfrm->graph_node_->get_connected_keyframes();
+        keyfrms_to_reject.insert(qry_keyfrm);
+    }
+    else {
+        std::vector<std::pair<keyframe*, int>> targets;
+        targets.emplace_back(qry_keyfrm, 0);
+        keyfrms_to_reject.insert(qry_keyfrm);
+        while (!targets.empty()) {
+            auto keyfrm_distance_pair = targets.back();
+            targets.pop_back();
+            auto& keyfrm = keyfrm_distance_pair.first;
+            auto& distance = keyfrm_distance_pair.second;
+            if (distance + 1 < min_distance_on_graph_) {
+                // search parent
+                const auto parent = keyfrm->graph_node_->get_spanning_parent();
+                if (parent && !static_cast<bool>(keyfrms_to_reject.count(parent))) {
+                    keyfrms_to_reject.insert(parent);
+                    targets.emplace_back(parent, distance + 1);
+                }
+                // search loop_edges
+                for (const auto& node : keyfrm->graph_node_->get_loop_edges()) {
+                    if (keyfrms_to_reject.count(parent)) {
+                        continue;
+                    }
+                    keyfrms_to_reject.insert(node);
+                    targets.emplace_back(node, distance + 1);
+                }
+                // search children
+                for (const auto& child : keyfrm->graph_node_->get_spanning_children()) {
+                    if (keyfrms_to_reject.count(child)) {
+                        continue;
+                    }
+                    keyfrms_to_reject.insert(child);
+                    targets.emplace_back(child, distance + 1);
+                }
+            }
+        }
+    }
 
     // If there are no candidates, done
     if (!set_candidates_sharing_words(qry_keyfrm, keyfrms_to_reject)) {
