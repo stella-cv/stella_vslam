@@ -5,7 +5,8 @@
 namespace openvslam {
 namespace module {
 
-local_map_cleaner::local_map_cleaner() {}
+local_map_cleaner::local_map_cleaner(double redundant_obs_ratio_thr)
+    : redundant_obs_ratio_thr_(redundant_obs_ratio_thr) {}
 
 void local_map_cleaner::reset() {
     fresh_landmarks_.clear();
@@ -73,8 +74,6 @@ unsigned int local_map_cleaner::remove_redundant_keyframes(data::keyframe* cur_k
     constexpr unsigned int window_size_not_to_remove = 2;
     // if the redundancy ratio of observations is larger than this threshold,
     // the corresponding keyframe will be erased
-    constexpr float redundant_obs_ratio_thr = 0.9;
-
     unsigned int num_removed = 0;
     // check redundancy for each of the covisibilities
     const auto cur_covisibilities = cur_keyfrm->graph_node_->get_covisibilities();
@@ -96,7 +95,7 @@ unsigned int local_map_cleaner::remove_redundant_keyframes(data::keyframe* cur_k
         count_redundant_observations(covisibility, num_valid_obs, num_redundant_obs);
 
         // if the redundant observation ratio of `covisibility` is larger than the threshold, it will be removed
-        if (redundant_obs_ratio_thr <= static_cast<float>(num_redundant_obs) / num_valid_obs) {
+        if (redundant_obs_ratio_thr_ <= static_cast<float>(num_redundant_obs) / num_valid_obs) {
             ++num_removed;
             covisibility->prepare_for_erasing();
         }

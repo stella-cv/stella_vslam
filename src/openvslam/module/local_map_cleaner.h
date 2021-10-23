@@ -17,7 +17,7 @@ public:
     /**
      * Constructor
      */
-    explicit local_map_cleaner();
+    explicit local_map_cleaner(double redundant_obs_ratio_thr = 0.9);
 
     /**
      * Destructor
@@ -59,6 +59,9 @@ public:
     void count_redundant_observations(data::keyframe* keyfrm, unsigned int& num_valid_obs, unsigned int& num_redundant_obs) const;
 
 private:
+    //!
+    double redundant_obs_ratio_thr_;
+
     //! origin keyframe ID
     unsigned int origin_keyfrm_id_ = 0;
 
