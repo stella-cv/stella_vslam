@@ -3,7 +3,7 @@
 </p>
 
 # OpenVSLAM: A Versatile Visual SLAM Framework
-[![CI](https://github.com/OpenVSLAM-Community/openvslam_ros/actions/workflows/main.yml/badge.svg)](https://github.com/OpenVSLAM-Community/openvslam_ros/actions/workflows/main.yml)
+[![CI](https://github.com/OpenVSLAM-Community/openvslam/actions/workflows/main.yml/badge.svg)](https://github.com/OpenVSLAM-Community/openvslam/actions/workflows/main.yml)
 [![Documentation Status](https://readthedocs.org/projects/openvslam-community/badge/?version=latest)](https://openvslam-community.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 
