@@ -167,7 +167,7 @@ PangolinViewer
       - 
 
 SocketPublisher
-==============
+===============
 
 .. list-table::
     :header-rows: 1
