@@ -1,6 +1,7 @@
 #include "openvslam/camera/perspective.h"
 #include "openvslam/camera/fisheye.h"
 #include "openvslam/util/stereo_rectifier.h"
+#include "openvslam/util/yaml.h"
 
 #include <spdlog/spdlog.h>
 #include <opencv2/imgproc.hpp>
@@ -9,7 +10,8 @@ namespace openvslam {
 namespace util {
 
 stereo_rectifier::stereo_rectifier(const std::shared_ptr<openvslam::config>& cfg)
-    : stereo_rectifier(cfg->camera_, cfg->yaml_node_) {}
+    : stereo_rectifier(cfg->camera_,
+                       openvslam::util::yaml_optional_ref(cfg->yaml_node_, "StereoRectifier")) {}
 
 stereo_rectifier::stereo_rectifier(camera::base* camera, const YAML::Node& yaml_node)
     : model_type_(load_model_type(yaml_node)) {
