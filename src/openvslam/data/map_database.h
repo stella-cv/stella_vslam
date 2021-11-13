@@ -79,6 +79,19 @@ public:
     std::vector<keyframe*> get_all_keyframes() const;
 
     /**
+     * Get closest keyframes to a given 2d pose
+     * @param pose Given 2d pose
+     * @param normal_vector normal vector of plane
+     * @param distance_threshold Maximum distance where close keyframes could be found
+     * @param angle_threshold Maximum angle between given pose and close keyframes
+     * @return Vector closest keyframes
+     */
+    std::vector<keyframe*> get_close_keyframes_2d(const Mat44_t& pose,
+                                                  const Vec3_t& normal_vector,
+                                                  const double distance_threshold,
+                                                  const double angle_threshold) const;
+
+    /**
      * Get closest keyframes to a given pose
      * @param pose Given pose
      * @param distance_threshold Maximum distance where close keyframes could be found

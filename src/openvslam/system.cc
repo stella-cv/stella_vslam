@@ -290,9 +290,21 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
     return cam_pose_wc;
 }
 
-bool system::update_pose(const Mat44_t& cam_pose_wc) {
+bool system::relocalize_by_pose(const Mat44_t& cam_pose_wc) {
     const Mat44_t cam_pose_cw = cam_pose_wc.inverse();
-    bool status = tracker_->request_update_pose(cam_pose_cw);
+    bool status = tracker_->request_relocalize_by_pose(cam_pose_cw);
+    if (status) {
+        // Even if state will be lost, still update the pose in map_publisher_
+        // to clearly show new camera position
+        map_publisher_->set_current_cam_pose(cam_pose_cw);
+        map_publisher_->set_current_cam_pose_wc(cam_pose_wc);
+    }
+    return status;
+}
+
+bool system::relocalize_by_pose_2d(const Mat44_t& cam_pose_wc, const Vec3_t& normal_vector) {
+    const Mat44_t cam_pose_cw = cam_pose_wc.inverse();
+    bool status = tracker_->request_relocalize_by_pose_2d(cam_pose_cw, normal_vector);
     if (status) {
         // Even if state will be lost, still update the pose in map_publisher_
         // to clearly show new camera position

@@ -204,30 +204,44 @@ std::shared_ptr<Mat44_t> tracking_module::track_RGBD_image(const cv::Mat& img, c
     return cam_pose_wc;
 }
 
-bool tracking_module::request_update_pose(const Mat44_t& pose) {
-    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
-    if (update_pose_is_requested_) {
+bool tracking_module::request_relocalize_by_pose(const Mat44_t& pose) {
+    std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
+    if (relocalize_by_pose_is_requested_) {
         spdlog::warn("Can not process new pose update request while previous was not finished");
         return false;
     }
-    update_pose_is_requested_ = true;
-    requested_pose_ = pose;
+    relocalize_by_pose_is_requested_ = true;
+    relocalize_by_pose_request_.mode_2d_ = false;
+    relocalize_by_pose_request_.pose_ = pose;
     return true;
 }
 
-bool tracking_module::update_pose_is_requested() {
-    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
-    return update_pose_is_requested_;
+bool tracking_module::request_relocalize_by_pose_2d(const Mat44_t& pose, const Vec3_t& normal_vector) {
+    std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
+    if (relocalize_by_pose_is_requested_) {
+        spdlog::warn("Can not process new pose update request while previous was not finished");
+        return false;
+    }
+    relocalize_by_pose_is_requested_ = true;
+    relocalize_by_pose_request_.mode_2d_ = true;
+    relocalize_by_pose_request_.pose_ = pose;
+    relocalize_by_pose_request_.normal_vector_ = normal_vector;
+    return true;
 }
 
-Mat44_t& tracking_module::get_requested_pose() {
-    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
-    return requested_pose_;
+bool tracking_module::relocalize_by_pose_is_requested() {
+    std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
+    return relocalize_by_pose_is_requested_;
 }
 
-void tracking_module::finish_update_pose_request() {
-    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
-    update_pose_is_requested_ = false;
+pose_request& tracking_module::get_relocalize_by_pose_request() {
+    std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
+    return relocalize_by_pose_request_;
+}
+
+void tracking_module::finish_relocalize_by_pose_request() {
+    std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
+    relocalize_by_pose_is_requested_ = false;
 }
 
 void tracking_module::reset() {
@@ -373,24 +387,9 @@ bool tracking_module::initialize() {
 bool tracking_module::track_current_frame() {
     bool succeeded = false;
 
-    if (update_pose_is_requested()) {
+    if (relocalize_by_pose_is_requested()) {
         // Force relocalization by pose
-        curr_frm_.set_cam_pose(get_requested_pose());
-
-        curr_frm_.compute_bow();
-        const auto candidates = map_db_->get_close_keyframes(get_requested_pose(),
-                                                             reloc_distance_threshold_,
-                                                             reloc_angle_threshold_);
-        if (!candidates.empty()) {
-            succeeded = relocalizer_.reloc_by_candidates(curr_frm_, candidates);
-            if (succeeded) {
-                last_reloc_frm_id_ = curr_frm_.id_;
-            }
-        }
-        else {
-            curr_frm_.cam_pose_cw_is_valid_ = false;
-        }
-        finish_update_pose_request();
+        succeeded = relocalize_by_pose(get_relocalize_by_pose_request());
         return succeeded;
     }
 
@@ -410,13 +409,49 @@ bool tracking_module::track_current_frame() {
     else {
         // Lost mode
         // try to relocalize
-        succeeded = relocalizer_.relocalize(curr_frm_);
+        succeeded = false; // relocalizer_.relocalize(curr_frm_);
         if (succeeded) {
             last_reloc_frm_id_ = curr_frm_.id_;
         }
     }
 
     return succeeded;
+}
+
+bool tracking_module::relocalize_by_pose(const pose_request& request) {
+    bool succeeded = false;
+    curr_frm_.set_cam_pose(request.pose_);
+
+    curr_frm_.compute_bow();
+    const auto candidates = get_close_keyframes(request);
+
+    if (!candidates.empty()) {
+        succeeded = relocalizer_.reloc_by_candidates(curr_frm_, candidates);
+        if (succeeded) {
+            last_reloc_frm_id_ = curr_frm_.id_;
+        }
+    }
+    else {
+        curr_frm_.cam_pose_cw_is_valid_ = false;
+    }
+    finish_relocalize_by_pose_request();
+    return succeeded;
+}
+
+std::vector<data::keyframe*> tracking_module::get_close_keyframes(const pose_request& request) {
+    if (request.mode_2d_) {
+        return map_db_->get_close_keyframes_2d(
+            request.pose_,
+            request.normal_vector_,
+            reloc_distance_threshold_,
+            reloc_angle_threshold_);
+    }
+    else {
+        return map_db_->get_close_keyframes(
+            request.pose_,
+            reloc_distance_threshold_,
+            reloc_angle_threshold_);
+    }
 }
 
 void tracking_module::update_motion_model() {

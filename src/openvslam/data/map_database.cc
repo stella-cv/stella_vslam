@@ -71,6 +71,35 @@ std::vector<keyframe*> map_database::get_all_keyframes() const {
     return keyframes;
 }
 
+std::vector<keyframe*> map_database::get_close_keyframes_2d(const Mat44_t& pose,
+                                                            const Vec3_t& normal_vector,
+                                                            const double distance_threshold,
+                                                            const double angle_threshold) const {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+
+    // Close (within given thresholds) keyframes
+    std::vector<keyframe*> filtered_keyframes;
+
+    const double cos_angle_threshold = std::cos(angle_threshold);
+
+    // Calculate angles and distances between given pose and all keyframes
+    Mat33_t M = pose.block<3, 3>(0, 0);
+    Vec3_t Mt = pose.block<3, 1>(0, 3);
+    for (const auto id_keyframe : keyframes_) {
+        Mat33_t N = id_keyframe.second->get_cam_pose().block<3, 3>(0, 0);
+        Vec3_t Nt = id_keyframe.second->get_cam_pose().block<3, 1>(0, 3);
+        // Angle between two cameras related to given pose and selected keyframe
+        const double cos_angle = ((M * N.transpose()).trace() - 1) / 2;
+        // Distance between given pose and selected keyframe
+        const double dist = ((Nt - Nt.dot(normal_vector) * normal_vector) - Mt).norm();
+        if (dist < distance_threshold && cos_angle > cos_angle_threshold) {
+            filtered_keyframes.push_back(id_keyframe.second);
+        }
+    }
+
+    return filtered_keyframes;
+}
+
 std::vector<keyframe*> map_database::get_close_keyframes(const Mat44_t& pose,
                                                          const double distance_threshold,
                                                          const double angle_threshold) const {
