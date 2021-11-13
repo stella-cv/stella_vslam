@@ -159,8 +159,7 @@ void stereo_tracking(const std::shared_ptr<openvslam::config>& cfg,
     const euroc_sequence sequence(sequence_dir_path);
     const auto frames = sequence.get_frames();
 
-    const openvslam::util::stereo_rectifier rectifier(
-        cfg->camera_, openvslam::util::yaml_optional_ref(cfg->yaml_node_, "StereoRectifier"));
+    const openvslam::util::stereo_rectifier rectifier(cfg);
 
     // build a SLAM system
     openvslam::system SLAM(cfg, vocab_file_path);

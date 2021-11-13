@@ -151,8 +151,7 @@ void stereo_tracking(const std::shared_ptr<openvslam::config>& cfg,
         }
     }
 
-    const openvslam::util::stereo_rectifier rectifier(
-        cfg->camera_, openvslam::util::yaml_optional_ref(cfg->yaml_node_, "StereoRectifier"));
+    const openvslam::util::stereo_rectifier rectifier(cfg);
 
     cv::Mat frames[2];
     cv::Mat frames_rectified[2];
