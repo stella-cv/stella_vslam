@@ -36,6 +36,14 @@ enum class tracker_state_t {
     Lost
 };
 
+struct pose_request {
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+    bool mode_2d_;
+    Mat44_t pose_;
+    Vec3_t normal_vector_;
+};
+
 class tracking_module {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -82,7 +90,8 @@ public:
 
     //! Request to update the pose to a given one.
     //! Return failure in case if previous request was not finished yet.
-    bool request_update_pose(const Mat44_t& pose);
+    bool request_relocalize_by_pose(const Mat44_t& pose);
+    bool request_relocalize_by_pose_2d(const Mat44_t& pose, const Vec3_t& normal_vector);
 
     //-----------------------------------------
     // management for reset process
@@ -149,6 +158,12 @@ protected:
 
     //! Track the current frame
     bool track_current_frame();
+
+    //! Relocalization by pose
+    bool relocalize_by_pose(const pose_request& request);
+
+    //! Get close keyframes
+    std::vector<data::keyframe*> get_close_keyframes(const pose_request& request);
 
     //! Update the motion model using the current and last frames
     void update_motion_model();
@@ -260,18 +275,21 @@ protected:
     //! Pause of the tracking module is requested or not
     bool pause_is_requested_ = false;
 
+    //-----------------------------------------
+    // force relocalization
+
     //! Mutex for update pose request into given position
-    mutable std::mutex mtx_update_pose_request_;
+    mutable std::mutex mtx_relocalize_by_pose_request_;
     //! Update into a given position is requested or not
-    bool update_pose_is_requested();
+    bool relocalize_by_pose_is_requested();
     //! Get requested for relocalization pose
-    Mat44_t& get_requested_pose();
+    pose_request& get_relocalize_by_pose_request();
     //! Finish update request. Returns true in case of request was made.
-    void finish_update_pose_request();
+    void finish_relocalize_by_pose_request();
     //! Indicator of update pose request
-    bool update_pose_is_requested_ = false;
+    bool relocalize_by_pose_is_requested_ = false;
     //! Requested pose to update
-    Mat44_t requested_pose_;
+    pose_request relocalize_by_pose_request_;
 };
 
 } // namespace openvslam
