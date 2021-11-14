@@ -20,6 +20,14 @@ relocalizer::relocalizer(data::bow_database* bow_db,
     spdlog::debug("CONSTRUCT: module::relocalizer");
 }
 
+relocalizer::relocalizer(data::bow_database* bow_db, const YAML::Node& yaml_node)
+    : relocalizer(bow_db,
+                  yaml_node["bow_match_lowe_ratio"].as<double>(0.75),
+                  yaml_node["proj_match_lowe_ratio"].as<double>(0.9),
+                  yaml_node["min_num_bow_matches"].as<unsigned int>(20),
+                  yaml_node["min_num_valid_obs"].as<unsigned int>(50)) {
+}
+
 relocalizer::~relocalizer() {
     spdlog::debug("DESTRUCT: module::relocalizer");
 }

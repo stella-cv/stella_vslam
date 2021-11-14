@@ -22,6 +22,8 @@ public:
                          const double bow_match_lowe_ratio = 0.75, const double proj_match_lowe_ratio = 0.9,
                          const unsigned int min_num_bow_matches = 20, const unsigned int min_num_valid_obs = 50);
 
+    relocalizer(data::bow_database* bow_db, const YAML::Node& yaml_node);
+
     //! Destructor
     virtual ~relocalizer();
 
