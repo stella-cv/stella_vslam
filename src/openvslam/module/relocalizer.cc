@@ -48,6 +48,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
     for (unsigned int i = 0; i < num_candidates; ++i) {
         auto keyfrm = reloc_candidates.at(i);
         if (keyfrm->will_be_erased()) {
+            spdlog::debug("keyframe will be erased. candidate keyframe id is {}", keyfrm->id_);
             continue;
         }
 
@@ -67,6 +68,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
 
         pnp_solver->find_via_ransac(30);
         if (!pnp_solver->solution_is_valid()) {
+            spdlog::debug("solution is not valid. candidate keyframe id is {}", keyfrm->id_);
             continue;
         }
 
