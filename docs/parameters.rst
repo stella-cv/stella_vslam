@@ -141,7 +141,27 @@ Initializer
       - Description
     * - num_min_triangulated_pts
       - Minimum number of triangulated points
-          
+
+.. _section-parameters-relocalizer:
+
+Relocalizer
+===========
+
+.. list-table::
+    :header-rows: 1
+    :widths: 1, 3
+
+    * - Name
+      - Description
+    * - bow_match_lowe_ratio
+      - 
+    * - proj_match_lowe_ratio
+      - 
+    * - min_num_bow_matches
+      - 
+    * - min_num_valid_obs
+      - 
+
 .. _section-parameters-pangolin:
 
 PangolinViewer

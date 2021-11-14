@@ -81,7 +81,9 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
       enable_auto_relocalization_(get_enable_auto_relocalization(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
       system_(system), map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(cfg->camera_->setup_type_, map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
-      frame_tracker_(camera_, 10), relocalizer_(bow_db_), pose_optimizer_(),
+      frame_tracker_(camera_, 10),
+      relocalizer_(bow_db_, util::yaml_optional_ref(cfg->yaml_node_, "Relocalizer")),
+      pose_optimizer_(),
       keyfrm_inserter_(cfg->camera_->setup_type_, true_depth_thr_, map_db, bow_db, 0, cfg->camera_->fps_) {
     spdlog::debug("CONSTRUCT: tracking_module");
 
