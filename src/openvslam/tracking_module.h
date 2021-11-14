@@ -130,6 +130,9 @@ public:
     double reloc_distance_threshold_ = 0.2;
     double reloc_angle_threshold_ = 0.45;
 
+    //! If true, automatically try to relocalize when lost
+    bool enable_auto_relocalization_ = true;
+
     //-----------------------------------------
     // variables
 

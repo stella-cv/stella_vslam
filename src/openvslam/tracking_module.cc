@@ -64,6 +64,10 @@ double get_reloc_angle_threshold(const YAML::Node& yaml_node) {
     return yaml_node["reloc_angle_threshold"].as<double>(0.45);
 }
 
+double get_enable_auto_relocalization(const YAML::Node& yaml_node) {
+    return yaml_node["enable_auto_relocalization"].as<bool>(true);
+}
+
 } // unnamed namespace
 
 namespace openvslam {
@@ -74,6 +78,7 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
       depthmap_factor_(get_depthmap_factor(camera_, util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
       reloc_distance_threshold_(get_reloc_distance_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
       reloc_angle_threshold_(get_reloc_angle_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
+      enable_auto_relocalization_(get_enable_auto_relocalization(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
       system_(system), map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(cfg->camera_->setup_type_, map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
       frame_tracker_(camera_, 10), relocalizer_(bow_db_), pose_optimizer_(),
@@ -408,7 +413,7 @@ bool tracking_module::track_current_frame() {
             succeeded = frame_tracker_.robust_match_based_track(curr_frm_, last_frm_, curr_frm_.ref_keyfrm_);
         }
     }
-    else {
+    else if (enable_auto_relocalization_) {
         // Lost mode
         // try to relocalize
         succeeded = relocalizer_.relocalize(curr_frm_);
