@@ -68,6 +68,10 @@ double get_enable_auto_relocalization(const YAML::Node& yaml_node) {
     return yaml_node["enable_auto_relocalization"].as<bool>(true);
 }
 
+double get_use_robust_matcher_for_relocalization_request(const YAML::Node& yaml_node) {
+    return yaml_node["use_robust_matcher_for_relocalization_request"].as<bool>(false);
+}
+
 } // unnamed namespace
 
 namespace openvslam {
@@ -79,6 +83,7 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
       reloc_distance_threshold_(get_reloc_distance_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
       reloc_angle_threshold_(get_reloc_angle_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
       enable_auto_relocalization_(get_enable_auto_relocalization(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
+      use_robust_matcher_for_relocalization_request_(get_use_robust_matcher_for_relocalization_request(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
       system_(system), map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(cfg->camera_->setup_type_, map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
       frame_tracker_(camera_, 10),
@@ -435,7 +440,7 @@ bool tracking_module::relocalize_by_pose(const pose_request& request) {
     const auto candidates = get_close_keyframes(request);
 
     if (!candidates.empty()) {
-        succeeded = relocalizer_.reloc_by_candidates(curr_frm_, candidates, true);
+        succeeded = relocalizer_.reloc_by_candidates(curr_frm_, candidates, use_robust_matcher_for_relocalization_request_);
         if (succeeded) {
             last_reloc_frm_id_ = curr_frm_.id_;
         }

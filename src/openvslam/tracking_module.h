@@ -133,6 +133,9 @@ public:
     //! If true, automatically try to relocalize when lost
     bool enable_auto_relocalization_ = true;
 
+    //! If true, use robust_matcher for relocalization request
+    bool use_robust_matcher_for_relocalization_request_ = false;
+
     //-----------------------------------------
     // variables
 
