@@ -435,7 +435,7 @@ bool tracking_module::relocalize_by_pose(const pose_request& request) {
     const auto candidates = get_close_keyframes(request);
 
     if (!candidates.empty()) {
-        succeeded = relocalizer_.reloc_by_candidates(curr_frm_, candidates);
+        succeeded = relocalizer_.reloc_by_candidates(curr_frm_, candidates, true);
         if (succeeded) {
             last_reloc_frm_id_ = curr_frm_.id_;
         }

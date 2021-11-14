@@ -12,10 +12,12 @@ namespace module {
 
 relocalizer::relocalizer(data::bow_database* bow_db,
                          const double bow_match_lowe_ratio, const double proj_match_lowe_ratio,
+                         const double robust_match_lowe_ratio,
                          const unsigned int min_num_bow_matches, const unsigned int min_num_valid_obs)
     : bow_db_(bow_db),
       min_num_bow_matches_(min_num_bow_matches), min_num_valid_obs_(min_num_valid_obs),
       bow_matcher_(bow_match_lowe_ratio, true), proj_matcher_(proj_match_lowe_ratio, true),
+      robust_matcher_(robust_match_lowe_ratio, false),
       pose_optimizer_() {
     spdlog::debug("CONSTRUCT: module::relocalizer");
 }
@@ -24,6 +26,7 @@ relocalizer::relocalizer(data::bow_database* bow_db, const YAML::Node& yaml_node
     : relocalizer(bow_db,
                   yaml_node["bow_match_lowe_ratio"].as<double>(0.75),
                   yaml_node["proj_match_lowe_ratio"].as<double>(0.9),
+                  yaml_node["robust_match_lowe_ratio"].as<double>(0.8),
                   yaml_node["min_num_bow_matches"].as<unsigned int>(20),
                   yaml_node["min_num_valid_obs"].as<unsigned int>(50)) {
 }
@@ -45,7 +48,8 @@ bool relocalizer::relocalize(data::frame& curr_frm) {
 }
 
 bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
-                                      const std::vector<openvslam::data::keyframe*>& reloc_candidates) {
+                                      const std::vector<openvslam::data::keyframe*>& reloc_candidates,
+                                      bool use_robust_matcher) {
     const auto num_candidates = reloc_candidates.size();
 
     std::vector<std::vector<data::landmark*>> matched_landmarks(num_candidates);
@@ -60,7 +64,8 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
             continue;
         }
 
-        const auto num_matches = bow_matcher_.match_frame_and_keyframe(keyfrm, curr_frm, matched_landmarks.at(i));
+        const auto num_matches = use_robust_matcher ? robust_matcher_.match_frame_and_keyframe(curr_frm, keyfrm, matched_landmarks.at(i))
+                                                    : bow_matcher_.match_frame_and_keyframe(keyfrm, curr_frm, matched_landmarks.at(i));
         // Discard the candidate if the number of 2D-3D matches is less than the threshold
         if (num_matches < min_num_bow_matches_) {
             spdlog::debug("Number of 2D-3D matches ({}) < threshold ({}). candidate keyframe id is {}", num_matches, min_num_bow_matches_, keyfrm->id_);
