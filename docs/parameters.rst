@@ -188,6 +188,8 @@ PangolinViewer
     * - viewpoint_x, viewpoint_y, viewpoint_z, viewpoint_f
       - 
 
+.. _section-parameters-socket-publisher:
+
 SocketPublisher
 ===============
 
@@ -206,6 +208,8 @@ SocketPublisher
     * - publish_points
       - If true, pointcloud transfer is enabled. The default is true. Pointcloud transfer is slow, so disabling pointcloud transfer may be useful to improve performance of SocketViewer.
 
+.. _section-parameters-loop-detector:
+
 LoopDetector
 ============
 
@@ -221,6 +225,8 @@ LoopDetector
       - the threshold of the number of mutual matches after the Sim3 estimation
     * - min_continuity
       - the threshold of the continuity of continuously detected keyframe set
+
+.. _section-parameters-bow-database:
 
 BowDatabase
 ===========
