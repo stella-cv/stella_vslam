@@ -409,7 +409,7 @@ bool tracking_module::track_current_frame() {
     else {
         // Lost mode
         // try to relocalize
-        succeeded = false; // relocalizer_.relocalize(curr_frm_);
+        succeeded = relocalizer_.relocalize(curr_frm_);
         if (succeeded) {
             last_reloc_frm_id_ = curr_frm_.id_;
         }
