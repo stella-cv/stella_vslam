@@ -3,6 +3,7 @@
 
 #include "openvslam/match/bow_tree.h"
 #include "openvslam/match/projection.h"
+#include "openvslam/match/robust.h"
 #include "openvslam/optimize/pose_optimizer.h"
 #include "openvslam/solve/pnp_solver.h"
 
@@ -20,6 +21,7 @@ public:
     //! Constructor
     explicit relocalizer(data::bow_database* bow_db,
                          const double bow_match_lowe_ratio = 0.75, const double proj_match_lowe_ratio = 0.9,
+                         const double robust_match_lowe_ratio = 0.8,
                          const unsigned int min_num_bow_matches = 20, const unsigned int min_num_valid_obs = 50);
 
     relocalizer(data::bow_database* bow_db, const YAML::Node& yaml_node);
@@ -32,7 +34,8 @@ public:
 
     //! Relocalize the specified frame by given candidates list
     bool reloc_by_candidates(data::frame& curr_frm,
-                             const std::vector<openvslam::data::keyframe*>& reloc_candidates);
+                             const std::vector<openvslam::data::keyframe*>& reloc_candidates,
+                             bool use_robust_matcher = false);
 
 private:
     //! Extract valid (non-deleted) landmarks from landmark vector
@@ -57,6 +60,8 @@ private:
     const match::bow_tree bow_matcher_;
     //! projection matcher
     const match::projection proj_matcher_;
+    //! robust matcher
+    const match::robust robust_matcher_;
     //! pose optimizer
     const optimize::pose_optimizer pose_optimizer_;
 };

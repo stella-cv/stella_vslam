@@ -87,6 +87,8 @@ Tracking
       - Maximum angle threshold (in radians) between given pose and close keyframes when doing a relocalization by pose.
     * - enable_auto_relocalization
       - If true, automatically try to relocalize when lost.
+    * - use_robust_matcher_for_relocalization_request
+      - If true, use robust_matcher for relocalization request.
 
 .. _section-parameters-mapping:
 

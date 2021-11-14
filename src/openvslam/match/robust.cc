@@ -16,7 +16,7 @@ namespace openvslam {
 namespace match {
 
 unsigned int robust::match_for_triangulation(data::keyframe* keyfrm_1, data::keyframe* keyfrm_2, const Mat33_t& E_12,
-                                             std::vector<std::pair<unsigned int, unsigned int>>& matched_idx_pairs) {
+                                             std::vector<std::pair<unsigned int, unsigned int>>& matched_idx_pairs) const {
     unsigned int num_matches = 0;
 
     angle_checker<int> angle_checker;
@@ -178,7 +178,7 @@ unsigned int robust::match_for_triangulation(data::keyframe* keyfrm_1, data::key
 }
 
 unsigned int robust::match_frame_and_keyframe(data::frame& frm, data::keyframe* keyfrm,
-                                              std::vector<data::landmark*>& matched_lms_in_frm) {
+                                              std::vector<data::landmark*>& matched_lms_in_frm) const {
     // Initialization
     const auto num_frm_keypts = frm.num_keypts_;
     const auto keyfrm_lms = keyfrm->get_landmarks();
@@ -212,7 +212,7 @@ unsigned int robust::match_frame_and_keyframe(data::frame& frm, data::keyframe* 
     return num_inlier_matches;
 }
 
-unsigned int robust::brute_force_match(data::frame& frm, data::keyframe* keyfrm, std::vector<std::pair<int, int>>& matches) {
+unsigned int robust::brute_force_match(data::frame& frm, data::keyframe* keyfrm, std::vector<std::pair<int, int>>& matches) const {
     unsigned int num_matches = 0;
 
     angle_checker<int> angle_checker;
@@ -321,7 +321,7 @@ unsigned int robust::brute_force_match(data::frame& frm, data::keyframe* keyfrm,
 }
 
 bool robust::check_epipolar_constraint(const Vec3_t& bearing_1, const Vec3_t& bearing_2,
-                                       const Mat33_t& E_12, const float bearing_1_scale_factor) {
+                                       const Mat33_t& E_12, const float bearing_1_scale_factor) const {
     // Normal vector of the epipolar plane on keyframe 1
     const Vec3_t epiplane_in_1 = E_12 * bearing_2;
 
