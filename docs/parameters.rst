@@ -85,6 +85,8 @@ Tracking
       - Maximum distance threshold (in meters) where close keyframes could be found when doing a relocalization by pose.
     * - reloc_angle_threshold
       - Maximum angle threshold (in radians) between given pose and close keyframes when doing a relocalization by pose.
+    * - enable_auto_relocalization
+      - If true, automatically try to relocalize when lost.
 
 .. _section-parameters-mapping:
 
