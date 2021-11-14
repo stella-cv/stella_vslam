@@ -82,12 +82,14 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
 
     feature::orb_params orb_params = get_orb_params(util::yaml_optional_ref(cfg->yaml_node_, "Feature"));
     const auto tracking_params = util::yaml_optional_ref(cfg->yaml_node_, "Tracking");
-    extractor_left_ = new feature::orb_extractor(tracking_params["max_num_keypoints"].as<unsigned int>(2000), orb_params);
+    const auto max_num_keypoints = tracking_params["max_num_keypoints"].as<unsigned int>(2000);
+    extractor_left_ = new feature::orb_extractor(max_num_keypoints, orb_params);
     if (camera_->setup_type_ == camera::setup_type_t::Monocular) {
-        ini_extractor_left_ = new feature::orb_extractor(tracking_params["ini_max_num_keypoints"].as<unsigned int>(4000), orb_params);
+        const auto ini_max_num_keypoints = tracking_params["ini_max_num_keypoints"].as<unsigned int>(2 * extractor_left_->get_max_num_keypoints());
+        ini_extractor_left_ = new feature::orb_extractor(ini_max_num_keypoints, orb_params);
     }
     if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
-        extractor_right_ = new feature::orb_extractor(tracking_params["max_num_keypoints"].as<unsigned int>(2000), orb_params);
+        extractor_right_ = new feature::orb_extractor(max_num_keypoints, orb_params);
     }
 }
 
