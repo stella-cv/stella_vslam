@@ -139,7 +139,7 @@ RUN set -x && \
 ENV OpenCV_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/opencv4
 
 # FBoW
-ARG FBoW_COMMIT=560c339ea1bcdf3116a2c3f8228fc2ba351cd4b4
+ARG FBoW_COMMIT=30f45f1d97314145f81b49617bb37846a861dfe7
 WORKDIR /tmp
 RUN set -x && \
   git clone https://github.com/OpenVSLAM-Community/FBoW.git && \
