@@ -21,7 +21,7 @@ Camera
     * - setup
       - monocular, stereo, RGBD
     * - model
-      - perspective, fisheye, equirectangular, radial_division
+      - perspective, fisheye, equirectangular, radial_division (note: If you want to use stereo_rectifier, you need to specify perspective.)
     * - fx, fy
       - Focal length (pixel)
     * - cx, cy
@@ -121,7 +121,7 @@ StereoRectifier
     * - Name
       - Description
     * - model
-      - camera model type before rectification
+      - camera model type before rectification. The option is perspective or fisheye. (note: If you want to use fisheye model for stereo_rectifier, you need to specify Camera::model to perspective.)
     * - K_left, K_right
       - Intrinsic parameters. The 3x3 matrix are written in row-major order.
     * - D_left, D_right
