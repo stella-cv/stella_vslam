@@ -265,7 +265,8 @@ RUN set -x && \
   : "ci dependencies" && \
   apt-get install -y -qq \
     ccache \
-    clang-format-6.0 && \
+    clang-format-6.0 \ 
+    datamash && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
@@ -281,6 +282,7 @@ RUN set -x && \
   apt-get install -y -qq \
     python3-pip && \
   pip3 install evo --upgrade --no-binary evo && \
-  : "remove cache" && \
+  : "remove cache"  && \
+  rm -rf ~/.cache/pip && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*

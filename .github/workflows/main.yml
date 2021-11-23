@@ -35,26 +35,26 @@ jobs:
           style: file
           inplace: False
 
-  build_with_gui:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-    container:
-      image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: cmake and make with pangolin viewer
-        run: |
-          mkdir build
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_PANGOLIN_VIEWER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
-          make -j $(($(nproc) / 2))
-      - name: cmake and make with socket publisher
-        run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_SOCKET_PUBLISHER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
-          make -j $(($(nproc) / 2))
+  # build_with_gui:
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       shell: bash
+  #   container:
+  #     image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: cmake and make with pangolin viewer
+  #       run: |
+  #         mkdir build
+  #         cd build
+  #         cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_PANGOLIN_VIEWER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
+  #         make -j $(($(nproc) / 2))
+  #     - name: cmake and make with socket publisher
+  #       run: |
+  #         cd build
+  #         cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_SOCKET_PUBLISHER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
+  #         make -j $(($(nproc) / 2))
 
   build_without_gui:
     runs-on: ubuntu-latest
@@ -76,104 +76,156 @@ jobs:
           cd build
           export BOW_VOCAB=/datasets/orb_vocab/orb_vocab.fbow
           ctest -V
-      - name: Convert groundtruth to TUM format (data.tum)
+      - name: Convert groundtruth to TUM format
         run: |
-          cd build
-          python3 ../scripts/dataset_tools/compute_euroc_cam_tf.py > tf.json
+          python3 scripts/dataset_tools/compute_euroc_cam_tf.py > tf.json
           evo_traj euroc --transform_right tf.json /datasets/EuRoC/MH_04/state_groundtruth_estimate0/data.csv --save_as_tum
+          mv data.tum euroc_gt.tum
       - name: SLAM test (monocular) with EuRoC MAV dataset
         run: |
           cd build
           ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_mono.msg
-          evo_rpe tum data.tum frame_trajectory.txt -as
+          mv frame_trajectory.txt ../frame_trajectory_euroc_mono_slam.txt
+          mv track_times.txt ../track_times_euroc_mono_slam.txt
       - name: SLAM test (stereo) with EuRoC MAV dataset
         run: |
           cd build
           ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_stereo.msg
-          evo_rpe tum data.tum frame_trajectory.txt -a
+          mv frame_trajectory.txt ../frame_trajectory_euroc_stereo_slam.txt
+          mv track_times.txt ../track_times_euroc_stereo_slam.txt
       - name: Localization test (monocular) with EuRoC MAV dataset
         run: |
           cd build
           ./run_euroc_localization -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_mono.msg
-          evo_rpe tum data.tum frame_trajectory.txt -as
-      - name: download a dataset
+          mv frame_trajectory.txt ../frame_trajectory_euroc_mono_localization.txt
+          mv track_times.txt ../track_times_euroc_mono_localization.txt
+      - name: download openvslam_test_dataset
         run: |
-          cd build
           FILE_ID="1bdkqaR99GKjg4orhqHxQkwqyi227tfCd"
           curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${FILE_ID}" > /dev/null
           CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
           curl -sLb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=${FILE_ID}" -o openvslam_test_dataset.zip
           unzip openvslam_test_dataset.zip
           rm openvslam_test_dataset.zip
-          cp ../example/aist/equirectangular.yaml equirectangular.yaml
-          sed -e 's/fps: .*/fps: 24.0/g' equirectangular.yaml > config.yaml
+      - name: make config for openvslam_test_dataset
+        run: |
+          sed -e 's/fps: .*/fps: 24.0/g' example/aist/equirectangular.yaml > equirectangular.yaml
       - name: SLAM test with equirectangular dataset (1)
         run: |
           cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m openvslam_test_dataset/1/equirectangular/video.mp4 -c config.yaml --no-sleep --debug --eval-log --map-db equirectangular_map.msg
-          evo_rpe tum ./openvslam_test_dataset/1/gt.tum frame_trajectory.txt -as
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/1/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --debug --eval-log --map-db equirectangular_map.msg
+          mv frame_trajectory.txt ../frame_trajectory_equirectangular_1.txt
+          mv track_times.txt ../track_times_equirectangular_1.txt
       - name: SLAM test with equirectangular dataset (2)
         run: |
           cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m openvslam_test_dataset/2/equirectangular/video.mp4 -c config.yaml --no-sleep --debug --eval-log --map-db equirectangular_map.msg
-          evo_rpe tum ./openvslam_test_dataset/2/gt.tum frame_trajectory.txt -as
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/2/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --debug --eval-log --map-db equirectangular_map.msg
+          mv frame_trajectory.txt ../frame_trajectory_equirectangular_2.txt
+          mv track_times.txt ../track_times_equirectangular_2.txt
       - name: SLAM test with equirectangular dataset (3)
         run: |
           cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m openvslam_test_dataset/3/equirectangular/video.mp4 -c config.yaml --no-sleep --debug --eval-log --map-db equirectangular_map.msg
-          evo_rpe tum ./openvslam_test_dataset/3/gt.tum frame_trajectory.txt -as
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/3/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --debug --eval-log --map-db equirectangular_map.msg
+          mv frame_trajectory.txt ../frame_trajectory_equirectangular_3.txt
+          mv track_times.txt ../track_times_equirectangular_3.txt
+      - name: Evaluation
+        run: |
+          cp scripts/workflows/* .
+          (
+            echo 'result<<EOF'
+            echo '<details>'
+            echo '<summary>Track time and Relative pose error</summary>'
+            echo
+            echo '|dataset|track_time<br>(mean)|track_time<br>(median)|track_time<br>(max)|RPE<br>(mean)|RPE<br>(median)|RPE<br>(max)|RPE<br>(rmse)|RPE<br>(sse)|RPE<br>(std)|'
+            echo '|---|---|---|---|---|---|---|---|---|---|'
+            echo -n '| EuRoC MH_04 (SLAM, perspective, mono)'
+            bash track_time_print_row.bash track_times_euroc_mono_slam.txt
+            bash evo_rpe_print_row.bash tum euroc_gt.tum frame_trajectory_euroc_mono_slam.txt -as
+            echo '|'
+            echo -n '| EuRoC MH_04 (SLAM, perspective, stereo)'
+            bash track_time_print_row.bash track_times_euroc_stereo_slam.txt
+            bash evo_rpe_print_row.bash tum euroc_gt.tum frame_trajectory_euroc_stereo_slam.txt -a
+            echo '|'
+            echo -n '| EuRoC MH_04 (Localization, perspective, mono)'
+            bash track_time_print_row.bash track_times_euroc_mono_localization.txt
+            bash evo_rpe_print_row.bash tum euroc_gt.tum frame_trajectory_euroc_mono_localization.txt -as
+            echo '|'
+            echo -n '| openvslam_test_dataset 1 (SLAM, equirectangular, mono)'
+            bash track_time_print_row.bash track_times_equirectangular_1.txt
+            bash evo_rpe_print_row.bash tum openvslam_test_dataset/1/gt.tum frame_trajectory_equirectangular_1.txt -as
+            echo '|'
+            echo -n '| openvslam_test_dataset 2 (SLAM, equirectangular, mono)'
+            bash track_time_print_row.bash track_times_equirectangular_2.txt
+            bash evo_rpe_print_row.bash tum openvslam_test_dataset/2/gt.tum frame_trajectory_equirectangular_2.txt -as
+            echo '|'
+            echo -n '| openvslam_test_dataset 3 (SLAM, equirectangular, mono)'
+            bash track_time_print_row.bash track_times_equirectangular_3.txt
+            bash evo_rpe_print_row.bash tum openvslam_test_dataset/3/gt.tum frame_trajectory_equirectangular_3.txt -as
+            echo '|'
+            echo '</details>'
+            echo 'EOF'
+          ) >> $GITHUB_ENV
+      - uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: process.env.result
+            })
 
-  build_tutorial:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-    container:
-      image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: cmake and make
-        run: |
-          mkdir build
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON -DUSE_OPENMP=OFF ..
-          make -j $(($(nproc) / 2))
-      - name: download a dataset
-        run: |
-          cd build
-          FILE_ID="1TXjREzkht3iRz__qVx4oYRW1GXsv37ct"
-          curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${FILE_ID}" > /dev/null
-          CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
-          curl -sLb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=${FILE_ID}" -o video_for_ci_1.zip
-          unzip video_for_ci_1.zip
-          rm video_for_ci_1.zip
-      - name: mapping test with the tutorial
-        run: |
-          cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
-      - name: localization test with the tutorial
-        run: |
-          cd build
-          ./run_video_localization -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
+  # build_tutorial:
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       shell: bash
+  #   container:
+  #     image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: cmake and make
+  #       run: |
+  #         mkdir build
+  #         cd build
+  #         cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON -DUSE_OPENMP=OFF ..
+  #         make -j $(($(nproc) / 2))
+  #     - name: download a dataset
+  #       run: |
+  #         cd build
+  #         FILE_ID="1TXjREzkht3iRz__qVx4oYRW1GXsv37ct"
+  #         curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${FILE_ID}" > /dev/null
+  #         CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
+  #         curl -sLb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=${FILE_ID}" -o video_for_ci_1.zip
+  #         unzip video_for_ci_1.zip
+  #         rm video_for_ci_1.zip
+  #     - name: mapping test with the tutorial
+  #       run: |
+  #         cd build
+  #         ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
+  #     - name: localization test with the tutorial
+  #       run: |
+  #         cd build
+  #         ./run_video_localization -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
 
-  rosdep_foxy:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-    container:
-      image: ghcr.io/ymd-stella/openvslam-community/ros:foxy-ros-base
-    steps:
-      - uses: actions/checkout@v2
-      - name: build ros2 packages
-        run: |
-          mkdir -p /ros_ws/src
-          cp -r . /ros_ws/src/openvslam
-          cd /ros_ws/src/openvslam
-          git submodule update -i --recursive
-          cd ../..
-          rosdep update
-          apt update
-          rosdep install -y -i --from-paths src
-          export MAKEFLAGS="-j $(($(nproc) / 2))"
-          (source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --parallel-workers 1)
+  # rosdep_foxy:
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       shell: bash
+  #   container:
+  #     image: ghcr.io/ymd-stella/openvslam-community/ros:foxy-ros-base
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: build ros2 packages
+  #       run: |
+  #         mkdir -p /ros_ws/src
+  #         cp -r . /ros_ws/src/openvslam
+  #         cd /ros_ws/src/openvslam
+  #         git submodule update -i --recursive
+  #         cd ../..
+  #         rosdep update
+  #         apt update
+  #         rosdep install -y -i --from-paths src
+  #         export MAKEFLAGS="-j $(($(nproc) / 2))"
+  #         (source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --parallel-workers 1)
