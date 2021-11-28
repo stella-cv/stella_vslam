@@ -41,8 +41,6 @@ else()
 endif()
 
 # Check BoW Framework
-set(BOW_FRAMEWORK "FBoW" CACHE STRING "DBoW2 or FBoW")
-set_property(CACHE BOW_FRAMEWORK PROPERTY STRINGS "DBoW2" "FBoW")
 if(BOW_FRAMEWORK MATCHES "DBoW2")
     find_package(DBoW2 REQUIRED)
 elseif(BOW_FRAMEWORK MATCHES "FBoW")
