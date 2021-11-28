@@ -35,26 +35,26 @@ jobs:
           style: file
           inplace: False
 
-  # build_with_gui:
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       shell: bash
-  #   container:
-  #     image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: cmake and make with pangolin viewer
-  #       run: |
-  #         mkdir build
-  #         cd build
-  #         cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_PANGOLIN_VIEWER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
-  #         make -j $(($(nproc) / 2))
-  #     - name: cmake and make with socket publisher
-  #       run: |
-  #         cd build
-  #         cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_SOCKET_PUBLISHER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
-  #         make -j $(($(nproc) / 2))
+  build_with_gui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: cmake and make with pangolin viewer
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_PANGOLIN_VIEWER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
+          make -j $(($(nproc) / 2))
+      - name: cmake and make with socket publisher
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_SOCKET_PUBLISHER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
+          make -j $(($(nproc) / 2))
 
   build_without_gui:
     runs-on: ubuntu-latest
@@ -175,57 +175,57 @@ jobs:
               body: process.env.result
             })
 
-  # build_tutorial:
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       shell: bash
-  #   container:
-  #     image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: cmake and make
-  #       run: |
-  #         mkdir build
-  #         cd build
-  #         cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON -DUSE_OPENMP=OFF ..
-  #         make -j $(($(nproc) / 2))
-  #     - name: download a dataset
-  #       run: |
-  #         cd build
-  #         FILE_ID="1TXjREzkht3iRz__qVx4oYRW1GXsv37ct"
-  #         curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${FILE_ID}" > /dev/null
-  #         CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
-  #         curl -sLb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=${FILE_ID}" -o video_for_ci_1.zip
-  #         unzip video_for_ci_1.zip
-  #         rm video_for_ci_1.zip
-  #     - name: mapping test with the tutorial
-  #       run: |
-  #         cd build
-  #         ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
-  #     - name: localization test with the tutorial
-  #       run: |
-  #         cd build
-  #         ./run_video_localization -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
+  build_tutorial:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: cmake and make
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON -DUSE_OPENMP=OFF ..
+          make -j $(($(nproc) / 2))
+      - name: download a dataset
+        run: |
+          cd build
+          FILE_ID="1TXjREzkht3iRz__qVx4oYRW1GXsv37ct"
+          curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${FILE_ID}" > /dev/null
+          CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
+          curl -sLb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=${FILE_ID}" -o video_for_ci_1.zip
+          unzip video_for_ci_1.zip
+          rm video_for_ci_1.zip
+      - name: mapping test with the tutorial
+        run: |
+          cd build
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
+      - name: localization test with the tutorial
+        run: |
+          cd build
+          ./run_video_localization -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --debug --eval-log --map-db map.msg
 
-  # rosdep_foxy:
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       shell: bash
-  #   container:
-  #     image: ghcr.io/ymd-stella/openvslam-community/ros:foxy-ros-base
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: build ros2 packages
-  #       run: |
-  #         mkdir -p /ros_ws/src
-  #         cp -r . /ros_ws/src/openvslam
-  #         cd /ros_ws/src/openvslam
-  #         git submodule update -i --recursive
-  #         cd ../..
-  #         rosdep update
-  #         apt update
-  #         rosdep install -y -i --from-paths src
-  #         export MAKEFLAGS="-j $(($(nproc) / 2))"
-  #         (source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --parallel-workers 1)
+  rosdep_foxy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ghcr.io/ymd-stella/openvslam-community/ros:foxy-ros-base
+    steps:
+      - uses: actions/checkout@v2
+      - name: build ros2 packages
+        run: |
+          mkdir -p /ros_ws/src
+          cp -r . /ros_ws/src/openvslam
+          cd /ros_ws/src/openvslam
+          git submodule update -i --recursive
+          cd ../..
+          rosdep update
+          apt update
+          rosdep install -y -i --from-paths src
+          export MAKEFLAGS="-j $(($(nproc) / 2))"
+          (source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --parallel-workers 1)
