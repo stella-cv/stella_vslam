@@ -47,6 +47,9 @@ void graph_node::erase_connection(const std::shared_ptr<keyframe>& keyfrm) {
 void graph_node::erase_all_connections() {
     // remote myself from the connected keyframes
     for (const auto& keyfrm_and_weight : connected_keyfrms_and_weights_) {
+        if (keyfrm_and_weight.first.expired()) {
+            continue;
+        }
         keyfrm_and_weight.first.lock()->graph_node_->erase_connection(owner_keyfrm_.lock());
     }
     // remove the buffers
@@ -180,17 +183,32 @@ std::set<std::shared_ptr<keyframe>> graph_node::get_connected_keyframes() const 
 
 std::vector<std::shared_ptr<keyframe>> graph_node::get_covisibilities() const {
     std::lock_guard<std::mutex> lock(mtx_);
-    return std::vector<std::shared_ptr<keyframe>>(ordered_covisibilities_.begin(), ordered_covisibilities_.end());
+    std::vector<std::shared_ptr<keyframe>> covisibilities;
+
+    for (const auto& covisibility : ordered_covisibilities_) {
+        if (covisibility.expired()) {
+            continue;
+        }
+        covisibilities.push_back(covisibility.lock());
+    }
+    return covisibilities;
 }
 
 std::vector<std::shared_ptr<keyframe>> graph_node::get_top_n_covisibilities(const unsigned int num_covisibilities) const {
     std::lock_guard<std::mutex> lock(mtx_);
-    if (ordered_covisibilities_.size() < num_covisibilities) {
-        return std::vector<std::shared_ptr<keyframe>>(ordered_covisibilities_.begin(), ordered_covisibilities_.end());
+    std::vector<std::shared_ptr<keyframe>> covisibilities;
+    int i = 0;
+    for (const auto& covisibility : ordered_covisibilities_) {
+        if (i == num_covisibilities) {
+            break;
+        }
+        if (covisibility.expired()) {
+            continue;
+        }
+        covisibilities.push_back(covisibility.lock());
+        i++;
     }
-    else {
-        return std::vector<std::shared_ptr<keyframe>>(ordered_covisibilities_.begin(), ordered_covisibilities_.begin() + num_covisibilities);
-    }
+    return covisibilities;
 }
 
 std::vector<std::shared_ptr<keyframe>> graph_node::get_covisibilities_over_weight(const unsigned int weight) const {
