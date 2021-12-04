@@ -129,6 +129,7 @@ jobs:
           mv frame_trajectory.txt ../frame_trajectory_equirectangular_3.txt
           mv track_times.txt ../track_times_equirectangular_3.txt
       - name: Evaluation
+        if: github.event_name == 'pull_request'
         run: |
           cp scripts/workflows/* .
           (
@@ -166,6 +167,7 @@ jobs:
             echo 'EOF'
           ) >> $GITHUB_ENV
       - uses: actions/github-script@v5
+        if: github.event_name == 'pull_request'
         with:
           script: |
             github.rest.issues.createComment({
