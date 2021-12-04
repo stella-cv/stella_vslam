@@ -33,7 +33,7 @@ bool loop_detector::is_enabled() const {
     return loop_detector_is_enabled_;
 }
 
-void loop_detector::set_current_keyframe(data::keyframe* keyfrm) {
+void loop_detector::set_current_keyframe(const std::shared_ptr<data::keyframe>& keyfrm) {
     cur_keyfrm_ = keyfrm;
 }
 
@@ -131,10 +131,10 @@ bool loop_detector::validate_candidates() {
 
     // acquire all of the landmarks observed in the covisibilities of the candidate
     // check the already inserted landmarks
-    std::unordered_set<data::landmark*> already_inserted;
+    std::unordered_set<std::shared_ptr<data::landmark>> already_inserted;
     for (const auto covisibility : cand_covisibilities) {
         const auto lms_in_covisibility = covisibility->get_landmarks();
-        for (const auto lm : lms_in_covisibility) {
+        for (const auto& lm : lms_in_covisibility) {
             if (!lm) {
                 continue;
             }
@@ -188,7 +188,7 @@ bool loop_detector::validate_candidates() {
     }
 }
 
-float loop_detector::compute_min_score_in_covisibilities(data::keyframe* keyfrm) const {
+float loop_detector::compute_min_score_in_covisibilities(const std::shared_ptr<data::keyframe>& keyfrm) const {
     // the maximum of score is 1.0
     float min_score = 1.0;
 
@@ -215,14 +215,14 @@ float loop_detector::compute_min_score_in_covisibilities(data::keyframe* keyfrm)
 }
 
 keyframe_sets loop_detector::find_continuously_detected_keyframe_sets(const keyframe_sets& prev_cont_detected_keyfrm_sets,
-                                                                      const std::vector<data::keyframe*>& keyfrms_to_search) const {
+                                                                      const std::vector<std::shared_ptr<data::keyframe>>& keyfrms_to_search) const {
     // count up the number of the detection of each of the keyframe sets
 
     // buffer to store continuity and keyframe set
     keyframe_sets curr_cont_detected_keyfrm_sets;
 
     // check the already counted keyframe sets to prevent from counting the same set twice
-    std::map<std::set<data::keyframe*>, bool> already_checked;
+    std::map<std::set<std::shared_ptr<data::keyframe>>, bool> already_checked;
     for (const auto& prev : prev_cont_detected_keyfrm_sets) {
         already_checked[prev.keyfrm_set_] = false;
     }
@@ -272,10 +272,10 @@ keyframe_sets loop_detector::find_continuously_detected_keyframe_sets(const keyf
     return curr_cont_detected_keyfrm_sets;
 }
 
-bool loop_detector::select_loop_candidate_via_Sim3(const std::vector<data::keyframe*>& loop_candidates,
-                                                   data::keyframe*& selected_candidate,
+bool loop_detector::select_loop_candidate_via_Sim3(const std::vector<std::shared_ptr<data::keyframe>>& loop_candidates,
+                                                   std::shared_ptr<data::keyframe>& selected_candidate,
                                                    g2o::Sim3& g2o_Sim3_world_to_curr,
-                                                   std::vector<data::landmark*>& curr_match_lms_observed_in_cand) const {
+                                                   std::vector<std::shared_ptr<data::landmark>>& curr_match_lms_observed_in_cand) const {
     // estimate and the Sim3 between the current keyframe and each of the candidates using the observed landmarks
     // the Sim3 is estimated both in linear and non-linear ways
     // if the inlier after the estimation is lower than the threshold, discard tha candidate
@@ -283,7 +283,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::vector<data::keyfr
     match::bow_tree bow_matcher(0.75, true);
     match::projection projection_matcher(0.75, true);
 
-    for (const auto candidate : loop_candidates) {
+    for (const auto& candidate : loop_candidates) {
         if (candidate->will_be_erased()) {
             continue;
         }
@@ -343,7 +343,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::vector<data::keyfr
     return false;
 }
 
-data::keyframe* loop_detector::get_selected_candidate_keyframe() const {
+std::shared_ptr<data::keyframe> loop_detector::get_selected_candidate_keyframe() const {
     return selected_candidate_;
 }
 
@@ -351,11 +351,11 @@ g2o::Sim3 loop_detector::get_Sim3_world_to_current() const {
     return g2o_Sim3_world_to_curr_;
 }
 
-std::vector<data::landmark*> loop_detector::current_matched_landmarks_observed_in_candidate() const {
+std::vector<std::shared_ptr<data::landmark>> loop_detector::current_matched_landmarks_observed_in_candidate() const {
     return curr_match_lms_observed_in_cand_;
 }
 
-std::vector<data::landmark*> loop_detector::current_matched_landmarks_observed_in_candidate_covisibilities() const {
+std::vector<std::shared_ptr<data::landmark>> loop_detector::current_matched_landmarks_observed_in_candidate_covisibilities() const {
     return curr_match_lms_observed_in_cand_covis_;
 }
 

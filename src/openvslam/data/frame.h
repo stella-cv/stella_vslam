@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <atomic>
+#include <memory>
 
 #include <opencv2/core.hpp>
 #include <Eigen/Core>
@@ -144,7 +145,7 @@ public:
     /**
      * Check observability of the landmark
      */
-    bool can_observe(landmark* lm, const float ray_cos_thr,
+    bool can_observe(const std::shared_ptr<landmark>& lm, const float ray_cos_thr,
                      Vec2_t& reproj, float& x_right, unsigned int& pred_scale_level) const;
 
     /**
@@ -224,7 +225,7 @@ public:
     cv::Mat descriptors_right_;
 
     //! landmarks, whose nullptr indicates no-association
-    std::vector<landmark*> landmarks_;
+    std::vector<std::shared_ptr<landmark>> landmarks_;
 
     //! outlier flags, which are mainly used in pose optimization and bundle adjustment
     std::vector<bool> outlier_flags_;
@@ -237,7 +238,7 @@ public:
     Mat44_t cam_pose_cw_;
 
     //! reference keyframe for tracking
-    keyframe* ref_keyfrm_ = nullptr;
+    std::shared_ptr<keyframe> ref_keyfrm_ = nullptr;
 
     // ORB scale pyramid information
     //! number of scale levels

@@ -4,6 +4,7 @@
 #include <g2o/types/sim3/types_seven_dof_expmap.h>
 
 #include <vector>
+#include <memory>
 
 namespace openvslam {
 
@@ -37,8 +38,8 @@ public:
      * @param chi_sq
      * @return
      */
-    unsigned int optimize(data::keyframe* keyfrm_1, data::keyframe* keyfrm_2,
-                          std::vector<data::landmark*>& matched_lms_in_keyfrm_2,
+    unsigned int optimize(const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2,
+                          std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_keyfrm_2,
                           g2o::Sim3& g2o_Sim3_12, const float chi_sq) const;
 
 private:

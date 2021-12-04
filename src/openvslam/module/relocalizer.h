@@ -7,6 +7,8 @@
 #include "openvslam/optimize/pose_optimizer.h"
 #include "openvslam/solve/pnp_solver.h"
 
+#include <memory>
+
 namespace openvslam {
 
 namespace data {
@@ -34,18 +36,18 @@ public:
 
     //! Relocalize the specified frame by given candidates list
     bool reloc_by_candidates(data::frame& curr_frm,
-                             const std::vector<openvslam::data::keyframe*>& reloc_candidates,
+                             const std::vector<std::shared_ptr<openvslam::data::keyframe>>& reloc_candidates,
                              bool use_robust_matcher = false);
 
 private:
     //! Extract valid (non-deleted) landmarks from landmark vector
-    std::vector<unsigned int> extract_valid_indices(const std::vector<data::landmark*>& landmarks) const;
+    std::vector<unsigned int> extract_valid_indices(const std::vector<std::shared_ptr<data::landmark>>& landmarks) const;
 
     //! Setup PnP solver with the specified 2D-3D matches
     std::unique_ptr<solve::pnp_solver> setup_pnp_solver(const std::vector<unsigned int>& valid_indices,
                                                         const eigen_alloc_vector<Vec3_t>& bearings,
                                                         const std::vector<cv::KeyPoint>& keypts,
-                                                        const std::vector<data::landmark*>& matched_landmarks,
+                                                        const std::vector<std::shared_ptr<data::landmark>>& matched_landmarks,
                                                         const std::vector<float>& scale_factors) const;
 
     //! BoW database

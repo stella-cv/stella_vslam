@@ -7,6 +7,7 @@
 #include <mutex>
 #include <vector>
 #include <unordered_map>
+#include <memory>
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -40,43 +41,43 @@ public:
      * Add keyframe to the database
      * @param keyfrm
      */
-    void add_keyframe(keyframe* keyfrm);
+    void add_keyframe(const std::shared_ptr<keyframe>& keyfrm);
 
     /**
      * Erase keyframe from the database
      * @param keyfrm
      */
-    void erase_keyframe(keyframe* keyfrm);
+    void erase_keyframe(const std::shared_ptr<keyframe>& keyfrm);
 
     /**
      * Add landmark to the database
      * @param lm
      */
-    void add_landmark(landmark* lm);
+    void add_landmark(std::shared_ptr<landmark>& lm);
 
     /**
      * Erase landmark from the database
      * @param lm
      */
-    void erase_landmark(landmark* lm);
+    void erase_landmark(unsigned int id);
 
     /**
      * Set local landmarks
      * @param local_lms
      */
-    void set_local_landmarks(const std::vector<landmark*>& local_lms);
+    void set_local_landmarks(const std::vector<std::shared_ptr<landmark>>& local_lms);
 
     /**
      * Get local landmarks
      * @return
      */
-    std::vector<landmark*> get_local_landmarks() const;
+    std::vector<std::shared_ptr<landmark>> get_local_landmarks() const;
 
     /**
      * Get all of the keyframes in the database
      * @return
      */
-    std::vector<keyframe*> get_all_keyframes() const;
+    std::vector<std::shared_ptr<keyframe>> get_all_keyframes() const;
 
     /**
      * Get closest keyframes to a given 2d pose
@@ -86,10 +87,10 @@ public:
      * @param angle_threshold Maximum angle between given pose and close keyframes
      * @return Vector closest keyframes
      */
-    std::vector<keyframe*> get_close_keyframes_2d(const Mat44_t& pose,
-                                                  const Vec3_t& normal_vector,
-                                                  const double distance_threshold,
-                                                  const double angle_threshold) const;
+    std::vector<std::shared_ptr<keyframe>> get_close_keyframes_2d(const Mat44_t& pose,
+                                                                  const Vec3_t& normal_vector,
+                                                                  const double distance_threshold,
+                                                                  const double angle_threshold) const;
 
     /**
      * Get closest keyframes to a given pose
@@ -98,9 +99,9 @@ public:
      * @param angle_threshold Maximum angle between given pose and close keyframes
      * @return Vector closest keyframes
      */
-    std::vector<keyframe*> get_close_keyframes(const Mat44_t& pose,
-                                               const double distance_threshold,
-                                               const double angle_threshold) const;
+    std::vector<std::shared_ptr<keyframe>> get_close_keyframes(const Mat44_t& pose,
+                                                               const double distance_threshold,
+                                                               const double angle_threshold) const;
 
     /**
      * Get the number of keyframes
@@ -112,7 +113,7 @@ public:
      * Get all of the landmarks in the database
      * @return
      */
-    std::vector<landmark*> get_all_landmarks() const;
+    std::vector<std::shared_ptr<landmark>> get_all_landmarks() const;
 
     /**
      * Get the number of landmarks
@@ -141,7 +142,7 @@ public:
      * @param old_keyfrm
      * @param new_keyfrm
      */
-    void replace_reference_keyframe(data::keyframe* old_keyfrm, data::keyframe* new_keyfrm) {
+    void replace_reference_keyframe(const std::shared_ptr<data::keyframe>& old_keyfrm, const std::shared_ptr<data::keyframe>& new_keyfrm) {
         std::lock_guard<std::mutex> lock(mtx_map_access_);
         frm_stats_.replace_reference_keyframe(old_keyfrm, new_keyfrm);
     }
@@ -179,7 +180,7 @@ public:
     void to_json(nlohmann::json& json_keyfrms, nlohmann::json& json_landmarks);
 
     //! origin keyframe
-    keyframe* origin_keyfrm_ = nullptr;
+    std::shared_ptr<keyframe> origin_keyfrm_ = nullptr;
 
     //! mutex for locking ALL access to the database
     //! (NOTE: cannot used in map_database class)
@@ -229,12 +230,12 @@ private:
     // keyframe and landmark database
 
     //! IDs and keyframes
-    std::unordered_map<unsigned int, keyframe*> keyframes_;
+    std::unordered_map<unsigned int, std::shared_ptr<keyframe>> keyframes_;
     //! IDs and landmarks
-    std::unordered_map<unsigned int, landmark*> landmarks_;
+    std::unordered_map<unsigned int, std::shared_ptr<landmark>> landmarks_;
 
     //! local landmarks
-    std::vector<landmark*> local_landmarks_;
+    std::vector<std::shared_ptr<landmark>> local_landmarks_;
 
     //! max keyframe ID
     unsigned int max_keyfrm_id_ = 0;

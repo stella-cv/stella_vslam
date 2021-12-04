@@ -6,6 +6,7 @@
 #include "openvslam/optimize/transform_optimizer.h"
 
 #include <atomic>
+#include <memory>
 
 namespace openvslam {
 
@@ -43,7 +44,7 @@ public:
     /**
      * Set the current keyframe
      */
-    void set_current_keyframe(data::keyframe* keyfrm);
+    void set_current_keyframe(const std::shared_ptr<data::keyframe>& keyfrm);
 
     /**
      * Detect loop candidates using BoW vocabulary
@@ -58,7 +59,7 @@ public:
     /**
      * Get the selected candidate keyframe after loop detection and validation
      */
-    data::keyframe* get_selected_candidate_keyframe() const;
+    std::shared_ptr<data::keyframe> get_selected_candidate_keyframe() const;
 
     /**
      * Get the estimated Sim3 from the world the the current
@@ -68,12 +69,12 @@ public:
     /**
      * Get the matches between the keypoint indices of the current keyframe and the landmarks observed in the candidate
      */
-    std::vector<data::landmark*> current_matched_landmarks_observed_in_candidate() const;
+    std::vector<std::shared_ptr<data::landmark>> current_matched_landmarks_observed_in_candidate() const;
 
     /**
      * Get the matches between the keypoint indices of the current keyframe and the landmarks observed in covisibilities of the candidate
      */
-    std::vector<data::landmark*> current_matched_landmarks_observed_in_candidate_covisibilities() const;
+    std::vector<std::shared_ptr<data::landmark>> current_matched_landmarks_observed_in_candidate_covisibilities() const;
 
     /**
      * Set the keyframe ID when loop correction is performed
@@ -84,21 +85,22 @@ private:
     /**
      * Compute the minimum score among covisibilities
      */
-    float compute_min_score_in_covisibilities(data::keyframe* keyfrm) const;
+    float compute_min_score_in_covisibilities(const std::shared_ptr<data::keyframe>& keyfrm) const;
 
     /**
      * Find continuously detected keyframe sets
      */
     keyframe_sets find_continuously_detected_keyframe_sets(const keyframe_sets& prev_cont_detected_keyfrm_sets,
-                                                           const std::vector<data::keyframe*>& keyfrms_to_search) const;
+                                                           const std::vector<std::shared_ptr<data::keyframe>>& keyfrms_to_search) const;
 
     /**
      * Select ONE candidate from the candidates via linear and nonlinear Sim3 validation
      */
-    bool select_loop_candidate_via_Sim3(const std::vector<data::keyframe*>& loop_candidates,
-                                        data::keyframe*& selected_candidate,
-                                        g2o::Sim3& g2o_Sim3_world_to_curr,
-                                        std::vector<data::landmark*>& curr_match_lms_observed_in_cand) const;
+    bool select_loop_candidate_via_Sim3(
+        const std::vector<std::shared_ptr<data::keyframe>>& loop_candidates,
+        std::shared_ptr<data::keyframe>& selected_candidate,
+        g2o::Sim3& g2o_Sim3_world_to_curr,
+        std::vector<std::shared_ptr<data::landmark>>& curr_match_lms_observed_in_cand) const;
 
     //! BoW database
     data::bow_database* bow_db_;
@@ -124,19 +126,19 @@ private:
     // variables for loop detection and correction
 
     //! current keyframe
-    data::keyframe* cur_keyfrm_;
+    std::shared_ptr<data::keyframe> cur_keyfrm_;
     //! final loop candidate
-    data::keyframe* selected_candidate_ = nullptr;
+    std::shared_ptr<data::keyframe> selected_candidate_ = nullptr;
 
     //! previously detected keyframe sets as loop candidate
     keyframe_sets cont_detected_keyfrm_sets_;
     //! loop candidate for validation
-    std::vector<data::keyframe*> loop_candidates_to_validate_;
+    std::vector<std::shared_ptr<data::keyframe>> loop_candidates_to_validate_;
 
     //! matches between the keypoint indices of the current keyframe and the landmarks observed in the candidate
-    std::vector<data::landmark*> curr_match_lms_observed_in_cand_;
+    std::vector<std::shared_ptr<data::landmark>> curr_match_lms_observed_in_cand_;
     //! matches between the keypoint indices of the current keyframe and the landmarks observed in covisibilities of the candidate
-    std::vector<data::landmark*> curr_match_lms_observed_in_cand_covis_;
+    std::vector<std::shared_ptr<data::landmark>> curr_match_lms_observed_in_cand_covis_;
 
     //! the Sim3 camera pose of the current keyframe AFTER loop correction (in Mat44_t format)
     Mat44_t Sim3_world_to_curr_;

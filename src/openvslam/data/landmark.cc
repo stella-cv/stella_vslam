@@ -11,12 +11,12 @@ namespace data {
 
 std::atomic<unsigned int> landmark::next_id_{0};
 
-landmark::landmark(const Vec3_t& pos_w, keyframe* ref_keyfrm, map_database* map_db)
+landmark::landmark(const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm, map_database* map_db)
     : id_(next_id_++), first_keyfrm_id_(ref_keyfrm->id_), pos_w_(pos_w),
       ref_keyfrm_(ref_keyfrm), map_db_(map_db) {}
 
 landmark::landmark(const unsigned int id, const unsigned int first_keyfrm_id,
-                   const Vec3_t& pos_w, keyframe* ref_keyfrm,
+                   const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm,
                    const unsigned int num_visible, const unsigned int num_found,
                    map_database* map_db)
     : id_(id), first_keyfrm_id_(first_keyfrm_id), pos_w_(pos_w), ref_keyfrm_(ref_keyfrm),
@@ -37,12 +37,12 @@ Vec3_t landmark::get_obs_mean_normal() const {
     return mean_normal_;
 }
 
-keyframe* landmark::get_ref_keyframe() const {
+std::shared_ptr<keyframe> landmark::get_ref_keyframe() const {
     std::lock_guard<std::mutex> lock(mtx_observations_);
-    return ref_keyfrm_;
+    return ref_keyfrm_.lock();
 }
 
-void landmark::add_observation(keyframe* keyfrm, unsigned int idx) {
+void landmark::add_observation(const std::shared_ptr<keyframe>& keyfrm, unsigned int idx) {
     std::lock_guard<std::mutex> lock(mtx_observations_);
     if (observations_.count(keyfrm)) {
         return;
@@ -57,7 +57,7 @@ void landmark::add_observation(keyframe* keyfrm, unsigned int idx) {
     }
 }
 
-void landmark::erase_observation(keyframe* keyfrm) {
+void landmark::erase_observation(const std::shared_ptr<keyframe>& keyfrm) {
     bool discard = false;
     {
         std::lock_guard<std::mutex> lock(mtx_observations_);
@@ -73,7 +73,7 @@ void landmark::erase_observation(keyframe* keyfrm) {
 
             observations_.erase(keyfrm);
 
-            if (ref_keyfrm_ == keyfrm) {
+            if (ref_keyfrm_.lock() == keyfrm) {
                 ref_keyfrm_ = observations_.begin()->first;
             }
 
@@ -89,7 +89,7 @@ void landmark::erase_observation(keyframe* keyfrm) {
     }
 }
 
-std::map<keyframe*, unsigned int> landmark::get_observations() const {
+landmark::observations_t landmark::get_observations() const {
     std::lock_guard<std::mutex> lock(mtx_observations_);
     return observations_;
 }
@@ -104,7 +104,7 @@ bool landmark::has_observation() const {
     return 0 < num_observations_;
 }
 
-int landmark::get_index_in_keyframe(keyframe* keyfrm) const {
+int landmark::get_index_in_keyframe(const std::shared_ptr<keyframe>& keyfrm) const {
     std::lock_guard<std::mutex> lock(mtx_observations_);
     if (observations_.count(keyfrm)) {
         return observations_.at(keyfrm);
@@ -114,7 +114,7 @@ int landmark::get_index_in_keyframe(keyframe* keyfrm) const {
     }
 }
 
-bool landmark::is_observed_in_keyframe(keyframe* keyfrm) const {
+bool landmark::is_observed_in_keyframe(const std::shared_ptr<keyframe>& keyfrm) const {
     std::lock_guard<std::mutex> lock(mtx_observations_);
     return static_cast<bool>(observations_.count(keyfrm));
 }
@@ -125,7 +125,7 @@ cv::Mat landmark::get_descriptor() const {
 }
 
 void landmark::compute_descriptor() {
-    std::map<keyframe*, unsigned int> observations;
+    observations_t observations;
     {
         std::lock_guard<std::mutex> lock1(mtx_observations_);
         if (will_be_erased_) {
@@ -142,7 +142,7 @@ void landmark::compute_descriptor() {
     std::vector<cv::Mat> descriptors;
     descriptors.reserve(observations.size());
     for (const auto& observation : observations) {
-        auto keyfrm = observation.first;
+        auto keyfrm = observation.first.lock();
         const auto idx = observation.second;
 
         if (!keyfrm->will_be_erased()) {
@@ -184,8 +184,8 @@ void landmark::compute_descriptor() {
 }
 
 void landmark::update_normal_and_depth() {
-    std::map<keyframe*, unsigned int> observations;
-    keyframe* ref_keyfrm;
+    observations_t observations;
+    std::shared_ptr<keyframe> ref_keyfrm = nullptr;
     Vec3_t pos_w;
     {
         std::lock_guard<std::mutex> lock1(mtx_observations_);
@@ -194,7 +194,7 @@ void landmark::update_normal_and_depth() {
             return;
         }
         observations = observations_;
-        ref_keyfrm = ref_keyfrm_;
+        ref_keyfrm = ref_keyfrm_.lock();
         pos_w = pos_w_;
     }
 
@@ -205,7 +205,7 @@ void landmark::update_normal_and_depth() {
     Vec3_t mean_normal = Vec3_t::Zero();
     unsigned int num_observations = 0;
     for (const auto& observation : observations) {
-        auto keyfrm = observation.first;
+        auto keyfrm = observation.first.lock();
         const Vec3_t cam_center = keyfrm->get_cam_center();
         const Vec3_t normal = pos_w_ - cam_center;
         mean_normal = mean_normal + normal.normalized();
@@ -255,7 +255,7 @@ unsigned int landmark::predict_scale_level(const float cam_to_lm_dist, const fra
     }
 }
 
-unsigned int landmark::predict_scale_level(const float cam_to_lm_dist, const keyframe* keyfrm) const {
+unsigned int landmark::predict_scale_level(const float cam_to_lm_dist, const std::shared_ptr<keyframe>& keyfrm) const {
     float ratio;
     {
         std::lock_guard<std::mutex> lock(mtx_position_);
@@ -275,7 +275,7 @@ unsigned int landmark::predict_scale_level(const float cam_to_lm_dist, const key
 }
 
 void landmark::prepare_for_erasing() {
-    std::map<keyframe*, unsigned int> observations;
+    observations_t observations;
     {
         std::lock_guard<std::mutex> lock1(mtx_observations_);
         std::lock_guard<std::mutex> lock2(mtx_position_);
@@ -285,10 +285,10 @@ void landmark::prepare_for_erasing() {
     }
 
     for (const auto& keyfrm_and_idx : observations) {
-        keyfrm_and_idx.first->erase_landmark_with_index(keyfrm_and_idx.second);
+        keyfrm_and_idx.first.lock()->erase_landmark_with_index(keyfrm_and_idx.second);
     }
 
-    map_db_->erase_landmark(this);
+    map_db_->erase_landmark(this->id_);
 }
 
 bool landmark::will_be_erased() {
@@ -297,13 +297,13 @@ bool landmark::will_be_erased() {
     return will_be_erased_;
 }
 
-void landmark::replace(landmark* lm) {
+void landmark::replace(std::shared_ptr<landmark> lm) {
     if (lm->id_ == this->id_) {
         return;
     }
 
     unsigned int num_observable, num_observed;
-    std::map<keyframe*, unsigned int> observations;
+    observations_t observations;
     {
         std::lock_guard<std::mutex> lock1(mtx_observations_);
         std::lock_guard<std::mutex> lock2(mtx_position_);
@@ -316,7 +316,7 @@ void landmark::replace(landmark* lm) {
     }
 
     for (const auto& keyfrm_and_idx : observations) {
-        keyframe* keyfrm = keyfrm_and_idx.first;
+        const auto keyfrm = keyfrm_and_idx.first.lock();
 
         if (!lm->is_observed_in_keyframe(keyfrm)) {
             keyfrm->replace_landmark(lm, keyfrm_and_idx.second);
@@ -331,10 +331,10 @@ void landmark::replace(landmark* lm) {
     lm->increase_num_observable(num_observable);
     lm->compute_descriptor();
 
-    map_db_->erase_landmark(this);
+    map_db_->erase_landmark(this->id_);
 }
 
-landmark* landmark::get_replaced() const {
+std::shared_ptr<landmark> landmark::get_replaced() const {
     std::lock_guard<std::mutex> lock1(mtx_observations_);
     std::lock_guard<std::mutex> lock2(mtx_position_);
     return replaced_;
@@ -358,7 +358,7 @@ float landmark::get_observed_ratio() const {
 nlohmann::json landmark::to_json() const {
     return {{"1st_keyfrm", first_keyfrm_id_},
             {"pos_w", {pos_w_(0), pos_w_(1), pos_w_(2)}},
-            {"ref_keyfrm", ref_keyfrm_->id_},
+            {"ref_keyfrm", ref_keyfrm_.lock()->id_},
             {"n_vis", num_observable_},
             {"n_fnd", num_observed_}};
 }

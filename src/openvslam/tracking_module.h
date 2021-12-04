@@ -9,6 +9,7 @@
 #include "openvslam/module/frame_tracker.h"
 
 #include <mutex>
+#include <memory>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
@@ -169,7 +170,7 @@ protected:
     bool relocalize_by_pose(const pose_request& request);
 
     //! Get close keyframes
-    std::vector<data::keyframe*> get_close_keyframes(const pose_request& request);
+    std::vector<std::shared_ptr<data::keyframe>> get_close_keyframes(const pose_request& request);
 
     //! Update the motion model using the current and last frames
     void update_motion_model();
@@ -235,9 +236,9 @@ protected:
     module::keyframe_inserter keyfrm_inserter_;
 
     //! local keyframes
-    std::vector<data::keyframe*> local_keyfrms_;
+    std::vector<std::shared_ptr<data::keyframe>> local_keyfrms_;
     //! local landmarks
-    std::vector<data::landmark*> local_landmarks_;
+    std::vector<std::shared_ptr<data::landmark>> local_landmarks_;
 
     //! the number of tracked keyframes in the current keyframe
     unsigned int num_tracked_lms_ = 0;

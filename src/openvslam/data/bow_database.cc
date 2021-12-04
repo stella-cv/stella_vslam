@@ -21,7 +21,7 @@ bow_database::~bow_database() {
     spdlog::debug("DESTRUCT: data::bow_database");
 }
 
-void bow_database::add_keyframe(keyframe* keyfrm) {
+void bow_database::add_keyframe(const std::shared_ptr<keyframe>& keyfrm) {
     std::lock_guard<std::mutex> lock(mtx_);
 
     // Append keyframe to the corresponding index in keyframes_in_node_ list
@@ -30,7 +30,7 @@ void bow_database::add_keyframe(keyframe* keyfrm) {
     }
 }
 
-void bow_database::erase_keyframe(keyframe* keyfrm) {
+void bow_database::erase_keyframe(const std::shared_ptr<keyframe>& keyfrm) {
     std::lock_guard<std::mutex> lock(mtx_);
 
     // Delete keyframe from the coresponding index in keyframes_in_node_ list
@@ -63,7 +63,7 @@ void bow_database::clear() {
     total_score_keyfrm_pairs_.clear();
 }
 
-std::vector<keyframe*> bow_database::acquire_loop_candidates(keyframe* qry_keyfrm, const float min_score) {
+std::vector<std::shared_ptr<keyframe>> bow_database::acquire_loop_candidates(const std::shared_ptr<keyframe>& qry_keyfrm, const float min_score) {
     std::lock_guard<std::mutex> lock(tmp_mtx_);
 
     initialize();
@@ -72,13 +72,13 @@ std::vector<keyframe*> bow_database::acquire_loop_candidates(keyframe* qry_keyfr
     // Count up the number of nodes, words which are shared with query_keyframe, for all the keyframes in DoW database
 
     // Not searching near frames of query_keyframe
-    std::set<keyframe*> keyfrms_to_reject;
+    std::set<std::shared_ptr<keyframe>> keyfrms_to_reject;
     if (!reject_by_graph_distance_) {
         keyfrms_to_reject = qry_keyfrm->graph_node_->get_connected_keyframes();
         keyfrms_to_reject.insert(qry_keyfrm);
     }
     else {
-        std::vector<std::pair<keyframe*, int>> targets;
+        std::vector<std::pair<std::shared_ptr<keyframe>, int>> targets;
         targets.emplace_back(qry_keyfrm, 0);
         keyfrms_to_reject.insert(qry_keyfrm);
         while (!targets.empty()) {
@@ -115,7 +115,7 @@ std::vector<keyframe*> bow_database::acquire_loop_candidates(keyframe* qry_keyfr
 
     // If there are no candidates, done
     if (!set_candidates_sharing_words(qry_keyfrm, keyfrms_to_reject)) {
-        return std::vector<keyframe*>();
+        return std::vector<std::shared_ptr<keyframe>>();
     }
 
     // Set min_num_common_words as 80 percentile of max_num_common_words
@@ -135,12 +135,12 @@ std::vector<keyframe*> bow_database::acquire_loop_candidates(keyframe* qry_keyfr
 
     // If there are no candidates, done
     if (!compute_scores(qry_keyfrm, min_num_common_words)) {
-        return std::vector<keyframe*>();
+        return std::vector<std::shared_ptr<keyframe>>();
     }
 
     // If there are no candidates, done
     if (!align_scores_and_keyframes(min_num_common_words, min_score)) {
-        return std::vector<keyframe*>();
+        return std::vector<std::shared_ptr<keyframe>>();
     }
 
     // Step 3.
@@ -152,7 +152,7 @@ std::vector<keyframe*> bow_database::acquire_loop_candidates(keyframe* qry_keyfr
     // Step 4.
     // Final candidates have larger total score than 75 percentile
     const float min_total_score = 0.75f * best_total_score;
-    std::unordered_set<keyframe*> final_candidates;
+    std::unordered_set<std::shared_ptr<keyframe>> final_candidates;
 
     for (const auto& total_score_keyfrm : total_score_keyfrm_pairs_) {
         const auto total_score = total_score_keyfrm.first;
@@ -163,10 +163,10 @@ std::vector<keyframe*> bow_database::acquire_loop_candidates(keyframe* qry_keyfr
         }
     }
 
-    return std::vector<keyframe*>(final_candidates.begin(), final_candidates.end());
+    return std::vector<std::shared_ptr<keyframe>>(final_candidates.begin(), final_candidates.end());
 }
 
-std::vector<keyframe*> bow_database::acquire_relocalization_candidates(frame* qry_frm) {
+std::vector<std::shared_ptr<keyframe>> bow_database::acquire_relocalization_candidates(frame* qry_frm) {
     std::lock_guard<std::mutex> lock(tmp_mtx_);
 
     initialize();
@@ -176,7 +176,7 @@ std::vector<keyframe*> bow_database::acquire_relocalization_candidates(frame* qr
 
     // If there are no candidates, done
     if (!set_candidates_sharing_words(qry_frm)) {
-        return std::vector<keyframe*>();
+        return std::vector<std::shared_ptr<keyframe>>();
     }
 
     // Set min_num_common_words as 80 percentile of max_num_common_words
@@ -196,12 +196,12 @@ std::vector<keyframe*> bow_database::acquire_relocalization_candidates(frame* qr
 
     // If there are no candidates, done
     if (!compute_scores(qry_frm, min_num_common_words)) {
-        return std::vector<keyframe*>();
+        return std::vector<std::shared_ptr<keyframe>>();
     }
 
     // If there are no candidates, done
     if (!align_scores_and_keyframes(min_num_common_words, 0.0)) {
-        return std::vector<keyframe*>();
+        return std::vector<std::shared_ptr<keyframe>>();
     }
 
     // Step 3.
@@ -212,7 +212,7 @@ std::vector<keyframe*> bow_database::acquire_relocalization_candidates(frame* qr
     // Step 4.
     // Final candidates have larger total score than 75 percentile
     const float min_total_score = 0.75f * best_total_score;
-    std::unordered_set<keyframe*> final_candidates;
+    std::unordered_set<std::shared_ptr<keyframe>> final_candidates;
 
     for (const auto& total_score_keyfrm : total_score_keyfrm_pairs_) {
         const auto total_score = total_score_keyfrm.first;
@@ -223,7 +223,7 @@ std::vector<keyframe*> bow_database::acquire_relocalization_candidates(frame* qr
         }
     }
 
-    return std::vector<keyframe*>(final_candidates.begin(), final_candidates.end());
+    return std::vector<std::shared_ptr<keyframe>>(final_candidates.begin(), final_candidates.end());
 }
 
 void bow_database::initialize() {
@@ -235,7 +235,7 @@ void bow_database::initialize() {
 }
 
 template<typename T>
-bool bow_database::set_candidates_sharing_words(const T* const qry_shot, const std::set<keyframe*>& keyfrms_to_reject) {
+bool bow_database::set_candidates_sharing_words(const T qry_shot, const std::set<std::shared_ptr<keyframe>>& keyfrms_to_reject) {
     init_candidates_.clear();
     num_common_words_.clear();
 
@@ -271,7 +271,7 @@ bool bow_database::set_candidates_sharing_words(const T* const qry_shot, const s
 }
 
 template<typename T>
-bool bow_database::compute_scores(const T* const qry_shot, const unsigned int min_num_common_words_thr) {
+bool bow_database::compute_scores(const T qry_shot, const unsigned int min_num_common_words_thr) {
     scores_.clear();
 
     for (const auto& candidate : init_candidates_) {

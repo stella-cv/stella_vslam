@@ -81,14 +81,14 @@ bool keyframe_inserter::new_keyframe_is_needed(const data::frame& curr_frm, cons
     return false;
 }
 
-data::keyframe* keyframe_inserter::insert_new_keyframe(data::frame& curr_frm) {
+std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::frame& curr_frm) {
     // Force the mapping module to run
     if (!mapper_->set_force_to_run(true)) {
         return nullptr;
     }
 
     curr_frm.update_pose_params();
-    auto keyfrm = new data::keyframe(curr_frm, map_db_, bow_db_);
+    auto keyfrm = data::keyframe::make_keyframe(curr_frm, map_db_, bow_db_);
 
     frm_id_of_last_keyfrm_ = curr_frm.id_;
 
@@ -132,7 +132,7 @@ data::keyframe* keyframe_inserter::insert_new_keyframe(data::frame& curr_frm) {
 
         // Stereo-triangulation cannot be performed if the 3D point has been already associated to the keypoint index
         {
-            auto lm = curr_frm.landmarks_.at(idx);
+            const auto& lm = curr_frm.landmarks_.at(idx);
             if (lm) {
                 assert(lm->has_observation());
                 continue;
@@ -141,7 +141,7 @@ data::keyframe* keyframe_inserter::insert_new_keyframe(data::frame& curr_frm) {
 
         // Stereo-triangulation can be performed if the 3D point is not yet associated to the keypoint index
         const Vec3_t pos_w = curr_frm.triangulate_stereo(idx);
-        auto lm = new data::landmark(pos_w, keyfrm, map_db_);
+        auto lm = std::make_shared<data::landmark>(pos_w, keyfrm, map_db_);
 
         lm->add_observation(keyfrm, idx);
         keyfrm->add_landmark(lm, idx);
@@ -158,7 +158,7 @@ data::keyframe* keyframe_inserter::insert_new_keyframe(data::frame& curr_frm) {
     return keyfrm;
 }
 
-void keyframe_inserter::queue_keyframe(data::keyframe* keyfrm) {
+void keyframe_inserter::queue_keyframe(const std::shared_ptr<data::keyframe>& keyfrm) {
     mapper_->queue_keyframe(keyfrm);
     mapper_->set_force_to_run(false);
 }
