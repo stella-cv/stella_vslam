@@ -197,7 +197,7 @@ std::vector<std::shared_ptr<keyframe>> graph_node::get_covisibilities() const {
 std::vector<std::shared_ptr<keyframe>> graph_node::get_top_n_covisibilities(const unsigned int num_covisibilities) const {
     std::lock_guard<std::mutex> lock(mtx_);
     std::vector<std::shared_ptr<keyframe>> covisibilities;
-    int i = 0;
+    unsigned int i = 0;
     for (const auto& covisibility : ordered_covisibilities_) {
         if (i == num_covisibilities) {
             break;
