@@ -5,8 +5,11 @@
 
 #include <Eigen/Dense>
 #include <opencv2/core/core.hpp>
-#include <g2o/types/sba/types_six_dof_expmap.h>
-#include <g2o/types/sim3/types_seven_dof_expmap.h>
+
+namespace g2o {
+class SE3Quat;
+class Sim3;
+} // namespace g2o
 
 namespace openvslam {
 namespace util {
