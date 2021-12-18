@@ -118,5 +118,48 @@ std::ostream& operator<<(std::ostream& os, const base& params) {
     return os;
 }
 
+cv::KeyPoint base::undistort_keypoint(const cv::KeyPoint& dist_keypt) const {
+    cv::KeyPoint undist_keypt;
+    undist_keypt.pt = undistort_point(dist_keypt.pt);
+    undist_keypt.angle = dist_keypt.angle;
+    undist_keypt.size = dist_keypt.size;
+    undist_keypt.octave = dist_keypt.octave;
+    return undist_keypt;
+}
+
+void base::undistort_points(const std::vector<cv::Point2f>& dist_pts, std::vector<cv::Point2f>& undist_pts) const {
+    // fill cv::Mat with distorted points
+    undist_pts.resize(dist_pts.size());
+    for (unsigned long idx = 0; idx < dist_pts.size(); ++idx) {
+        undist_pts.at(idx) = undistort_point(dist_pts.at(idx));
+    }
+}
+
+void base::undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypts, std::vector<cv::KeyPoint>& undist_keypts) const {
+    // fill cv::Mat with distorted keypoints
+    undist_keypts.resize(dist_keypts.size());
+    for (unsigned long idx = 0; idx < dist_keypts.size(); ++idx) {
+        undist_keypts.at(idx) = undistort_keypoint(dist_keypts.at(idx));
+        undist_keypts.at(idx).angle = dist_keypts.at(idx).angle;
+        undist_keypts.at(idx).size = dist_keypts.at(idx).size;
+        undist_keypts.at(idx).octave = dist_keypts.at(idx).octave;
+    }
+}
+
+void base::convert_points_to_bearings(const std::vector<cv::Point2f>& undist_pts, eigen_alloc_vector<Vec3_t>& bearings) const {
+    std::transform(undist_pts.begin(), undist_pts.end(), std::back_inserter(bearings),
+                   [this](const cv::Point2f& undist_pt) { return convert_point_to_bearing(undist_pt); });
+}
+
+void base::convert_keypoints_to_bearings(const std::vector<cv::KeyPoint>& undist_keypts, eigen_alloc_vector<Vec3_t>& bearings) const {
+    std::transform(undist_keypts.begin(), undist_keypts.end(), std::back_inserter(bearings),
+                   [this](const cv::KeyPoint& undist_keypt) { return convert_point_to_bearing(undist_keypt.pt); });
+}
+
+void base::convert_bearings_to_points(const eigen_alloc_vector<Vec3_t>& bearings, std::vector<cv::Point2f>& undist_pts) const {
+    std::transform(bearings.begin(), bearings.end(), std::back_inserter(undist_pts),
+                   [this](const Vec3_t& bearing) { return convert_bearing_to_point(bearing); });
+}
+
 } // namespace camera
 } // namespace openvslam
