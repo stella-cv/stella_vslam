@@ -82,36 +82,34 @@ image_bounds radial_division::compute_image_bounds() const {
     }
 }
 
-void radial_division::undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypts, std::vector<cv::KeyPoint>& undist_keypts) const {
-    // fill cv::Mat with distorted keypoints
-    undist_keypts.resize(dist_keypts.size());
-    for (unsigned long idx = 0; idx < dist_keypts.size(); ++idx) {
-        undist_keypts.at(idx) = this->undistort_keypoint(dist_keypts.at(idx));
-        undist_keypts.at(idx).angle = dist_keypts.at(idx).angle;
-        undist_keypts.at(idx).size = dist_keypts.at(idx).size;
-        undist_keypts.at(idx).octave = dist_keypts.at(idx).octave;
-    }
+cv::Point2f radial_division::undistort_point(const cv::Point2f& dist_pt) const {
+    // undistort
+    const double pixel_x = (dist_pt.x - cx_) / fx_;
+    const double pixel_y = (dist_pt.y - cy_) / fy_;
+    const double radius_distorted_squared = pixel_x * pixel_x + pixel_y * pixel_y;
+    const double undistortion = 1.0 + distortion_ * radius_distorted_squared;
+
+    const double undistorted_pt_x = pixel_x / undistortion;
+    const double undistorted_pt_y = pixel_y / undistortion;
+
+    cv::Point2f undist_pt;
+    undist_pt.x = undistorted_pt_x * fx_ + cx_;
+    undist_pt.y = undistorted_pt_y * fy_ + cy_;
+
+    return undist_pt;
 }
 
-void radial_division::convert_keypoints_to_bearings(const std::vector<cv::KeyPoint>& undist_keypts, eigen_alloc_vector<Vec3_t>& bearings) const {
-    bearings.resize(undist_keypts.size());
-    for (unsigned long idx = 0; idx < undist_keypts.size(); ++idx) {
-        const auto x_normalized = (undist_keypts.at(idx).pt.x - cx_) / fx_;
-        const auto y_normalized = (undist_keypts.at(idx).pt.y - cy_) / fy_;
-        const auto l2_norm = std::sqrt(x_normalized * x_normalized + y_normalized * y_normalized + 1.0);
-        bearings.at(idx) = Vec3_t{x_normalized / l2_norm, y_normalized / l2_norm, 1.0 / l2_norm};
-    }
+Vec3_t radial_division::convert_point_to_bearing(const cv::Point2f& undist_pt) const {
+    const auto x_normalized = (undist_pt.x - cx_) / fx_;
+    const auto y_normalized = (undist_pt.y - cy_) / fy_;
+    const auto l2_norm = std::sqrt(x_normalized * x_normalized + y_normalized * y_normalized + 1.0);
+    return Vec3_t{x_normalized / l2_norm, y_normalized / l2_norm, 1.0 / l2_norm};
 }
 
-void radial_division::convert_bearings_to_keypoints(const eigen_alloc_vector<Vec3_t>& bearings, std::vector<cv::KeyPoint>& undist_keypts) const {
-    undist_keypts.resize(bearings.size());
-    for (unsigned long idx = 0; idx < bearings.size(); ++idx) {
-        const auto x_normalized = bearings.at(idx)(0) / bearings.at(idx)(2);
-        const auto y_normalized = bearings.at(idx)(1) / bearings.at(idx)(2);
-
-        undist_keypts.at(idx).pt.x = fx_ * x_normalized + cx_;
-        undist_keypts.at(idx).pt.y = fy_ * y_normalized + cy_;
-    }
+cv::Point2f radial_division::convert_bearing_to_point(const Vec3_t& bearing) const {
+    const auto x_normalized = bearing(0) / bearing(2);
+    const auto y_normalized = bearing(1) / bearing(2);
+    return cv::Point2f(fx_ * x_normalized + cx_, fy_ * y_normalized + cy_);
 }
 
 bool radial_division::reproject_to_image(const Mat33_t& rot_cw, const Vec3_t& trans_cw, const Vec3_t& pos_w, Vec2_t& reproj, float& x_right) const {

@@ -38,33 +38,25 @@ image_bounds equirectangular::compute_image_bounds() const {
     return image_bounds{0.0, cols_, 0.0, rows_};
 }
 
-void equirectangular::undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypts, std::vector<cv::KeyPoint>& undist_keypts) const {
-    undist_keypts = dist_keypts;
+cv::Point2f equirectangular::undistort_point(const cv::Point2f& dist_pt) const {
+    return dist_pt;
 }
 
-void equirectangular::convert_keypoints_to_bearings(const std::vector<cv::KeyPoint>& undist_keypts, eigen_alloc_vector<Vec3_t>& bearings) const {
-    bearings.resize(undist_keypts.size());
-    for (unsigned int idx = 0; idx < undist_keypts.size(); ++idx) {
-        // convert to unit polar coordinates
-        const double lon = (undist_keypts.at(idx).pt.x / cols_ - 0.5) * (2 * M_PI);
-        const double lat = -(undist_keypts.at(idx).pt.y / rows_ - 0.5) * M_PI;
-        // convert to equirectangular coordinates
-        bearings.at(idx)(0) = std::cos(lat) * std::sin(lon);
-        bearings.at(idx)(1) = -std::sin(lat);
-        bearings.at(idx)(2) = std::cos(lat) * std::cos(lon);
-    }
+Vec3_t equirectangular::convert_point_to_bearing(const cv::Point2f& undist_pt) const {
+    // "From Google Street View to 3D City Models (ICCVW 2009)"
+    // convert to unit polar coordinates
+    const double lon = (undist_pt.x / cols_ - 0.5) * (2.0 * M_PI);
+    const double lat = -(undist_pt.y / rows_ - 0.5) * M_PI;
+    // convert to equirectangular coordinates
+    return Vec3_t{std::cos(lat) * std::sin(lon), -std::sin(lat), std::cos(lat) * std::cos(lon)};
 }
 
-void equirectangular::convert_bearings_to_keypoints(const eigen_alloc_vector<Vec3_t>& bearings, std::vector<cv::KeyPoint>& undist_keypts) const {
-    undist_keypts.resize(bearings.size());
-    for (unsigned int idx = 0; idx < bearings.size(); ++idx) {
-        // convert to unit polar coordinates
-        const double lat = -std::asin(bearings.at(idx)[1]);
-        const double lon = std::atan2(bearings.at(idx)[0], bearings.at(idx)[2]);
-        // convert to pixel image coordinated
-        undist_keypts.at(idx).pt.x = cols_ * (0.5 + lon / (2 * M_PI));
-        undist_keypts.at(idx).pt.y = rows_ * (0.5 - lat / M_PI);
-    }
+cv::Point2f equirectangular::convert_bearing_to_point(const Vec3_t& bearing) const {
+    // convert to unit polar coordinates
+    const double lat = -std::asin(bearing[1]);
+    const double lon = std::atan2(bearing[0], bearing[2]);
+    // convert to pixel image coordinated
+    return cv::Point2f(cols_ * (0.5 + lon / (2.0 * M_PI)), rows_ * (0.5 - lat / M_PI));
 }
 
 bool equirectangular::reproject_to_image(const Mat33_t& rot_cw, const Vec3_t& trans_cw, const Vec3_t& pos_w, Vec2_t& reproj, float& x_right) const {
@@ -114,6 +106,16 @@ std::ostream& operator<<(std::ostream& os, const equirectangular& params) {
     os << "- num grid cols: " << params.num_grid_cols_ << std::endl;
     os << "- num grid rows: " << params.num_grid_rows_ << std::endl;
     return os;
+}
+
+//! Override for optimization
+
+void equirectangular::undistort_points(const std::vector<cv::Point2f>& dist_pts, std::vector<cv::Point2f>& undist_pts) const {
+    undist_pts = dist_pts;
+}
+
+void equirectangular::undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypts, std::vector<cv::KeyPoint>& undist_keypts) const {
+    undist_keypts = dist_keypts;
 }
 
 } // namespace camera

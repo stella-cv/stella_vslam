@@ -96,19 +96,11 @@ image_bounds perspective::compute_image_bounds() const {
     }
 }
 
-void perspective::undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypts, std::vector<cv::KeyPoint>& undist_keypts) const {
-    // cv::undistortPoints does not accept an empty input
-    if (dist_keypts.empty()) {
-        undist_keypts.clear();
-        return;
-    }
-
-    // fill cv::Mat with distorted keypoints
-    cv::Mat mat(dist_keypts.size(), 2, CV_32F);
-    for (unsigned long idx = 0; idx < dist_keypts.size(); ++idx) {
-        mat.at<float>(idx, 0) = dist_keypts.at(idx).pt.x;
-        mat.at<float>(idx, 1) = dist_keypts.at(idx).pt.y;
-    }
+cv::Point2f perspective::undistort_point(const cv::Point2f& dist_pt) const {
+    // fill cv::Mat with distorted point
+    cv::Mat mat(1, 2, CV_32F);
+    mat.at<float>(0, 0) = dist_pt.x;
+    mat.at<float>(0, 1) = dist_pt.y;
 
     // undistort
     mat = mat.reshape(2);
@@ -117,35 +109,24 @@ void perspective::undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keyp
     mat = mat.reshape(1);
 
     // convert to cv::Mat
-    undist_keypts.resize(dist_keypts.size());
-    for (unsigned long idx = 0; idx < undist_keypts.size(); ++idx) {
-        undist_keypts.at(idx).pt.x = mat.at<float>(idx, 0);
-        undist_keypts.at(idx).pt.y = mat.at<float>(idx, 1);
-        undist_keypts.at(idx).angle = dist_keypts.at(idx).angle;
-        undist_keypts.at(idx).size = dist_keypts.at(idx).size;
-        undist_keypts.at(idx).octave = dist_keypts.at(idx).octave;
-    }
+    cv::Point2f undist_pt;
+    undist_pt.x = mat.at<float>(0, 0);
+    undist_pt.y = mat.at<float>(0, 1);
+
+    return undist_pt;
 }
 
-void perspective::convert_keypoints_to_bearings(const std::vector<cv::KeyPoint>& undist_keypts, eigen_alloc_vector<Vec3_t>& bearings) const {
-    bearings.resize(undist_keypts.size());
-    for (unsigned long idx = 0; idx < undist_keypts.size(); ++idx) {
-        const auto x_normalized = (undist_keypts.at(idx).pt.x - cx_) / fx_;
-        const auto y_normalized = (undist_keypts.at(idx).pt.y - cy_) / fy_;
-        const auto l2_norm = std::sqrt(x_normalized * x_normalized + y_normalized * y_normalized + 1.0);
-        bearings.at(idx) = Vec3_t{x_normalized / l2_norm, y_normalized / l2_norm, 1.0 / l2_norm};
-    }
+Vec3_t perspective::convert_point_to_bearing(const cv::Point2f& undist_pt) const {
+    const auto x_normalized = (undist_pt.x - cx_) / fx_;
+    const auto y_normalized = (undist_pt.y - cy_) / fy_;
+    const auto l2_norm = std::sqrt(x_normalized * x_normalized + y_normalized * y_normalized + 1.0);
+    return Vec3_t{x_normalized / l2_norm, y_normalized / l2_norm, 1.0 / l2_norm};
 }
 
-void perspective::convert_bearings_to_keypoints(const eigen_alloc_vector<Vec3_t>& bearings, std::vector<cv::KeyPoint>& undist_keypts) const {
-    undist_keypts.resize(bearings.size());
-    for (unsigned long idx = 0; idx < bearings.size(); ++idx) {
-        const auto x_normalized = bearings.at(idx)(0) / bearings.at(idx)(2);
-        const auto y_normalized = bearings.at(idx)(1) / bearings.at(idx)(2);
-
-        undist_keypts.at(idx).pt.x = fx_ * x_normalized + cx_;
-        undist_keypts.at(idx).pt.y = fy_ * y_normalized + cy_;
-    }
+cv::Point2f perspective::convert_bearing_to_point(const Vec3_t& bearing) const {
+    const auto x_normalized = bearing(0) / bearing(2);
+    const auto y_normalized = bearing(1) / bearing(2);
+    return cv::Point2f(fx_ * x_normalized + cx_, fy_ * y_normalized + cy_);
 }
 
 bool perspective::reproject_to_image(const Mat33_t& rot_cw, const Vec3_t& trans_cw, const Vec3_t& pos_w, Vec2_t& reproj, float& x_right) const {
@@ -233,6 +214,67 @@ std::ostream& operator<<(std::ostream& os, const perspective& params) {
     os << "  - min y: " << params.img_bounds_.min_y_ << std::endl;
     os << "  - max y: " << params.img_bounds_.max_y_ << std::endl;
     return os;
+}
+
+//! Override for optimization
+
+void perspective::undistort_points(const std::vector<cv::Point2f>& dist_pts, std::vector<cv::Point2f>& undist_pts) const {
+    // cv::undistortPoints does not accept an empty input
+    if (dist_pts.empty()) {
+        undist_pts.clear();
+        return;
+    }
+
+    // fill cv::Mat with distorted points
+    cv::Mat mat(dist_pts.size(), 2, CV_32F);
+    for (unsigned long idx = 0; idx < dist_pts.size(); ++idx) {
+        mat.at<float>(idx, 0) = dist_pts.at(idx).x;
+        mat.at<float>(idx, 1) = dist_pts.at(idx).y;
+    }
+
+    // undistort
+    mat = mat.reshape(2);
+    cv::undistortPoints(mat, mat, cv_cam_matrix_, cv_dist_params_, cv::Mat(), cv_cam_matrix_,
+                        cv::TermCriteria(cv::TermCriteria::EPS | cv::TermCriteria::MAX_ITER, 20, 1e-6));
+    mat = mat.reshape(1);
+
+    // convert to cv::Mat
+    undist_pts.resize(dist_pts.size());
+    for (unsigned long idx = 0; idx < undist_pts.size(); ++idx) {
+        undist_pts.at(idx).x = mat.at<float>(idx, 0);
+        undist_pts.at(idx).y = mat.at<float>(idx, 1);
+    }
+}
+
+void perspective::undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypts, std::vector<cv::KeyPoint>& undist_keypts) const {
+    // cv::undistortPoints does not accept an empty input
+    if (dist_keypts.empty()) {
+        undist_keypts.clear();
+        return;
+    }
+
+    // fill cv::Mat with distorted keypoints
+    cv::Mat mat(dist_keypts.size(), 2, CV_32F);
+    for (unsigned long idx = 0; idx < dist_keypts.size(); ++idx) {
+        mat.at<float>(idx, 0) = dist_keypts.at(idx).pt.x;
+        mat.at<float>(idx, 1) = dist_keypts.at(idx).pt.y;
+    }
+
+    // undistort
+    mat = mat.reshape(2);
+    cv::undistortPoints(mat, mat, cv_cam_matrix_, cv_dist_params_, cv::Mat(), cv_cam_matrix_,
+                        cv::TermCriteria(cv::TermCriteria::EPS | cv::TermCriteria::MAX_ITER, 20, 1e-6));
+    mat = mat.reshape(1);
+
+    // convert to cv::Mat
+    undist_keypts.resize(dist_keypts.size());
+    for (unsigned long idx = 0; idx < undist_keypts.size(); ++idx) {
+        undist_keypts.at(idx).pt.x = mat.at<float>(idx, 0);
+        undist_keypts.at(idx).pt.y = mat.at<float>(idx, 1);
+        undist_keypts.at(idx).angle = dist_keypts.at(idx).angle;
+        undist_keypts.at(idx).size = dist_keypts.at(idx).size;
+        undist_keypts.at(idx).octave = dist_keypts.at(idx).octave;
+    }
 }
 
 } // namespace camera
