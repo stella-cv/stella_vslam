@@ -238,7 +238,21 @@ eigen_alloc_vector<Vec4_t> pnp_solver::compute_barycentric_coordinates(const eig
     for (unsigned int i = 0; i < 3; i++) {
         CC.block<3, 1>(0, i) = control_points.at(i + 1) - control_points.at(0);
     }
-    const Mat33_t CC_inv = CC.inverse();
+
+    // Compute generalized inverse
+    Eigen::JacobiSVD<Mat33_t> svd(CC, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    Vec3_t D = svd.singularValues();
+    Mat33_t S;
+    S.setZero();
+    for (unsigned int i = 0; i < D.size(); ++i) {
+        if (D(i) > 1e-6) {
+            S(i, i) = 1 / D(i);
+        }
+        else {
+            S(i, i) = 0;
+        }
+    }
+    const Mat33_t CC_inv = svd.matrixV() * S * svd.matrixU().transpose();
 
     eigen_alloc_vector<Vec4_t> alphas;
     for (unsigned int i = 0; i < num_correspondences; ++i) {
