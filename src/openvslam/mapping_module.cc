@@ -349,7 +349,7 @@ std::unordered_set<std::shared_ptr<data::keyframe>> mapping_module::get_second_o
     std::unordered_set<std::shared_ptr<data::keyframe>> fuse_tgt_keyfrms;
     fuse_tgt_keyfrms.reserve(cur_covisibilities.size() * 2);
 
-    for (const auto first_order_covis : cur_covisibilities) {
+    for (const auto& first_order_covis : cur_covisibilities) {
         if (first_order_covis->will_be_erased()) {
             continue;
         }
@@ -363,7 +363,7 @@ std::unordered_set<std::shared_ptr<data::keyframe>> mapping_module::get_second_o
 
         // get the covisibilities of the covisibility of the current keyframe
         const auto ngh_covisibilities = first_order_covis->graph_node_->get_top_n_covisibilities(second_order_thr);
-        for (const auto second_order_covis : ngh_covisibilities) {
+        for (const auto& second_order_covis : ngh_covisibilities) {
             if (second_order_covis->will_be_erased()) {
                 continue;
             }
@@ -388,7 +388,7 @@ void mapping_module::fuse_landmark_duplication(const std::unordered_set<std::sha
         // - duplication of matches
         // then, add matches and solve duplication
         auto cur_landmarks = cur_keyfrm_->get_landmarks();
-        for (const auto fuse_tgt_keyfrm : fuse_tgt_keyfrms) {
+        for (const auto& fuse_tgt_keyfrm : fuse_tgt_keyfrms) {
             matcher.replace_duplication(fuse_tgt_keyfrm, cur_landmarks);
         }
     }
@@ -401,7 +401,7 @@ void mapping_module::fuse_landmark_duplication(const std::unordered_set<std::sha
         std::unordered_set<std::shared_ptr<data::landmark>> candidate_landmarks_to_fuse;
         candidate_landmarks_to_fuse.reserve(fuse_tgt_keyfrms.size() * cur_keyfrm_->num_keypts_);
 
-        for (const auto fuse_tgt_keyfrm : fuse_tgt_keyfrms) {
+        for (const auto& fuse_tgt_keyfrm : fuse_tgt_keyfrms) {
             const auto fuse_tgt_landmarks = fuse_tgt_keyfrm->get_landmarks();
 
             for (const auto& lm : fuse_tgt_landmarks) {

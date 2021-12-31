@@ -231,7 +231,7 @@ void global_optimization_module::correct_loop() {
 module::keyframe_Sim3_pairs_t global_optimization_module::get_Sim3s_before_loop_correction(const std::vector<std::shared_ptr<data::keyframe>>& neighbors) const {
     module::keyframe_Sim3_pairs_t Sim3s_nw_before_loop_correction;
 
-    for (const auto neighbor : neighbors) {
+    for (const auto& neighbor : neighbors) {
         // camera pose of `neighbor` BEFORE loop correction
         const Mat44_t cam_pose_nw = neighbor->get_cam_pose();
         // create Sim3 from SE3
@@ -383,11 +383,11 @@ auto global_optimization_module::extract_new_connections(const std::vector<std::
         new_connections[covisibility] = covisibility->graph_node_->get_connected_keyframes();
 
         // remove covisibilities
-        for (const auto keyfrm_to_erase : covisibilities) {
+        for (const auto& keyfrm_to_erase : covisibilities) {
             new_connections.at(covisibility).erase(keyfrm_to_erase);
         }
         // remove nighbors before loop fusion
-        for (const auto keyfrm_to_erase : neighbors_before_update) {
+        for (const auto& keyfrm_to_erase : neighbors_before_update) {
             new_connections.at(covisibility).erase(keyfrm_to_erase);
         }
     }

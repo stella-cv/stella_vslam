@@ -143,7 +143,7 @@ void trajectory_io::save_keyframe_trajectory(const std::string& path, const std:
     spdlog::info("dump keyframe trajectory in \"{}\" format from keyframe {} to keyframe {} ({} keyframes)",
                  format, (*keyfrms.begin())->id_, (*keyfrms.rbegin())->id_, keyfrms.size());
 
-    for (const auto keyfrm : keyfrms) {
+    for (const auto& keyfrm : keyfrms) {
         const Mat44_t cam_pose_wc = keyfrm->get_cam_pose_inv();
         const auto timestamp = keyfrm->timestamp_;
 

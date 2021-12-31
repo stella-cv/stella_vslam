@@ -77,7 +77,7 @@ unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr
     unsigned int num_removed = 0;
     // check redundancy for each of the covisibilities
     const auto cur_covisibilities = cur_keyfrm->graph_node_->get_covisibilities();
-    for (const auto covisibility : cur_covisibilities) {
+    for (const auto& covisibility : cur_covisibilities) {
         // cannot remove the origin
         if (covisibility->id_ == origin_keyfrm_id_) {
             continue;
@@ -145,7 +145,7 @@ void local_map_cleaner::count_redundant_observations(const std::shared_ptr<data:
         // the number of the keyframes that observe `lm` with the more reliable (closer) scale
         unsigned int num_better_obs = 0;
 
-        for (const auto obs : observations) {
+        for (const auto& obs : observations) {
             const auto ngh_keyfrm = obs.first.lock();
             if (*ngh_keyfrm == *keyfrm) {
                 continue;

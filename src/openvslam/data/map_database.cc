@@ -61,7 +61,7 @@ std::vector<std::shared_ptr<keyframe>> map_database::get_all_keyframes() const {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
     std::vector<std::shared_ptr<keyframe>> keyframes;
     keyframes.reserve(keyframes_.size());
-    for (const auto id_keyframe : keyframes_) {
+    for (const auto& id_keyframe : keyframes_) {
         keyframes.push_back(id_keyframe.second);
     }
     return keyframes;
@@ -81,7 +81,7 @@ std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes_2d(cons
     // Calculate angles and distances between given pose and all keyframes
     Mat33_t M = pose.block<3, 3>(0, 0);
     Vec3_t Mt = pose.block<3, 1>(0, 3);
-    for (const auto id_keyframe : keyframes_) {
+    for (const auto& id_keyframe : keyframes_) {
         Mat33_t N = id_keyframe.second->get_cam_pose().block<3, 3>(0, 0);
         Vec3_t Nt = id_keyframe.second->get_cam_pose().block<3, 1>(0, 3);
         // Angle between two cameras related to given pose and selected keyframe
@@ -109,7 +109,7 @@ std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes(const M
     // Calculate angles and distances between given pose and all keyframes
     Mat33_t M = pose.block<3, 3>(0, 0);
     Vec3_t Mt = pose.block<3, 1>(0, 3);
-    for (const auto id_keyframe : keyframes_) {
+    for (const auto& id_keyframe : keyframes_) {
         Mat33_t N = id_keyframe.second->get_cam_pose().block<3, 3>(0, 0);
         Vec3_t Nt = id_keyframe.second->get_cam_pose().block<3, 1>(0, 3);
         // Angle between two cameras related to given pose and selected keyframe
@@ -133,7 +133,7 @@ std::vector<std::shared_ptr<landmark>> map_database::get_all_landmarks() const {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
     std::vector<std::shared_ptr<landmark>> landmarks;
     landmarks.reserve(landmarks_.size());
-    for (const auto id_landmark : landmarks_) {
+    for (const auto& id_landmark : landmarks_) {
         landmarks.push_back(id_landmark.second);
     }
     return landmarks;
@@ -383,7 +383,7 @@ void map_database::to_json(nlohmann::json& json_keyfrms, nlohmann::json& json_la
     // Save each keyframe as json
     spdlog::info("encoding {} keyframes to store", keyframes_.size());
     std::map<std::string, nlohmann::json> keyfrms;
-    for (const auto id_keyfrm : keyframes_) {
+    for (const auto& id_keyfrm : keyframes_) {
         const auto id = id_keyfrm.first;
         const auto keyfrm = id_keyfrm.second;
         assert(keyfrm);
@@ -398,7 +398,7 @@ void map_database::to_json(nlohmann::json& json_keyfrms, nlohmann::json& json_la
     // Save each 3D point as json
     spdlog::info("encoding {} landmarks to store", landmarks_.size());
     std::map<std::string, nlohmann::json> landmarks;
-    for (const auto id_lm : landmarks_) {
+    for (const auto& id_lm : landmarks_) {
         const auto id = id_lm.first;
         const auto& lm = id_lm.second;
         assert(lm);
