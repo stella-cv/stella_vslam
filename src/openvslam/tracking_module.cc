@@ -305,7 +305,7 @@ void tracking_module::track() {
 
         // pass all of the keyframes to the mapping module
         const auto keyfrms = map_db_->get_all_keyframes();
-        for (const auto keyfrm : keyfrms) {
+        for (const auto& keyfrm : keyfrms) {
             mapper_->queue_keyframe(keyfrm);
         }
 

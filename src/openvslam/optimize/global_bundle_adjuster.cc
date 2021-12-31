@@ -49,7 +49,7 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
     internal::se3::shot_vertex_container keyfrm_vtx_container(vtx_id_offset, keyfrms.size());
 
     // Set the keyframes to the optimizer
-    for (const auto keyfrm : keyfrms) {
+    for (const auto& keyfrm : keyfrms) {
         if (!keyfrm) {
             continue;
         }

@@ -132,7 +132,7 @@ nlohmann::json keyframe::to_json() const {
     // extract loop edges
     const auto loop_edges = graph_node_->get_loop_edges();
     std::vector<int> loop_edge_ids;
-    for (const auto loop_edge : loop_edges) {
+    for (const auto& loop_edge : loop_edges) {
         loop_edge_ids.push_back(loop_edge->id_);
     }
 

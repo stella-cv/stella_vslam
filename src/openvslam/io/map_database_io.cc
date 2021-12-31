@@ -93,7 +93,7 @@ void map_database_io::load_message_pack(const std::string& path) {
     const auto json_landmarks = json.at("landmarks");
     map_db_->from_json(cam_db_, bow_vocab_, bow_db_, json_keyfrms, json_landmarks);
     const auto keyfrms = map_db_->get_all_keyframes();
-    for (const auto keyfrm : keyfrms) {
+    for (const auto& keyfrm : keyfrms) {
         bow_db_->add_keyframe(keyfrm);
     }
 }

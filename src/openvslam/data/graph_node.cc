@@ -279,7 +279,7 @@ void graph_node::recover_spanning_connections() {
         std::shared_ptr<keyframe> max_weight_parent = nullptr;
         std::shared_ptr<keyframe> max_weight_child = nullptr;
 
-        for (const auto spanning_child : spanning_children_) {
+        for (const auto& spanning_child : spanning_children_) {
             auto locked_spanning_child = spanning_child.lock();
             if (locked_spanning_child->will_be_erased()) {
                 continue;
@@ -290,7 +290,7 @@ void graph_node::recover_spanning_connections() {
             const auto intersection = extract_intersection(new_parent_candidates, child_covisibilities);
 
             // find the new parent (which has the maximum weight with the spanning child) from the intersection
-            for (const auto parent_candidate : intersection) {
+            for (const auto& parent_candidate : intersection) {
                 const auto weight = locked_spanning_child->graph_node_->get_weight(parent_candidate);
                 if (max_weight < weight) {
                     max_weight = weight;
@@ -316,7 +316,7 @@ void graph_node::recover_spanning_connections() {
     // if it should be fixed
     if (!spanning_children_.empty()) {
         // set my parent as the new parent
-        for (const auto spanning_child : spanning_children_) {
+        for (const auto& spanning_child : spanning_children_) {
             spanning_child.lock()->graph_node_->change_spanning_parent(spanning_parent_.lock());
         }
     }
