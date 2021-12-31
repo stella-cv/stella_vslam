@@ -133,7 +133,6 @@ jobs:
         run: |
           cp scripts/workflows/* .
           (
-            echo 'result<<EOF'
             echo '<details>'
             echo '<summary>Track time and Relative pose error</summary>'
             echo
@@ -164,18 +163,12 @@ jobs:
             bash evo_rpe_print_row.bash tum openvslam_test_dataset/3/gt.tum frame_trajectory_equirectangular_3.txt -as
             echo '|'
             echo '</details>'
-            echo 'EOF'
-          ) >> $GITHUB_ENV
-      - uses: actions/github-script@v5
+          ) >> result.md
+      - uses: actions/upload-artifact@v2
         if: github.event_name == 'pull_request'
         with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: process.env.result
-            })
+          name: result
+          path: result.md
 
   build_tutorial:
     runs-on: ubuntu-latest
