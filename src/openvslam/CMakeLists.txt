@@ -76,9 +76,9 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 # ----- Compile configuration -----
 
 # OpenMP
-target_compile_options(${PROJECT_NAME} PRIVATE ${OpenMP_CXX_FLAGS})
 set(USE_OPENMP OFF CACHE BOOL "Use OpenMP")
 if(USE_OPENMP)
+    target_compile_options(${PROJECT_NAME} PRIVATE ${OpenMP_CXX_FLAGS})
     target_compile_definitions(${PROJECT_NAME} PUBLIC USE_OPENMP)
     message(STATUS "OpenMP: ENABLED")
 else()
