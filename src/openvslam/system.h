@@ -6,8 +6,10 @@
 
 #include <string>
 #include <thread>
+#include <memory>
 #include <mutex>
 #include <atomic>
+#include <memory>
 
 #include <opencv2/core/core.hpp>
 
@@ -118,7 +120,8 @@ public:
 
     //! Request to update the pose to a given one.
     //! Return failure in case if previous request was not finished.
-    bool update_pose(const Mat44_t& cam_pose_wc);
+    bool relocalize_by_pose(const Mat44_t& cam_pose_wc);
+    bool relocalize_by_pose_2d(const Mat44_t& cam_pose_wc, const Vec3_t& normal_vector);
 
     //-----------------------------------------
     // management for pause

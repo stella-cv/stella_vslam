@@ -17,7 +17,7 @@
 namespace openvslam {
 
 mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* map_db)
-    : local_map_cleaner_(new module::local_map_cleaner()), map_db_(map_db),
+    : local_map_cleaner_(new module::local_map_cleaner(yaml_node["redundant_obs_ratio_thr"].as<double>(0.9))), map_db_(map_db),
       local_bundle_adjuster_(new optimize::local_bundle_adjuster()) {
     spdlog::debug("CONSTRUCT: mapping_module");
     spdlog::debug("load mapping parameters");
@@ -113,7 +113,7 @@ void mapping_module::run() {
     spdlog::info("terminate mapping module");
 }
 
-void mapping_module::queue_keyframe(data::keyframe* keyfrm) {
+void mapping_module::queue_keyframe(const std::shared_ptr<data::keyframe>& keyfrm) {
     std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
     keyfrms_queue_.push_back(keyfrm);
     abort_local_BA_ = true;
@@ -275,7 +275,7 @@ void mapping_module::create_new_landmarks() {
     }
 }
 
-void mapping_module::triangulate_with_two_keyframes(data::keyframe* keyfrm_1, data::keyframe* keyfrm_2,
+void mapping_module::triangulate_with_two_keyframes(const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2,
                                                     const std::vector<std::pair<unsigned int, unsigned int>>& matches) {
     const module::two_view_triangulator triangulator(keyfrm_1, keyfrm_2, 1.0);
 
@@ -295,7 +295,7 @@ void mapping_module::triangulate_with_two_keyframes(data::keyframe* keyfrm_1, da
         // succeeded
 
         // create a landmark object
-        auto lm = new data::landmark(pos_w, keyfrm_1, map_db_);
+        auto lm = std::make_shared<data::landmark>(pos_w, keyfrm_1, map_db_);
 
         lm->add_observation(keyfrm_1, idx_1);
         lm->add_observation(keyfrm_2, idx_2);
@@ -327,7 +327,7 @@ void mapping_module::update_new_keyframe() {
 
     // update the geometries
     const auto cur_landmarks = cur_keyfrm_->get_landmarks();
-    for (const auto lm : cur_landmarks) {
+    for (const auto& lm : cur_landmarks) {
         if (!lm) {
             continue;
         }
@@ -342,14 +342,14 @@ void mapping_module::update_new_keyframe() {
     cur_keyfrm_->graph_node_->update_connections();
 }
 
-std::unordered_set<data::keyframe*> mapping_module::get_second_order_covisibilities(const unsigned int first_order_thr,
-                                                                                    const unsigned int second_order_thr) {
+std::unordered_set<std::shared_ptr<data::keyframe>> mapping_module::get_second_order_covisibilities(const unsigned int first_order_thr,
+                                                                                                    const unsigned int second_order_thr) {
     const auto cur_covisibilities = cur_keyfrm_->graph_node_->get_top_n_covisibilities(first_order_thr);
 
-    std::unordered_set<data::keyframe*> fuse_tgt_keyfrms;
+    std::unordered_set<std::shared_ptr<data::keyframe>> fuse_tgt_keyfrms;
     fuse_tgt_keyfrms.reserve(cur_covisibilities.size() * 2);
 
-    for (const auto first_order_covis : cur_covisibilities) {
+    for (const auto& first_order_covis : cur_covisibilities) {
         if (first_order_covis->will_be_erased()) {
             continue;
         }
@@ -363,7 +363,7 @@ std::unordered_set<data::keyframe*> mapping_module::get_second_order_covisibilit
 
         // get the covisibilities of the covisibility of the current keyframe
         const auto ngh_covisibilities = first_order_covis->graph_node_->get_top_n_covisibilities(second_order_thr);
-        for (const auto second_order_covis : ngh_covisibilities) {
+        for (const auto& second_order_covis : ngh_covisibilities) {
             if (second_order_covis->will_be_erased()) {
                 continue;
             }
@@ -379,7 +379,7 @@ std::unordered_set<data::keyframe*> mapping_module::get_second_order_covisibilit
     return fuse_tgt_keyfrms;
 }
 
-void mapping_module::fuse_landmark_duplication(const std::unordered_set<data::keyframe*>& fuse_tgt_keyfrms) {
+void mapping_module::fuse_landmark_duplication(const std::unordered_set<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms) {
     match::fuse matcher;
 
     {
@@ -388,7 +388,7 @@ void mapping_module::fuse_landmark_duplication(const std::unordered_set<data::ke
         // - duplication of matches
         // then, add matches and solve duplication
         auto cur_landmarks = cur_keyfrm_->get_landmarks();
-        for (const auto fuse_tgt_keyfrm : fuse_tgt_keyfrms) {
+        for (const auto& fuse_tgt_keyfrm : fuse_tgt_keyfrms) {
             matcher.replace_duplication(fuse_tgt_keyfrm, cur_landmarks);
         }
     }
@@ -398,13 +398,13 @@ void mapping_module::fuse_landmark_duplication(const std::unordered_set<data::ke
         // - additional matches
         // - duplication of matches
         // then, add matches and solve duplication
-        std::unordered_set<data::landmark*> candidate_landmarks_to_fuse;
+        std::unordered_set<std::shared_ptr<data::landmark>> candidate_landmarks_to_fuse;
         candidate_landmarks_to_fuse.reserve(fuse_tgt_keyfrms.size() * cur_keyfrm_->num_keypts_);
 
-        for (const auto fuse_tgt_keyfrm : fuse_tgt_keyfrms) {
+        for (const auto& fuse_tgt_keyfrm : fuse_tgt_keyfrms) {
             const auto fuse_tgt_landmarks = fuse_tgt_keyfrm->get_landmarks();
 
-            for (const auto lm : fuse_tgt_landmarks) {
+            for (const auto& lm : fuse_tgt_landmarks) {
                 if (!lm) {
                     continue;
                 }
@@ -501,9 +501,6 @@ void mapping_module::resume() {
     pause_is_requested_ = false;
 
     // clear the queue
-    for (auto& new_keyframe : keyfrms_queue_) {
-        delete new_keyframe;
-    }
     keyfrms_queue_.clear();
 
     spdlog::info("resume mapping module");

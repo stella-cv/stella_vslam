@@ -139,7 +139,7 @@ RUN set -x && \
 ENV OpenCV_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/opencv4
 
 # FBoW
-ARG FBoW_COMMIT=560c339ea1bcdf3116a2c3f8228fc2ba351cd4b4
+ARG FBoW_COMMIT=30f45f1d97314145f81b49617bb37846a861dfe7
 WORKDIR /tmp
 RUN set -x && \
   git clone https://github.com/OpenVSLAM-Community/FBoW.git && \
@@ -265,7 +265,8 @@ RUN set -x && \
   : "ci dependencies" && \
   apt-get install -y -qq \
     ccache \
-    clang-format-6.0 && \
+    clang-format-6.0 \ 
+    datamash && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
@@ -281,6 +282,7 @@ RUN set -x && \
   apt-get install -y -qq \
     python3-pip && \
   pip3 install evo --upgrade --no-binary evo && \
-  : "remove cache" && \
+  : "remove cache"  && \
+  rm -rf ~/.cache/pip && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*

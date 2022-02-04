@@ -64,6 +64,14 @@ double get_reloc_angle_threshold(const YAML::Node& yaml_node) {
     return yaml_node["reloc_angle_threshold"].as<double>(0.45);
 }
 
+double get_enable_auto_relocalization(const YAML::Node& yaml_node) {
+    return yaml_node["enable_auto_relocalization"].as<bool>(true);
+}
+
+double get_use_robust_matcher_for_relocalization_request(const YAML::Node& yaml_node) {
+    return yaml_node["use_robust_matcher_for_relocalization_request"].as<bool>(false);
+}
+
 } // unnamed namespace
 
 namespace openvslam {
@@ -74,20 +82,26 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
       depthmap_factor_(get_depthmap_factor(camera_, util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
       reloc_distance_threshold_(get_reloc_distance_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
       reloc_angle_threshold_(get_reloc_angle_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
+      enable_auto_relocalization_(get_enable_auto_relocalization(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
+      use_robust_matcher_for_relocalization_request_(get_use_robust_matcher_for_relocalization_request(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
       system_(system), map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(cfg->camera_->setup_type_, map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
-      frame_tracker_(camera_, 10), relocalizer_(bow_db_), pose_optimizer_(),
+      frame_tracker_(camera_, 10),
+      relocalizer_(bow_db_, util::yaml_optional_ref(cfg->yaml_node_, "Relocalizer")),
+      pose_optimizer_(),
       keyfrm_inserter_(cfg->camera_->setup_type_, true_depth_thr_, map_db, bow_db, 0, cfg->camera_->fps_) {
     spdlog::debug("CONSTRUCT: tracking_module");
 
     feature::orb_params orb_params = get_orb_params(util::yaml_optional_ref(cfg->yaml_node_, "Feature"));
     const auto tracking_params = util::yaml_optional_ref(cfg->yaml_node_, "Tracking");
-    extractor_left_ = new feature::orb_extractor(tracking_params["max_num_keypoints"].as<unsigned int>(2000), orb_params);
+    const auto max_num_keypoints = tracking_params["max_num_keypoints"].as<unsigned int>(2000);
+    extractor_left_ = new feature::orb_extractor(max_num_keypoints, orb_params);
     if (camera_->setup_type_ == camera::setup_type_t::Monocular) {
-        ini_extractor_left_ = new feature::orb_extractor(tracking_params["ini_max_num_keypoints"].as<unsigned int>(4000), orb_params);
+        const auto ini_max_num_keypoints = tracking_params["ini_max_num_keypoints"].as<unsigned int>(2 * extractor_left_->get_max_num_keypoints());
+        ini_extractor_left_ = new feature::orb_extractor(ini_max_num_keypoints, orb_params);
     }
     if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
-        extractor_right_ = new feature::orb_extractor(tracking_params["max_num_keypoints"].as<unsigned int>(2000), orb_params);
+        extractor_right_ = new feature::orb_extractor(max_num_keypoints, orb_params);
     }
 }
 
@@ -204,30 +218,44 @@ std::shared_ptr<Mat44_t> tracking_module::track_RGBD_image(const cv::Mat& img, c
     return cam_pose_wc;
 }
 
-bool tracking_module::request_update_pose(const Mat44_t& pose) {
-    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
-    if (update_pose_is_requested_) {
+bool tracking_module::request_relocalize_by_pose(const Mat44_t& pose) {
+    std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
+    if (relocalize_by_pose_is_requested_) {
         spdlog::warn("Can not process new pose update request while previous was not finished");
         return false;
     }
-    update_pose_is_requested_ = true;
-    requested_pose_ = pose;
+    relocalize_by_pose_is_requested_ = true;
+    relocalize_by_pose_request_.mode_2d_ = false;
+    relocalize_by_pose_request_.pose_ = pose;
     return true;
 }
 
-bool tracking_module::update_pose_is_requested() {
-    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
-    return update_pose_is_requested_;
+bool tracking_module::request_relocalize_by_pose_2d(const Mat44_t& pose, const Vec3_t& normal_vector) {
+    std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
+    if (relocalize_by_pose_is_requested_) {
+        spdlog::warn("Can not process new pose update request while previous was not finished");
+        return false;
+    }
+    relocalize_by_pose_is_requested_ = true;
+    relocalize_by_pose_request_.mode_2d_ = true;
+    relocalize_by_pose_request_.pose_ = pose;
+    relocalize_by_pose_request_.normal_vector_ = normal_vector;
+    return true;
 }
 
-Mat44_t& tracking_module::get_requested_pose() {
-    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
-    return requested_pose_;
+bool tracking_module::relocalize_by_pose_is_requested() {
+    std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
+    return relocalize_by_pose_is_requested_;
 }
 
-void tracking_module::finish_update_pose_request() {
-    std::lock_guard<std::mutex> lock(mtx_update_pose_request_);
-    update_pose_is_requested_ = false;
+pose_request& tracking_module::get_relocalize_by_pose_request() {
+    std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
+    return relocalize_by_pose_request_;
+}
+
+void tracking_module::finish_relocalize_by_pose_request() {
+    std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
+    relocalize_by_pose_is_requested_ = false;
 }
 
 void tracking_module::reset() {
@@ -277,7 +305,7 @@ void tracking_module::track() {
 
         // pass all of the keyframes to the mapping module
         const auto keyfrms = map_db_->get_all_keyframes();
-        for (const auto keyfrm : keyfrms) {
+        for (const auto& keyfrm : keyfrms) {
             mapper_->queue_keyframe(keyfrm);
         }
 
@@ -373,24 +401,9 @@ bool tracking_module::initialize() {
 bool tracking_module::track_current_frame() {
     bool succeeded = false;
 
-    if (update_pose_is_requested()) {
+    if (relocalize_by_pose_is_requested()) {
         // Force relocalization by pose
-        curr_frm_.set_cam_pose(get_requested_pose());
-
-        curr_frm_.compute_bow();
-        const auto candidates = map_db_->get_close_keyframes(get_requested_pose(),
-                                                             reloc_distance_threshold_,
-                                                             reloc_angle_threshold_);
-        if (!candidates.empty()) {
-            succeeded = relocalizer_.reloc_by_candidates(curr_frm_, candidates);
-            if (succeeded) {
-                last_reloc_frm_id_ = curr_frm_.id_;
-            }
-        }
-        else {
-            curr_frm_.cam_pose_cw_is_valid_ = false;
-        }
-        finish_update_pose_request();
+        succeeded = relocalize_by_pose(get_relocalize_by_pose_request());
         return succeeded;
     }
 
@@ -407,7 +420,7 @@ bool tracking_module::track_current_frame() {
             succeeded = frame_tracker_.robust_match_based_track(curr_frm_, last_frm_, curr_frm_.ref_keyfrm_);
         }
     }
-    else {
+    else if (enable_auto_relocalization_) {
         // Lost mode
         // try to relocalize
         succeeded = relocalizer_.relocalize(curr_frm_);
@@ -417,6 +430,42 @@ bool tracking_module::track_current_frame() {
     }
 
     return succeeded;
+}
+
+bool tracking_module::relocalize_by_pose(const pose_request& request) {
+    bool succeeded = false;
+    curr_frm_.set_cam_pose(request.pose_);
+
+    curr_frm_.compute_bow();
+    const auto candidates = get_close_keyframes(request);
+
+    if (!candidates.empty()) {
+        succeeded = relocalizer_.reloc_by_candidates(curr_frm_, candidates, use_robust_matcher_for_relocalization_request_);
+        if (succeeded) {
+            last_reloc_frm_id_ = curr_frm_.id_;
+        }
+    }
+    else {
+        curr_frm_.cam_pose_cw_is_valid_ = false;
+    }
+    finish_relocalize_by_pose_request();
+    return succeeded;
+}
+
+std::vector<std::shared_ptr<data::keyframe>> tracking_module::get_close_keyframes(const pose_request& request) {
+    if (request.mode_2d_) {
+        return map_db_->get_close_keyframes_2d(
+            request.pose_,
+            request.normal_vector_,
+            reloc_distance_threshold_,
+            reloc_angle_threshold_);
+    }
+    else {
+        return map_db_->get_close_keyframes(
+            request.pose_,
+            reloc_distance_threshold_,
+            reloc_angle_threshold_);
+    }
 }
 
 void tracking_module::update_motion_model() {
@@ -435,7 +484,7 @@ void tracking_module::update_motion_model() {
 
 void tracking_module::apply_landmark_replace() {
     for (unsigned int idx = 0; idx < last_frm_.num_keypts_; ++idx) {
-        auto lm = last_frm_.landmarks_.at(idx);
+        auto& lm = last_frm_.landmarks_.at(idx);
         if (!lm) {
             continue;
         }
@@ -465,7 +514,7 @@ bool tracking_module::optimize_current_frame_with_local_map() {
     // count up the number of tracked landmarks
     num_tracked_lms_ = 0;
     for (unsigned int idx = 0; idx < curr_frm_.num_keypts_; ++idx) {
-        auto lm = curr_frm_.landmarks_.at(idx);
+        const auto& lm = curr_frm_.landmarks_.at(idx);
         if (!lm) {
             continue;
         }
@@ -505,7 +554,7 @@ bool tracking_module::optimize_current_frame_with_local_map() {
 void tracking_module::update_local_map() {
     // clean landmark associations
     for (unsigned int idx = 0; idx < curr_frm_.num_keypts_; ++idx) {
-        auto lm = curr_frm_.landmarks_.at(idx);
+        const auto& lm = curr_frm_.landmarks_.at(idx);
         if (!lm) {
             continue;
         }
@@ -536,7 +585,7 @@ void tracking_module::update_local_map() {
 
 void tracking_module::search_local_landmarks() {
     // select the landmarks which can be reprojected from the ones observed in the current frame
-    for (auto lm : curr_frm_.landmarks_) {
+    for (const auto& lm : curr_frm_.landmarks_) {
         if (!lm) {
             continue;
         }
@@ -558,7 +607,7 @@ void tracking_module::search_local_landmarks() {
     Vec2_t reproj;
     float x_right;
     unsigned int pred_scale_level;
-    for (auto lm : local_landmarks_) {
+    for (const auto& lm : local_landmarks_) {
         // avoid the landmarks which cannot be reprojected (== observed in the current frame)
         if (lm->identifier_in_local_lm_search_ == curr_frm_.id_) {
             continue;

@@ -26,19 +26,19 @@ public:
     virtual ~landmark_vertex_container() = default;
 
     //! Create and return the g2o vertex created from the specified landmark
-    landmark_vertex* create_vertex(data::landmark* lm, const bool is_constant);
+    landmark_vertex* create_vertex(const std::shared_ptr<data::landmark>& lm, const bool is_constant);
 
     //! Create and return the g2o vertex created from the specified landmark
     landmark_vertex* create_vertex(const unsigned int id, const Vec3_t& pos_w, const bool is_constant);
 
     //! Get vertex corresponding with the specified landmark
-    landmark_vertex* get_vertex(data::landmark* lm) const;
+    landmark_vertex* get_vertex(const std::shared_ptr<data::landmark>& lm) const;
 
     //! Get vertex corresponding with the specified landmark ID
     landmark_vertex* get_vertex(const unsigned int id) const;
 
     //! Convert landmark to vertex ID
-    unsigned int get_vertex_id(data::landmark* lm) const;
+    unsigned int get_vertex_id(const std::shared_ptr<data::landmark>& lm) const;
 
     //! Convert landmark ID to vertex ID
     unsigned int get_vertex_id(const unsigned int id) const;
@@ -50,7 +50,7 @@ public:
     unsigned int get_id(const unsigned int vtx_id) const;
 
     //! Contains the specified landmark or not
-    bool contain(data::landmark* lm) const;
+    bool contain(const std::shared_ptr<data::landmark>& lm) const;
 
     // iterators to sweep landmark vertices
     using iterator = std::unordered_map<unsigned int, landmark_vertex*>::iterator;
@@ -81,7 +81,7 @@ inline landmark_vertex_container::landmark_vertex_container(const std::shared_pt
     id_container_.reserve(num_reserve);
 }
 
-inline landmark_vertex* landmark_vertex_container::create_vertex(data::landmark* lm, const bool is_constant) {
+inline landmark_vertex* landmark_vertex_container::create_vertex(const std::shared_ptr<data::landmark>& lm, const bool is_constant) {
     return create_vertex(lm->id_, lm->get_pos_in_world(), is_constant);
 }
 
@@ -102,7 +102,7 @@ inline landmark_vertex* landmark_vertex_container::create_vertex(const unsigned 
     return vtx;
 }
 
-inline landmark_vertex* landmark_vertex_container::get_vertex(data::landmark* lm) const {
+inline landmark_vertex* landmark_vertex_container::get_vertex(const std::shared_ptr<data::landmark>& lm) const {
     return get_vertex(lm->id_);
 }
 
@@ -110,7 +110,7 @@ inline landmark_vertex* landmark_vertex_container::get_vertex(const unsigned int
     return vtx_container_.at(id);
 }
 
-inline unsigned int landmark_vertex_container::get_vertex_id(data::landmark* lm) const {
+inline unsigned int landmark_vertex_container::get_vertex_id(const std::shared_ptr<data::landmark>& lm) const {
     return get_vertex_id(lm->id_);
 }
 
@@ -126,7 +126,7 @@ inline unsigned int landmark_vertex_container::get_id(const unsigned int vtx_id)
     return id_container_.at(vtx_id);
 }
 
-inline bool landmark_vertex_container::contain(data::landmark* lm) const {
+inline bool landmark_vertex_container::contain(const std::shared_ptr<data::landmark>& lm) const {
     return 0 != vtx_container_.count(lm->id_);
 }
 

@@ -123,7 +123,7 @@ void global_optimization_module::run() {
     spdlog::info("terminate global optimization module");
 }
 
-void global_optimization_module::queue_keyframe(data::keyframe* keyfrm) {
+void global_optimization_module::queue_keyframe(const std::shared_ptr<data::keyframe>& keyfrm) {
     std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
     if (keyfrm->id_ != 0) {
         keyfrms_queue_.push_back(keyfrm);
@@ -165,7 +165,7 @@ void global_optimization_module::correct_loop() {
     //    finally, landmarks observed in them are also moved to the correct position using the camera poses before and after camera pose correction
 
     // acquire the covisibilities of the current keyframe
-    std::vector<data::keyframe*> curr_neighbors = cur_keyfrm_->graph_node_->get_covisibilities();
+    std::vector<std::shared_ptr<data::keyframe>> curr_neighbors = cur_keyfrm_->graph_node_->get_covisibilities();
     curr_neighbors.push_back(cur_keyfrm_);
 
     // Sim3 camera poses BEFORE loop correction
@@ -228,10 +228,10 @@ void global_optimization_module::correct_loop() {
     loop_detector_->set_loop_correct_keyframe_id(cur_keyfrm_->id_);
 }
 
-module::keyframe_Sim3_pairs_t global_optimization_module::get_Sim3s_before_loop_correction(const std::vector<data::keyframe*>& neighbors) const {
+module::keyframe_Sim3_pairs_t global_optimization_module::get_Sim3s_before_loop_correction(const std::vector<std::shared_ptr<data::keyframe>>& neighbors) const {
     module::keyframe_Sim3_pairs_t Sim3s_nw_before_loop_correction;
 
-    for (const auto neighbor : neighbors) {
+    for (const auto& neighbor : neighbors) {
         // camera pose of `neighbor` BEFORE loop correction
         const Mat44_t cam_pose_nw = neighbor->get_cam_pose();
         // create Sim3 from SE3
@@ -246,7 +246,7 @@ module::keyframe_Sim3_pairs_t global_optimization_module::get_Sim3s_before_loop_
 
 module::keyframe_Sim3_pairs_t global_optimization_module::get_Sim3s_after_loop_correction(const Mat44_t& cam_pose_wc_before_correction,
                                                                                           const g2o::Sim3& g2o_Sim3_cw_after_correction,
-                                                                                          const std::vector<data::keyframe*>& neighbors) const {
+                                                                                          const std::vector<std::shared_ptr<data::keyframe>>& neighbors) const {
     module::keyframe_Sim3_pairs_t Sim3s_nw_after_loop_correction;
 
     for (auto neighbor : neighbors) {
@@ -275,7 +275,7 @@ void global_optimization_module::correct_covisibility_landmarks(const module::ke
         const auto& Sim3_nw_before_correction = Sim3s_nw_before_correction.at(neighbor);
 
         const auto ngh_landmarks = neighbor->get_landmarks();
-        for (auto lm : ngh_landmarks) {
+        for (const auto& lm : ngh_landmarks) {
             if (!lm) {
                 continue;
             }
@@ -318,7 +318,7 @@ void global_optimization_module::correct_covisibility_keyframes(const module::ke
     }
 }
 
-void global_optimization_module::replace_duplicated_landmarks(const std::vector<data::landmark*>& curr_match_lms_observed_in_cand,
+void global_optimization_module::replace_duplicated_landmarks(const std::vector<std::shared_ptr<data::landmark>>& curr_match_lms_observed_in_cand,
                                                               const module::keyframe_Sim3_pairs_t& Sim3s_nw_after_correction) const {
     // resolve duplications of landmarks between the current keyframe and the loop candidate
     {
@@ -330,7 +330,7 @@ void global_optimization_module::replace_duplicated_landmarks(const std::vector<
                 continue;
             }
 
-            auto lm_in_curr = cur_keyfrm_->get_landmark(idx);
+            const auto& lm_in_curr = cur_keyfrm_->get_landmark(idx);
             if (lm_in_curr) {
                 // if the landmark corresponding `idx` exists,
                 // replace it with `curr_match_lm_in_cand` (observed in the candidate)
@@ -347,7 +347,7 @@ void global_optimization_module::replace_duplicated_landmarks(const std::vector<
     }
 
     // resolve duplications of landmarks between the current keyframe and the candidates of the loop candidate
-    const auto curr_match_lms_observed_in_cand_covis = loop_detector_->current_matched_landmarks_observed_in_candidate_covisibilities();
+    auto curr_match_lms_observed_in_cand_covis = loop_detector_->current_matched_landmarks_observed_in_candidate_covisibilities();
     match::fuse fuser(0.8);
     for (const auto& t : Sim3s_nw_after_correction) {
         auto neighbor = t.first;
@@ -355,13 +355,13 @@ void global_optimization_module::replace_duplicated_landmarks(const std::vector<
 
         // reproject the landmarks observed in the current keyframe to the neighbor,
         // then search duplication of the landmarks
-        std::vector<data::landmark*> lms_to_replace(curr_match_lms_observed_in_cand_covis.size(), nullptr);
+        std::vector<std::shared_ptr<data::landmark>> lms_to_replace(curr_match_lms_observed_in_cand_covis.size(), nullptr);
         fuser.detect_duplication(neighbor, Sim3_nw_after_correction, curr_match_lms_observed_in_cand_covis, 4, lms_to_replace);
 
         std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
         // if any landmark duplication is found, replace it
         for (unsigned int i = 0; i < curr_match_lms_observed_in_cand_covis.size(); ++i) {
-            auto lm_to_replace = lms_to_replace.at(i);
+            const auto& lm_to_replace = lms_to_replace.at(i);
             if (lm_to_replace) {
                 lm_to_replace->replace(curr_match_lms_observed_in_cand_covis.at(i));
             }
@@ -369,9 +369,9 @@ void global_optimization_module::replace_duplicated_landmarks(const std::vector<
     }
 }
 
-auto global_optimization_module::extract_new_connections(const std::vector<data::keyframe*>& covisibilities) const
-    -> std::map<data::keyframe*, std::set<data::keyframe*>> {
-    std::map<data::keyframe*, std::set<data::keyframe*>> new_connections;
+auto global_optimization_module::extract_new_connections(const std::vector<std::shared_ptr<data::keyframe>>& covisibilities) const
+    -> std::map<std::shared_ptr<data::keyframe>, std::set<std::shared_ptr<data::keyframe>>> {
+    std::map<std::shared_ptr<data::keyframe>, std::set<std::shared_ptr<data::keyframe>>> new_connections;
 
     for (auto covisibility : covisibilities) {
         // acquire neighbors BEFORE loop fusion (because update_connections() is not called yet)
@@ -383,11 +383,11 @@ auto global_optimization_module::extract_new_connections(const std::vector<data:
         new_connections[covisibility] = covisibility->graph_node_->get_connected_keyframes();
 
         // remove covisibilities
-        for (const auto keyfrm_to_erase : covisibilities) {
+        for (const auto& keyfrm_to_erase : covisibilities) {
             new_connections.at(covisibility).erase(keyfrm_to_erase);
         }
         // remove nighbors before loop fusion
-        for (const auto keyfrm_to_erase : neighbors_before_update) {
+        for (const auto& keyfrm_to_erase : neighbors_before_update) {
             new_connections.at(covisibility).erase(keyfrm_to_erase);
         }
     }

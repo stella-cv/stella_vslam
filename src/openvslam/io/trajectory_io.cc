@@ -123,7 +123,7 @@ void trajectory_io::save_keyframe_trajectory(const std::string& path, const std:
 
     assert(map_db_);
     auto keyfrms = map_db_->get_all_keyframes();
-    std::sort(keyfrms.begin(), keyfrms.end(), [&](data::keyframe* keyfrm_1, data::keyframe* keyfrm_2) {
+    std::sort(keyfrms.begin(), keyfrms.end(), [&](const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2) {
         return *keyfrm_1 < *keyfrm_2;
     });
 
@@ -143,7 +143,7 @@ void trajectory_io::save_keyframe_trajectory(const std::string& path, const std:
     spdlog::info("dump keyframe trajectory in \"{}\" format from keyframe {} to keyframe {} ({} keyframes)",
                  format, (*keyfrms.begin())->id_, (*keyfrms.rbegin())->id_, keyfrms.size());
 
-    for (const auto keyfrm : keyfrms) {
+    for (const auto& keyfrm : keyfrms) {
         const Mat44_t cam_pose_wc = keyfrm->get_cam_pose_inv();
         const auto timestamp = keyfrm->timestamp_;
 

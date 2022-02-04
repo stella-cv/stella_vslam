@@ -1,6 +1,7 @@
 #include "openvslam/camera/perspective.h"
 #include "openvslam/camera/fisheye.h"
 #include "openvslam/util/stereo_rectifier.h"
+#include "openvslam/util/yaml.h"
 
 #include <spdlog/spdlog.h>
 #include <opencv2/imgproc.hpp>
@@ -9,13 +10,18 @@ namespace openvslam {
 namespace util {
 
 stereo_rectifier::stereo_rectifier(const std::shared_ptr<openvslam::config>& cfg)
-    : stereo_rectifier(cfg->camera_, cfg->yaml_node_) {}
+    : stereo_rectifier(cfg->camera_,
+                       openvslam::util::yaml_optional_ref(cfg->yaml_node_, "StereoRectifier")) {}
 
 stereo_rectifier::stereo_rectifier(camera::base* camera, const YAML::Node& yaml_node)
     : model_type_(load_model_type(yaml_node)) {
     spdlog::debug("CONSTRUCT: util::stereo_rectifier");
-    assert(camera->setup_type_ == camera::setup_type_t::Stereo);
-    assert(camera->model_type_ == camera::model_type_t::Perspective);
+    if (camera->setup_type_ != camera::setup_type_t::Stereo) {
+        throw std::runtime_error("When stereo rectification is used, 'setup' must be set to 'stereo'");
+    }
+    if (camera->model_type_ != camera::model_type_t::Perspective) {
+        throw std::runtime_error("When stereo rectification is used, 'model' must be set to 'perspective'");
+    }
     // set image size
     const cv::Size img_size(camera->cols_, camera->rows_);
     // set camera matrices

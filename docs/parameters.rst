@@ -21,7 +21,7 @@ Camera
     * - setup
       - monocular, stereo, RGBD
     * - model
-      - perspective, fisheye, equirectangular, radial_division
+      - perspective, fisheye, equirectangular, radial_division (note: If you want to use stereo_rectifier, you need to specify perspective.)
     * - fx, fy
       - Focal length (pixel)
     * - cx, cy
@@ -85,6 +85,10 @@ Tracking
       - Maximum distance threshold (in meters) where close keyframes could be found when doing a relocalization by pose.
     * - reloc_angle_threshold
       - Maximum angle threshold (in radians) between given pose and close keyframes when doing a relocalization by pose.
+    * - enable_auto_relocalization
+      - If true, automatically try to relocalize when lost.
+    * - use_robust_matcher_for_relocalization_request
+      - If true, use robust_matcher for relocalization request.
 
 .. _section-parameters-mapping:
 
@@ -102,6 +106,8 @@ Mapping
         Either baseline_dist_thr or this one should be specified. If not specified, baseline_dist_thr_ratio will be used.
     * - baseline_dist_thr
       - For two frames of baseline below the threshold, no triangulation will be performed.
+    * - redundant_obs_ratio_thr
+      - 
 
 .. _section-parameters-stereo-rectifier:
 
@@ -115,7 +121,7 @@ StereoRectifier
     * - Name
       - Description
     * - model
-      - camera model type before rectification
+      - camera model type before rectification. The option is perspective or fisheye. (note: If you want to use fisheye model for stereo_rectifier, you need to specify Camera::model to perspective.)
     * - K_left, K_right
       - Intrinsic parameters. The 3x3 matrix are written in row-major order.
     * - D_left, D_right
@@ -137,7 +143,27 @@ Initializer
       - Description
     * - num_min_triangulated_pts
       - Minimum number of triangulated points
-          
+
+.. _section-parameters-relocalizer:
+
+Relocalizer
+===========
+
+.. list-table::
+    :header-rows: 1
+    :widths: 1, 3
+
+    * - Name
+      - Description
+    * - bow_match_lowe_ratio
+      - 
+    * - proj_match_lowe_ratio
+      - 
+    * - min_num_bow_matches
+      - 
+    * - min_num_valid_obs
+      - 
+
 .. _section-parameters-pangolin:
 
 PangolinViewer
@@ -164,8 +190,10 @@ PangolinViewer
     * - viewpoint_x, viewpoint_y, viewpoint_z, viewpoint_f
       - 
 
+.. _section-parameters-socket-publisher:
+
 SocketPublisher
-==============
+===============
 
 .. list-table::
     :header-rows: 1
@@ -182,6 +210,8 @@ SocketPublisher
     * - publish_points
       - If true, pointcloud transfer is enabled. The default is true. Pointcloud transfer is slow, so disabling pointcloud transfer may be useful to improve performance of SocketViewer.
 
+.. _section-parameters-loop-detector:
+
 LoopDetector
 ============
 
@@ -197,3 +227,19 @@ LoopDetector
       - the threshold of the number of mutual matches after the Sim3 estimation
     * - min_continuity
       - the threshold of the continuity of continuously detected keyframe set
+
+.. _section-parameters-bow-database:
+
+BowDatabase
+===========
+
+.. list-table::
+    :header-rows: 1
+    :widths: 1, 3
+
+    * - Name
+      - Description
+    * - reject_by_graph_distance
+      - 
+    * - loop_min_distance_on_graph
+      - 

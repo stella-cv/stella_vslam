@@ -76,26 +76,99 @@ jobs:
           cd build
           export BOW_VOCAB=/datasets/orb_vocab/orb_vocab.fbow
           ctest -V
-      - name: Convert groundtruth to TUM format (data.tum)
+      - name: Convert groundtruth to TUM format
         run: |
-          cd build
-          python3 ../scripts/dataset_tools/compute_euroc_cam_tf.py > tf.json
+          python3 scripts/dataset_tools/compute_euroc_cam_tf.py > tf.json
           evo_traj euroc --transform_right tf.json /datasets/EuRoC/MH_04/state_groundtruth_estimate0/data.csv --save_as_tum
+          mv data.tum euroc_gt.tum
       - name: SLAM test (monocular) with EuRoC MAV dataset
         run: |
           cd build
           ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_mono.msg
-          evo_rpe tum data.tum frame_trajectory.txt -as
+          mv frame_trajectory.txt ../frame_trajectory_euroc_mono_slam.txt
+          mv track_times.txt ../track_times_euroc_mono_slam.txt
       - name: SLAM test (stereo) with EuRoC MAV dataset
         run: |
           cd build
           ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_stereo.msg
-          evo_rpe tum data.tum frame_trajectory.txt -a
+          mv frame_trajectory.txt ../frame_trajectory_euroc_stereo_slam.txt
+          mv track_times.txt ../track_times_euroc_stereo_slam.txt
       - name: Localization test (monocular) with EuRoC MAV dataset
         run: |
           cd build
           ./run_euroc_localization -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_mono.msg
-          evo_rpe tum data.tum frame_trajectory.txt -as
+          mv frame_trajectory.txt ../frame_trajectory_euroc_mono_localization.txt
+          mv track_times.txt ../track_times_euroc_mono_localization.txt
+      - name: download openvslam_test_dataset
+        run: |
+          FILE_ID="1bdkqaR99GKjg4orhqHxQkwqyi227tfCd"
+          curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${FILE_ID}" > /dev/null
+          CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
+          curl -sLb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=${FILE_ID}" -o openvslam_test_dataset.zip
+          unzip openvslam_test_dataset.zip
+          rm openvslam_test_dataset.zip
+      - name: make config for openvslam_test_dataset
+        run: |
+          sed -e 's/fps: .*/fps: 24.0/g' example/aist/equirectangular.yaml > equirectangular.yaml
+      - name: SLAM test with equirectangular dataset (1)
+        run: |
+          cd build
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/1/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --debug --eval-log --map-db equirectangular_map.msg
+          mv frame_trajectory.txt ../frame_trajectory_equirectangular_1.txt
+          mv track_times.txt ../track_times_equirectangular_1.txt
+      - name: SLAM test with equirectangular dataset (2)
+        run: |
+          cd build
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/2/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --debug --eval-log --map-db equirectangular_map.msg
+          mv frame_trajectory.txt ../frame_trajectory_equirectangular_2.txt
+          mv track_times.txt ../track_times_equirectangular_2.txt
+      - name: SLAM test with equirectangular dataset (3)
+        run: |
+          cd build
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/3/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --debug --eval-log --map-db equirectangular_map.msg
+          mv frame_trajectory.txt ../frame_trajectory_equirectangular_3.txt
+          mv track_times.txt ../track_times_equirectangular_3.txt
+      - name: Evaluation
+        if: github.event_name == 'pull_request'
+        run: |
+          cp scripts/workflows/* .
+          (
+            echo '<details>'
+            echo '<summary>Track time and Relative pose error</summary>'
+            echo
+            echo '|dataset|track_time<br>(mean)|track_time<br>(median)|track_time<br>(max)|RPE<br>(mean)|RPE<br>(median)|RPE<br>(max)|RPE<br>(rmse)|RPE<br>(sse)|RPE<br>(std)|'
+            echo '|---|---|---|---|---|---|---|---|---|---|'
+            echo -n '| EuRoC MH_04 (SLAM, perspective, mono)'
+            bash track_time_print_row.bash track_times_euroc_mono_slam.txt
+            bash evo_rpe_print_row.bash tum euroc_gt.tum frame_trajectory_euroc_mono_slam.txt -as
+            echo '|'
+            echo -n '| EuRoC MH_04 (SLAM, perspective, stereo)'
+            bash track_time_print_row.bash track_times_euroc_stereo_slam.txt
+            bash evo_rpe_print_row.bash tum euroc_gt.tum frame_trajectory_euroc_stereo_slam.txt -a
+            echo '|'
+            echo -n '| EuRoC MH_04 (Localization, perspective, mono)'
+            bash track_time_print_row.bash track_times_euroc_mono_localization.txt
+            bash evo_rpe_print_row.bash tum euroc_gt.tum frame_trajectory_euroc_mono_localization.txt -as
+            echo '|'
+            echo -n '| openvslam_test_dataset 1 (SLAM, equirectangular, mono)'
+            bash track_time_print_row.bash track_times_equirectangular_1.txt
+            bash evo_rpe_print_row.bash tum openvslam_test_dataset/1/gt.tum frame_trajectory_equirectangular_1.txt -as
+            echo '|'
+            echo -n '| openvslam_test_dataset 2 (SLAM, equirectangular, mono)'
+            bash track_time_print_row.bash track_times_equirectangular_2.txt
+            bash evo_rpe_print_row.bash tum openvslam_test_dataset/2/gt.tum frame_trajectory_equirectangular_2.txt -as
+            echo '|'
+            echo -n '| openvslam_test_dataset 3 (SLAM, equirectangular, mono)'
+            bash track_time_print_row.bash track_times_equirectangular_3.txt
+            bash evo_rpe_print_row.bash tum openvslam_test_dataset/3/gt.tum frame_trajectory_equirectangular_3.txt -as
+            echo '|'
+            echo '</details>'
+          ) >> result.md
+      - uses: actions/upload-artifact@v2
+        if: github.event_name == 'pull_request'
+        with:
+          name: result
+          path: result.md
 
   build_tutorial:
     runs-on: ubuntu-latest

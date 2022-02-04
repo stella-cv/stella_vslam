@@ -3,13 +3,13 @@
 </p>
 
 # OpenVSLAM: A Versatile Visual SLAM Framework
-[![CI](https://github.com/OpenVSLAM-Community/openvslam_ros/actions/workflows/main.yml/badge.svg)](https://github.com/OpenVSLAM-Community/openvslam_ros/actions/workflows/main.yml)
+[![CI](https://github.com/OpenVSLAM-Community/openvslam/actions/workflows/main.yml/badge.svg)](https://github.com/OpenVSLAM-Community/openvslam/actions/workflows/main.yml)
 [![Documentation Status](https://readthedocs.org/projects/openvslam-community/badge/?version=latest)](https://openvslam-community.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 
 ---
 
-> *NOTE:* This is a community fork of [xdspacelab/openvslam](https://github.com/xdspacelab/openvslam). It was created to continue active development of OpenVSLAM.
+> *NOTE:* This is a community fork of [xdspacelab/openvslam](https://github.com/xdspacelab/openvslam). It was created to continue active development of OpenVSLAM on Jan 31, 2021. The original repository is no longer available. Please read the [official statement of termination](https://github.com/xdspacelab/openvslam/wiki/Termination-of-the-release) carefully and understand it before using this. If you are interested in a more detailed discussion, see [here](https://github.com/OpenVSLAM-Community/openvslam/issues/37).
 
 ---
 
@@ -22,6 +22,9 @@
 [**[PrePrint]**](https://arxiv.org/abs/1910.01122) [**[YouTube]**](https://www.youtube.com/watch?v=Ro_s3Lbx5ms)
 
 OpenVSLAM is a monocular, stereo, and RGBD visual SLAM system.
+
+### Features
+
 The notable features are:
 
 - It is compatible with **various type of camera models** and can be easily customized for other camera models.
@@ -29,17 +32,25 @@ The notable features are:
 - The system is fully modular. It is designed by encapsulating several functions in separated components with easy-to-understand APIs.
 - We provided **some code snippets** to understand the core functionalities of this system.
 
-OpenVSLAM is based on an indirect SLAM algorithm with sparse features, such as ORB-SLAM, ProSLAM, and UcoSLAM.
 One of the noteworthy features of OpenVSLAM is that the system can deal with various type of camera models, such as perspective, fisheye, and equirectangular.
 If needed, users can implement extra camera models (e.g. dual fisheye, catadioptric) with ease.
 For example, visual SLAM algorithm using **equirectangular camera models** (e.g. RICOH THETA series, insta360 series, etc) is shown above.
 
+We provided [documentation](https://openvslam-community.readthedocs.io/) for installation and tutorial.
+The repository for the ROS wrapper is [openvslam_ros](https://github.com/OpenVSLAM-Community/openvslam_ros).
+
+### Acknowledgements
+
+OpenVSLAM is based on an indirect SLAM algorithm with sparse features, such as [ORB-SLAM](https://arxiv.org/abs/1502.00956)/[ORB-SLAM2](https://arxiv.org/abs/1610.06475), [ProSLAM](https://arxiv.org/abs/1709.04377), and [UcoSLAM](https://arxiv.org/abs/1902.03729).
+The core architecture is based on ORB-SLAM/ORB-SLAM2 and the code has been redesigned and written from scratch to improve scalability, readability, performance, etc.
+UcoSLAM has implemented the parallelization of feature extraction, map storage and loading earlier.
+ProSLAM has implemented a highly modular and easily understood system earlier.
+
+### Examples
+
 Some code snippets to understand the core functionalities of the system are provided.
 You can employ these snippets for in your own programs.
 Please see the `*.cc` files in `./example` directory or check [Simple Tutorial](https://openvslam-community.readthedocs.io/en/latest/simple_tutorial.html) and [Example](https://openvslam-community.readthedocs.io/en/latest/example.html).
-
-We provided [documentation](https://openvslam-community.readthedocs.io/) for installation and tutorial.
-The repository for the ROS wrapper is [openvslam_ros](https://github.com/OpenVSLAM-Community/openvslam_ros).
 
 ## Motivation
 

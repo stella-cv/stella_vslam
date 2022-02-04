@@ -50,6 +50,7 @@ Feature:
 
 Mapping:
   baseline_dist_thr_ratio: 0.02
+  redundant_obs_ratio_thr: 0.9
 
 #===========================#
 # PangolinViewer Parameters #

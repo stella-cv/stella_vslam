@@ -2,6 +2,7 @@
 #define OPENVSLAM_MODULE_LOCAL_MAP_CLEANER_H
 
 #include <list>
+#include <memory>
 
 namespace openvslam {
 
@@ -17,7 +18,7 @@ public:
     /**
      * Constructor
      */
-    explicit local_map_cleaner();
+    explicit local_map_cleaner(double redundant_obs_ratio_thr = 0.9);
 
     /**
      * Destructor
@@ -34,7 +35,7 @@ public:
     /**
      * Add fresh landmark to check their redundancy
      */
-    void add_fresh_landmark(data::landmark* lm) {
+    void add_fresh_landmark(std::shared_ptr<data::landmark>& lm) {
         fresh_landmarks_.push_back(lm);
     }
 
@@ -51,19 +52,22 @@ public:
     /**
      * Remove redundant keyframes
      */
-    unsigned int remove_redundant_keyframes(data::keyframe* cur_keyfrm) const;
+    unsigned int remove_redundant_keyframes(const std::shared_ptr<data::keyframe>& cur_keyfrm) const;
 
     /**
      * Count the valid and the redundant observations in the specified keyframe
      */
-    void count_redundant_observations(data::keyframe* keyfrm, unsigned int& num_valid_obs, unsigned int& num_redundant_obs) const;
+    void count_redundant_observations(const std::shared_ptr<data::keyframe>& keyfrm, unsigned int& num_valid_obs, unsigned int& num_redundant_obs) const;
 
 private:
+    //!
+    double redundant_obs_ratio_thr_;
+
     //! origin keyframe ID
     unsigned int origin_keyfrm_id_ = 0;
 
     //! fresh landmarks to check their redundancy
-    std::list<data::landmark*> fresh_landmarks_;
+    std::list<std::shared_ptr<data::landmark>> fresh_landmarks_;
 };
 
 } // namespace module

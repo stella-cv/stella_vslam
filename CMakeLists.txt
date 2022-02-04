@@ -23,6 +23,17 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 option(BUILD_SHARED_LIBS "Build OpenVSLAM as a shared library" ON)
 
+# ----- Build selection -----
+
+set(USE_PANGOLIN_VIEWER OFF CACHE BOOL "Enable Pangolin Viewer")
+set(INSTALL_PANGOLIN_VIEWER OFF CACHE BOOL "Install PangolinViewer library")
+set(USE_SOCKET_PUBLISHER OFF CACHE BOOL "Enable Socket Publisher")
+set(INSTALL_SOCKET_PUBLISHER OFF CACHE BOOL "Install SocketPublisher library")
+set(BUILD_EXAMPLES OFF CACHE BOOL "Build examples")
+set(BUILD_TESTS OFF CACHE BOOL "Build tests")
+set(BOW_FRAMEWORK "FBoW" CACHE STRING "DBoW2 or FBoW")
+set_property(CACHE BOW_FRAMEWORK PROPERTY STRINGS "DBoW2" "FBoW")
+
 # ----- Set options for debugging -----
 
 set(USE_CCACHE ON CACHE BOOL "Use ccache to accelerate build")
@@ -114,7 +125,7 @@ set(OPENVSLAM_PROJECT_CONFIG ${OPENVSLAM_GENERATED_DIR}/${PROJECT_NAME}Config.cm
 set(OPENVSLAM_TARGETS_EXPORT_NAME ${PROJECT_NAME}Targets)
 set(OPENVSLAM_CONFIG_INSTALL_DIR lib/cmake/${PROJECT_NAME})
 set(OPENVSLAM_NAMESPACE "${PROJECT_NAME}::")
-set(OPENVSLAM_VERSION 0.2.3)
+set(OPENVSLAM_VERSION 0.2.4)
 
 # Create a version config file
 write_basic_package_version_file(${OPENVSLAM_VERSION_CONFIG}
@@ -131,24 +142,19 @@ install(EXPORT ${OPENVSLAM_TARGETS_EXPORT_NAME}
         DESTINATION ${OPENVSLAM_CONFIG_INSTALL_DIR})
 
 # Set standard installation directories
-set(RUNTIME_DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-set(LIBRARY_DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-set(ARCHIVE_DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-set(INCLUDES_DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+set(RUNTIME_DESTINATION bin)
+set(LIBRARY_DESTINATION lib)
+set(ARCHIVE_DESTINATION lib)
+set(INCLUDES_DESTINATION include)
 
-# ----- Build selection -----
-
-set(USE_PANGOLIN_VIEWER OFF CACHE BOOL "Enable Pangolin Viewer")
-set(USE_SOCKET_PUBLISHER OFF CACHE BOOL "Enable Socket Publisher")
+# ----- Build -----
 
 add_subdirectory(src)
 
-set(BUILD_EXAMPLES OFF CACHE BOOL "Build examples")
 if(BUILD_EXAMPLES)
     add_subdirectory(example)
 endif()
 
-set(BUILD_TESTS OFF CACHE BOOL "Build tests")
 if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(test)

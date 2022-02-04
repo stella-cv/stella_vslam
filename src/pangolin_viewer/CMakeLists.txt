@@ -28,7 +28,6 @@ target_link_libraries(pangolin_viewer
 
 # ----- Install configuration -----
 
-set(INSTALL_PANGOLIN_VIEWER OFF CACHE BOOL "Install PangolinViewer library")
 if(INSTALL_PANGOLIN_VIEWER)
     set(PANGOLIN_VIEWER_INCLUDE_INSTALL_DIR ${INCLUDES_DESTINATION}/pangolin_viewer)
 

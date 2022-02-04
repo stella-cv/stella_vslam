@@ -147,7 +147,7 @@ unsigned int pnp_solver::check_inliers(const Mat33_t& rot_cw, const Vec3_t& tran
 
 double pnp_solver::compute_pose(const eigen_alloc_vector<Vec3_t>& bearing_vectors,
                                 const eigen_alloc_vector<Vec3_t>& pos_ws,
-                                Mat33_t& rot_cw, Vec3_t& trans_cw) {
+                                Mat33_t& rot_cw, Vec3_t& trans_cw, const unsigned int num_iter) {
     // EPnP: An AccurateO(n)Solution to the PnP Problem
     // (Lepetit et al. in IJCV 2009)
 
@@ -177,7 +177,7 @@ double pnp_solver::compute_pose(const eigen_alloc_vector<Vec3_t>& bearing_vector
         // Solve Eq.(13)
         const Vec4_t betas = find_initial_betas(L_6x10, Rho, N);
         // Minimize Eq.(15)
-        const Vec4_t refined_betas = gauss_newton(L_6x10, Rho, betas);
+        const Vec4_t refined_betas = gauss_newton(L_6x10, Rho, betas, num_iter);
 
         // Eq.(16)
         const eigen_alloc_vector<Vec3_t> ccs = compute_ccs(refined_betas, U);
@@ -238,7 +238,21 @@ eigen_alloc_vector<Vec4_t> pnp_solver::compute_barycentric_coordinates(const eig
     for (unsigned int i = 0; i < 3; i++) {
         CC.block<3, 1>(0, i) = control_points.at(i + 1) - control_points.at(0);
     }
-    const Mat33_t CC_inv = CC.inverse();
+
+    // Compute generalized inverse
+    Eigen::JacobiSVD<Mat33_t> svd(CC, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    Vec3_t D = svd.singularValues();
+    Mat33_t S;
+    S.setZero();
+    for (unsigned int i = 0; i < D.size(); ++i) {
+        if (D(i) > 1e-6) {
+            S(i, i) = 1 / D(i);
+        }
+        else {
+            S(i, i) = 0;
+        }
+    }
+    const Mat33_t CC_inv = svd.matrixV() * S * svd.matrixU().transpose();
 
     eigen_alloc_vector<Vec4_t> alphas;
     for (unsigned int i = 0; i < num_correspondences; ++i) {
@@ -548,15 +562,14 @@ void pnp_solver::compute_A_and_b_for_gauss_newton(const MatRC_t<6, 10>& L_6x10, 
     }
 }
 
-Vec4_t pnp_solver::gauss_newton(const MatRC_t<6, 10>& L_6x10, const Vec6_t& Rho, const Vec4_t& initial_betas) {
+Vec4_t pnp_solver::gauss_newton(const MatRC_t<6, 10>& L_6x10, const Vec6_t& Rho, const Vec4_t& initial_betas, const unsigned int num_iter) {
     Vec4_t betas = initial_betas;
-    const int iterations_number = 5;
 
     MatRC_t<6, 4> A;
     Vec6_t B;
     Vec4_t X;
 
-    for (unsigned int j = 0; j < iterations_number; j++) {
+    for (unsigned int j = 0; j < num_iter; j++) {
         compute_A_and_b_for_gauss_newton(L_6x10, Rho, betas, A, B);
 
         // Using fastest QR decomposition in Eigen

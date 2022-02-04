@@ -136,19 +136,11 @@ image_bounds fisheye::compute_image_bounds() const {
     }
 }
 
-void fisheye::undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypt, std::vector<cv::KeyPoint>& undist_keypt) const {
-    // cv::fisheye::undistortPoints does not accept an empty input
-    if (dist_keypt.empty()) {
-        undist_keypt.clear();
-        return;
-    }
-
-    // fill cv::Mat with distorted keypoints
-    cv::Mat mat(dist_keypt.size(), 2, CV_32F);
-    for (unsigned long idx = 0; idx < dist_keypt.size(); ++idx) {
-        mat.at<float>(idx, 0) = dist_keypt.at(idx).pt.x;
-        mat.at<float>(idx, 1) = dist_keypt.at(idx).pt.y;
-    }
+cv::Point2f fisheye::undistort_point(const cv::Point2f& dist_pt) const {
+    // fill cv::Mat with distorted point
+    cv::Mat mat(1, 2, CV_32F);
+    mat.at<float>(0, 0) = dist_pt.x;
+    mat.at<float>(0, 1) = dist_pt.y;
 
     // undistort
     mat = mat.reshape(2);
@@ -156,35 +148,24 @@ void fisheye::undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypt, s
     mat = mat.reshape(1);
 
     // convert to cv::Mat
-    undist_keypt.resize(dist_keypt.size());
-    for (unsigned long idx = 0; idx < undist_keypt.size(); ++idx) {
-        undist_keypt.at(idx).pt.x = mat.at<float>(idx, 0);
-        undist_keypt.at(idx).pt.y = mat.at<float>(idx, 1);
-        undist_keypt.at(idx).angle = dist_keypt.at(idx).angle;
-        undist_keypt.at(idx).size = dist_keypt.at(idx).size;
-        undist_keypt.at(idx).octave = dist_keypt.at(idx).octave;
-    }
+    cv::Point2f undist_pt;
+    undist_pt.x = mat.at<float>(0, 0);
+    undist_pt.y = mat.at<float>(0, 1);
+
+    return undist_pt;
 }
 
-void fisheye::convert_keypoints_to_bearings(const std::vector<cv::KeyPoint>& undist_keypt, eigen_alloc_vector<Vec3_t>& bearings) const {
-    bearings.resize(undist_keypt.size());
-    for (unsigned long idx = 0; idx < undist_keypt.size(); ++idx) {
-        const auto x_normalized = (undist_keypt.at(idx).pt.x - cx_) / fx_;
-        const auto y_normalized = (undist_keypt.at(idx).pt.y - cy_) / fy_;
-        const auto l2_norm = std::sqrt(x_normalized * x_normalized + y_normalized * y_normalized + 1.0);
-        bearings.at(idx) = Vec3_t{x_normalized / l2_norm, y_normalized / l2_norm, 1.0 / l2_norm};
-    }
+Vec3_t fisheye::convert_point_to_bearing(const cv::Point2f& undist_pt) const {
+    const auto x_normalized = (undist_pt.x - cx_) / fx_;
+    const auto y_normalized = (undist_pt.y - cy_) / fy_;
+    const auto l2_norm = std::sqrt(x_normalized * x_normalized + y_normalized * y_normalized + 1.0);
+    return Vec3_t{x_normalized / l2_norm, y_normalized / l2_norm, 1.0 / l2_norm};
 }
 
-void fisheye::convert_bearings_to_keypoints(const eigen_alloc_vector<Vec3_t>& bearings, std::vector<cv::KeyPoint>& undist_keypt) const {
-    undist_keypt.resize(bearings.size());
-    for (unsigned long idx = 0; idx < bearings.size(); ++idx) {
-        const auto x_normalized = bearings.at(idx)(0) / bearings.at(idx)(2);
-        const auto y_normalized = bearings.at(idx)(1) / bearings.at(idx)(2);
-
-        undist_keypt.at(idx).pt.x = fx_ * x_normalized + cx_;
-        undist_keypt.at(idx).pt.y = fy_ * y_normalized + cy_;
-    }
+cv::Point2f fisheye::convert_bearing_to_point(const Vec3_t& bearing) const {
+    const auto x_normalized = bearing(0) / bearing(2);
+    const auto y_normalized = bearing(1) / bearing(2);
+    return cv::Point2f(fx_ * x_normalized + cx_, fy_ * y_normalized + cy_);
 }
 
 bool fisheye::reproject_to_image(const Mat33_t& rot_cw, const Vec3_t& trans_cw, const Vec3_t& pos_w, Vec2_t& reproj, float& x_right) const {
@@ -270,6 +251,65 @@ std::ostream& operator<<(std::ostream& os, const fisheye& params) {
     os << "  - min y: " << params.img_bounds_.min_y_ << std::endl;
     os << "  - max y: " << params.img_bounds_.max_y_ << std::endl;
     return os;
+}
+
+//! Override for optimization
+
+void fisheye::undistort_points(const std::vector<cv::Point2f>& dist_pts, std::vector<cv::Point2f>& undist_pts) const {
+    // cv::fisheye::undistortPoints does not accept an empty input
+    if (dist_pts.empty()) {
+        undist_pts.clear();
+        return;
+    }
+
+    // fill cv::Mat with distorted points
+    cv::Mat mat(dist_pts.size(), 2, CV_32F);
+    for (unsigned long idx = 0; idx < dist_pts.size(); ++idx) {
+        mat.at<float>(idx, 0) = dist_pts.at(idx).x;
+        mat.at<float>(idx, 1) = dist_pts.at(idx).y;
+    }
+
+    // undistort
+    mat = mat.reshape(2);
+    cv::fisheye::undistortPoints(mat, mat, cv_cam_matrix_, cv_dist_params_, cv::Mat(), cv_cam_matrix_);
+    mat = mat.reshape(1);
+
+    // convert to cv::Mat
+    undist_pts.resize(dist_pts.size());
+    for (unsigned long idx = 0; idx < undist_pts.size(); ++idx) {
+        undist_pts.at(idx).x = mat.at<float>(idx, 0);
+        undist_pts.at(idx).y = mat.at<float>(idx, 1);
+    }
+}
+
+void fisheye::undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypt, std::vector<cv::KeyPoint>& undist_keypt) const {
+    // cv::fisheye::undistortPoints does not accept an empty input
+    if (dist_keypt.empty()) {
+        undist_keypt.clear();
+        return;
+    }
+
+    // fill cv::Mat with distorted keypoints
+    cv::Mat mat(dist_keypt.size(), 2, CV_32F);
+    for (unsigned long idx = 0; idx < dist_keypt.size(); ++idx) {
+        mat.at<float>(idx, 0) = dist_keypt.at(idx).pt.x;
+        mat.at<float>(idx, 1) = dist_keypt.at(idx).pt.y;
+    }
+
+    // undistort
+    mat = mat.reshape(2);
+    cv::fisheye::undistortPoints(mat, mat, cv_cam_matrix_, cv_dist_params_, cv::Mat(), cv_cam_matrix_);
+    mat = mat.reshape(1);
+
+    // convert to cv::Mat
+    undist_keypt.resize(dist_keypt.size());
+    for (unsigned long idx = 0; idx < undist_keypt.size(); ++idx) {
+        undist_keypt.at(idx).pt.x = mat.at<float>(idx, 0);
+        undist_keypt.at(idx).pt.y = mat.at<float>(idx, 1);
+        undist_keypt.at(idx).angle = dist_keypt.at(idx).angle;
+        undist_keypt.at(idx).size = dist_keypt.at(idx).size;
+        undist_keypt.at(idx).octave = dist_keypt.at(idx).octave;
+    }
 }
 
 } // namespace camera

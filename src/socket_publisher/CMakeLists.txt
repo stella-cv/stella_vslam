@@ -51,7 +51,6 @@ target_link_libraries(socket_publisher
 
 # ----- Install configuration -----
 
-set(INSTALL_SOCKET_PUBLISHER OFF CACHE BOOL "Install SocketPublisher library")
 if(INSTALL_SOCKET_PUBLISHER)
     set(SOCKER_PUBLISHER_INCLUDE_INSTALL_DIR ${INCLUDES_DESTINATION}/socket_publisher)
 

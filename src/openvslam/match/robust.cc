@@ -15,8 +15,8 @@
 namespace openvslam {
 namespace match {
 
-unsigned int robust::match_for_triangulation(data::keyframe* keyfrm_1, data::keyframe* keyfrm_2, const Mat33_t& E_12,
-                                             std::vector<std::pair<unsigned int, unsigned int>>& matched_idx_pairs) {
+unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2, const Mat33_t& E_12,
+                                             std::vector<std::pair<unsigned int, unsigned int>>& matched_idx_pairs) const {
     unsigned int num_matches = 0;
 
     angle_checker<int> angle_checker;
@@ -27,7 +27,7 @@ unsigned int robust::match_for_triangulation(data::keyframe* keyfrm_1, data::key
     const Mat33_t rot_2w = keyfrm_2->get_rotation();
     const Vec3_t trans_2w = keyfrm_2->get_translation();
     Vec3_t epiplane_in_keyfrm_2;
-    keyfrm_2->camera_->reproject_to_bearing(rot_2w, trans_2w, cam_center_1, epiplane_in_keyfrm_2);
+    const bool valid_epiplane = keyfrm_2->camera_->reproject_to_bearing(rot_2w, trans_2w, cam_center_1, epiplane_in_keyfrm_2);
 
     // Acquire the 3D point information of the keframes
     const auto assoc_lms_in_keyfrm_1 = keyfrm_1->get_landmarks();
@@ -61,9 +61,8 @@ unsigned int robust::match_for_triangulation(data::keyframe* keyfrm_1, data::key
             const auto& keyfrm_2_indices = itr_2->second;
 
             for (const auto idx_1 : keyfrm_1_indices) {
-                // Ignore if the keypoint is associated any 3D points
-                // (because this function is used for triangulation)
-                auto lm_1 = assoc_lms_in_keyfrm_1.at(idx_1);
+                const auto& lm_1 = assoc_lms_in_keyfrm_1.at(idx_1);
+                // 3次元点が存在"する"場合はスルー(triangulation前のmatchingであるため)
                 if (lm_1) {
                     continue;
                 }
@@ -83,7 +82,7 @@ unsigned int robust::match_for_triangulation(data::keyframe* keyfrm_1, data::key
                 for (const auto idx_2 : keyfrm_2_indices) {
                     // Ignore if the keypoint is associated any 3D points
                     // (because this function is used for triangulation)
-                    auto lm_2 = assoc_lms_in_keyfrm_2.at(idx_2);
+                    const auto& lm_2 = assoc_lms_in_keyfrm_2.at(idx_2);
                     if (lm_2) {
                         continue;
                     }
@@ -107,7 +106,7 @@ unsigned int robust::match_for_triangulation(data::keyframe* keyfrm_1, data::key
                         continue;
                     }
 
-                    if (!is_stereo_keypt_1 && !is_stereo_keypt_2) {
+                    if (valid_epiplane && !is_stereo_keypt_1 && !is_stereo_keypt_2) {
                         // Do not use any keypoints near the epipole if both are not stereo keypoints
                         const auto cos_dist = epiplane_in_keyfrm_2.dot(bearing_2);
                         // The threshold of the minimum angle formed by the epipole and the bearing vector is 3.0 degree
@@ -177,13 +176,13 @@ unsigned int robust::match_for_triangulation(data::keyframe* keyfrm_1, data::key
     return num_matches;
 }
 
-unsigned int robust::match_frame_and_keyframe(data::frame& frm, data::keyframe* keyfrm,
-                                              std::vector<data::landmark*>& matched_lms_in_frm) {
+unsigned int robust::match_frame_and_keyframe(data::frame& frm, const std::shared_ptr<data::keyframe>& keyfrm,
+                                              std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm) const {
     // Initialization
     const auto num_frm_keypts = frm.num_keypts_;
     const auto keyfrm_lms = keyfrm->get_landmarks();
     unsigned int num_inlier_matches = 0;
-    matched_lms_in_frm = std::vector<data::landmark*>(num_frm_keypts, nullptr);
+    matched_lms_in_frm = std::vector<std::shared_ptr<data::landmark>>(num_frm_keypts, nullptr);
 
     // Compute brute-force match
     std::vector<std::pair<int, int>> matches;
@@ -212,7 +211,7 @@ unsigned int robust::match_frame_and_keyframe(data::frame& frm, data::keyframe* 
     return num_inlier_matches;
 }
 
-unsigned int robust::brute_force_match(data::frame& frm, data::keyframe* keyfrm, std::vector<std::pair<int, int>>& matches) {
+unsigned int robust::brute_force_match(data::frame& frm, const std::shared_ptr<data::keyframe>& keyfrm, std::vector<std::pair<int, int>>& matches) const {
     unsigned int num_matches = 0;
 
     angle_checker<int> angle_checker;
@@ -236,8 +235,8 @@ unsigned int robust::brute_force_match(data::frame& frm, data::keyframe* keyfrm,
     std::unordered_set<int> already_matched_indices_1;
 
     for (unsigned int idx_2 = 0; idx_2 < num_keypts_2; ++idx_2) {
-        // Select only the 3D points which observed in the keyframe
-        auto lm_2 = lms_2.at(idx_2);
+        // 3次元点が有効なもののみ対象にする
+        const auto& lm_2 = lms_2.at(idx_2);
         if (!lm_2) {
             continue;
         }
@@ -321,7 +320,7 @@ unsigned int robust::brute_force_match(data::frame& frm, data::keyframe* keyfrm,
 }
 
 bool robust::check_epipolar_constraint(const Vec3_t& bearing_1, const Vec3_t& bearing_2,
-                                       const Mat33_t& E_12, const float bearing_1_scale_factor) {
+                                       const Mat33_t& E_12, const float bearing_1_scale_factor) const {
     // Normal vector of the epipolar plane on keyframe 1
     const Vec3_t epiplane_in_1 = E_12 * bearing_2;
 
