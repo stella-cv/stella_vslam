@@ -9,7 +9,9 @@
 
 ---
 
-> *NOTE:* This is a community fork of [xdspacelab/openvslam](https://github.com/xdspacelab/openvslam). It was created to continue active development of OpenVSLAM on Jan 31, 2021. The original repository is no longer available. Please read the [official statement of termination](https://github.com/xdspacelab/openvslam/wiki/Termination-of-the-release) carefully and understand it before using this. If you are interested in a more detailed discussion, see [here](https://github.com/OpenVSLAM-Community/openvslam/issues/37).
+> *NOTE:* This is a community fork of [xdspacelab/openvslam](https://github.com/xdspacelab/openvslam). It was created to continue active development of OpenVSLAM on Jan 31, 2021. The original repository is no longer available. Please read the [official statement of termination](https://github.com/xdspacelab/openvslam/wiki/Termination-of-the-release) carefully and understand it before using this. The similarities with ORB_SLAM2 in the original version have been removed by [#252](https://github.com/OpenVSLAM-Community/openvslam/pull/252). If you find any other issues with the license, please point them out. See [#37](https://github.com/OpenVSLAM-Community/openvslam/issues/37) and [#249](https://github.com/OpenVSLAM-Community/openvslam/issues/249) for discussion so far.
+
+*Versions earlier than 0.3 are deprecated. If you use them, please use them as a derivative of ORB_SLAM2 under the GPL license.*
 
 ---
 

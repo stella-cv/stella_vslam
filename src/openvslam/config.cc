@@ -4,6 +4,7 @@
 #include "openvslam/camera/equirectangular.h"
 #include "openvslam/camera/radial_division.h"
 #include "openvslam/util/string.h"
+#include "openvslam/util/yaml.h"
 
 #include <iostream>
 #include <memory>
@@ -51,8 +52,10 @@ config::config(const YAML::Node& yaml_node, const std::string& config_file_path)
     }
     catch (const std::exception& e) {
         spdlog::debug("failed in loading camera model parameters: {}", e.what());
-        delete camera_;
-        camera_ = nullptr;
+        if (camera_) {
+            delete camera_;
+            camera_ = nullptr;
+        }
         throw;
     }
 
@@ -61,11 +64,27 @@ config::config(const YAML::Node& yaml_node, const std::string& config_file_path)
             throw std::runtime_error("Not implemented: Stereo or RGBD of equirectangular camera model");
         }
     }
+
+    spdlog::debug("load ORB parameters");
+    try {
+        orb_params_ = new feature::orb_params(util::yaml_optional_ref(yaml_node_, "Feature"));
+    }
+    catch (const std::exception& e) {
+        spdlog::debug("failed in loading ORB feature extraction model: {}", e.what());
+        if (orb_params_) {
+            delete orb_params_;
+            orb_params_ = nullptr;
+        }
+        throw;
+    }
 }
 
 config::~config() {
     delete camera_;
     camera_ = nullptr;
+
+    delete orb_params_;
+    orb_params_ = nullptr;
 
     spdlog::debug("DESTRUCT: config");
 }

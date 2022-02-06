@@ -53,7 +53,7 @@ void camera_database::from_json(const nlohmann::json& json_cameras) {
         const auto& json_camera = json_id_camera.value();
 
         if (camera_name == curr_camera_->name_) {
-            spdlog::info("load the tracking camera \"{}\" from JSON", camera_name);
+            spdlog::info("skip the tracking camera \"{}\"", camera_name);
             continue;
         }
 

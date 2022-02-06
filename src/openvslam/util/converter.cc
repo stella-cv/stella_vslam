@@ -38,6 +38,17 @@ Mat44_t converter::to_eigen_cam_pose(const Mat33_t& rot, const Vec3_t& trans) {
     return cam_pose;
 }
 
+Mat44_t converter::inverse_pose(const Mat44_t& pose_cw) {
+    const Mat33_t rot_cw = pose_cw.block<3, 3>(0, 0);
+    const Vec3_t trans_cw = pose_cw.block<3, 1>(0, 3);
+    const Mat33_t rot_wc = rot_cw.transpose();
+    const Vec3_t cam_center = -rot_wc * trans_cw;
+    Mat44_t pose_wc = Mat44_t::Identity();
+    pose_wc.block<3, 3>(0, 0) = rot_wc;
+    pose_wc.block<3, 1>(0, 3) = cam_center;
+    return pose_wc;
+}
+
 Vec3_t converter::to_angle_axis(const Mat33_t& rot_mat) {
     const Eigen::AngleAxisd angle_axis(rot_mat);
     return angle_axis.axis() * angle_axis.angle();

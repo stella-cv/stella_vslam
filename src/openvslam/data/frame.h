@@ -3,7 +3,9 @@
 
 #include "openvslam/type.h"
 #include "openvslam/camera/base.h"
+#include "openvslam/feature/orb_params.h"
 #include "openvslam/util/converter.h"
+#include "openvslam/data/frame_observation.h"
 #include "openvslam/data/bow_vocabulary.h"
 
 #include <vector>
@@ -29,6 +31,7 @@ class base;
 
 namespace feature {
 class orb_extractor;
+class orb_params;
 } // namespace feature
 
 namespace data {
@@ -47,51 +50,13 @@ public:
 
     /**
      * Constructor for monocular frame
-     * @param img_gray
      * @param timestamp
-     * @param extractor
-     * @param bow_vocab
      * @param camera
-     * @param depth_thr
-     * @param mask
+     * @param orb_params
+     * @param frm_obs
      */
-    frame(const cv::Mat& img_gray, const double timestamp,
-          feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-          camera::base* camera, const float depth_thr,
-          const cv::Mat& mask = cv::Mat{});
-
-    /**
-     * Constructor for stereo frame
-     * @param left_img_gray
-     * @param right_img_gray
-     * @param timestamp
-     * @param extractor_left
-     * @param extractor_right
-     * @param bow_vocab
-     * @param camera
-     * @param depth_thr
-     * @param mask
-     */
-    frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const double timestamp,
-          feature::orb_extractor* extractor_left, feature::orb_extractor* extractor_right, bow_vocabulary* bow_vocab,
-          camera::base* camera, const float depth_thr,
-          const cv::Mat& mask = cv::Mat{});
-
-    /**
-     * Constructor for RGBD frame
-     * @param img_gray
-     * @param img_depth
-     * @param timestamp
-     * @param extractor
-     * @param bow_vocab
-     * @param camera
-     * @param depth_thr
-     * @param mask
-     */
-    frame(const cv::Mat& img_gray, const cv::Mat& img_depth, const double timestamp,
-          feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-          camera::base* camera, const float depth_thr,
-          const cv::Mat& mask = cv::Mat{});
+    frame(const double timestamp, camera::base* camera, feature::orb_params* orb_params,
+          const frame_observation frm_obs);
 
     /**
      * Set camera pose and refresh rotation and translation
@@ -133,14 +98,14 @@ public:
     Mat33_t get_rotation_inv() const;
 
     /**
-     * Update ORB information
+     * Returns true if BoW has been computed.
      */
-    void update_orb_info();
+    bool bow_is_available() const;
 
     /**
      * Compute BoW representation
      */
-    void compute_bow();
+    void compute_bow(bow_vocabulary* bow_vocab);
 
     /**
      * Check observability of the landmark
@@ -172,42 +137,17 @@ public:
     //! next frame ID
     static std::atomic<unsigned int> next_id_;
 
-    //! BoW vocabulary (DBoW2 or FBoW)
-    bow_vocabulary* bow_vocab_ = nullptr;
-
-    // ORB extractor
-    //! ORB extractor for monocular or stereo left image
-    feature::orb_extractor* extractor_ = nullptr;
-    //! ORB extractor for stereo right image
-    feature::orb_extractor* extractor_right_ = nullptr;
-
     //! timestamp
     double timestamp_;
 
     //! camera model
     camera::base* camera_ = nullptr;
 
-    // if a stereo-triangulated point is farther than this threshold, it is invalid
-    //! depth threshold
-    float depth_thr_;
+    //! ORB scale pyramid information
+    const feature::orb_params* orb_params_ = nullptr;
 
-    //! number of keypoints
-    unsigned int num_keypts_ = 0;
-
-    // keypoints
-    //! keypoints of monocular or stereo left image
-    std::vector<cv::KeyPoint> keypts_;
-    //! keypoints of stereo right image
-    std::vector<cv::KeyPoint> keypts_right_;
-    //! undistorted keypoints of monocular or stereo left image
-    std::vector<cv::KeyPoint> undist_keypts_;
-    //! bearing vectors
-    eigen_alloc_vector<Vec3_t> bearings_;
-
-    //! disparities
-    std::vector<float> stereo_x_right_;
-    //! depths
-    std::vector<float> depths_;
+    //! constant observations
+    frame_observation frm_obs_;
 
     //! BoW features (DBoW2 or FBoW)
 #ifdef USE_DBOW2
@@ -218,20 +158,11 @@ public:
     fbow::BoWFeatVector bow_feat_vec_;
 #endif
 
-    // ORB descriptors
-    //! ORB descriptors of monocular or stereo left image
-    cv::Mat descriptors_;
-    //! ORB descriptors of stereo right image
-    cv::Mat descriptors_right_;
-
     //! landmarks, whose nullptr indicates no-association
     std::vector<std::shared_ptr<landmark>> landmarks_;
 
     //! outlier flags, which are mainly used in pose optimization and bundle adjustment
     std::vector<bool> outlier_flags_;
-
-    //! cells for storing keypoint indices
-    std::vector<std::vector<std::vector<unsigned int>>> keypt_indices_in_cells_;
 
     //! camera pose: world -> camera
     bool cam_pose_cw_is_valid_ = false;
@@ -240,41 +171,7 @@ public:
     //! reference keyframe for tracking
     std::shared_ptr<keyframe> ref_keyfrm_ = nullptr;
 
-    // ORB scale pyramid information
-    //! number of scale levels
-    unsigned int num_scale_levels_;
-    //! scale factor
-    float scale_factor_;
-    //! log scale factor
-    float log_scale_factor_;
-    //! list of scale factors
-    std::vector<float> scale_factors_;
-    //! list of inverse of scale factors
-    std::vector<float> inv_scale_factors_;
-    //! list of sigma^2 (sigma=1.0 at scale=0) for optimization
-    std::vector<float> level_sigma_sq_;
-    //! list of 1 / sigma^2 for optimization
-    std::vector<float> inv_level_sigma_sq_;
-
 private:
-    //! enumeration to control the behavior of extract_orb()
-    enum class image_side { Left,
-                            Right };
-
-    /**
-     * Extract ORB feature according to img_size
-     * @param img
-     * @param mask
-     * @param img_side
-     */
-    void extract_orb(const cv::Mat& img, const cv::Mat& mask, const image_side& img_side = image_side::Left);
-
-    /**
-     * Compute disparities from depth information in depthmap
-     * @param right_img_depth
-     */
-    void compute_stereo_from_depth(const cv::Mat& right_img_depth);
-
     //! Camera pose
     //! rotation: world -> camera
     Mat33_t rot_cw_;

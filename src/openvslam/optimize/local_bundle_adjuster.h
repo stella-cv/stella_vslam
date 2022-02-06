@@ -16,7 +16,6 @@ class local_bundle_adjuster {
 public:
     /**
      * Constructor
-     * @param map_db
      * @param num_first_iter
      * @param num_second_iter
      */
@@ -30,10 +29,11 @@ public:
 
     /**
      * Perform optimization
+     * @param map_db
      * @param curr_keyfrm
      * @param force_stop_flag
      */
-    void optimize(const std::shared_ptr<data::keyframe>& curr_keyfrm, bool* const force_stop_flag) const;
+    void optimize(data::map_database* map_db, const std::shared_ptr<data::keyframe>& curr_keyfrm, bool* const force_stop_flag) const;
 
 private:
     //! number of iterations of first optimization

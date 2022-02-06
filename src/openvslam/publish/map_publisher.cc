@@ -27,16 +27,6 @@ Mat44_t map_publisher::get_current_cam_pose() {
     return cam_pose_cw_;
 }
 
-void map_publisher::set_current_cam_pose_wc(const Mat44_t& cam_pose_wc) {
-    std::lock_guard<std::mutex> lock(mtx_cam_pose_);
-    cam_pose_wc_ = cam_pose_wc;
-}
-
-Mat44_t map_publisher::get_current_cam_pose_wc() {
-    std::lock_guard<std::mutex> lock(mtx_cam_pose_);
-    return cam_pose_wc_;
-}
-
 unsigned int map_publisher::get_keyframes(std::vector<std::shared_ptr<data::keyframe>>& all_keyfrms) {
     all_keyfrms = map_db_->get_all_keyframes();
     return map_db_->get_num_keyframes();

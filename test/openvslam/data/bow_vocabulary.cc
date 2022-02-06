@@ -10,10 +10,9 @@
 using namespace openvslam;
 
 float get_score(data::bow_vocabulary* bow_vocab, const std::string& file1, const std::string& file2) {
-    auto params = feature::orb_params();
+    auto params = feature::orb_params("ORB setting for test");
     // mask (Mask the top and bottom 20%)
-    params.mask_rects_ = {{0.0, 0.2, 0.0, 1.0}, {0.8, 1.0, 0.0, 1.0}};
-    auto extractor = feature::orb_extractor(1000, params);
+    auto extractor = feature::orb_extractor(&params, 1000, {{0.0, 0.2, 0.0, 1.0}, {0.8, 1.0, 0.0, 1.0}});
 
     // image
     const auto img1 = cv::imread(file1, cv::IMREAD_GRAYSCALE);

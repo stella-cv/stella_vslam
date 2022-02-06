@@ -25,7 +25,12 @@ public:
     ~projection() final = default;
 
     //! frameの2次元点と3次元の対応を求め，frame.landmarks_に対応情報を記録する
-    unsigned int match_frame_and_landmarks(data::frame& frm, const std::vector<std::shared_ptr<data::landmark>>& local_landmarks, const float margin = 5.0) const;
+    unsigned int match_frame_and_landmarks(data::frame& frm,
+                                           const std::vector<std::shared_ptr<data::landmark>>& local_landmarks,
+                                           eigen_alloc_unord_map<unsigned int, Vec2_t>& lm_to_reproj,
+                                           std::unordered_map<unsigned int, float>& lm_to_x_right,
+                                           std::unordered_map<unsigned int, int>& lm_to_scale,
+                                           const float margin = 5.0) const;
 
     //! last frameで観測している3次元点をcurrent frameに再投影し，frame.landmarks_に対応情報を記録する
     unsigned int match_current_and_last_frames(data::frame& curr_frm, const data::frame& last_frm, const float margin) const;

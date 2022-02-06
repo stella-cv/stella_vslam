@@ -4,7 +4,9 @@
 #include "openvslam/data/keyframe.h"
 #include "openvslam/data/landmark.h"
 #include "openvslam/data/camera_database.h"
+#include "openvslam/data/orb_params_database.h"
 #include "openvslam/data/map_database.h"
+#include "openvslam/data/bow_vocabulary.h"
 #include "openvslam/util/converter.h"
 
 #include <spdlog/spdlog.h>
@@ -27,9 +29,7 @@ map_database::~map_database() {
 void map_database::add_keyframe(const std::shared_ptr<keyframe>& keyfrm) {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
     keyframes_[keyfrm->id_] = keyfrm;
-    if (keyfrm->id_ > max_keyfrm_id_) {
-        max_keyfrm_id_ = keyfrm->id_;
-    }
+    last_inserted_keyfrm_ = keyfrm;
 }
 
 void map_database::erase_keyframe(const std::shared_ptr<keyframe>& keyfrm) {
@@ -139,30 +139,22 @@ std::vector<std::shared_ptr<landmark>> map_database::get_all_landmarks() const {
     return landmarks;
 }
 
+std::shared_ptr<keyframe> map_database::get_last_inserted_keyframe() const {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    return last_inserted_keyfrm_;
+}
+
 unsigned int map_database::get_num_landmarks() const {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
     return landmarks_.size();
 }
 
-unsigned int map_database::get_max_keyframe_id() const {
-    std::lock_guard<std::mutex> lock(mtx_map_access_);
-    return max_keyfrm_id_;
-}
-
 void map_database::clear() {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
-    for (auto& lm : landmarks_) {
-        lm.second = nullptr;
-    }
-
-    for (auto& keyfrm : keyframes_) {
-        keyfrm.second = nullptr;
-    }
-
     landmarks_.clear();
     keyframes_.clear();
-    max_keyfrm_id_ = 0;
+    last_inserted_keyfrm_ = nullptr;
     local_landmarks_.clear();
     origin_keyfrm_ = nullptr;
 
@@ -171,7 +163,7 @@ void map_database::clear() {
     spdlog::info("clear map database");
 }
 
-void map_database::from_json(camera_database* cam_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
+void map_database::from_json(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab,
                              const nlohmann::json& json_keyfrms, const nlohmann::json& json_landmarks) {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
@@ -186,7 +178,8 @@ void map_database::from_json(camera_database* cam_db, bow_vocabulary* bow_vocab,
 
     landmarks_.clear();
     keyframes_.clear();
-    max_keyfrm_id_ = 0;
+    // When loading the map, leave last_inserted_keyfrm_ as nullptr.
+    last_inserted_keyfrm_ = nullptr;
     local_landmarks_.clear();
     origin_keyfrm_ = nullptr;
 
@@ -198,7 +191,7 @@ void map_database::from_json(camera_database* cam_db, bow_vocabulary* bow_vocab,
         assert(0 <= id);
         const auto json_keyfrm = json_id_keyfrm.value();
 
-        register_keyframe(cam_db, bow_vocab, bow_db, id, json_keyfrm);
+        register_keyframe(cam_db, orb_params_db, bow_vocab, id, json_keyfrm);
     }
 
     // Step 3. Register 3D landmark point
@@ -254,19 +247,20 @@ void map_database::from_json(camera_database* cam_db, bow_vocabulary* bow_vocab,
         assert(landmarks_.count(id));
         const auto& lm = landmarks_.at(id);
 
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
         lm->compute_descriptor();
     }
 }
 
-void map_database::register_keyframe(camera_database* cam_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
+void map_database::register_keyframe(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab,
                                      const unsigned int id, const nlohmann::json& json_keyfrm) {
     // Metadata
     const auto src_frm_id = json_keyfrm.at("src_frm_id").get<unsigned int>();
     const auto timestamp = json_keyfrm.at("ts").get<double>();
     const auto camera_name = json_keyfrm.at("cam").get<std::string>();
     const auto camera = cam_db->get_camera(camera_name);
-    const auto depth_thr = json_keyfrm.at("depth_thr").get<float>();
+    const auto orb_params_name = json_keyfrm.at("orb_params").get<std::string>();
+    const auto orb_params = orb_params_db->get_orb_params(orb_params_name);
 
     // Pose information
     const Mat33_t rot_cw = convert_json_to_rotation(json_keyfrm.at("rot_cw"));
@@ -298,22 +292,23 @@ void map_database::register_keyframe(camera_database* cam_db, bow_vocabulary* bo
     const auto descriptors = convert_json_to_descriptors(json_descriptors);
     assert(descriptors.rows == static_cast<int>(num_keypts));
 
-    // Scale information in ORB
-    const auto num_scale_levels = json_keyfrm.at("n_scale_levels").get<unsigned int>();
-    const auto scale_factor = json_keyfrm.at("scale_factor").get<float>();
-
     // Construct a new object
+    data::bow_vector bow_vec;
+    data::bow_feature_vector bow_feat_vec;
+    // Assign all the keypoints into grid
+    std::vector<std::vector<std::vector<unsigned int>>> keypt_indices_in_cells;
+    data::assign_keypoints_to_grid(camera, undist_keypts, keypt_indices_in_cells);
+    // Construct frame_observation
+    frame_observation frm_obs{num_keypts, keypts, descriptors, undist_keypts, bearings, stereo_x_right, depths, keypt_indices_in_cells};
+    // Compute BoW
+    data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
     auto keyfrm = data::keyframe::make_keyframe(
-        id, src_frm_id, timestamp, cam_pose_cw, camera, depth_thr,
-        num_keypts, keypts, undist_keypts, bearings, stereo_x_right, depths, descriptors,
-        num_scale_levels, scale_factor, bow_vocab, bow_db, this);
+        id, src_frm_id, timestamp, cam_pose_cw, camera, orb_params,
+        frm_obs, bow_vec, bow_feat_vec);
 
     // Append to map database
     assert(!keyframes_.count(id));
     keyframes_[keyfrm->id_] = keyfrm;
-    if (keyfrm->id_ > max_keyfrm_id_) {
-        max_keyfrm_id_ = keyfrm->id_;
-    }
     if (id == 0) {
         origin_keyfrm_ = keyfrm;
     }
@@ -404,7 +399,7 @@ void map_database::to_json(nlohmann::json& json_keyfrms, nlohmann::json& json_la
         assert(lm);
         assert(id == lm->id_);
         assert(!lm->will_be_erased());
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
         assert(!landmarks.count(std::to_string(id)));
         landmarks[std::to_string(id)] = lm->to_json();
     }

@@ -3,8 +3,10 @@
 
 #include "openvslam/type.h"
 #include "openvslam/camera/base.h"
+#include "openvslam/feature/orb_params.h"
 #include "openvslam/data/graph_node.h"
 #include "openvslam/data/bow_vocabulary.h"
+#include "openvslam/data/frame_observation.h"
 
 #include <set>
 #include <mutex>
@@ -42,31 +44,25 @@ public:
     /**
      * Constructor for building from a frame
      */
-    keyframe(const frame& frm, map_database* map_db, bow_database* bow_db);
+    explicit keyframe(const frame& frm);
 
     /**
      * Constructor for map loading
      * (NOTE: some variables must be recomputed after the construction. See the definition.)
      */
-    keyframe(const unsigned int id, const unsigned int src_frm_id, const double timestamp,
-             const Mat44_t& cam_pose_cw, camera::base* camera, const float depth_thr,
-             const unsigned int num_keypts, const std::vector<cv::KeyPoint>& keypts,
-             const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
-             const std::vector<float>& stereo_x_right, const std::vector<float>& depths, const cv::Mat& descriptors,
-             const unsigned int num_scale_levels, const float scale_factor,
-             bow_vocabulary* bow_vocab, bow_database* bow_db, map_database* map_db);
+    keyframe(const unsigned int id, const unsigned int src_frm_id,
+             const double timestamp, const Mat44_t& cam_pose_cw, camera::base* camera,
+             const feature::orb_params* orb_params, const frame_observation& frm_obs,
+             const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec);
     virtual ~keyframe();
 
     // Factory method for create keyframe
-    static std::shared_ptr<keyframe> make_keyframe(const frame& frm, map_database* map_db, bow_database* bow_db);
+    static std::shared_ptr<keyframe> make_keyframe(const frame& frm);
     static std::shared_ptr<keyframe> make_keyframe(
-        const unsigned int id, const unsigned int src_frm_id, const double timestamp,
-        const Mat44_t& cam_pose_cw, camera::base* camera, const float depth_thr,
-        const unsigned int num_keypts, const std::vector<cv::KeyPoint>& keypts,
-        const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
-        const std::vector<float>& stereo_x_right, const std::vector<float>& depths, const cv::Mat& descriptors,
-        const unsigned int num_scale_levels, const float scale_factor,
-        bow_vocabulary* bow_vocab, bow_database* bow_db, map_database* map_db);
+        const unsigned int id, const unsigned int src_frm_id,
+        const double timestamp, const Mat44_t& cam_pose_cw, camera::base* camera,
+        const feature::orb_params* orb_params, const frame_observation& frm_obs,
+        const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec);
 
     // operator overrides
     bool operator==(const keyframe& keyfrm) const { return id_ == keyfrm.id_; }
@@ -123,9 +119,14 @@ public:
     // features and observations
 
     /**
+     * Returns true if BoW has been computed.
+     */
+    bool bow_is_available() const;
+
+    /**
      * Compute BoW representation
      */
-    void compute_bow();
+    void compute_bow(bow_vocabulary* bow_vocab);
 
     /**
      * Add a landmark observed by myself at keypoint idx
@@ -204,28 +205,12 @@ public:
     /**
      * Erase this keyframe
      */
-    void prepare_for_erasing();
+    void prepare_for_erasing(map_database* map_db, bow_database* bow_db);
 
     /**
      * Whether this keyframe will be erased shortly or not
      */
     bool will_be_erased();
-
-    //-----------------------------------------
-    // for local map update
-
-    //! identifier for local map update
-    unsigned int local_map_update_identifier = 0;
-
-    //-----------------------------------------
-    // for loop BA
-
-    //! identifier for loop BA
-    unsigned int loop_BA_identifier_ = 0;
-    //! camera pose AFTER loop BA
-    Mat44_t cam_pose_cw_after_loop_BA_;
-    //! camera pose BEFORE loop BA
-    Mat44_t cam_pose_cw_before_BA_;
 
     //-----------------------------------------
     // meta information
@@ -246,32 +231,17 @@ public:
 
     //! camera model
     camera::base* camera_;
-    //! depth threshold
-    const float depth_thr_;
+
+    //-----------------------------------------
+    // feature extraction parameters
+
+    //! ORB feature extraction model
+    const feature::orb_params* orb_params_;
 
     //-----------------------------------------
     // constant observations
 
-    //! number of keypoints
-    const unsigned int num_keypts_;
-
-    //! keypoints of monocular or stereo left image
-    const std::vector<cv::KeyPoint> keypts_;
-    //! undistorted keypoints of monocular or stereo left image
-    const std::vector<cv::KeyPoint> undist_keypts_;
-    //! bearing vectors
-    const eigen_alloc_vector<Vec3_t> bearings_;
-
-    //! keypoint indices in each of the cells
-    const std::vector<std::vector<std::vector<unsigned int>>> keypt_indices_in_cells_;
-
-    //! disparities
-    const std::vector<float> stereo_x_right_;
-    //! depths
-    const std::vector<float> depths_;
-
-    //! descriptors
-    const cv::Mat descriptors_;
+    const frame_observation frm_obs_;
 
     //! BoW features (DBoW2 or FBoW)
 #ifdef USE_DBOW2
@@ -287,22 +257,6 @@ public:
 
     //! graph node
     std::unique_ptr<graph_node> graph_node_ = nullptr;
-
-    //-----------------------------------------
-    // ORB scale pyramid information
-
-    //! number of scale levels
-    const unsigned int num_scale_levels_;
-    //! scale factor
-    const float scale_factor_;
-    //! log scale factor
-    const float log_scale_factor_;
-    //! list of scale factors
-    const std::vector<float> scale_factors_;
-    //! list of sigma^2 (sigma=1.0 at scale=0) for optimization
-    const std::vector<float> level_sigma_sq_;
-    //! list of 1 / sigma^2 for optimization
-    const std::vector<float> inv_level_sigma_sq_;
 
 private:
     //-----------------------------------------
@@ -324,16 +278,6 @@ private:
     mutable std::mutex mtx_observations_;
     //! observed landmarks
     std::vector<std::shared_ptr<landmark>> landmarks_;
-
-    //-----------------------------------------
-    // databases
-
-    //! map database
-    map_database* map_db_;
-    //! BoW database
-    bow_database* bow_db_;
-    //! BoW vocabulary
-    bow_vocabulary* bow_vocab_;
 
     //-----------------------------------------
     // flags

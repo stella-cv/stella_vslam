@@ -142,6 +142,12 @@ public:
 
 private:
     /**
+     * Update the order of the covisibilities (without mutex)
+     * (NOTE: the new keyframe won't inserted)
+     */
+    void update_covisibility_orders_impl();
+
+    /**
      * Extract intersection from the two lists of keyframes
      */
     template<typename T, typename U>

@@ -34,7 +34,7 @@ bool loop_bundle_adjuster::is_running() const {
     return loop_BA_is_running_;
 }
 
-void loop_bundle_adjuster::optimize(const unsigned int identifier) {
+void loop_bundle_adjuster::optimize() {
     spdlog::info("start loop bundle adjustment");
 
     unsigned int num_exec_loop_BA = 0;
@@ -45,8 +45,14 @@ void loop_bundle_adjuster::optimize(const unsigned int identifier) {
         num_exec_loop_BA = num_exec_loop_BA_;
     }
 
-    const auto global_bundle_adjuster = optimize::global_bundle_adjuster(map_db_, num_iter_, false);
-    global_bundle_adjuster.optimize(identifier, &abort_loop_BA_);
+    std::unordered_set<unsigned int> optimized_keyfrm_ids;
+    std::unordered_set<unsigned int> optimized_landmark_ids;
+    eigen_alloc_unord_map<unsigned int, Vec3_t> lm_to_pos_w_after_global_BA;
+    eigen_alloc_unord_map<unsigned int, Mat44_t> keyfrm_to_pose_cw_after_global_BA;
+    const auto global_BA = optimize::global_bundle_adjuster(map_db_, num_iter_, false);
+    global_BA.optimize(optimized_keyfrm_ids, optimized_landmark_ids,
+                       lm_to_pos_w_after_global_BA,
+                       keyfrm_to_pose_cw_after_global_BA, &abort_loop_BA_);
 
     {
         std::lock_guard<std::mutex> lock1(mtx_thread_);
@@ -64,13 +70,16 @@ void loop_bundle_adjuster::optimize(const unsigned int identifier) {
         spdlog::info("updating the map with pose propagation");
 
         // stop mapping module
-        mapper_->request_pause();
-        while (!mapper_->is_paused() && !mapper_->is_terminated()) {
-            std::this_thread::sleep_for(std::chrono::microseconds(1000));
+        auto future_pause = mapper_->async_pause();
+        while (future_pause.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout) {
+            while (mapper_->is_terminated()) {
+                break;
+            }
         }
 
         std::lock_guard<std::mutex> lock2(data::map_database::mtx_database_);
 
+        eigen_alloc_unord_map<unsigned int, Mat44_t> keyfrm_to_cam_pose_cw_before_BA;
         // update the camera pose along the spanning tree from the origin
         std::list<std::shared_ptr<data::keyframe>> keyfrms_to_check;
         keyfrms_to_check.push_back(map_db_->origin_keyfrm_);
@@ -80,16 +89,16 @@ void loop_bundle_adjuster::optimize(const unsigned int identifier) {
 
             const auto children = parent->graph_node_->get_spanning_children();
             for (auto child : children) {
-                if (child->loop_BA_identifier_ != identifier) {
+                if (!optimized_keyfrm_ids.count(child->id_)) {
                     // if `child` is NOT optimized by the loop BA
                     // propagate the pose correction from the spanning parent
 
                     // parent->child
                     const Mat44_t cam_pose_cp = child->get_cam_pose() * cam_pose_wp;
                     // world->child AFTER correction = parent->child * world->parent AFTER correction
-                    child->cam_pose_cw_after_loop_BA_ = cam_pose_cp * parent->cam_pose_cw_after_loop_BA_;
+                    keyfrm_to_pose_cw_after_global_BA[child->id_] = cam_pose_cp * keyfrm_to_pose_cw_after_global_BA.at(parent->id_);
                     // check as `child` has been corrected
-                    child->loop_BA_identifier_ = identifier;
+                    optimized_keyfrm_ids.insert(child->id_);
                 }
 
                 // need updating
@@ -97,9 +106,9 @@ void loop_bundle_adjuster::optimize(const unsigned int identifier) {
             }
 
             // temporally store the camera pose BEFORE correction (for correction of landmark positions)
-            parent->cam_pose_cw_before_BA_ = parent->get_cam_pose();
+            keyfrm_to_cam_pose_cw_before_BA[parent->id_] = parent->get_cam_pose();
             // update the camera pose
-            parent->set_cam_pose(parent->cam_pose_cw_after_loop_BA_);
+            parent->set_cam_pose(keyfrm_to_pose_cw_after_global_BA.at(parent->id_));
             // finish updating
             keyfrms_to_check.pop_front();
         }
@@ -111,11 +120,11 @@ void loop_bundle_adjuster::optimize(const unsigned int identifier) {
                 continue;
             }
 
-            if (lm->loop_BA_identifier_ == identifier) {
+            if (optimized_landmark_ids.count(lm->id_)) {
                 // if `lm` is optimized by the loop BA
 
                 // update with the optimized position
-                lm->set_pos_in_world(lm->pos_w_after_global_BA_);
+                lm->set_pos_in_world(lm_to_pos_w_after_global_BA.at(lm->id_));
             }
             else {
                 // if `lm` is NOT optimized by the loop BA
@@ -123,11 +132,12 @@ void loop_bundle_adjuster::optimize(const unsigned int identifier) {
                 // correct the position according to the move of the camera pose of the reference keyframe
                 auto ref_keyfrm = lm->get_ref_keyframe();
 
-                assert(ref_keyfrm->loop_BA_identifier_ == identifier);
+                assert(optimized_keyfrm_ids.count(ref_keyfrm->id_));
 
                 // convert the position to the camera-reference using the camera pose BEFORE the correction
-                const Mat33_t rot_cw_before_BA = ref_keyfrm->cam_pose_cw_before_BA_.block<3, 3>(0, 0);
-                const Vec3_t trans_cw_before_BA = ref_keyfrm->cam_pose_cw_before_BA_.block<3, 1>(0, 3);
+                const Mat44_t pose_cw_before_BA = keyfrm_to_cam_pose_cw_before_BA.at(ref_keyfrm->id_);
+                const Mat33_t rot_cw_before_BA = pose_cw_before_BA.block<3, 3>(0, 0);
+                const Vec3_t trans_cw_before_BA = pose_cw_before_BA.block<3, 1>(0, 3);
                 const Vec3_t pos_c = rot_cw_before_BA * lm->get_pos_in_world() + trans_cw_before_BA;
 
                 // convert the position to the world-reference using the camera pose AFTER the correction

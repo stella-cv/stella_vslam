@@ -42,7 +42,7 @@ unsigned int pose_optimizer::optimize(data::frame& frm) const {
     frm_vtx->setFixed(false);
     optimizer.addVertex(frm_vtx);
 
-    const unsigned int num_keypts = frm.num_keypts_;
+    const unsigned int num_keypts = frm.frm_obs_.num_keypts_;
 
     // 3. Connect the landmark vertices by using projection edges
 
@@ -72,9 +72,9 @@ unsigned int pose_optimizer::optimize(data::frame& frm) const {
         frm.outlier_flags_.at(idx) = false;
 
         // Connect the frame and the landmark vertices using the projection edges
-        const auto& undist_keypt = frm.undist_keypts_.at(idx);
-        const float x_right = frm.stereo_x_right_.at(idx);
-        const float inv_sigma_sq = frm.inv_level_sigma_sq_.at(undist_keypt.octave);
+        const auto& undist_keypt = frm.frm_obs_.undist_keypts_.at(idx);
+        const float x_right = frm.frm_obs_.stereo_x_right_.at(idx);
+        const float inv_sigma_sq = frm.orb_params_->inv_level_sigma_sq_.at(undist_keypt.octave);
         const auto sqrt_chi_sq = (frm.camera_->setup_type_ == camera::setup_type_t::Monocular)
                                      ? sqrt_chi_sq_2D
                                      : sqrt_chi_sq_3D;

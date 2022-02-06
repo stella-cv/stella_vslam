@@ -58,7 +58,7 @@ StereoRectifier:
 # Tracking Parameters #
 #=====================#
 
-Tracking:
+Preprocessing:
   max_num_keypoints: 1000
   ini_max_num_keypoints: 2000
 
@@ -67,6 +67,7 @@ Tracking:
 #================#
 
 Feature:
+  name: "default ORB feature extraction setting"
   scale_factor: 1.2
   num_levels: 8
   ini_fast_threshold: 20

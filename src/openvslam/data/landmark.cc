@@ -49,7 +49,7 @@ void landmark::add_observation(const std::shared_ptr<keyframe>& keyfrm, unsigned
     }
     observations_[keyfrm] = idx;
 
-    if (0 <= keyfrm->stereo_x_right_.at(idx)) {
+    if (0 <= keyfrm->frm_obs_.stereo_x_right_.at(idx)) {
         num_observations_ += 2;
     }
     else {
@@ -57,14 +57,14 @@ void landmark::add_observation(const std::shared_ptr<keyframe>& keyfrm, unsigned
     }
 }
 
-void landmark::erase_observation(const std::shared_ptr<keyframe>& keyfrm) {
+void landmark::erase_observation(map_database* map_db, const std::shared_ptr<keyframe>& keyfrm) {
     bool discard = false;
     {
         std::lock_guard<std::mutex> lock(mtx_observations_);
 
         if (observations_.count(keyfrm)) {
             int idx = observations_.at(keyfrm);
-            if (0 <= keyfrm->stereo_x_right_.at(idx)) {
+            if (0 <= keyfrm->frm_obs_.stereo_x_right_.at(idx)) {
                 num_observations_ -= 2;
             }
             else {
@@ -77,7 +77,6 @@ void landmark::erase_observation(const std::shared_ptr<keyframe>& keyfrm) {
                 ref_keyfrm_ = observations_.begin()->first;
             }
 
-            // If only 2 observations or less, discard point
             if (num_observations_ <= 2) {
                 discard = true;
             }
@@ -85,7 +84,7 @@ void landmark::erase_observation(const std::shared_ptr<keyframe>& keyfrm) {
     }
 
     if (discard) {
-        prepare_for_erasing();
+        prepare_for_erasing(map_db);
     }
 }
 
@@ -146,7 +145,7 @@ void landmark::compute_descriptor() {
         const auto idx = observation.second;
 
         if (!keyfrm->will_be_erased()) {
-            descriptors.push_back(keyfrm->descriptors_.row(idx));
+            descriptors.push_back(keyfrm->frm_obs_.descriptors_.row(idx));
         }
     }
 
@@ -183,7 +182,7 @@ void landmark::compute_descriptor() {
     }
 }
 
-void landmark::update_normal_and_depth() {
+void landmark::update_mean_normal_and_obs_scale_variance() {
     observations_t observations;
     std::shared_ptr<keyframe> ref_keyfrm = nullptr;
     Vec3_t pos_w;
@@ -214,14 +213,14 @@ void landmark::update_normal_and_depth() {
 
     const Vec3_t cam_to_lm_vec = pos_w - ref_keyfrm->get_cam_center();
     const auto dist = cam_to_lm_vec.norm();
-    const auto scale_level = ref_keyfrm->undist_keypts_.at(observations.at(ref_keyfrm)).octave;
-    const auto scale_factor = ref_keyfrm->scale_factors_.at(scale_level);
-    const auto num_scale_levels = ref_keyfrm->num_scale_levels_;
+    const auto scale_level = ref_keyfrm->frm_obs_.undist_keypts_.at(observations.at(ref_keyfrm)).octave;
+    const auto scale_factor = ref_keyfrm->orb_params_->scale_factors_.at(scale_level);
+    const auto num_scale_levels = ref_keyfrm->orb_params_->num_levels_;
 
     {
         std::lock_guard<std::mutex> lock3(mtx_position_);
         max_valid_dist_ = dist * scale_factor;
-        min_valid_dist_ = max_valid_dist_ / ref_keyfrm->scale_factors_.at(num_scale_levels - 1);
+        min_valid_dist_ = max_valid_dist_ / ref_keyfrm->orb_params_->scale_factors_.at(num_scale_levels - 1);
         mean_normal_ = mean_normal.normalized();
     }
 }
@@ -236,45 +235,26 @@ float landmark::get_max_valid_distance() const {
     return 1.3 * max_valid_dist_;
 }
 
-unsigned int landmark::predict_scale_level(const float cam_to_lm_dist, const frame* frm) const {
+unsigned int landmark::predict_scale_level(const float cam_to_lm_dist, float num_scale_levels, float log_scale_factor) const {
     float ratio;
     {
         std::lock_guard<std::mutex> lock(mtx_position_);
         ratio = max_valid_dist_ / cam_to_lm_dist;
     }
 
-    const auto pred_scale_level = static_cast<int>(std::ceil(std::log(ratio) / frm->log_scale_factor_));
+    const auto pred_scale_level = static_cast<int>(std::ceil(std::log(ratio) / log_scale_factor));
     if (pred_scale_level < 0) {
         return 0;
     }
-    else if (frm->num_scale_levels_ <= static_cast<unsigned int>(pred_scale_level)) {
-        return frm->num_scale_levels_ - 1;
+    else if (num_scale_levels <= static_cast<unsigned int>(pred_scale_level)) {
+        return num_scale_levels - 1;
     }
     else {
         return static_cast<unsigned int>(pred_scale_level);
     }
 }
 
-unsigned int landmark::predict_scale_level(const float cam_to_lm_dist, const std::shared_ptr<keyframe>& keyfrm) const {
-    float ratio;
-    {
-        std::lock_guard<std::mutex> lock(mtx_position_);
-        ratio = max_valid_dist_ / cam_to_lm_dist;
-    }
-
-    const auto pred_scale_level = static_cast<int>(std::ceil(std::log(ratio) / keyfrm->log_scale_factor_));
-    if (pred_scale_level < 0) {
-        return 0;
-    }
-    else if (keyfrm->num_scale_levels_ <= static_cast<unsigned int>(pred_scale_level)) {
-        return keyfrm->num_scale_levels_ - 1;
-    }
-    else {
-        return static_cast<unsigned int>(pred_scale_level);
-    }
-}
-
-void landmark::prepare_for_erasing() {
+void landmark::prepare_for_erasing(map_database* map_db) {
     observations_t observations;
     {
         std::lock_guard<std::mutex> lock1(mtx_observations_);
@@ -288,7 +268,7 @@ void landmark::prepare_for_erasing() {
         keyfrm_and_idx.first.lock()->erase_landmark_with_index(keyfrm_and_idx.second);
     }
 
-    map_db_->erase_landmark(this->id_);
+    map_db->erase_landmark(this->id_);
 }
 
 bool landmark::will_be_erased() {

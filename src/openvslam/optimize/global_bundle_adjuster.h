@@ -24,12 +24,21 @@ public:
      */
     virtual ~global_bundle_adjuster() = default;
 
+    void optimize_for_initialization(bool* const force_stop_flag = nullptr) const;
+
     /**
      * Perform optimization
-     * @param lead_keyfrm_id_in_global_BA
+     * @param optimized_keyfrm_ids
+     * @param optimized_landmark_ids
+     * @param lm_to_pos_w_after_global_BA
+     * @param keyfrm_to_pose_cw_after_global_BA
      * @param force_stop_flag
      */
-    void optimize(const unsigned int lead_keyfrm_id_in_global_BA = 0, bool* const force_stop_flag = nullptr) const;
+    void optimize(std::unordered_set<unsigned int>& optimized_keyfrm_ids,
+                  std::unordered_set<unsigned int>& optimized_landmark_ids,
+                  eigen_alloc_unord_map<unsigned int, Vec3_t>& lm_to_pos_w_after_global_BA,
+                  eigen_alloc_unord_map<unsigned int, Mat44_t>& keyfrm_to_pose_cw_after_global_BA,
+                  bool* const force_stop_flag = nullptr) const;
 
 private:
     //! map database

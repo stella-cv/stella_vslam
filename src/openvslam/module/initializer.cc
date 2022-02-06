@@ -13,10 +13,9 @@
 namespace openvslam {
 namespace module {
 
-initializer::initializer(const camera::setup_type_t setup_type,
-                         data::map_database* map_db, data::bow_database* bow_db,
+initializer::initializer(data::map_database* map_db, data::bow_database* bow_db,
                          const YAML::Node& yaml_node)
-    : setup_type_(setup_type), map_db_(map_db), bow_db_(bow_db),
+    : map_db_(map_db), bow_db_(bow_db),
       num_ransac_iters_(yaml_node["num_ransac_iterations"].as<unsigned int>(100)),
       min_num_triangulated_(yaml_node["num_min_triangulated_pts"].as<unsigned int>(50)),
       parallax_deg_thr_(yaml_node["parallax_deg_threshold"].as<float>(1.0)),
@@ -35,6 +34,7 @@ void initializer::reset() {
     initializer_.reset(nullptr);
     state_ = initializer_state_t::NotReady;
     init_frm_id_ = 0;
+    init_frm_stamp_ = 0.0;
 }
 
 initializer_state_t initializer::get_state() const {
@@ -42,7 +42,7 @@ initializer_state_t initializer::get_state() const {
 }
 
 std::vector<cv::KeyPoint> initializer::get_initial_keypoints() const {
-    return init_frm_.keypts_;
+    return init_frm_.frm_obs_.keypts_;
 }
 
 std::vector<int> initializer::get_initial_matches() const {
@@ -53,8 +53,13 @@ unsigned int initializer::get_initial_frame_id() const {
     return init_frm_id_;
 }
 
-bool initializer::initialize(data::frame& curr_frm) {
-    switch (setup_type_) {
+double initializer::get_initial_frame_timestamp() const {
+    return init_frm_stamp_;
+}
+
+bool initializer::initialize(const camera::setup_type_t setup_type,
+                             data::bow_vocabulary* bow_vocab, data::frame& curr_frm) {
+    switch (setup_type) {
         case camera::setup_type_t::Monocular: {
             // construct an initializer if not constructed
             if (state_ == initializer_state_t::NotReady) {
@@ -69,7 +74,7 @@ bool initializer::initialize(data::frame& curr_frm) {
             }
 
             // create new map if succeeded
-            create_map_for_monocular(curr_frm);
+            create_map_for_monocular(bow_vocab, curr_frm);
             break;
         }
         case camera::setup_type_t::Stereo:
@@ -83,7 +88,7 @@ bool initializer::initialize(data::frame& curr_frm) {
             }
 
             // create new map if succeeded
-            create_map_for_stereo(curr_frm);
+            create_map_for_stereo(bow_vocab, curr_frm);
             break;
         }
         default: {
@@ -94,6 +99,7 @@ bool initializer::initialize(data::frame& curr_frm) {
     // check the state is succeeded or not
     if (state_ == initializer_state_t::Succeeded) {
         init_frm_id_ = curr_frm.id_;
+        init_frm_stamp_ = curr_frm.timestamp_;
         return true;
     }
     else {
@@ -106,9 +112,9 @@ void initializer::create_initializer(data::frame& curr_frm) {
     init_frm_ = data::frame(curr_frm);
 
     // initialize the previously matched coordinates
-    prev_matched_coords_.resize(init_frm_.undist_keypts_.size());
-    for (unsigned int i = 0; i < init_frm_.undist_keypts_.size(); ++i) {
-        prev_matched_coords_.at(i) = init_frm_.undist_keypts_.at(i).pt;
+    prev_matched_coords_.resize(init_frm_.frm_obs_.undist_keypts_.size());
+    for (unsigned int i = 0; i < init_frm_.frm_obs_.undist_keypts_.size(); ++i) {
+        prev_matched_coords_.at(i) = init_frm_.frm_obs_.undist_keypts_.at(i).pt;
     }
 
     // initialize matchings (init_idx -> curr_idx)
@@ -156,7 +162,7 @@ bool initializer::try_initialize_for_monocular(data::frame& curr_frm) {
     return initializer_->initialize(curr_frm, init_matches_);
 }
 
-bool initializer::create_map_for_monocular(data::frame& curr_frm) {
+bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data::frame& curr_frm) {
     assert(state_ == initializer_state_t::Initializing);
 
     eigen_alloc_vector<Vec3_t> init_triangulated_pts;
@@ -188,12 +194,12 @@ bool initializer::create_map_for_monocular(data::frame& curr_frm) {
     }
 
     // create initial keyframes
-    auto init_keyfrm = data::keyframe::make_keyframe(init_frm_, map_db_, bow_db_);
-    auto curr_keyfrm = data::keyframe::make_keyframe(curr_frm, map_db_, bow_db_);
+    auto init_keyfrm = data::keyframe::make_keyframe(init_frm_);
+    auto curr_keyfrm = data::keyframe::make_keyframe(curr_frm);
 
     // compute BoW representations
-    init_keyfrm->compute_bow();
-    curr_keyfrm->compute_bow();
+    init_keyfrm->compute_bow(bow_vocab);
+    curr_keyfrm->compute_bow(bow_vocab);
 
     // add the keyframes to the map DB
     map_db_->add_keyframe(init_keyfrm);
@@ -224,7 +230,7 @@ bool initializer::create_map_for_monocular(data::frame& curr_frm) {
         // update the descriptor
         lm->compute_descriptor();
         // update the geometry
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
 
         // set the 2D-3D assocications to the current frame
         curr_frm.landmarks_.at(curr_idx) = lm;
@@ -236,7 +242,7 @@ bool initializer::create_map_for_monocular(data::frame& curr_frm) {
 
     // global bundle adjustment
     const auto global_bundle_adjuster = optimize::global_bundle_adjuster(map_db_, num_ba_iters_, true);
-    global_bundle_adjuster.optimize();
+    global_bundle_adjuster.optimize_for_initialization();
 
     // scale the map so that the median of depths is 1.0
     const auto median_depth = init_keyfrm->compute_median_depth(init_keyfrm->camera_->model_type_ == camera::model_type_t::Equirectangular);
@@ -278,22 +284,22 @@ void initializer::scale_map(const std::shared_ptr<data::keyframe>& init_keyfrm, 
 bool initializer::try_initialize_for_stereo(data::frame& curr_frm) {
     assert(state_ == initializer_state_t::Initializing);
     // count the number of valid depths
-    unsigned int num_valid_depths = std::count_if(curr_frm.depths_.begin(), curr_frm.depths_.end(),
+    unsigned int num_valid_depths = std::count_if(curr_frm.frm_obs_.depths_.begin(), curr_frm.frm_obs_.depths_.end(),
                                                   [](const float depth) {
                                                       return 0 < depth;
                                                   });
     return min_num_triangulated_ <= num_valid_depths;
 }
 
-bool initializer::create_map_for_stereo(data::frame& curr_frm) {
+bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::frame& curr_frm) {
     assert(state_ == initializer_state_t::Initializing);
 
     // create an initial keyframe
     curr_frm.set_cam_pose(Mat44_t::Identity());
-    auto curr_keyfrm = data::keyframe::make_keyframe(curr_frm, map_db_, bow_db_);
+    auto curr_keyfrm = data::keyframe::make_keyframe(curr_frm);
 
     // compute BoW representation
-    curr_keyfrm->compute_bow();
+    curr_keyfrm->compute_bow(bow_vocab);
 
     // add to the map DB
     map_db_->add_keyframe(curr_keyfrm);
@@ -302,9 +308,9 @@ bool initializer::create_map_for_stereo(data::frame& curr_frm) {
     curr_frm.ref_keyfrm_ = curr_keyfrm;
     map_db_->update_frame_statistics(curr_frm, false);
 
-    for (unsigned int idx = 0; idx < curr_frm.num_keypts_; ++idx) {
+    for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
         // add a new landmark if tht corresponding depth is valid
-        const auto z = curr_frm.depths_.at(idx);
+        const auto z = curr_frm.frm_obs_.depths_.at(idx);
         if (z <= 0) {
             continue;
         }
@@ -320,7 +326,7 @@ bool initializer::create_map_for_stereo(data::frame& curr_frm) {
         // update the descriptor
         lm->compute_descriptor();
         // update the geometry
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
 
         // set the 2D-3D associations to the current frame
         curr_frm.landmarks_.at(idx) = lm;

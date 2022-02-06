@@ -10,6 +10,7 @@
 
 #include <mutex>
 #include <memory>
+#include <future>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
@@ -25,13 +26,8 @@ class map_database;
 class bow_database;
 } // namespace data
 
-namespace feature {
-class orb_extractor;
-} // namespace feature
-
 // tracker state
 enum class tracker_state_t {
-    NotInitialized,
     Initializing,
     Tracking,
     Lost
@@ -50,7 +46,7 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     //! Constructor
-    tracking_module(const std::shared_ptr<config>& cfg, system* system, data::map_database* map_db,
+    tracking_module(const std::shared_ptr<config>& cfg, data::map_database* map_db,
                     data::bow_vocabulary* bow_vocab, data::bow_database* bow_db);
 
     //! Destructor
@@ -77,17 +73,8 @@ public:
     //! Get the keypoint matches between the initial frame and the current frame
     std::vector<int> get_initial_matches() const;
 
-    //! Track a monocular frame
-    //! (NOTE: distorted images are acceptable if calibrated)
-    std::shared_ptr<Mat44_t> track_monocular_image(const cv::Mat& img, const double timestamp, const cv::Mat& mask = cv::Mat{});
-
-    //! Track a stereo frame
-    //! (Note: Left and Right images must be stereo-rectified)
-    std::shared_ptr<Mat44_t> track_stereo_image(const cv::Mat& left_img_rect, const cv::Mat& right_img_rect, const double timestamp, const cv::Mat& mask = cv::Mat{});
-
-    //! Track an RGBD frame
-    //! (Note: RGB and Depth images must be aligned)
-    std::shared_ptr<Mat44_t> track_RGBD_image(const cv::Mat& img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask = cv::Mat{});
+    //! Main stream of the tracking module
+    std::shared_ptr<Mat44_t> feed_frame(data::frame frame);
 
     //! Request to update the pose to a given one.
     //! Return failure in case if previous request was not finished yet.
@@ -104,7 +91,7 @@ public:
     // management for pause process
 
     //! Request to pause the tracking module
-    void request_pause();
+    std::future<void> async_pause();
 
     //! Check if the pause of the tracking module is requested or not
     bool pause_is_requested() const;
@@ -121,12 +108,6 @@ public:
     //! camera model
     camera::base* camera_;
 
-    //! depth threshold (Ignore depths farther than true_depth_thr_ times the baseline.)
-    double true_depth_thr_ = 40.0;
-
-    //! depthmap factor (pixel_value / depthmap_factor = true_depth)
-    double depthmap_factor_ = 1.0;
-
     //! closest keyframes thresholds (by distance and angle) to relocalize with when updating by pose
     double reloc_distance_threshold_ = 0.2;
     double reloc_angle_threshold_ = 0.45;
@@ -141,30 +122,23 @@ public:
     // variables
 
     //! latest tracking state
-    tracker_state_t tracking_state_ = tracker_state_t::NotInitialized;
-    //! last tracking state
-    tracker_state_t last_tracking_state_ = tracker_state_t::NotInitialized;
+    tracker_state_t tracking_state_ = tracker_state_t::Initializing;
 
     //! current frame and its image
     data::frame curr_frm_;
-    //! image of the current frame
-    cv::Mat img_gray_;
-
-    //! elapsed microseconds for each tracking
-    double elapsed_ms_ = 0.0;
 
 protected:
     //-----------------------------------------
     // tracking processes
 
-    //! Main stream of the tracking module
-    void track();
-
     //! Try to initialize with the current frame
     bool initialize();
 
+    //! Main stream of the tracking module
+    bool track(bool relocalization_is_needed);
+
     //! Track the current frame
-    bool track_current_frame();
+    bool track_current_frame(std::unordered_set<unsigned int>& outlier_ids);
 
     //! Relocalization by pose
     bool relocalize_by_pose(const pose_request& request);
@@ -182,34 +156,24 @@ protected:
     void update_last_frame();
 
     //! Optimize the camera pose of the current frame
-    bool optimize_current_frame_with_local_map();
+    bool optimize_current_frame_with_local_map(unsigned int& num_tracked_lms, std::unordered_set<unsigned int>& outlier_ids);
 
     //! Update the local map
-    void update_local_map();
+    void update_local_map(std::unordered_set<unsigned int>& outlier_ids);
 
     //! Acquire more 2D-3D matches using initial camera pose estimation
-    void search_local_landmarks();
+    void search_local_landmarks(std::unordered_set<unsigned int>& outlier_ids);
 
     //! Check the new keyframe is needed or not
-    bool new_keyframe_is_needed() const;
+    bool new_keyframe_is_needed(unsigned int num_tracked_lms) const;
 
     //! Insert the new keyframe derived from the current frame
     void insert_new_keyframe();
 
-    //! system
-    system* system_ = nullptr;
     //! mapping module
     mapping_module* mapper_ = nullptr;
     //! global optimization module
     global_optimization_module* global_optimizer_ = nullptr;
-
-    // ORB extractors
-    //! ORB extractor for left/monocular image
-    feature::orb_extractor* extractor_left_ = nullptr;
-    //! ORB extractor for right image
-    feature::orb_extractor* extractor_right_ = nullptr;
-    //! ORB extractor only when used in initializing
-    feature::orb_extractor* ini_extractor_left_ = nullptr;
 
     //! map_database
     data::map_database* map_db_ = nullptr;
@@ -240,14 +204,13 @@ protected:
     //! local landmarks
     std::vector<std::shared_ptr<data::landmark>> local_landmarks_;
 
-    //! the number of tracked keyframes in the current keyframe
-    unsigned int num_tracked_lms_ = 0;
-
     //! last frame
     data::frame last_frm_;
 
-    //! latest frame ID which succeeded in relocalization
+    //! ID of latest frame which succeeded in relocalization
     unsigned int last_reloc_frm_id_ = 0;
+    //! timestamp of latest frame which succeeded in relocalization
+    double last_reloc_frm_timestamp_ = 0.0;
 
     //! motion model
     Mat44_t twist_;
@@ -272,6 +235,9 @@ protected:
 
     //! mutex for pause process
     mutable std::mutex mtx_pause_;
+
+    //! promise for pause
+    std::vector<std::promise<void>> promises_pause_;
 
     //! Check the request frame and pause the tracking module
     bool check_and_execute_pause();

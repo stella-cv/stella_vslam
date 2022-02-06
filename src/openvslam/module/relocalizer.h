@@ -21,18 +21,17 @@ namespace module {
 class relocalizer {
 public:
     //! Constructor
-    explicit relocalizer(data::bow_database* bow_db,
-                         const double bow_match_lowe_ratio = 0.75, const double proj_match_lowe_ratio = 0.9,
+    explicit relocalizer(const double bow_match_lowe_ratio = 0.75, const double proj_match_lowe_ratio = 0.9,
                          const double robust_match_lowe_ratio = 0.8,
                          const unsigned int min_num_bow_matches = 20, const unsigned int min_num_valid_obs = 50);
 
-    relocalizer(data::bow_database* bow_db, const YAML::Node& yaml_node);
+    explicit relocalizer(const YAML::Node& yaml_node);
 
     //! Destructor
     virtual ~relocalizer();
 
     //! Relocalize the specified frame
-    bool relocalize(data::frame& curr_frm);
+    bool relocalize(data::bow_database* bow_db, data::frame& curr_frm);
 
     //! Relocalize the specified frame by given candidates list
     bool reloc_by_candidates(data::frame& curr_frm,
@@ -49,9 +48,6 @@ private:
                                                         const std::vector<cv::KeyPoint>& keypts,
                                                         const std::vector<std::shared_ptr<data::landmark>>& matched_landmarks,
                                                         const std::vector<float>& scale_factors) const;
-
-    //! BoW database
-    data::bow_database* bow_db_;
 
     //! minimum threshold of the number of BoW matches
     const unsigned int min_num_bow_matches_;

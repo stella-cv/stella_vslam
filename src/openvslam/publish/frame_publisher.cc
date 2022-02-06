@@ -21,13 +21,12 @@ frame_publisher::~frame_publisher() {
     spdlog::debug("DESTRUCT: publish::frame_publisher");
 }
 
-cv::Mat frame_publisher::draw_frame(const bool draw_text) {
+cv::Mat frame_publisher::draw_frame() {
     cv::Mat img;
     tracker_state_t tracking_state;
     std::vector<cv::KeyPoint> init_keypts;
     std::vector<int> init_matches;
     std::vector<cv::KeyPoint> curr_keypts;
-    double elapsed_ms;
     bool mapping_is_enabled;
     std::vector<bool> is_tracked;
 
@@ -46,8 +45,6 @@ cv::Mat frame_publisher::draw_frame(const bool draw_text) {
         }
 
         curr_keypts = curr_keypts_;
-
-        elapsed_ms = elapsed_ms_;
 
         mapping_is_enabled = mapping_is_enabled_;
 
@@ -81,10 +78,7 @@ cv::Mat frame_publisher::draw_frame(const bool draw_text) {
         }
     }
 
-    if (draw_text) {
-        // draw tracking info
-        draw_info_text(img, tracking_state, num_tracked, elapsed_ms, mapping_is_enabled);
-    }
+    spdlog::trace("num_tracked: {}", num_tracked);
 
     return img;
 }
@@ -139,59 +133,16 @@ unsigned int frame_publisher::draw_tracked_points(cv::Mat& img, const std::vecto
     return num_tracked;
 }
 
-void frame_publisher::draw_info_text(cv::Mat& img, const tracker_state_t tracking_state, const unsigned int num_tracked,
-                                     const double elapsed_ms, const bool mapping_is_enabled) const {
-    // create text info
-    std::stringstream ss;
-    switch (tracking_state) {
-        case tracker_state_t::NotInitialized: {
-            ss << "WAITING FOR IMAGES ";
-            break;
-        }
-        case tracker_state_t::Initializing: {
-            ss << "INITIALIZE | ";
-            ss << "KP: " << num_tracked << ", ";
-            ss << "track time: " << std::fixed << std::setprecision(0) << elapsed_ms << "ms";
-            break;
-        }
-        case tracker_state_t::Tracking: {
-            ss << (mapping_is_enabled ? "MAPPING | " : "LOCALIZATION | ");
-            ss << "KF: " << map_db_->get_num_keyframes() << ", ";
-            ss << "LM: " << map_db_->get_num_landmarks() << ", ";
-            ss << "KP: " << num_tracked << ", ";
-            ss << "track time: " << std::fixed << std::setprecision(0) << elapsed_ms << "ms";
-            break;
-        }
-        case tracker_state_t::Lost: {
-            ss << "LOST | ";
-            ss << "track time: " << std::fixed << std::setprecision(0) << elapsed_ms << "ms";
-            break;
-        }
-    }
-
-    int baseline = 0;
-    const cv::Size text_size = cv::getTextSize(ss.str(), cv::FONT_HERSHEY_PLAIN, 1, 1, &baseline);
-
-    // create text area
-    constexpr float alpha = 0.6;
-    cv::Mat overlay(img.rows, img.cols, img.type());
-    img.copyTo(overlay);
-    cv::rectangle(overlay, cv::Point2i{0, img.rows - text_size.height - 10}, cv::Point2i{img.cols, img.rows}, cv::Scalar{0, 0, 0}, -1);
-    cv::addWeighted(overlay, alpha, img, 1 - alpha, 0, img);
-    // put text
-    cv::putText(img, ss.str(), cv::Point(5, img.rows - 5), cv::FONT_HERSHEY_PLAIN, 1, cv::Scalar{255, 255, 255}, 1, 8);
-}
-
-void frame_publisher::update(tracking_module* tracker) {
+void frame_publisher::update(tracking_module* tracker, const cv::Mat& img, double elapsed_ms) {
     std::lock_guard<std::mutex> lock(mtx_);
 
-    tracker->img_gray_.copyTo(img_);
+    img.copyTo(img_);
 
-    const auto num_curr_keypts = tracker->curr_frm_.num_keypts_;
-    curr_keypts_ = tracker->curr_frm_.keypts_;
-    elapsed_ms_ = tracker->elapsed_ms_;
+    const auto num_curr_keypts = tracker->curr_frm_.frm_obs_.num_keypts_;
+    curr_keypts_ = tracker->curr_frm_.frm_obs_.keypts_;
+    elapsed_ms_ = elapsed_ms;
     mapping_is_enabled_ = tracker->get_mapping_module_status();
-    tracking_state_ = tracker->last_tracking_state_;
+    tracking_state_ = tracker->tracking_state_;
 
     is_tracked_ = std::vector<bool>(num_curr_keypts, false);
 

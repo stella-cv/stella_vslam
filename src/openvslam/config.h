@@ -27,6 +27,9 @@ public:
 
     //! Camera model
     camera::base* camera_ = nullptr;
+
+    //! ORB feature extraction model
+    feature::orb_params* orb_params_ = nullptr;
 };
 
 } // namespace openvslam

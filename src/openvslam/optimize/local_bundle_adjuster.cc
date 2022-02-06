@@ -27,7 +27,8 @@ local_bundle_adjuster::local_bundle_adjuster(const unsigned int num_first_iter,
                                              const unsigned int num_second_iter)
     : num_first_iter_(num_first_iter), num_second_iter_(num_second_iter) {}
 
-void local_bundle_adjuster::optimize(const std::shared_ptr<openvslam::data::keyframe>& curr_keyfrm, bool* const force_stop_flag) const {
+void local_bundle_adjuster::optimize(data::map_database* map_db,
+                                     const std::shared_ptr<openvslam::data::keyframe>& curr_keyfrm, bool* const force_stop_flag) const {
     // 1. Aggregate the local and fixed keyframes, and local landmarks
 
     // Correct the local keyframes of the current keyframe
@@ -172,9 +173,9 @@ void local_bundle_adjuster::optimize(const std::shared_ptr<openvslam::data::keyf
             }
 
             const auto keyfrm_vtx = keyfrm_vtx_container.get_vertex(keyfrm);
-            const auto& undist_keypt = keyfrm->undist_keypts_.at(idx);
-            const float x_right = keyfrm->stereo_x_right_.at(idx);
-            const float inv_sigma_sq = keyfrm->inv_level_sigma_sq_.at(undist_keypt.octave);
+            const auto& undist_keypt = keyfrm->frm_obs_.undist_keypts_.at(idx);
+            const float x_right = keyfrm->frm_obs_.stereo_x_right_.at(idx);
+            const float inv_sigma_sq = keyfrm->orb_params_->inv_level_sigma_sq_.at(undist_keypt.octave);
             const auto sqrt_chi_sq = (keyfrm->camera_->setup_type_ == camera::setup_type_t::Monocular)
                                          ? sqrt_chi_sq_2D
                                          : sqrt_chi_sq_3D;
@@ -188,10 +189,8 @@ void local_bundle_adjuster::optimize(const std::shared_ptr<openvslam::data::keyf
 
     // 5. Perform the first optimization
 
-    if (force_stop_flag) {
-        if (*force_stop_flag) {
-            return;
-        }
+    if (force_stop_flag && *force_stop_flag) {
+        return;
     }
 
     optimizer.initializeOptimization();
@@ -201,10 +200,8 @@ void local_bundle_adjuster::optimize(const std::shared_ptr<openvslam::data::keyf
 
     bool run_robust_BA = true;
 
-    if (force_stop_flag) {
-        if (*force_stop_flag) {
-            run_robust_BA = false;
-        }
+    if (force_stop_flag && *force_stop_flag) {
+        run_robust_BA = false;
     }
 
     if (run_robust_BA) {
@@ -268,7 +265,7 @@ void local_bundle_adjuster::optimize(const std::shared_ptr<openvslam::data::keyf
             const auto& keyfrm = outlier_obs.first;
             const auto& lm = outlier_obs.second;
             keyfrm->erase_landmark(lm);
-            lm->erase_observation(keyfrm);
+            lm->erase_observation(map_db, keyfrm);
         }
 
         for (const auto& id_local_keyfrm_pair : local_keyfrms) {
@@ -283,7 +280,7 @@ void local_bundle_adjuster::optimize(const std::shared_ptr<openvslam::data::keyf
 
             auto lm_vtx = lm_vtx_container.get_vertex(local_lm);
             local_lm->set_pos_in_world(lm_vtx->estimate());
-            local_lm->update_normal_and_depth();
+            local_lm->update_mean_normal_and_obs_scale_variance();
         }
     }
 }
