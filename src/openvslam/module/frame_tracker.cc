@@ -15,7 +15,7 @@ namespace module {
 frame_tracker::frame_tracker(camera::base* camera, const unsigned int num_matches_thr)
     : camera_(camera), num_matches_thr_(num_matches_thr), pose_optimizer_() {}
 
-bool frame_tracker::motion_based_track(data::frame& curr_frm, const data::frame& last_frm, const Mat44_t& velocity) const {
+bool frame_tracker::motion_based_track(data::frame& curr_frm, const data::frame& last_frm, const Mat44_t& velocity, std::unordered_set<unsigned int>& outlier_ids) const {
     match::projection projection_matcher(0.9, true);
 
     // Set the initial pose by using the motion model
@@ -43,7 +43,7 @@ bool frame_tracker::motion_based_track(data::frame& curr_frm, const data::frame&
     pose_optimizer_.optimize(curr_frm);
 
     // Discard the outliers
-    const auto num_valid_matches = discard_outliers(curr_frm);
+    const auto num_valid_matches = discard_outliers(curr_frm, outlier_ids);
 
     if (num_valid_matches < num_matches_thr_) {
         spdlog::debug("motion based tracking failed: {} inlier matches < {}", num_valid_matches, num_matches_thr_);
@@ -54,7 +54,8 @@ bool frame_tracker::motion_based_track(data::frame& curr_frm, const data::frame&
     }
 }
 
-bool frame_tracker::bow_match_based_track(data::frame& curr_frm, const data::frame& last_frm, const std::shared_ptr<data::keyframe>& ref_keyfrm) const {
+bool frame_tracker::bow_match_based_track(data::frame& curr_frm, const data::frame& last_frm, const std::shared_ptr<data::keyframe>& ref_keyfrm,
+                                          std::unordered_set<unsigned int>& outlier_ids) const {
     match::bow_tree bow_matcher(0.7, true);
 
     // Compute the BoW representations to perform the BoW match
@@ -81,7 +82,7 @@ bool frame_tracker::bow_match_based_track(data::frame& curr_frm, const data::fra
     pose_optimizer_.optimize(curr_frm);
 
     // Discard the outliers
-    const auto num_valid_matches = discard_outliers(curr_frm);
+    const auto num_valid_matches = discard_outliers(curr_frm, outlier_ids);
 
     if (num_valid_matches < num_matches_thr_) {
         spdlog::debug("bow match based tracking failed: {} inlier matches < {}", num_valid_matches, num_matches_thr_);
@@ -92,7 +93,8 @@ bool frame_tracker::bow_match_based_track(data::frame& curr_frm, const data::fra
     }
 }
 
-bool frame_tracker::robust_match_based_track(data::frame& curr_frm, const data::frame& last_frm, const std::shared_ptr<data::keyframe>& ref_keyfrm) const {
+bool frame_tracker::robust_match_based_track(data::frame& curr_frm, const data::frame& last_frm, const std::shared_ptr<data::keyframe>& ref_keyfrm,
+                                             std::unordered_set<unsigned int>& outlier_ids) const {
     match::robust robust_matcher(0.8, false);
 
     // Search 2D-2D matches between the ref keyframes and the current frame
@@ -114,7 +116,7 @@ bool frame_tracker::robust_match_based_track(data::frame& curr_frm, const data::
     pose_optimizer_.optimize(curr_frm);
 
     // Discard the outliers
-    const auto num_valid_matches = discard_outliers(curr_frm);
+    const auto num_valid_matches = discard_outliers(curr_frm, outlier_ids);
 
     if (num_valid_matches < num_matches_thr_) {
         spdlog::debug("robust match based tracking failed: {} inlier matches < {}", num_valid_matches, num_matches_thr_);
@@ -125,7 +127,7 @@ bool frame_tracker::robust_match_based_track(data::frame& curr_frm, const data::
     }
 }
 
-unsigned int frame_tracker::discard_outliers(data::frame& curr_frm) const {
+unsigned int frame_tracker::discard_outliers(data::frame& curr_frm, std::unordered_set<unsigned int>& outlier_ids) const {
     unsigned int num_valid_matches = 0;
 
     for (unsigned int idx = 0; idx < curr_frm.num_keypts_; ++idx) {
@@ -137,8 +139,7 @@ unsigned int frame_tracker::discard_outliers(data::frame& curr_frm) const {
 
         if (curr_frm.outlier_flags_.at(idx)) {
             curr_frm.outlier_flags_.at(idx) = false;
-            lm->is_observable_in_tracking_ = false;
-            lm->identifier_in_local_lm_search_ = curr_frm.id_;
+            outlier_ids.insert(lm->id_);
             lm = nullptr;
             continue;
         }

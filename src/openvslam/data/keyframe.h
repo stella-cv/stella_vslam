@@ -217,12 +217,6 @@ public:
     bool will_be_erased();
 
     //-----------------------------------------
-    // for local map update
-
-    //! identifier for local map update
-    unsigned int local_map_update_identifier = 0;
-
-    //-----------------------------------------
     // for loop BA
 
     //! identifier for loop BA

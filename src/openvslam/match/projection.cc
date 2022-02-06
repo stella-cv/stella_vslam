@@ -8,22 +8,28 @@
 namespace openvslam {
 namespace match {
 
-unsigned int projection::match_frame_and_landmarks(data::frame& frm, const std::vector<std::shared_ptr<data::landmark>>& local_landmarks, const float margin) const {
+unsigned int projection::match_frame_and_landmarks(data::frame& frm,
+                                                   const std::vector<std::shared_ptr<data::landmark>>& local_landmarks,
+                                                   eigen_alloc_unord_map<unsigned int, Vec2_t>& lm_to_reproj,
+                                                   std::unordered_map<unsigned int, float>& lm_to_x_right,
+                                                   std::unordered_map<unsigned int, int>& lm_to_scale,
+                                                   const float margin) const {
     unsigned int num_matches = 0;
 
     // Reproject the 3D points to the frame, then acquire the 2D-3D matches
     for (auto local_lm : local_landmarks) {
-        if (!local_lm->is_observable_in_tracking_) {
+        if (!lm_to_reproj.count(local_lm->id_)) {
             continue;
         }
         if (local_lm->will_be_erased()) {
             continue;
         }
 
-        const auto pred_scale_level = local_lm->scale_level_in_tracking_;
+        const auto pred_scale_level = lm_to_scale.at(local_lm->id_);
 
         // Acquire keypoints in the cell where the reprojected 3D points exist
-        const auto indices_in_cell = frm.get_keypoints_in_cell(local_lm->reproj_in_tracking_(0), local_lm->reproj_in_tracking_(1),
+        Vec2_t reproj = lm_to_reproj.at(local_lm->id_);
+        const auto indices_in_cell = frm.get_keypoints_in_cell(reproj(0), reproj(1),
                                                                margin * frm.scale_factors_.at(pred_scale_level),
                                                                pred_scale_level - 1, pred_scale_level);
         if (indices_in_cell.empty()) {
@@ -44,7 +50,7 @@ unsigned int projection::match_frame_and_landmarks(data::frame& frm, const std::
             }
 
             if (0 < frm.stereo_x_right_.at(idx)) {
-                const auto reproj_error = std::abs(local_lm->x_right_in_tracking_ - frm.stereo_x_right_.at(idx));
+                const auto reproj_error = std::abs(lm_to_x_right.at(local_lm->id_) - frm.stereo_x_right_.at(idx));
                 if (margin * frm.scale_factors_.at(pred_scale_level) < reproj_error) {
                     continue;
                 }

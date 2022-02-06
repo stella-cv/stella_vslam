@@ -165,7 +165,7 @@ protected:
     bool initialize();
 
     //! Track the current frame
-    bool track_current_frame();
+    bool track_current_frame(std::unordered_set<unsigned int>& outlier_ids);
 
     //! Relocalization by pose
     bool relocalize_by_pose(const pose_request& request);
@@ -183,16 +183,16 @@ protected:
     void update_last_frame();
 
     //! Optimize the camera pose of the current frame
-    bool optimize_current_frame_with_local_map();
+    bool optimize_current_frame_with_local_map(unsigned int& num_tracked_lms, std::unordered_set<unsigned int>& outlier_ids);
 
     //! Update the local map
-    void update_local_map();
+    void update_local_map(std::unordered_set<unsigned int>& outlier_ids);
 
     //! Acquire more 2D-3D matches using initial camera pose estimation
-    void search_local_landmarks();
+    void search_local_landmarks(std::unordered_set<unsigned int>& outlier_ids);
 
     //! Check the new keyframe is needed or not
-    bool new_keyframe_is_needed() const;
+    bool new_keyframe_is_needed(unsigned int num_tracked_lms) const;
 
     //! Insert the new keyframe derived from the current frame
     void insert_new_keyframe();
@@ -240,9 +240,6 @@ protected:
     std::vector<std::shared_ptr<data::keyframe>> local_keyfrms_;
     //! local landmarks
     std::vector<std::shared_ptr<data::landmark>> local_landmarks_;
-
-    //! the number of tracked keyframes in the current keyframe
-    unsigned int num_tracked_lms_ = 0;
 
     //! last frame
     data::frame last_frm_;

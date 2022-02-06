@@ -109,14 +109,6 @@ public:
     unsigned int first_keyfrm_id_ = 0;
     unsigned int num_observations_ = 0;
 
-    // Variables for frame tracking.
-    Vec2_t reproj_in_tracking_;
-    float x_right_in_tracking_;
-    bool is_observable_in_tracking_;
-    int scale_level_in_tracking_;
-    unsigned int identifier_in_local_map_update_ = 0;
-    unsigned int identifier_in_local_lm_search_ = 0;
-
     // Variables for loop-closing.
     unsigned int loop_fusion_identifier_ = 0;
     unsigned int ref_keyfrm_id_in_loop_fusion_ = 0;
