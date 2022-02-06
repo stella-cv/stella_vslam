@@ -3,6 +3,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 #include <yaml-cpp/yaml.h>
+#include <cmath>
 
 namespace openvslam {
 namespace feature {
