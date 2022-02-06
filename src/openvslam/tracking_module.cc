@@ -41,7 +41,7 @@ double get_use_robust_matcher_for_relocalization_request(const YAML::Node& yaml_
 
 namespace openvslam {
 
-tracking_module::tracking_module(const std::shared_ptr<config>& cfg, double true_depth_thr, system* system, data::map_database* map_db,
+tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* system, data::map_database* map_db,
                                  data::bow_vocabulary* bow_vocab, data::bow_database* bow_db)
     : camera_(cfg->camera_),
       reloc_distance_threshold_(get_reloc_distance_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
@@ -53,7 +53,7 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, double true
       frame_tracker_(camera_, 10),
       relocalizer_(bow_db_, util::yaml_optional_ref(cfg->yaml_node_, "Relocalizer")),
       pose_optimizer_(),
-      keyfrm_inserter_(cfg->camera_->setup_type_, true_depth_thr, map_db, bow_db, 0, cfg->camera_->fps_) {
+      keyfrm_inserter_(cfg->camera_->setup_type_, map_db, bow_db, 0, cfg->camera_->fps_) {
     spdlog::debug("CONSTRUCT: tracking_module");
 }
 

@@ -49,7 +49,7 @@ public:
      * (NOTE: some variables must be recomputed after the construction. See the definition.)
      */
     keyframe(const unsigned int id, const unsigned int src_frm_id, const double timestamp,
-             const Mat44_t& cam_pose_cw, camera::base* camera, const float depth_thr,
+             const Mat44_t& cam_pose_cw, camera::base* camera,
              const unsigned int num_keypts, const std::vector<cv::KeyPoint>& keypts,
              const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
              const std::vector<float>& stereo_x_right, const std::vector<float>& depths, const cv::Mat& descriptors,
@@ -61,7 +61,7 @@ public:
     static std::shared_ptr<keyframe> make_keyframe(const frame& frm, map_database* map_db, bow_database* bow_db);
     static std::shared_ptr<keyframe> make_keyframe(
         const unsigned int id, const unsigned int src_frm_id, const double timestamp,
-        const Mat44_t& cam_pose_cw, camera::base* camera, const float depth_thr,
+        const Mat44_t& cam_pose_cw, camera::base* camera,
         const unsigned int num_keypts, const std::vector<cv::KeyPoint>& keypts,
         const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
         const std::vector<float>& stereo_x_right, const std::vector<float>& depths, const cv::Mat& descriptors,
@@ -235,8 +235,6 @@ public:
 
     //! camera model
     camera::base* camera_;
-    //! depth threshold
-    const float depth_thr_;
 
     //-----------------------------------------
     // constant observations

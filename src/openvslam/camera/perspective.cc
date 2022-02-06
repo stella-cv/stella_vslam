@@ -12,8 +12,8 @@ perspective::perspective(const std::string& name, const setup_type_t& setup_type
                          const unsigned int cols, const unsigned int rows, const double fps,
                          const double fx, const double fy, const double cx, const double cy,
                          const double k1, const double k2, const double p1, const double p2, const double k3,
-                         const double focal_x_baseline)
-    : base(name, setup_type, model_type_t::Perspective, color_order, cols, rows, fps, focal_x_baseline, focal_x_baseline / fx),
+                         const double focal_x_baseline, const double depth_thr)
+    : base(name, setup_type, model_type_t::Perspective, color_order, cols, rows, fps, focal_x_baseline, focal_x_baseline / fx, depth_thr),
       fx_(fx), fy_(fy), cx_(cx), cy_(cy), fx_inv_(1.0 / fx), fy_inv_(1.0 / fy),
       k1_(k1), k2_(k2), p1_(p1), p2_(p2), k3_(k3) {
     spdlog::debug("CONSTRUCT: camera::perspective");
@@ -46,7 +46,8 @@ perspective::perspective(const YAML::Node& yaml_node)
                   yaml_node["p1"].as<double>(),
                   yaml_node["p2"].as<double>(),
                   yaml_node["k3"].as<double>(),
-                  yaml_node["focal_x_baseline"].as<double>(0.0)) {}
+                  yaml_node["focal_x_baseline"].as<double>(0.0),
+                  yaml_node["depth_threshold"].as<double>(40.0)) {}
 
 perspective::~perspective() {
     spdlog::debug("DESTRUCT: camera::perspective");

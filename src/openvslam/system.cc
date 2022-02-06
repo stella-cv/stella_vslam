@@ -35,16 +35,6 @@ feature::orb_params get_orb_params(const YAML::Node& yaml_node) {
     }
 }
 
-double get_true_depth_thr(const camera::base* camera, const YAML::Node& yaml_node) {
-    spdlog::debug("load depth threshold");
-    double true_depth_thr = 40.0;
-    if (camera->setup_type_ == camera::setup_type_t::Stereo || camera->setup_type_ == camera::setup_type_t::RGBD) {
-        const auto depth_thr_factor = yaml_node["depth_threshold"].as<double>(40.0);
-        true_depth_thr = camera->true_baseline_ * depth_thr_factor;
-    }
-    return true_depth_thr;
-}
-
 double get_depthmap_factor(const camera::base* camera, const YAML::Node& yaml_node) {
     spdlog::debug("load depthmap factor");
     double depthmap_factor = 1.0;
@@ -127,8 +117,7 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     map_publisher_ = std::shared_ptr<publish::map_publisher>(new publish::map_publisher(cfg_, map_db_));
 
     // tracking module
-    true_depth_thr_ = get_true_depth_thr(camera_, tracking_params);
-    tracker_ = new tracking_module(cfg_, true_depth_thr_, this, map_db_, bow_vocab_, bow_db_);
+    tracker_ = new tracking_module(cfg_, this, map_db_, bow_vocab_, bow_db_);
     // mapping module
     mapper_ = new mapping_module(cfg_->yaml_node_["Mapping"], map_db_);
     // global optimization module
@@ -310,7 +299,7 @@ std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const 
     util::convert_to_grayscale(img_gray, camera_->color_order_);
 
     bool is_init = tracker_->tracking_state_ == tracker_state_t::NotInitialized || tracker_->tracking_state_ == tracker_state_t::Initializing;
-    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, timestamp, is_init ? ini_extractor_left_ : extractor_left_, bow_vocab_, camera_, true_depth_thr_, mask));
+    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, timestamp, is_init ? ini_extractor_left_ : extractor_left_, bow_vocab_, camera_, mask));
 
     const auto end = std::chrono::system_clock::now();
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -336,7 +325,7 @@ std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, cons
     util::convert_to_grayscale(img_gray, camera_->color_order_);
     util::convert_to_grayscale(right_img_gray, camera_->color_order_);
 
-    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, right_img_gray, timestamp, extractor_left_, extractor_right_, bow_vocab_, camera_, true_depth_thr_, mask));
+    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, right_img_gray, timestamp, extractor_left_, extractor_right_, bow_vocab_, camera_, mask));
 
     const auto end = std::chrono::system_clock::now();
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -362,7 +351,7 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
     util::convert_to_grayscale(img_gray, camera_->color_order_);
     util::convert_to_true_depth(img_depth, depthmap_factor_);
 
-    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, img_depth, timestamp, extractor_left_, bow_vocab_, camera_, true_depth_thr_, mask));
+    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, img_depth, timestamp, extractor_left_, bow_vocab_, camera_, mask));
 
     const auto end = std::chrono::system_clock::now();
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();

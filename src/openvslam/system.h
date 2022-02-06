@@ -160,9 +160,6 @@ public:
     //-----------------------------------------
     // config
 
-    //! depth threshold (Ignore depths farther than true_depth_thr_ times the baseline.)
-    double true_depth_thr_ = 40.0;
-
     //! depthmap factor (pixel_value / depthmap_factor = true_depth)
     double depthmap_factor_ = 1.0;
 

@@ -124,7 +124,7 @@ void local_map_cleaner::count_redundant_observations(const std::shared_ptr<data:
 
         // if depth is within the valid range, it won't be considered
         const auto depth = keyfrm->depths_.at(idx);
-        if (keyfrm->depth_is_avaliable() && (depth < 0.0 || keyfrm->depth_thr_ < depth)) {
+        if (keyfrm->depth_is_avaliable() && (depth < 0.0 || keyfrm->camera_->depth_thr_ < depth)) {
             continue;
         }
 

@@ -8,7 +8,7 @@ namespace camera {
 
 equirectangular::equirectangular(const std::string& name, const color_order_t& color_order,
                                  const unsigned int cols, const unsigned int rows, const double fps)
-    : base(name, setup_type_t::Monocular, model_type_t::Equirectangular, color_order, cols, rows, fps, 0.0, 0.0) {
+    : base(name, setup_type_t::Monocular, model_type_t::Equirectangular, color_order, cols, rows, fps, 0.0, 0.0, 0.0) {
     spdlog::debug("CONSTRUCT: camera::equirectangular");
 
     img_bounds_ = compute_image_bounds();

@@ -9,11 +9,11 @@ namespace camera {
 
 base::base(const std::string& name, const setup_type_t setup_type, const model_type_t model_type, const color_order_t color_order,
            const unsigned int cols, const unsigned int rows, const double fps,
-           const double focal_x_baseline, const double true_baseline,
+           const double focal_x_baseline, const double true_baseline, const double depth_thr,
            const unsigned int num_grid_cols, const unsigned int num_grid_rows)
     : name_(name), setup_type_(setup_type), model_type_(model_type), color_order_(color_order),
       cols_(cols), rows_(rows), fps_(fps),
-      focal_x_baseline_(focal_x_baseline), true_baseline_(true_baseline),
+      focal_x_baseline_(focal_x_baseline), true_baseline_(true_baseline), depth_thr_(depth_thr),
       num_grid_cols_(num_grid_cols), num_grid_rows_(num_grid_rows) {
     spdlog::debug("CONSTRUCT: camera::base");
 }

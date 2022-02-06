@@ -52,12 +52,11 @@ public:
      * @param extractor
      * @param bow_vocab
      * @param camera
-     * @param depth_thr
      * @param mask
      */
     frame(const cv::Mat& img_gray, const double timestamp,
           feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-          camera::base* camera, const float depth_thr,
+          camera::base* camera,
           const cv::Mat& mask = cv::Mat{});
 
     /**
@@ -69,12 +68,11 @@ public:
      * @param extractor_right
      * @param bow_vocab
      * @param camera
-     * @param depth_thr
      * @param mask
      */
     frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const double timestamp,
           feature::orb_extractor* extractor_left, feature::orb_extractor* extractor_right, bow_vocabulary* bow_vocab,
-          camera::base* camera, const float depth_thr,
+          camera::base* camera,
           const cv::Mat& mask = cv::Mat{});
 
     /**
@@ -85,12 +83,11 @@ public:
      * @param extractor
      * @param bow_vocab
      * @param camera
-     * @param depth_thr
      * @param mask
      */
     frame(const cv::Mat& img_gray, const cv::Mat& img_depth, const double timestamp,
           feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-          camera::base* camera, const float depth_thr,
+          camera::base* camera,
           const cv::Mat& mask = cv::Mat{});
 
     /**
@@ -191,10 +188,6 @@ public:
 
     //! camera model
     camera::base* camera_ = nullptr;
-
-    // if a stereo-triangulated point is farther than this threshold, it is invalid
-    //! depth threshold
-    float depth_thr_;
 
     //! number of keypoints
     unsigned int num_keypts_ = 0;

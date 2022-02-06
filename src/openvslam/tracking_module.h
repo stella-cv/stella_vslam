@@ -47,7 +47,7 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     //! Constructor
-    tracking_module(const std::shared_ptr<config>& cfg, double true_depth_thr, system* system, data::map_database* map_db,
+    tracking_module(const std::shared_ptr<config>& cfg, system* system, data::map_database* map_db,
                     data::bow_vocabulary* bow_vocab, data::bow_database* bow_db);
 
     //! Destructor

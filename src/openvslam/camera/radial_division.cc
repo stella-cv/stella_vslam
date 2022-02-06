@@ -13,8 +13,8 @@ namespace camera {
 radial_division::radial_division(const std::string& name, const setup_type_t& setup_type, const color_order_t& color_order,
                                  const unsigned int cols, const unsigned int rows, const double fps,
                                  const double fx, const double fy, const double cx, const double cy,
-                                 const double distortion, const double focal_x_baseline)
-    : base(name, setup_type, model_type_t::RadialDivision, color_order, cols, rows, fps, focal_x_baseline, focal_x_baseline / fx),
+                                 const double distortion, const double focal_x_baseline, const double depth_thr)
+    : base(name, setup_type, model_type_t::RadialDivision, color_order, cols, rows, fps, focal_x_baseline, focal_x_baseline / fx, depth_thr),
       fx_(fx), fy_(fy), cx_(cx), cy_(cy), fx_inv_(1.0 / fx), fy_inv_(1.0 / fy),
       distortion_(distortion) {
     spdlog::debug("CONSTRUCT: camera::radial_division");
@@ -41,7 +41,8 @@ radial_division::radial_division(const YAML::Node& yaml_node)
                       yaml_node["cx"].as<double>(),
                       yaml_node["cy"].as<double>(),
                       yaml_node["distortion"].as<double>(),
-                      yaml_node["focal_x_baseline"].as<double>(0.0)) {}
+                      yaml_node["focal_x_baseline"].as<double>(0.0),
+                      yaml_node["depth_threshold"].as<double>(40.0)) {}
 
 radial_division::~radial_division() {
     spdlog::debug("DESTRUCT: camera::radial_division");
