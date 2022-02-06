@@ -83,6 +83,16 @@ public:
 
 private:
     /**
+     * called by detect_loop_candidates
+     */
+    bool detect_loop_candidates_impl();
+
+    /**
+     * called by validate_candidates
+     */
+    bool validate_candidates_impl();
+
+    /**
      * Compute the minimum score among covisibilities
      */
     float compute_min_score_in_covisibilities(const std::shared_ptr<data::keyframe>& keyfrm) const;
