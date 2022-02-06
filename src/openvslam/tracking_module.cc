@@ -163,7 +163,7 @@ std::shared_ptr<Mat44_t> tracking_module::track(data::frame curr_frm) {
         std::this_thread::sleep_for(std::chrono::microseconds(5000));
     }
 
-    curr_frm_ = std::move(curr_frm);
+    curr_frm_ = curr_frm;
 
     // LOCK the map database
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
@@ -233,7 +233,7 @@ std::shared_ptr<Mat44_t> tracking_module::track(data::frame curr_frm) {
         }
 
         // tidy up observations
-        for (unsigned int idx = 0; idx < curr_frm_.num_keypts_; ++idx) {
+        for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.num_keypts_; ++idx) {
             if (curr_frm_.landmarks_.at(idx) && curr_frm_.outlier_flags_.at(idx)) {
                 curr_frm_.landmarks_.at(idx) = nullptr;
             }
@@ -371,7 +371,7 @@ void tracking_module::update_motion_model() {
 }
 
 void tracking_module::apply_landmark_replace() {
-    for (unsigned int idx = 0; idx < last_frm_.num_keypts_; ++idx) {
+    for (unsigned int idx = 0; idx < last_frm_.frm_obs_.num_keypts_; ++idx) {
         auto& lm = last_frm_.landmarks_.at(idx);
         if (!lm) {
             continue;
@@ -402,7 +402,7 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
 
     // count up the number of tracked landmarks
     num_tracked_lms = 0;
-    for (unsigned int idx = 0; idx < curr_frm_.num_keypts_; ++idx) {
+    for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.num_keypts_; ++idx) {
         const auto& lm = curr_frm_.landmarks_.at(idx);
         if (!lm) {
             continue;
@@ -442,7 +442,7 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
 
 void tracking_module::update_local_map(std::unordered_set<unsigned int>& outlier_ids) {
     // clean landmark associations
-    for (unsigned int idx = 0; idx < curr_frm_.num_keypts_; ++idx) {
+    for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.num_keypts_; ++idx) {
         const auto& lm = curr_frm_.landmarks_.at(idx);
         if (!lm) {
             continue;

@@ -123,7 +123,7 @@ void local_map_cleaner::count_redundant_observations(const std::shared_ptr<data:
         }
 
         // if depth is within the valid range, it won't be considered
-        const auto depth = keyfrm->depths_.at(idx);
+        const auto depth = keyfrm->frm_obs_.depths_.at(idx);
         if (keyfrm->depth_is_avaliable() && (depth < 0.0 || keyfrm->camera_->depth_thr_ < depth)) {
             continue;
         }
@@ -136,7 +136,7 @@ void local_map_cleaner::count_redundant_observations(const std::shared_ptr<data:
         }
 
         // `keyfrm` observes `lm` with the scale level `scale_level`
-        const auto scale_level = keyfrm->undist_keypts_.at(idx).octave;
+        const auto scale_level = keyfrm->frm_obs_.undist_keypts_.at(idx).octave;
         // get observers of `lm`
         const auto observations = lm->get_observations();
 
@@ -152,7 +152,7 @@ void local_map_cleaner::count_redundant_observations(const std::shared_ptr<data:
             }
 
             // `ngh_keyfrm` observes `lm` with the scale level `ngh_scale_level`
-            const auto ngh_scale_level = ngh_keyfrm->undist_keypts_.at(obs.second).octave;
+            const auto ngh_scale_level = ngh_keyfrm->frm_obs_.undist_keypts_.at(obs.second).octave;
 
             // compare the scale levels
             if (ngh_scale_level <= scale_level + 1) {

@@ -399,7 +399,7 @@ void mapping_module::fuse_landmark_duplication(const std::unordered_set<std::sha
         // - duplication of matches
         // then, add matches and solve duplication
         std::unordered_set<std::shared_ptr<data::landmark>> candidate_landmarks_to_fuse;
-        candidate_landmarks_to_fuse.reserve(fuse_tgt_keyfrms.size() * cur_keyfrm_->num_keypts_);
+        candidate_landmarks_to_fuse.reserve(fuse_tgt_keyfrms.size() * cur_keyfrm_->frm_obs_.num_keypts_);
 
         for (const auto& fuse_tgt_keyfrm : fuse_tgt_keyfrms) {
             const auto fuse_tgt_landmarks = fuse_tgt_keyfrm->get_landmarks();

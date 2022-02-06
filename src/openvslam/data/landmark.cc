@@ -49,7 +49,7 @@ void landmark::add_observation(const std::shared_ptr<keyframe>& keyfrm, unsigned
     }
     observations_[keyfrm] = idx;
 
-    if (0 <= keyfrm->stereo_x_right_.at(idx)) {
+    if (0 <= keyfrm->frm_obs_.stereo_x_right_.at(idx)) {
         num_observations_ += 2;
     }
     else {
@@ -64,7 +64,7 @@ void landmark::erase_observation(map_database* map_db, const std::shared_ptr<key
 
         if (observations_.count(keyfrm)) {
             int idx = observations_.at(keyfrm);
-            if (0 <= keyfrm->stereo_x_right_.at(idx)) {
+            if (0 <= keyfrm->frm_obs_.stereo_x_right_.at(idx)) {
                 num_observations_ -= 2;
             }
             else {
@@ -145,7 +145,7 @@ void landmark::compute_descriptor() {
         const auto idx = observation.second;
 
         if (!keyfrm->will_be_erased()) {
-            descriptors.push_back(keyfrm->descriptors_.row(idx));
+            descriptors.push_back(keyfrm->frm_obs_.descriptors_.row(idx));
         }
     }
 
@@ -213,7 +213,7 @@ void landmark::update_mean_normal_and_obs_scale_variance() {
 
     const Vec3_t cam_to_lm_vec = pos_w - ref_keyfrm->get_cam_center();
     const auto dist = cam_to_lm_vec.norm();
-    const auto scale_level = ref_keyfrm->undist_keypts_.at(observations.at(ref_keyfrm)).octave;
+    const auto scale_level = ref_keyfrm->frm_obs_.undist_keypts_.at(observations.at(ref_keyfrm)).octave;
     const auto scale_factor = ref_keyfrm->orb_params_->scale_factors_.at(scale_level);
     const auto num_scale_levels = ref_keyfrm->orb_params_->num_levels_;
 

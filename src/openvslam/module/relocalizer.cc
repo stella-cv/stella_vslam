@@ -69,7 +69,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
 
         // Setup an PnP solver with the current 2D-3D matches
         const auto valid_indices = extract_valid_indices(matched_landmarks.at(i));
-        auto pnp_solver = setup_pnp_solver(valid_indices, curr_frm.bearings_, curr_frm.keypts_,
+        auto pnp_solver = setup_pnp_solver(valid_indices, curr_frm.frm_obs_.bearings_, curr_frm.frm_obs_.keypts_,
                                            matched_landmarks.at(i), curr_frm.orb_params_->scale_factors_);
 
         // 1. Estimate the camera pose using EPnP (+ RANSAC)
@@ -89,7 +89,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         const auto inlier_indices = util::resample_by_indices(valid_indices, pnp_solver->get_inlier_flags());
 
         // Set 2D-3D matches for the pose optimization
-        curr_frm.landmarks_ = std::vector<std::shared_ptr<data::landmark>>(curr_frm.num_keypts_, nullptr);
+        curr_frm.landmarks_ = std::vector<std::shared_ptr<data::landmark>>(curr_frm.frm_obs_.num_keypts_, nullptr);
         std::set<std::shared_ptr<data::landmark>> already_found_landmarks;
         for (const auto idx : inlier_indices) {
             // Set only the valid 3D points to the current frame
@@ -107,7 +107,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         }
 
         // Reject outliers
-        for (unsigned int idx = 0; idx < curr_frm.num_keypts_; idx++) {
+        for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; idx++) {
             if (!curr_frm.outlier_flags_.at(idx)) {
                 continue;
             }
@@ -132,7 +132,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         if (num_valid_obs < min_num_valid_obs_) {
             // Exclude the already-associated landmarks
             already_found_landmarks.clear();
-            for (unsigned int idx = 0; idx < curr_frm.num_keypts_; ++idx) {
+            for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
                 if (!curr_frm.landmarks_.at(idx)) {
                     continue;
                 }
@@ -162,7 +162,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         // TODO: should set the reference keyframe of the current frame
 
         // Reject outliers
-        for (unsigned int idx = 0; idx < curr_frm.num_keypts_; ++idx) {
+        for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
             if (!curr_frm.outlier_flags_.at(idx)) {
                 continue;
             }

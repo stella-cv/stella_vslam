@@ -4,6 +4,7 @@ target_sources(${PROJECT_NAME}
                ${CMAKE_CURRENT_SOURCE_DIR}/bow_vocabulary.h
                ${CMAKE_CURRENT_SOURCE_DIR}/common.h
                ${CMAKE_CURRENT_SOURCE_DIR}/frame.h
+               ${CMAKE_CURRENT_SOURCE_DIR}/frame_observation.h
                ${CMAKE_CURRENT_SOURCE_DIR}/keyframe.h
                ${CMAKE_CURRENT_SOURCE_DIR}/landmark.h
                ${CMAKE_CURRENT_SOURCE_DIR}/graph_node.h

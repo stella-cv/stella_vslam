@@ -286,11 +286,16 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     // Construct a new object
     data::bow_vector bow_vec;
     data::bow_feature_vector bow_feat_vec;
+    // Assign all the keypoints into grid
+    std::vector<std::vector<std::vector<unsigned int>>> keypt_indices_in_cells;
+    data::assign_keypoints_to_grid(camera, undist_keypts, keypt_indices_in_cells);
+    // Construct frame_observation
+    frame_observation frm_obs{num_keypts, keypts, descriptors, undist_keypts, bearings, stereo_x_right, depths, keypt_indices_in_cells};
+    // Compute BoW
     data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
     auto keyfrm = data::keyframe::make_keyframe(
         id, src_frm_id, timestamp, cam_pose_cw, camera, orb_params,
-        num_keypts, keypts, undist_keypts, bearings, stereo_x_right, depths, descriptors,
-        bow_vec, bow_feat_vec);
+        frm_obs, bow_vec, bow_feat_vec);
 
     // Append to map database
     assert(!keyframes_.count(id));

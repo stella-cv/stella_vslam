@@ -125,7 +125,7 @@ bool frame_tracker::robust_match_based_track(data::frame& curr_frm, const data::
 unsigned int frame_tracker::discard_outliers(data::frame& curr_frm, std::unordered_set<unsigned int>& outlier_ids) const {
     unsigned int num_valid_matches = 0;
 
-    for (unsigned int idx = 0; idx < curr_frm.num_keypts_; ++idx) {
+    for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
         if (!curr_frm.landmarks_.at(idx)) {
             continue;
         }

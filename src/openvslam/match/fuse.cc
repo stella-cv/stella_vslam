@@ -80,14 +80,14 @@ unsigned int fuse::detect_duplication(const std::shared_ptr<data::keyframe>& key
         int best_idx = -1;
 
         for (const auto idx : indices) {
-            const auto scale_level = keyfrm->keypts_.at(idx).octave;
+            const auto scale_level = keyfrm->frm_obs_.keypts_.at(idx).octave;
 
             // TODO: shoud determine the scale with 'keyfrm-> get_keypts_in_cell ()'
             if (scale_level < pred_scale_level - 1 || pred_scale_level < scale_level) {
                 continue;
             }
 
-            const auto& desc = keyfrm->descriptors_.row(idx);
+            const auto& desc = keyfrm->frm_obs_.descriptors_.row(idx);
 
             const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
 
@@ -187,7 +187,7 @@ unsigned int fuse::replace_duplication(const std::shared_ptr<data::keyframe>& ke
         int best_idx = -1;
 
         for (const auto idx : indices) {
-            const auto& keypt = keyfrm->undist_keypts_.at(idx);
+            const auto& keypt = keyfrm->frm_obs_.undist_keypts_.at(idx);
 
             const auto scale_level = static_cast<unsigned int>(keypt.octave);
 
@@ -196,11 +196,11 @@ unsigned int fuse::replace_duplication(const std::shared_ptr<data::keyframe>& ke
                 continue;
             }
 
-            if (keyfrm->stereo_x_right_.at(idx) >= 0) {
+            if (keyfrm->frm_obs_.stereo_x_right_.at(idx) >= 0) {
                 // Compute reprojection error with 3 degrees of freedom if a stereo match exists
                 const auto e_x = reproj(0) - keypt.pt.x;
                 const auto e_y = reproj(1) - keypt.pt.y;
-                const auto e_x_right = x_right - keyfrm->stereo_x_right_.at(idx);
+                const auto e_x_right = x_right - keyfrm->frm_obs_.stereo_x_right_.at(idx);
                 const auto reproj_error_sq = e_x * e_x + e_y * e_y + e_x_right * e_x_right;
 
                 // n=3
@@ -222,7 +222,7 @@ unsigned int fuse::replace_duplication(const std::shared_ptr<data::keyframe>& ke
                 }
             }
 
-            const auto& desc = keyfrm->descriptors_.row(idx);
+            const auto& desc = keyfrm->frm_obs_.descriptors_.row(idx);
 
             const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
 

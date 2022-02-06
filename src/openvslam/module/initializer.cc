@@ -42,7 +42,7 @@ initializer_state_t initializer::get_state() const {
 }
 
 std::vector<cv::KeyPoint> initializer::get_initial_keypoints() const {
-    return init_frm_.keypts_;
+    return init_frm_.frm_obs_.keypts_;
 }
 
 std::vector<int> initializer::get_initial_matches() const {
@@ -106,9 +106,9 @@ void initializer::create_initializer(data::frame& curr_frm) {
     init_frm_ = data::frame(curr_frm);
 
     // initialize the previously matched coordinates
-    prev_matched_coords_.resize(init_frm_.undist_keypts_.size());
-    for (unsigned int i = 0; i < init_frm_.undist_keypts_.size(); ++i) {
-        prev_matched_coords_.at(i) = init_frm_.undist_keypts_.at(i).pt;
+    prev_matched_coords_.resize(init_frm_.frm_obs_.undist_keypts_.size());
+    for (unsigned int i = 0; i < init_frm_.frm_obs_.undist_keypts_.size(); ++i) {
+        prev_matched_coords_.at(i) = init_frm_.frm_obs_.undist_keypts_.at(i).pt;
     }
 
     // initialize matchings (init_idx -> curr_idx)
@@ -278,7 +278,7 @@ void initializer::scale_map(const std::shared_ptr<data::keyframe>& init_keyfrm, 
 bool initializer::try_initialize_for_stereo(data::frame& curr_frm) {
     assert(state_ == initializer_state_t::Initializing);
     // count the number of valid depths
-    unsigned int num_valid_depths = std::count_if(curr_frm.depths_.begin(), curr_frm.depths_.end(),
+    unsigned int num_valid_depths = std::count_if(curr_frm.frm_obs_.depths_.begin(), curr_frm.frm_obs_.depths_.end(),
                                                   [](const float depth) {
                                                       return 0 < depth;
                                                   });
@@ -302,9 +302,9 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
     curr_frm.ref_keyfrm_ = curr_keyfrm;
     map_db_->update_frame_statistics(curr_frm, false);
 
-    for (unsigned int idx = 0; idx < curr_frm.num_keypts_; ++idx) {
+    for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
         // add a new landmark if tht corresponding depth is valid
-        const auto z = curr_frm.depths_.at(idx);
+        const auto z = curr_frm.frm_obs_.depths_.at(idx);
         if (z <= 0) {
             continue;
         }

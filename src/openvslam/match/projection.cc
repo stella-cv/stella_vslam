@@ -49,14 +49,14 @@ unsigned int projection::match_frame_and_landmarks(data::frame& frm,
                 continue;
             }
 
-            if (0 < frm.stereo_x_right_.at(idx)) {
-                const auto reproj_error = std::abs(lm_to_x_right.at(local_lm->id_) - frm.stereo_x_right_.at(idx));
+            if (0 < frm.frm_obs_.stereo_x_right_.at(idx)) {
+                const auto reproj_error = std::abs(lm_to_x_right.at(local_lm->id_) - frm.frm_obs_.stereo_x_right_.at(idx));
                 if (margin * frm.orb_params_->scale_factors_.at(pred_scale_level) < reproj_error) {
                     continue;
                 }
             }
 
-            const cv::Mat& desc = frm.descriptors_.row(idx);
+            const cv::Mat& desc = frm.frm_obs_.descriptors_.row(idx);
 
             const auto dist = compute_descriptor_distance_32(lm_desc, desc);
 
@@ -64,11 +64,11 @@ unsigned int projection::match_frame_and_landmarks(data::frame& frm,
                 second_best_hamm_dist = best_hamm_dist;
                 best_hamm_dist = dist;
                 second_best_scale_level = best_scale_level;
-                best_scale_level = frm.undist_keypts_.at(idx).octave;
+                best_scale_level = frm.frm_obs_.undist_keypts_.at(idx).octave;
                 best_idx = idx;
             }
             else if (dist < second_best_hamm_dist) {
-                second_best_scale_level = frm.undist_keypts_.at(idx).octave;
+                second_best_scale_level = frm.frm_obs_.undist_keypts_.at(idx).octave;
                 second_best_hamm_dist = dist;
             }
         }
@@ -115,7 +115,7 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
 
     // Reproject the 3D points associated to the keypoints of the last frame,
     // then acquire the 2D-3D matches
-    for (unsigned int idx_last = 0; idx_last < last_frm.num_keypts_; ++idx_last) {
+    for (unsigned int idx_last = 0; idx_last < last_frm.frm_obs_.num_keypts_; ++idx_last) {
         auto& lm = last_frm.landmarks_.at(idx_last);
         if (!lm) {
             continue;
@@ -139,7 +139,7 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
         }
 
         // Acquire keypoints in the cell where the reprojected 3D points exist
-        const auto last_scale_level = last_frm.keypts_.at(idx_last).octave;
+        const auto last_scale_level = last_frm.frm_obs_.keypts_.at(idx_last).octave;
         std::vector<unsigned int> indices;
         if (assume_forward) {
             indices = curr_frm.get_keypoints_in_cell(reproj(0), reproj(1),
@@ -170,14 +170,14 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
                 continue;
             }
 
-            if (curr_frm.stereo_x_right_.at(curr_idx) > 0) {
-                const float reproj_error = std::fabs(x_right - curr_frm.stereo_x_right_.at(curr_idx));
+            if (curr_frm.frm_obs_.stereo_x_right_.at(curr_idx) > 0) {
+                const float reproj_error = std::fabs(x_right - curr_frm.frm_obs_.stereo_x_right_.at(curr_idx));
                 if (margin * curr_frm.orb_params_->scale_factors_.at(last_scale_level) < reproj_error) {
                     continue;
                 }
             }
 
-            const auto& desc = curr_frm.descriptors_.row(curr_idx);
+            const auto& desc = curr_frm.frm_obs_.descriptors_.row(curr_idx);
 
             const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
 
@@ -197,7 +197,7 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
 
         if (check_orientation_) {
             const auto delta_angle
-                = last_frm.undist_keypts_.at(idx_last).angle - curr_frm.undist_keypts_.at(best_idx).angle;
+                = last_frm.frm_obs_.undist_keypts_.at(idx_last).angle - curr_frm.frm_obs_.undist_keypts_.at(best_idx).angle;
             angle_checker.append_delta_angle(delta_angle, best_idx);
         }
     }
@@ -284,7 +284,7 @@ unsigned int projection::match_frame_and_keyframe(data::frame& curr_frm, const s
                 continue;
             }
 
-            const auto& desc = curr_frm.descriptors_.row(curr_idx);
+            const auto& desc = curr_frm.frm_obs_.descriptors_.row(curr_idx);
 
             const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
 
@@ -304,7 +304,7 @@ unsigned int projection::match_frame_and_keyframe(data::frame& curr_frm, const s
 
         if (check_orientation_) {
             const auto delta_angle
-                = keyfrm->undist_keypts_.at(idx).angle - curr_frm.undist_keypts_.at(best_idx).angle;
+                = keyfrm->frm_obs_.undist_keypts_.at(idx).angle - curr_frm.frm_obs_.undist_keypts_.at(best_idx).angle;
             angle_checker.append_delta_angle(delta_angle, best_idx);
         }
     }
@@ -392,14 +392,14 @@ unsigned int projection::match_by_Sim3_transform(const std::shared_ptr<data::key
                 continue;
             }
 
-            const auto scale_level = static_cast<unsigned int>(keyfrm->keypts_.at(idx).octave);
+            const auto scale_level = static_cast<unsigned int>(keyfrm->frm_obs_.keypts_.at(idx).octave);
 
             // TODO: should determine the scale with 'keyfrm-> get_keypts_in_cell ()'
             if (scale_level < pred_scale_level - 1 || pred_scale_level < scale_level) {
                 continue;
             }
 
-            const auto& desc = keyfrm->descriptors_.row(idx);
+            const auto& desc = keyfrm->frm_obs_.descriptors_.row(idx);
 
             const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
 
@@ -516,14 +516,14 @@ unsigned int projection::match_keyframes_mutually(const std::shared_ptr<data::ke
             int best_idx_2 = -1;
 
             for (const auto idx_2 : indices) {
-                const auto scale_level = static_cast<unsigned int>(keyfrm_2->keypts_.at(idx_2).octave);
+                const auto scale_level = static_cast<unsigned int>(keyfrm_2->frm_obs_.keypts_.at(idx_2).octave);
 
                 // TODO: should determine the scale with 'keyfrm-> get_keypts_in_cell ()'
                 if (scale_level < pred_scale_level - 1 || pred_scale_level < scale_level) {
                     continue;
                 }
 
-                const auto& desc = keyfrm_2->descriptors_.row(idx_2);
+                const auto& desc = keyfrm_2->frm_obs_.descriptors_.row(idx_2);
 
                 const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
 
@@ -599,14 +599,14 @@ unsigned int projection::match_keyframes_mutually(const std::shared_ptr<data::ke
             int best_idx_1 = -1;
 
             for (const auto idx_1 : indices) {
-                const auto scale_level = static_cast<unsigned int>(keyfrm_1->keypts_.at(idx_1).octave);
+                const auto scale_level = static_cast<unsigned int>(keyfrm_1->frm_obs_.keypts_.at(idx_1).octave);
 
                 // TODO: should determine the scale with 'keyfrm-> get_keypts_in_cell ()'
                 if (scale_level < pred_scale_level - 1 || pred_scale_level < scale_level) {
                     continue;
                 }
 
-                const auto& desc = keyfrm_1->descriptors_.row(idx_1);
+                const auto& desc = keyfrm_1->frm_obs_.descriptors_.row(idx_1);
 
                 const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
 

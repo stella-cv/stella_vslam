@@ -7,7 +7,7 @@ namespace openvslam {
 namespace module {
 
 local_map_updater::local_map_updater(const data::frame& curr_frm, const unsigned int max_num_local_keyfrms)
-    : frm_id_(curr_frm.id_), frm_lms_(curr_frm.landmarks_), num_keypts_(curr_frm.num_keypts_),
+    : frm_id_(curr_frm.id_), frm_lms_(curr_frm.landmarks_), num_keypts_(curr_frm.frm_obs_.num_keypts_),
       max_num_local_keyfrms_(max_num_local_keyfrms) {}
 
 std::vector<std::shared_ptr<data::keyframe>> local_map_updater::get_local_keyframes() const {

@@ -6,6 +6,7 @@
 #include "openvslam/feature/orb_params.h"
 #include "openvslam/data/graph_node.h"
 #include "openvslam/data/bow_vocabulary.h"
+#include "openvslam/data/frame_observation.h"
 
 #include <set>
 #include <mutex>
@@ -49,24 +50,18 @@ public:
      * Constructor for map loading
      * (NOTE: some variables must be recomputed after the construction. See the definition.)
      */
-    keyframe(const unsigned int id, const unsigned int src_frm_id, const double timestamp,
-             const Mat44_t& cam_pose_cw, camera::base* camera,
-             const feature::orb_params* orb_params,
-             const unsigned int num_keypts, const std::vector<cv::KeyPoint>& keypts,
-             const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
-             const std::vector<float>& stereo_x_right, const std::vector<float>& depths, const cv::Mat& descriptors,
+    keyframe(const unsigned int id, const unsigned int src_frm_id,
+             const double timestamp, const Mat44_t& cam_pose_cw, camera::base* camera,
+             const feature::orb_params* orb_params, const frame_observation& frm_obs,
              const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec);
     virtual ~keyframe();
 
     // Factory method for create keyframe
     static std::shared_ptr<keyframe> make_keyframe(const frame& frm);
     static std::shared_ptr<keyframe> make_keyframe(
-        const unsigned int id, const unsigned int src_frm_id, const double timestamp,
-        const Mat44_t& cam_pose_cw, camera::base* camera,
-        const feature::orb_params* orb_params,
-        const unsigned int num_keypts, const std::vector<cv::KeyPoint>& keypts,
-        const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
-        const std::vector<float>& stereo_x_right, const std::vector<float>& depths, const cv::Mat& descriptors,
+        const unsigned int id, const unsigned int src_frm_id,
+        const double timestamp, const Mat44_t& cam_pose_cw, camera::base* camera,
+        const feature::orb_params* orb_params, const frame_observation& frm_obs,
         const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec);
 
     // operator overrides
@@ -246,26 +241,7 @@ public:
     //-----------------------------------------
     // constant observations
 
-    //! number of keypoints
-    const unsigned int num_keypts_;
-
-    //! keypoints of monocular or stereo left image
-    const std::vector<cv::KeyPoint> keypts_;
-    //! undistorted keypoints of monocular or stereo left image
-    const std::vector<cv::KeyPoint> undist_keypts_;
-    //! bearing vectors
-    const eigen_alloc_vector<Vec3_t> bearings_;
-
-    //! keypoint indices in each of the cells
-    const std::vector<std::vector<std::vector<unsigned int>>> keypt_indices_in_cells_;
-
-    //! disparities
-    const std::vector<float> stereo_x_right_;
-    //! depths
-    const std::vector<float> depths_;
-
-    //! descriptors
-    const cv::Mat descriptors_;
+    const frame_observation frm_obs_;
 
     //! BoW features (DBoW2 or FBoW)
 #ifdef USE_DBOW2

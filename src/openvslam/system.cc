@@ -5,10 +5,13 @@
 #include "openvslam/global_optimization_module.h"
 #include "openvslam/camera/base.h"
 #include "openvslam/data/camera_database.h"
+#include "openvslam/data/common.h"
+#include "openvslam/data/frame_observation.h"
 #include "openvslam/data/orb_params_database.h"
 #include "openvslam/data/map_database.h"
 #include "openvslam/data/bow_database.h"
 #include "openvslam/data/bow_vocabulary.h"
+#include "openvslam/match/stereo.h"
 #include "openvslam/feature/orb_extractor.h"
 #include "openvslam/io/trajectory_io.h"
 #include "openvslam/io/map_database_io.h"
@@ -306,7 +309,31 @@ std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const 
     util::convert_to_grayscale(img_gray, camera_->color_order_);
 
     bool is_init = tracker_->tracking_state_ == tracker_state_t::NotInitialized || tracker_->tracking_state_ == tracker_state_t::Initializing;
-    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, timestamp, is_init ? ini_extractor_left_ : extractor_left_, camera_, mask));
+
+    data::frame_observation frm_obs;
+
+    // Extract ORB feature
+    auto extractor = is_init ? ini_extractor_left_ : extractor_left_;
+    extractor->extract(img_gray, mask, frm_obs.keypts_, frm_obs.descriptors_);
+    frm_obs.num_keypts_ = frm_obs.keypts_.size();
+    if (frm_obs.keypts_.empty()) {
+        spdlog::warn("preprocess: cannot extract any keypoints");
+    }
+
+    // Undistort keypoints
+    camera_->undistort_keypoints(frm_obs.keypts_, frm_obs.undist_keypts_);
+
+    // Ignore stereo parameters
+    frm_obs.stereo_x_right_ = std::vector<float>(frm_obs.num_keypts_, -1);
+    frm_obs.depths_ = std::vector<float>(frm_obs.num_keypts_, -1);
+
+    // Convert to bearing vector
+    camera_->convert_keypoints_to_bearings(frm_obs.undist_keypts_, frm_obs.bearings_);
+
+    // Assign all the keypoints into grid
+    data::assign_keypoints_to_grid(camera_, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_);
+
+    const auto cam_pose_wc = tracker_->track(data::frame(timestamp, camera_, orb_params_, frm_obs));
 
     const auto end = std::chrono::system_clock::now();
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -332,7 +359,43 @@ std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, cons
     util::convert_to_grayscale(img_gray, camera_->color_order_);
     util::convert_to_grayscale(right_img_gray, camera_->color_order_);
 
-    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, right_img_gray, timestamp, extractor_left_, extractor_right_, camera_, mask));
+    data::frame_observation frm_obs;
+    //! keypoints of stereo right image
+    std::vector<cv::KeyPoint> keypts_right;
+    //! ORB descriptors of stereo right image
+    cv::Mat descriptors_right;
+
+    // Extract ORB feature
+    std::thread thread_left([this, &frm_obs, &img_gray, &mask]() {
+        extractor_left_->extract(img_gray, mask, frm_obs.keypts_, frm_obs.descriptors_);
+    });
+    std::thread thread_right([this, &frm_obs, &right_img_gray, &mask, &keypts_right, &descriptors_right]() {
+        extractor_right_->extract(right_img_gray, mask, keypts_right, descriptors_right);
+    });
+    thread_left.join();
+    thread_right.join();
+    frm_obs.num_keypts_ = frm_obs.keypts_.size();
+    if (frm_obs.keypts_.empty()) {
+        spdlog::warn("preprocess: cannot extract any keypoints");
+    }
+
+    // Undistort keypoints
+    camera_->undistort_keypoints(frm_obs.keypts_, frm_obs.undist_keypts_);
+
+    // Estimate depth with stereo match
+    match::stereo stereo_matcher(extractor_left_->image_pyramid_, extractor_right_->image_pyramid_,
+                                 frm_obs.keypts_, keypts_right, frm_obs.descriptors_, descriptors_right,
+                                 orb_params_->scale_factors_, orb_params_->inv_scale_factors_,
+                                 camera_->focal_x_baseline_, camera_->true_baseline_);
+    stereo_matcher.compute(frm_obs.stereo_x_right_, frm_obs.depths_);
+
+    // Convert to bearing vector
+    camera_->convert_keypoints_to_bearings(frm_obs.undist_keypts_, frm_obs.bearings_);
+
+    // Assign all the keypoints into grid
+    data::assign_keypoints_to_grid(camera_, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_);
+
+    const auto cam_pose_wc = tracker_->track(data::frame(timestamp, camera_, orb_params_, frm_obs));
 
     const auto end = std::chrono::system_clock::now();
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -358,7 +421,47 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
     util::convert_to_grayscale(img_gray, camera_->color_order_);
     util::convert_to_true_depth(img_depth, depthmap_factor_);
 
-    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, img_depth, timestamp, extractor_left_, camera_, mask));
+    data::frame_observation frm_obs;
+
+    // Extract ORB feature
+    extractor_left_->extract(img_gray, mask, frm_obs.keypts_, frm_obs.descriptors_);
+    frm_obs.num_keypts_ = frm_obs.keypts_.size();
+    if (frm_obs.keypts_.empty()) {
+        spdlog::warn("preprocess: cannot extract any keypoints");
+    }
+
+    // Undistort keypoints
+    camera_->undistort_keypoints(frm_obs.keypts_, frm_obs.undist_keypts_);
+
+    // Calculate disparity from depth
+    // Initialize with invalid value
+    frm_obs.stereo_x_right_ = std::vector<float>(frm_obs.num_keypts_, -1);
+    frm_obs.depths_ = std::vector<float>(frm_obs.num_keypts_, -1);
+
+    for (unsigned int idx = 0; idx < frm_obs.num_keypts_; idx++) {
+        const auto& keypt = frm_obs.keypts_.at(idx);
+        const auto& undist_keypt = frm_obs.undist_keypts_.at(idx);
+
+        const float x = keypt.pt.x;
+        const float y = keypt.pt.y;
+
+        const float depth = img_depth.at<float>(y, x);
+
+        if (depth <= 0) {
+            continue;
+        }
+
+        frm_obs.depths_.at(idx) = depth;
+        frm_obs.stereo_x_right_.at(idx) = undist_keypt.pt.x - camera_->focal_x_baseline_ / depth;
+    }
+
+    // Convert to bearing vector
+    camera_->convert_keypoints_to_bearings(frm_obs.undist_keypts_, frm_obs.bearings_);
+
+    // Assign all the keypoints into grid
+    data::assign_keypoints_to_grid(camera_, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_);
+
+    const auto cam_pose_wc = tracker_->track(data::frame(timestamp, camera_, orb_params_, frm_obs));
 
     const auto end = std::chrono::system_clock::now();
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();

@@ -18,7 +18,7 @@ unsigned int bow_tree::match_frame_and_keyframe(const std::shared_ptr<data::keyf
 
     angle_checker<int> angle_checker;
 
-    matched_lms_in_frm = std::vector<std::shared_ptr<data::landmark>>(frm.num_keypts_, nullptr);
+    matched_lms_in_frm = std::vector<std::shared_ptr<data::landmark>>(frm.frm_obs_.num_keypts_, nullptr);
 
     const auto keyfrm_lms = keyfrm->get_landmarks();
 
@@ -52,7 +52,7 @@ unsigned int bow_tree::match_frame_and_keyframe(const std::shared_ptr<data::keyf
                     continue;
                 }
 
-                const auto& keyfrm_desc = keyfrm->descriptors_.row(keyfrm_idx);
+                const auto& keyfrm_desc = keyfrm->frm_obs_.descriptors_.row(keyfrm_idx);
 
                 unsigned int best_hamm_dist = MAX_HAMMING_DIST;
                 int best_frm_idx = -1;
@@ -63,7 +63,7 @@ unsigned int bow_tree::match_frame_and_keyframe(const std::shared_ptr<data::keyf
                         continue;
                     }
 
-                    const auto& frm_desc = frm.descriptors_.row(frm_idx);
+                    const auto& frm_desc = frm.frm_obs_.descriptors_.row(frm_idx);
 
                     const auto hamm_dist = compute_descriptor_distance_32(keyfrm_desc, frm_desc);
 
@@ -90,7 +90,7 @@ unsigned int bow_tree::match_frame_and_keyframe(const std::shared_ptr<data::keyf
 
                 if (check_orientation_) {
                     const auto delta_angle
-                        = keyfrm->keypts_.at(keyfrm_idx).angle - frm.keypts_.at(best_frm_idx).angle;
+                        = keyfrm->frm_obs_.keypts_.at(keyfrm_idx).angle - frm.frm_obs_.keypts_.at(best_frm_idx).angle;
                     angle_checker.append_delta_angle(delta_angle, best_frm_idx);
                 }
 
@@ -166,7 +166,7 @@ unsigned int bow_tree::match_keyframes(const std::shared_ptr<data::keyframe>& ke
                     continue;
                 }
 
-                const auto& desc_1 = keyfrm_1->descriptors_.row(idx_1);
+                const auto& desc_1 = keyfrm_1->frm_obs_.descriptors_.row(idx_1);
 
                 unsigned int best_hamm_dist = MAX_HAMMING_DIST;
                 int best_idx_2 = -1;
@@ -187,7 +187,7 @@ unsigned int bow_tree::match_keyframes(const std::shared_ptr<data::keyframe>& ke
                         continue;
                     }
 
-                    const auto& desc_2 = keyfrm_2->descriptors_.row(idx_2);
+                    const auto& desc_2 = keyfrm_2->frm_obs_.descriptors_.row(idx_2);
 
                     const auto hamm_dist = compute_descriptor_distance_32(desc_1, desc_2);
 
@@ -220,7 +220,7 @@ unsigned int bow_tree::match_keyframes(const std::shared_ptr<data::keyframe>& ke
 
                 if (check_orientation_) {
                     const auto delta_angle
-                        = keyfrm_1->keypts_.at(idx_1).angle - keyfrm_2->keypts_.at(best_idx_2).angle;
+                        = keyfrm_1->frm_obs_.keypts_.at(idx_1).angle - keyfrm_2->frm_obs_.keypts_.at(best_idx_2).angle;
                     angle_checker.append_delta_angle(delta_angle, idx_1);
                 }
             }

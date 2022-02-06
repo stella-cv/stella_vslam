@@ -173,8 +173,8 @@ void local_bundle_adjuster::optimize(data::map_database* map_db,
             }
 
             const auto keyfrm_vtx = keyfrm_vtx_container.get_vertex(keyfrm);
-            const auto& undist_keypt = keyfrm->undist_keypts_.at(idx);
-            const float x_right = keyfrm->stereo_x_right_.at(idx);
+            const auto& undist_keypt = keyfrm->frm_obs_.undist_keypts_.at(idx);
+            const float x_right = keyfrm->frm_obs_.stereo_x_right_.at(idx);
             const float inv_sigma_sq = keyfrm->orb_params_->inv_level_sigma_sq_.at(undist_keypt.octave);
             const auto sqrt_chi_sq = (keyfrm->camera_->setup_type_ == camera::setup_type_t::Monocular)
                                          ? sqrt_chi_sq_2D

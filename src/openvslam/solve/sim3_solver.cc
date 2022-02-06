@@ -64,8 +64,8 @@ sim3_solver::sim3_solver(const std::shared_ptr<data::keyframe>& keyfrm_1, const 
             continue;
         }
 
-        const auto& keypt_1 = keyfrm_1_->undist_keypts_.at(idx1);
-        const auto& keypt_2 = keyfrm_2_->undist_keypts_.at(idx2);
+        const auto& keypt_1 = keyfrm_1_->frm_obs_.undist_keypts_.at(idx1);
+        const auto& keypt_2 = keyfrm_2_->frm_obs_.undist_keypts_.at(idx2);
 
         const float sigma_sq_1 = keyfrm_1_->orb_params_->level_sigma_sq_.at(keypt_1.octave);
         const float sigma_sq_2 = keyfrm_2_->orb_params_->level_sigma_sq_.at(keypt_2.octave);
