@@ -4,6 +4,7 @@
 #include "openvslam/data/keyframe.h"
 #include "openvslam/data/landmark.h"
 #include "openvslam/data/camera_database.h"
+#include "openvslam/data/orb_params_database.h"
 #include "openvslam/data/map_database.h"
 #include "openvslam/util/converter.h"
 
@@ -154,7 +155,7 @@ void map_database::clear() {
     spdlog::info("clear map database");
 }
 
-void map_database::from_json(camera_database* cam_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
+void map_database::from_json(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
                              const nlohmann::json& json_keyfrms, const nlohmann::json& json_landmarks) {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
@@ -180,7 +181,7 @@ void map_database::from_json(camera_database* cam_db, bow_vocabulary* bow_vocab,
         assert(0 <= id);
         const auto json_keyfrm = json_id_keyfrm.value();
 
-        register_keyframe(cam_db, bow_vocab, bow_db, id, json_keyfrm);
+        register_keyframe(cam_db, orb_params_db, bow_vocab, bow_db, id, json_keyfrm);
     }
 
     // Step 3. Register 3D landmark point
@@ -241,13 +242,15 @@ void map_database::from_json(camera_database* cam_db, bow_vocabulary* bow_vocab,
     }
 }
 
-void map_database::register_keyframe(camera_database* cam_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
+void map_database::register_keyframe(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
                                      const unsigned int id, const nlohmann::json& json_keyfrm) {
     // Metadata
     const auto src_frm_id = json_keyfrm.at("src_frm_id").get<unsigned int>();
     const auto timestamp = json_keyfrm.at("ts").get<double>();
     const auto camera_name = json_keyfrm.at("cam").get<std::string>();
     const auto camera = cam_db->get_camera(camera_name);
+    const auto orb_params_name = json_keyfrm.at("orb_params").get<std::string>();
+    const auto orb_params = orb_params_db->get_orb_params(orb_params_name);
 
     // Pose information
     const Mat33_t rot_cw = convert_json_to_rotation(json_keyfrm.at("rot_cw"));
@@ -279,15 +282,11 @@ void map_database::register_keyframe(camera_database* cam_db, bow_vocabulary* bo
     const auto descriptors = convert_json_to_descriptors(json_descriptors);
     assert(descriptors.rows == static_cast<int>(num_keypts));
 
-    // Scale information in ORB
-    const auto num_scale_levels = json_keyfrm.at("n_scale_levels").get<unsigned int>();
-    const auto scale_factor = json_keyfrm.at("scale_factor").get<float>();
-
     // Construct a new object
     auto keyfrm = data::keyframe::make_keyframe(
-        id, src_frm_id, timestamp, cam_pose_cw, camera,
+        id, src_frm_id, timestamp, cam_pose_cw, camera, orb_params,
         num_keypts, keypts, undist_keypts, bearings, stereo_x_right, depths, descriptors,
-        num_scale_levels, scale_factor, bow_vocab, bow_db, this);
+        bow_vocab, bow_db, this);
 
     // Append to map database
     assert(!keyframes_.count(id));

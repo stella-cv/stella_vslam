@@ -74,7 +74,7 @@ unsigned int pose_optimizer::optimize(data::frame& frm) const {
         // Connect the frame and the landmark vertices using the projection edges
         const auto& undist_keypt = frm.undist_keypts_.at(idx);
         const float x_right = frm.stereo_x_right_.at(idx);
-        const float inv_sigma_sq = frm.inv_level_sigma_sq_.at(undist_keypt.octave);
+        const float inv_sigma_sq = frm.orb_params_->inv_level_sigma_sq_.at(undist_keypt.octave);
         const auto sqrt_chi_sq = (frm.camera_->setup_type_ == camera::setup_type_t::Monocular)
                                      ? sqrt_chi_sq_2D
                                      : sqrt_chi_sq_3D;

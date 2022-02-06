@@ -3,6 +3,7 @@
 
 #include "openvslam/type.h"
 #include "openvslam/camera/base.h"
+#include "openvslam/feature/orb_params.h"
 #include "openvslam/data/graph_node.h"
 #include "openvslam/data/bow_vocabulary.h"
 
@@ -50,10 +51,10 @@ public:
      */
     keyframe(const unsigned int id, const unsigned int src_frm_id, const double timestamp,
              const Mat44_t& cam_pose_cw, camera::base* camera,
+             const feature::orb_params* orb_params,
              const unsigned int num_keypts, const std::vector<cv::KeyPoint>& keypts,
              const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
              const std::vector<float>& stereo_x_right, const std::vector<float>& depths, const cv::Mat& descriptors,
-             const unsigned int num_scale_levels, const float scale_factor,
              bow_vocabulary* bow_vocab, bow_database* bow_db, map_database* map_db);
     virtual ~keyframe();
 
@@ -62,10 +63,10 @@ public:
     static std::shared_ptr<keyframe> make_keyframe(
         const unsigned int id, const unsigned int src_frm_id, const double timestamp,
         const Mat44_t& cam_pose_cw, camera::base* camera,
+        const feature::orb_params* orb_params,
         const unsigned int num_keypts, const std::vector<cv::KeyPoint>& keypts,
         const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
         const std::vector<float>& stereo_x_right, const std::vector<float>& depths, const cv::Mat& descriptors,
-        const unsigned int num_scale_levels, const float scale_factor,
         bow_vocabulary* bow_vocab, bow_database* bow_db, map_database* map_db);
 
     // operator overrides
@@ -237,6 +238,12 @@ public:
     camera::base* camera_;
 
     //-----------------------------------------
+    // feature extraction parameters
+
+    //! ORB feature extraction model
+    const feature::orb_params* orb_params_;
+
+    //-----------------------------------------
     // constant observations
 
     //! number of keypoints
@@ -274,22 +281,6 @@ public:
 
     //! graph node
     std::unique_ptr<graph_node> graph_node_ = nullptr;
-
-    //-----------------------------------------
-    // ORB scale pyramid information
-
-    //! number of scale levels
-    const unsigned int num_scale_levels_;
-    //! scale factor
-    const float scale_factor_;
-    //! log scale factor
-    const float log_scale_factor_;
-    //! list of scale factors
-    const std::vector<float> scale_factors_;
-    //! list of sigma^2 (sigma=1.0 at scale=0) for optimization
-    const std::vector<float> level_sigma_sq_;
-    //! list of 1 / sigma^2 for optimization
-    const std::vector<float> inv_level_sigma_sq_;
 
 private:
     //-----------------------------------------

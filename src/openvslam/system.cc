@@ -5,6 +5,7 @@
 #include "openvslam/global_optimization_module.h"
 #include "openvslam/camera/base.h"
 #include "openvslam/data/camera_database.h"
+#include "openvslam/data/orb_params_database.h"
 #include "openvslam/data/map_database.h"
 #include "openvslam/data/bow_database.h"
 #include "openvslam/data/bow_vocabulary.h"
@@ -24,17 +25,6 @@
 namespace {
 using namespace openvslam;
 
-feature::orb_params get_orb_params(const YAML::Node& yaml_node) {
-    spdlog::debug("load ORB parameters");
-    try {
-        return feature::orb_params(yaml_node);
-    }
-    catch (const std::exception& e) {
-        spdlog::error("failed in loading ORB parameters: {}", e.what());
-        throw;
-    }
-}
-
 double get_depthmap_factor(const camera::base* camera, const YAML::Node& yaml_node) {
     spdlog::debug("load depthmap factor");
     double depthmap_factor = 1.0;
@@ -51,7 +41,7 @@ double get_depthmap_factor(const camera::base* camera, const YAML::Node& yaml_no
 namespace openvslam {
 
 system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file_path)
-    : cfg_(cfg), camera_(cfg->camera_) {
+    : cfg_(cfg), camera_(cfg->camera_), orb_params_(cfg->orb_params_) {
     spdlog::debug("CONSTRUCT: system");
 
     std::ostringstream message_stream;
@@ -109,9 +99,6 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     int loop_min_distance_on_graph = bow_database_yaml_node["loop_min_distance_on_graph"].as<int>(30);
     bow_db_ = new data::bow_database(bow_vocab_, reject_by_graph_distance, loop_min_distance_on_graph);
 
-    const auto tracking_params = util::yaml_optional_ref(cfg->yaml_node_, "Tracking");
-    depthmap_factor_ = get_depthmap_factor(camera_, tracking_params);
-
     // frame and map publisher
     frame_publisher_ = std::shared_ptr<publish::frame_publisher>(new publish::frame_publisher(cfg_, map_db_));
     map_publisher_ = std::shared_ptr<publish::map_publisher>(new publish::map_publisher(cfg_, map_db_));
@@ -123,15 +110,32 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     // global optimization module
     global_optimizer_ = new global_optimization_module(map_db_, bow_db_, bow_vocab_, cfg_->yaml_node_, camera_->setup_type_ != camera::setup_type_t::Monocular);
 
-    feature::orb_params orb_params = get_orb_params(util::yaml_optional_ref(cfg->yaml_node_, "Feature"));
-    const auto max_num_keypoints = tracking_params["max_num_keypoints"].as<unsigned int>(2000);
-    extractor_left_ = new feature::orb_extractor(max_num_keypoints, orb_params);
+    // preprocessing modules
+    const auto preprocessing_params = util::yaml_optional_ref(cfg->yaml_node_, "Preprocessing");
+    depthmap_factor_ = get_depthmap_factor(camera_, preprocessing_params);
+    auto mask_rectangles = preprocessing_params["mask_rectangles"].as<std::vector<std::vector<float>>>(std::vector<std::vector<float>>());
+    for (const auto& v : mask_rectangles) {
+        if (v.size() != 4) {
+            throw std::runtime_error("mask rectangle must contain four parameters");
+        }
+        if (v.at(0) >= v.at(1)) {
+            throw std::runtime_error("x_max must be greater than x_min");
+        }
+        if (v.at(2) >= v.at(3)) {
+            throw std::runtime_error("y_max must be greater than x_min");
+        }
+    }
+
+    orb_params_db_ = new data::orb_params_database(orb_params_);
+
+    const auto max_num_keypoints = preprocessing_params["max_num_keypoints"].as<unsigned int>(2000);
+    extractor_left_ = new feature::orb_extractor(orb_params_, max_num_keypoints, mask_rectangles);
     if (camera_->setup_type_ == camera::setup_type_t::Monocular) {
-        const auto ini_max_num_keypoints = tracking_params["ini_max_num_keypoints"].as<unsigned int>(2 * extractor_left_->get_max_num_keypoints());
-        ini_extractor_left_ = new feature::orb_extractor(ini_max_num_keypoints, orb_params);
+        const auto ini_max_num_keypoints = preprocessing_params["ini_max_num_keypoints"].as<unsigned int>(2 * extractor_left_->get_max_num_keypoints());
+        ini_extractor_left_ = new feature::orb_extractor(orb_params_, ini_max_num_keypoints, mask_rectangles);
     }
     if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
-        extractor_right_ = new feature::orb_extractor(max_num_keypoints, orb_params);
+        extractor_right_ = new feature::orb_extractor(orb_params_, max_num_keypoints, mask_rectangles);
     }
 
     // connect modules each other
@@ -170,6 +174,9 @@ system::~system() {
     extractor_right_ = nullptr;
     delete ini_extractor_left_;
     ini_extractor_left_ = nullptr;
+
+    delete orb_params_db_;
+    orb_params_db_ = nullptr;
 
     spdlog::debug("DESTRUCT: system");
 }
@@ -217,14 +224,14 @@ void system::save_keyframe_trajectory(const std::string& path, const std::string
 
 void system::load_map_database(const std::string& path) const {
     pause_other_threads();
-    io::map_database_io map_db_io(cam_db_, map_db_, bow_db_, bow_vocab_);
+    io::map_database_io map_db_io(cam_db_, orb_params_db_, map_db_, bow_db_, bow_vocab_);
     map_db_io.load_message_pack(path);
     resume_other_threads();
 }
 
 void system::save_map_database(const std::string& path) const {
     pause_other_threads();
-    io::map_database_io map_db_io(cam_db_, map_db_, bow_db_, bow_vocab_);
+    io::map_database_io map_db_io(cam_db_, orb_params_db_, map_db_, bow_db_, bow_vocab_);
     map_db_io.save_message_pack(path);
     resume_other_threads();
 }

@@ -3,6 +3,7 @@
 
 #include "openvslam/type.h"
 #include "openvslam/camera/base.h"
+#include "openvslam/feature/orb_params.h"
 #include "openvslam/util/converter.h"
 #include "openvslam/data/bow_vocabulary.h"
 
@@ -29,6 +30,7 @@ class base;
 
 namespace feature {
 class orb_extractor;
+class orb_params;
 } // namespace feature
 
 namespace data {
@@ -128,11 +130,6 @@ public:
      * @return
      */
     Mat33_t get_rotation_inv() const;
-
-    /**
-     * Update ORB information
-     */
-    void update_orb_info();
 
     /**
      * Returns true if BoW has been computed.
@@ -238,21 +235,8 @@ public:
     //! reference keyframe for tracking
     std::shared_ptr<keyframe> ref_keyfrm_ = nullptr;
 
-    // ORB scale pyramid information
-    //! number of scale levels
-    unsigned int num_scale_levels_;
-    //! scale factor
-    float scale_factor_;
-    //! log scale factor
-    float log_scale_factor_;
-    //! list of scale factors
-    std::vector<float> scale_factors_;
-    //! list of inverse of scale factors
-    std::vector<float> inv_scale_factors_;
-    //! list of sigma^2 (sigma=1.0 at scale=0) for optimization
-    std::vector<float> level_sigma_sq_;
-    //! list of 1 / sigma^2 for optimization
-    std::vector<float> inv_level_sigma_sq_;
+    //! ORB scale pyramid information
+    const feature::orb_params* orb_params_;
 
 private:
     /**

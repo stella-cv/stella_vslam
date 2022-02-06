@@ -50,19 +50,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif // USE_SSE_ORB
 
+#include <iostream>
+
 namespace openvslam {
 namespace feature {
 
-orb_extractor::orb_extractor(const unsigned int max_num_keypts,
-                             const float scale_factor, const unsigned int num_levels,
-                             const unsigned int ini_fast_thr, const unsigned int min_fast_thr,
+orb_extractor::orb_extractor(const orb_params* orb_params,
+                             const unsigned int max_num_keypts,
                              const std::vector<std::vector<float>>& mask_rects)
-    : orb_extractor(max_num_keypts, orb_params{scale_factor, num_levels,
-                                               ini_fast_thr, min_fast_thr,
-                                               mask_rects}) {}
-
-orb_extractor::orb_extractor(const unsigned int max_num_keypts, const orb_params& orb_params)
-    : max_num_keypts_(max_num_keypts), orb_params_(orb_params) {
+    : orb_params_(orb_params), mask_rects_(mask_rects), max_num_keypts_(max_num_keypts) {
     // initialize parameters
     initialize();
 }
@@ -81,7 +77,7 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
     compute_image_pyramid(image);
 
     // mask initialization
-    if (!mask_is_initialized_ && !orb_params_.mask_rects_.empty()) {
+    if (!mask_is_initialized_ && !mask_rects_.empty()) {
         create_rectangle_mask(image.cols, image.rows);
         mask_is_initialized_ = true;
     }
@@ -108,7 +104,7 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
     cv::Mat descriptors;
 
     unsigned int num_keypts = 0;
-    for (unsigned int level = 0; level < orb_params_.num_levels_; ++level) {
+    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
         num_keypts += all_keypts.at(level).size();
     }
     if (num_keypts == 0) {
@@ -123,7 +119,7 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
     keypts.reserve(num_keypts);
 
     unsigned int offset = 0;
-    for (unsigned int level = 0; level < orb_params_.num_levels_; ++level) {
+    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
         auto& keypts_at_level = all_keypts.at(level);
         const auto num_keypts_at_level = keypts_at_level.size();
 
@@ -154,75 +150,22 @@ void orb_extractor::set_max_num_keypoints(const unsigned int max_num_keypts) {
     initialize();
 }
 
-float orb_extractor::get_scale_factor() const {
-    return orb_params_.scale_factor_;
-}
-
-void orb_extractor::set_scale_factor(const float scale_factor) {
-    orb_params_.scale_factor_ = scale_factor;
-    initialize();
-}
-
-unsigned int orb_extractor::get_num_scale_levels() const {
-    return orb_params_.num_levels_;
-}
-
-void orb_extractor::set_num_scale_levels(const unsigned int num_levels) {
-    orb_params_.num_levels_ = num_levels;
-    initialize();
-}
-
-unsigned int orb_extractor::get_initial_fast_threshold() const {
-    return orb_params_.ini_fast_thr_;
-}
-
-void orb_extractor::set_initial_fast_threshold(const unsigned int initial_fast_threshold) {
-    orb_params_.ini_fast_thr_ = initial_fast_threshold;
-}
-
-unsigned int orb_extractor::get_minimum_fast_threshold() const {
-    return orb_params_.min_fast_thr;
-}
-
-void orb_extractor::set_minimum_fast_threshold(const unsigned int minimum_fast_threshold) {
-    orb_params_.min_fast_thr = minimum_fast_threshold;
-}
-
-std::vector<float> orb_extractor::get_scale_factors() const {
-    return scale_factors_;
-}
-
-std::vector<float> orb_extractor::get_inv_scale_factors() const {
-    return inv_scale_factors_;
-}
-
-std::vector<float> orb_extractor::get_level_sigma_sq() const {
-    return level_sigma_sq_;
-}
-
-std::vector<float> orb_extractor::get_inv_level_sigma_sq() const {
-    return inv_level_sigma_sq_;
-}
-
 void orb_extractor::initialize() {
-    // compute scale pyramid information
-    calc_scale_factors();
-
     // resize buffers according to the number of levels
-    image_pyramid_.resize(orb_params_.num_levels_);
-    num_keypts_per_level_.resize(orb_params_.num_levels_);
+    image_pyramid_.resize(orb_params_->num_levels_);
+    num_keypts_per_level_.resize(orb_params_->num_levels_);
 
     // compute the desired number of keypoints per scale
     double desired_num_keypts_per_scale
-        = max_num_keypts_ * (1.0 - 1.0 / orb_params_.scale_factor_)
-          / (1.0 - std::pow(1.0 / orb_params_.scale_factor_, static_cast<double>(orb_params_.num_levels_)));
+        = max_num_keypts_ * (1.0 - 1.0 / orb_params_->scale_factor_)
+          / (1.0 - std::pow(1.0 / orb_params_->scale_factor_, static_cast<double>(orb_params_->num_levels_)));
     unsigned int total_num_keypts = 0;
-    for (unsigned int level = 0; level < orb_params_.num_levels_ - 1; ++level) {
+    for (unsigned int level = 0; level < orb_params_->num_levels_ - 1; ++level) {
         num_keypts_per_level_.at(level) = std::round(desired_num_keypts_per_scale);
         total_num_keypts += num_keypts_per_level_.at(level);
-        desired_num_keypts_per_scale *= 1.0 / orb_params_.scale_factor_;
+        desired_num_keypts_per_scale *= 1.0 / orb_params_->scale_factor_;
     }
-    num_keypts_per_level_.at(orb_params_.num_levels_ - 1) = std::max(static_cast<int>(max_num_keypts_) - static_cast<int>(total_num_keypts), 0);
+    num_keypts_per_level_.at(orb_params_->num_levels_ - 1) = std::max(static_cast<int>(max_num_keypts_) - static_cast<int>(total_num_keypts), 0);
 
     // Preparate  for computation of orientation
     u_max_.resize(fast_half_patch_size_ + 1);
@@ -240,19 +183,12 @@ void orb_extractor::initialize() {
     }
 }
 
-void orb_extractor::calc_scale_factors() {
-    scale_factors_ = orb_params::calc_scale_factors(orb_params_.num_levels_, orb_params_.scale_factor_);
-    inv_scale_factors_ = orb_params::calc_inv_scale_factors(orb_params_.num_levels_, orb_params_.scale_factor_);
-    level_sigma_sq_ = orb_params::calc_level_sigma_sq(orb_params_.num_levels_, orb_params_.scale_factor_);
-    inv_level_sigma_sq_ = orb_params::calc_inv_level_sigma_sq(orb_params_.num_levels_, orb_params_.scale_factor_);
-}
-
 void orb_extractor::create_rectangle_mask(const unsigned int cols, const unsigned int rows) {
     if (rect_mask_.empty()) {
         rect_mask_ = cv::Mat(rows, cols, CV_8UC1, cv::Scalar(255));
     }
     // draw masks
-    for (const auto& mask_rect : orb_params_.mask_rects_) {
+    for (const auto& mask_rect : mask_rects_) {
         // draw black rectangle
         const unsigned int x_min = std::round(cols * mask_rect.at(0));
         const unsigned int x_max = std::round(cols * mask_rect.at(1));
@@ -264,9 +200,9 @@ void orb_extractor::create_rectangle_mask(const unsigned int cols, const unsigne
 
 void orb_extractor::compute_image_pyramid(const cv::Mat& image) {
     image_pyramid_.at(0) = image;
-    for (unsigned int level = 1; level < orb_params_.num_levels_; ++level) {
+    for (unsigned int level = 1; level < orb_params_->num_levels_; ++level) {
         // determine the size of an image
-        const double scale = scale_factors_.at(level);
+        const double scale = orb_params_->scale_factors_.at(level);
         const cv::Size size(std::round(image.cols * 1.0 / scale), std::round(image.rows * 1.0 / scale));
         // resize
         cv::resize(image_pyramid_.at(level - 1), image_pyramid_.at(level), size, 0, 0, cv::INTER_LINEAR);
@@ -274,7 +210,7 @@ void orb_extractor::compute_image_pyramid(const cv::Mat& image) {
 }
 
 void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>>& all_keypts, const cv::Mat& mask) const {
-    all_keypts.resize(orb_params_.num_levels_);
+    all_keypts.resize(orb_params_->num_levels_);
 
     // An anonymous function which checks mask(image or rectangle)
     auto is_in_mask = [&mask](const unsigned int y, const unsigned int x, const float scale_factor) {
@@ -287,8 +223,8 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
-    for (unsigned int level = 0; level < orb_params_.num_levels_; ++level) {
-        const float scale_factor = scale_factors_.at(level);
+    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
+        const float scale_factor = orb_params_->scale_factors_.at(level);
 
         constexpr unsigned int min_border_x = orb_patch_radius_;
         constexpr unsigned int min_border_y = orb_patch_radius_;
@@ -340,12 +276,12 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
 
                 std::vector<cv::KeyPoint> keypts_in_cell;
                 cv::FAST(image_pyramid_.at(level).rowRange(min_y, max_y).colRange(min_x, max_x),
-                         keypts_in_cell, orb_params_.ini_fast_thr_, true);
+                         keypts_in_cell, orb_params_->ini_fast_thr_, true);
 
                 // Re-compute FAST keypoint with reduced threshold if enough keypoint was not got
                 if (keypts_in_cell.empty()) {
                     cv::FAST(image_pyramid_.at(level).rowRange(min_y, max_y).colRange(min_x, max_x),
-                             keypts_in_cell, orb_params_.min_fast_thr, true);
+                             keypts_in_cell, orb_params_->min_fast_thr_, true);
                 }
 
                 if (keypts_in_cell.empty()) {
@@ -379,7 +315,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
                                                         num_keypts_per_level_.at(level));
 
         // Keypoint size is patch size modified by the scale factor
-        const unsigned int scaled_patch_size = fast_patch_size_ * scale_factors_.at(level);
+        const unsigned int scaled_patch_size = fast_patch_size_ * orb_params_->scale_factors_.at(level);
 
         for (auto& keypt : keypts_at_level) {
             // Translation correction (scale will be corrected after ORB description)
@@ -392,7 +328,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
     }
 
     // Compute orientations
-    for (unsigned int level = 0; level < orb_params_.num_levels_; ++level) {
+    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
         compute_orientation(image_pyramid_.at(level), all_keypts.at(level));
     }
 }
@@ -610,7 +546,7 @@ void orb_extractor::correct_keypoint_scale(std::vector<cv::KeyPoint>& keypts_at_
     if (level == 0) {
         return;
     }
-    const float scale_at_level = scale_factors_.at(level);
+    const float scale_at_level = orb_params_->scale_factors_.at(level);
     for (auto& keypt_at_level : keypts_at_level) {
         keypt_at_level.pt *= scale_at_level;
     }

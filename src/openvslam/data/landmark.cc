@@ -214,13 +214,13 @@ void landmark::update_mean_normal_and_obs_scale_variance() {
     const Vec3_t cam_to_lm_vec = pos_w - ref_keyfrm->get_cam_center();
     const auto dist = cam_to_lm_vec.norm();
     const auto scale_level = ref_keyfrm->undist_keypts_.at(observations.at(ref_keyfrm)).octave;
-    const auto scale_factor = ref_keyfrm->scale_factors_.at(scale_level);
-    const auto num_scale_levels = ref_keyfrm->num_scale_levels_;
+    const auto scale_factor = ref_keyfrm->orb_params_->scale_factors_.at(scale_level);
+    const auto num_scale_levels = ref_keyfrm->orb_params_->num_levels_;
 
     {
         std::lock_guard<std::mutex> lock3(mtx_position_);
         max_valid_dist_ = dist * scale_factor;
-        min_valid_dist_ = max_valid_dist_ / ref_keyfrm->scale_factors_.at(num_scale_levels - 1);
+        min_valid_dist_ = max_valid_dist_ / ref_keyfrm->orb_params_->scale_factors_.at(num_scale_levels - 1);
         mean_normal_ = mean_normal.normalized();
     }
 }

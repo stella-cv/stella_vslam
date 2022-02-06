@@ -23,6 +23,7 @@ class frame;
 class keyframe;
 class landmark;
 class camera_database;
+class orb_params_database;
 class bow_database;
 
 class map_database {
@@ -158,12 +159,13 @@ public:
     /**
      * Load keyframes and landmarks from JSON
      * @param cam_db
+     * @param orb_params_db
      * @param bow_vocab
      * @param bow_db
      * @param json_keyfrms
      * @param json_landmarks
      */
-    void from_json(camera_database* cam_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
+    void from_json(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
                    const nlohmann::json& json_keyfrms, const nlohmann::json& json_landmarks);
 
     /**
@@ -185,12 +187,13 @@ private:
      * Decode JSON and register keyframe information to the map database
      * (NOTE: objects which are not constructed yet will be set as nullptr)
      * @param cam_db
+     * @param orb_params_db
      * @param bow_vocab
      * @param bow_db
      * @param id
      * @param json_keyfrm
      */
-    void register_keyframe(camera_database* cam_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
+    void register_keyframe(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
                            const unsigned int id, const nlohmann::json& json_keyfrm);
 
     /**

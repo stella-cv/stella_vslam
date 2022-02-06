@@ -120,7 +120,7 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
 
                     // Check consistency in Matrix E
                     const bool is_inlier = check_epipolar_constraint(bearing_1, bearing_2, E_12,
-                                                                     keyfrm_1->scale_factors_.at(keypt_1.octave));
+                                                                     keyfrm_1->orb_params_->scale_factors_.at(keypt_1.octave));
                     if (is_inlier) {
                         best_idx_2 = idx_2;
                         best_hamm_dist = hamm_dist;

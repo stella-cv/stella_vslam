@@ -66,8 +66,8 @@ unsigned int fuse::detect_duplication(const std::shared_ptr<data::keyframe>& key
         }
 
         // Acquire keypoints in the cell where the reprojected 3D points exist
-        const int pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm->num_scale_levels_, keyfrm->log_scale_factor_);
-        const auto indices = keyfrm->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm->scale_factors_.at(pred_scale_level));
+        const int pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm->orb_params_->num_levels_, keyfrm->orb_params_->log_scale_factor_);
+        const auto indices = keyfrm->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm->orb_params_->scale_factors_.at(pred_scale_level));
 
         if (indices.empty()) {
             continue;
@@ -173,8 +173,8 @@ unsigned int fuse::replace_duplication(const std::shared_ptr<data::keyframe>& ke
         }
 
         // Acquire keypoints in the cell where the reprojected 3D points exist
-        const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm->num_scale_levels_, keyfrm->log_scale_factor_);
-        const auto indices = keyfrm->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm->scale_factors_.at(pred_scale_level));
+        const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm->orb_params_->num_levels_, keyfrm->orb_params_->log_scale_factor_);
+        const auto indices = keyfrm->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm->orb_params_->scale_factors_.at(pred_scale_level));
 
         if (indices.empty()) {
             continue;
@@ -205,7 +205,7 @@ unsigned int fuse::replace_duplication(const std::shared_ptr<data::keyframe>& ke
 
                 // n=3
                 constexpr float chi_sq_3D = 7.81473;
-                if (chi_sq_3D < reproj_error_sq * keyfrm->inv_level_sigma_sq_.at(scale_level)) {
+                if (chi_sq_3D < reproj_error_sq * keyfrm->orb_params_->inv_level_sigma_sq_.at(scale_level)) {
                     continue;
                 }
             }
@@ -217,7 +217,7 @@ unsigned int fuse::replace_duplication(const std::shared_ptr<data::keyframe>& ke
 
                 // n=2
                 constexpr float chi_sq_2D = 5.99146;
-                if (chi_sq_2D < reproj_error_sq * keyfrm->inv_level_sigma_sq_.at(scale_level)) {
+                if (chi_sq_2D < reproj_error_sq * keyfrm->orb_params_->inv_level_sigma_sq_.at(scale_level)) {
                     continue;
                 }
             }

@@ -1,18 +1,19 @@
 #ifndef OPENVSLAM_FEATURE_ORB_PARAMS_H
 #define OPENVSLAM_FEATURE_ORB_PARAMS_H
 
+#include <nlohmann/json_fwd.hpp>
 #include <yaml-cpp/yaml.h>
 
 namespace openvslam {
 namespace feature {
 
 struct orb_params {
-    orb_params() = default;
+    orb_params() = delete;
 
     //! Constructor
-    orb_params(const float scale_factor, const unsigned int num_levels,
-               const unsigned int ini_fast_thr, const unsigned int min_fast_thr,
-               const std::vector<std::vector<float>>& mask_rects = {});
+    orb_params(const std::string& name, const float scale_factor, const unsigned int num_levels,
+               const unsigned int ini_fast_thr, const unsigned int min_fast_thr);
+    orb_params(const std::string& name);
 
     //! Constructor
     explicit orb_params(const YAML::Node& yaml_node);
@@ -20,14 +21,23 @@ struct orb_params {
     //! Destructor
     virtual ~orb_params() = default;
 
-    float scale_factor_ = 1.2;
-    unsigned int num_levels_ = 8;
-    unsigned int ini_fast_thr_ = 20;
-    unsigned int min_fast_thr = 7;
+    nlohmann::json to_json() const;
 
-    //! A vector of keypoint area represents mask area
-    //! Each areas are denoted as form of [x_min / cols, x_max / cols, y_min / rows, y_max / rows]
-    std::vector<std::vector<float>> mask_rects_;
+    //! name (id for saving)
+    const std::string name_;
+
+    const float scale_factor_ = 1.2;
+    const float log_scale_factor_ = std::log(1.2);
+    const unsigned int num_levels_ = 8;
+    const unsigned int ini_fast_thr_ = 20;
+    const unsigned int min_fast_thr_ = 7;
+
+    //! A list of the scale factor of each pyramid layer
+    std::vector<float> scale_factors_;
+    std::vector<float> inv_scale_factors_;
+    //! A list of the sigma of each pyramid layer
+    std::vector<float> level_sigma_sq_;
+    std::vector<float> inv_level_sigma_sq_;
 
     //! Calculate scale factors
     static std::vector<float> calc_scale_factors(const unsigned int num_scale_levels, const float scale_factor);

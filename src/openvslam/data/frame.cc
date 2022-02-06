@@ -23,10 +23,7 @@ frame::frame(const cv::Mat& img_gray, const double timestamp,
              camera::base* camera,
              const cv::Mat& mask)
     : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor), extractor_right_(nullptr),
-      timestamp_(timestamp), camera_(camera) {
-    // Get ORB scale
-    update_orb_info();
-
+      timestamp_(timestamp), camera_(camera), orb_params_(extractor_->orb_params_) {
     // Extract ORB feature
     extractor_->extract(img_gray, mask, keypts_, descriptors_);
     num_keypts_ = keypts_.size();
@@ -57,10 +54,7 @@ frame::frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const 
              bow_vocabulary* bow_vocab, camera::base* camera,
              const cv::Mat& mask)
     : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor_left), extractor_right_(extractor_right),
-      timestamp_(timestamp), camera_(camera) {
-    // Get ORB scale
-    update_orb_info();
-
+      timestamp_(timestamp), camera_(camera), orb_params_(extractor_->orb_params_) {
     // Extract ORB feature
     std::thread thread_left([this, &left_img_gray, &mask]() { extractor_->extract(left_img_gray, mask, keypts_, descriptors_); });
     std::thread thread_right([this, &right_img_gray, &mask]() { extractor_right_->extract(right_img_gray, mask, keypts_right_, descriptors_right_); });
@@ -77,7 +71,7 @@ frame::frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const 
     // Estimate depth with stereo match
     match::stereo stereo_matcher(extractor_left->image_pyramid_, extractor_right_->image_pyramid_,
                                  keypts_, keypts_right_, descriptors_, descriptors_right_,
-                                 scale_factors_, inv_scale_factors_,
+                                 orb_params_->scale_factors_, orb_params_->inv_scale_factors_,
                                  camera->focal_x_baseline_, camera_->true_baseline_);
     stereo_matcher.compute(stereo_x_right_, depths_);
 
@@ -97,10 +91,7 @@ frame::frame(const cv::Mat& img_gray, const cv::Mat& img_depth, const double tim
              camera::base* camera,
              const cv::Mat& mask)
     : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor), extractor_right_(nullptr),
-      timestamp_(timestamp), camera_(camera) {
-    // Get ORB scale
-    update_orb_info();
-
+      timestamp_(timestamp), camera_(camera), orb_params_(extractor_->orb_params_) {
     // Extract ORB feature
     extractor_->extract(img_gray, mask, keypts_, descriptors_);
     num_keypts_ = keypts_.size();
@@ -161,16 +152,6 @@ Mat33_t frame::get_rotation_inv() const {
     return rot_wc_;
 }
 
-void frame::update_orb_info() {
-    num_scale_levels_ = extractor_->get_num_scale_levels();
-    scale_factor_ = extractor_->get_scale_factor();
-    log_scale_factor_ = std::log(scale_factor_);
-    scale_factors_ = extractor_->get_scale_factors();
-    inv_scale_factors_ = extractor_->get_inv_scale_factors();
-    level_sigma_sq_ = extractor_->get_level_sigma_sq();
-    inv_level_sigma_sq_ = extractor_->get_inv_level_sigma_sq();
-}
-
 bool frame::bow_is_available() const {
     return !bow_vec_.empty() && !bow_feat_vec_.empty();
 }
@@ -204,7 +185,7 @@ bool frame::can_observe(const std::shared_ptr<landmark>& lm, const float ray_cos
         return false;
     }
 
-    pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, this->num_scale_levels_, this->log_scale_factor_);
+    pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, this->orb_params_->num_levels_, this->orb_params_->log_scale_factor_);
     return true;
 }
 

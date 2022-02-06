@@ -55,6 +55,8 @@ Feature
 
     * - Name
       - Description
+    * - name
+      - name of ORB feature extraction model (id for saving)
     * - scale_factor
       - Scale of the image pyramid
     * - num_levels
@@ -64,10 +66,10 @@ Feature
     * - min_fast_threshold
       - FAST threshold for try second time
 
-.. _section-parameters-tracking:
+.. _section-parameters-preprocessing:
 
-Tracking
-========
+Preprocessing
+=============
 
 .. list-table::
     :header-rows: 1
@@ -81,6 +83,18 @@ Tracking
       - Maximum number of feature points per frame to be used for Initialization. It is only used for monocular camera models.
     * - depthmap_factor
       - The ratio used to convert depth image pixel values to distance.
+
+.. _section-parameters-tracking:
+
+Tracking
+========
+
+.. list-table::
+    :header-rows: 1
+    :widths: 1, 3
+
+    * - Name
+      - Description
     * - reloc_distance_threshold
       - Maximum distance threshold (in meters) where close keyframes could be found when doing a relocalization by pose.
     * - reloc_angle_threshold

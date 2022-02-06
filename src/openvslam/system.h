@@ -26,12 +26,14 @@ class base;
 
 namespace data {
 class camera_database;
+class orb_params_database;
 class map_database;
 class bow_database;
 } // namespace data
 
 namespace feature {
 class orb_extractor;
+class orb_params;
 } // namespace feature
 
 namespace publish {
@@ -180,6 +182,12 @@ private:
 
     //! camera database
     data::camera_database* cam_db_ = nullptr;
+
+    //! parameters for orb feature extraction
+    feature::orb_params* orb_params_ = nullptr;
+
+    //! orb_params database
+    data::orb_params_database* orb_params_db_ = nullptr;
 
     //! map database
     data::map_database* map_db_ = nullptr;

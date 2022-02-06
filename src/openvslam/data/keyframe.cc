@@ -23,16 +23,14 @@ keyframe::keyframe(const frame& frm, map_database* map_db, bow_database* bow_db)
       id_(next_id_++), src_frm_id_(frm.id_), timestamp_(frm.timestamp_),
       // camera parameters
       camera_(frm.camera_),
+      // ORB extraction parameters
+      orb_params_(frm.orb_params_),
       // constant observations
       num_keypts_(frm.num_keypts_), keypts_(frm.keypts_), undist_keypts_(frm.undist_keypts_), bearings_(frm.bearings_),
       keypt_indices_in_cells_(frm.keypt_indices_in_cells_),
       stereo_x_right_(frm.stereo_x_right_), depths_(frm.depths_), descriptors_(frm.descriptors_.clone()),
       // BoW
       bow_vec_(frm.bow_vec_), bow_feat_vec_(frm.bow_feat_vec_),
-      // ORB scale pyramid
-      num_scale_levels_(frm.num_scale_levels_), scale_factor_(frm.scale_factor_),
-      log_scale_factor_(frm.log_scale_factor_), scale_factors_(frm.scale_factors_),
-      level_sigma_sq_(frm.level_sigma_sq_), inv_level_sigma_sq_(frm.inv_level_sigma_sq_),
       // observations
       landmarks_(frm.landmarks_),
       // databases
@@ -43,24 +41,21 @@ keyframe::keyframe(const frame& frm, map_database* map_db, bow_database* bow_db)
 
 keyframe::keyframe(const unsigned int id, const unsigned int src_frm_id, const double timestamp,
                    const Mat44_t& cam_pose_cw, camera::base* camera,
+                   const feature::orb_params* orb_params,
                    const unsigned int num_keypts, const std::vector<cv::KeyPoint>& keypts,
                    const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
                    const std::vector<float>& stereo_x_right, const std::vector<float>& depths, const cv::Mat& descriptors,
-                   const unsigned int num_scale_levels, const float scale_factor,
                    bow_vocabulary* bow_vocab, bow_database* bow_db, map_database* map_db)
     : // meta information
       id_(id), src_frm_id_(src_frm_id), timestamp_(timestamp),
       // camera parameters
       camera_(camera),
+      // ORB extraction parameters
+      orb_params_(orb_params),
       // constant observations
       num_keypts_(num_keypts), keypts_(keypts), undist_keypts_(undist_keypts), bearings_(bearings),
       keypt_indices_in_cells_(assign_keypoints_to_grid(camera, undist_keypts)),
       stereo_x_right_(stereo_x_right), depths_(depths), descriptors_(descriptors.clone()),
-      // ORB scale pyramid
-      num_scale_levels_(num_scale_levels), scale_factor_(scale_factor), log_scale_factor_(std::log(scale_factor)),
-      scale_factors_(feature::orb_params::calc_scale_factors(num_scale_levels, scale_factor)),
-      level_sigma_sq_(feature::orb_params::calc_level_sigma_sq(num_scale_levels, scale_factor)),
-      inv_level_sigma_sq_(feature::orb_params::calc_inv_level_sigma_sq(num_scale_levels, scale_factor)),
       // others
       landmarks_(std::vector<std::shared_ptr<landmark>>(num_keypts, nullptr)),
       // databases
@@ -90,19 +85,19 @@ std::shared_ptr<keyframe> keyframe::make_keyframe(const frame& frm, map_database
 std::shared_ptr<keyframe> keyframe::make_keyframe(
     const unsigned int id, const unsigned int src_frm_id, const double timestamp,
     const Mat44_t& cam_pose_cw, camera::base* camera,
+    const feature::orb_params* orb_params,
     const unsigned int num_keypts, const std::vector<cv::KeyPoint>& keypts,
     const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
     const std::vector<float>& stereo_x_right, const std::vector<float>& depths, const cv::Mat& descriptors,
-    const unsigned int num_scale_levels, const float scale_factor,
     bow_vocabulary* bow_vocab, bow_database* bow_db, map_database* map_db) {
     auto ptr = std::allocate_shared<keyframe>(
         Eigen::aligned_allocator<keyframe>(),
         id, src_frm_id, timestamp,
         cam_pose_cw, camera,
+        orb_params,
         num_keypts, keypts,
         undist_keypts, bearings,
         stereo_x_right, depths, descriptors,
-        num_scale_levels, scale_factor,
         bow_vocab, bow_db, map_db);
     // covisibility graph node (connections is not assigned yet)
     ptr->graph_node_ = openvslam::make_unique<graph_node>(ptr, false);
@@ -139,6 +134,7 @@ nlohmann::json keyframe::to_json() const {
     return {{"src_frm_id", src_frm_id_},
             {"ts", timestamp_},
             {"cam", camera_->name_},
+            {"orb_params", orb_params_->name_},
             // camera pose
             {"rot_cw", convert_rotation_to_json(cam_pose_cw_.block<3, 3>(0, 0))},
             {"trans_cw", convert_translation_to_json(cam_pose_cw_.block<3, 1>(0, 3))},
@@ -150,9 +146,6 @@ nlohmann::json keyframe::to_json() const {
             {"depths", depths_},
             {"descs", convert_descriptors_to_json(descriptors_)},
             {"lm_ids", landmark_ids},
-            // orb scale information
-            {"n_scale_levels", num_scale_levels_},
-            {"scale_factor", scale_factor_},
             // graph information
             {"span_parent", spanning_parent ? spanning_parent->id_ : -1},
             {"span_children", spanning_child_ids},
