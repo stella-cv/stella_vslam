@@ -57,8 +57,7 @@ public:
      * @param mask
      */
     frame(const cv::Mat& img_gray, const double timestamp,
-          feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-          camera::base* camera,
+          feature::orb_extractor* extractor, camera::base* camera,
           const cv::Mat& mask = cv::Mat{});
 
     /**
@@ -73,7 +72,7 @@ public:
      * @param mask
      */
     frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const double timestamp,
-          feature::orb_extractor* extractor_left, feature::orb_extractor* extractor_right, bow_vocabulary* bow_vocab,
+          feature::orb_extractor* extractor_left, feature::orb_extractor* extractor_right,
           camera::base* camera,
           const cv::Mat& mask = cv::Mat{});
 
@@ -88,8 +87,7 @@ public:
      * @param mask
      */
     frame(const cv::Mat& img_gray, const cv::Mat& img_depth, const double timestamp,
-          feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-          camera::base* camera,
+          feature::orb_extractor* extractor, camera::base* camera,
           const cv::Mat& mask = cv::Mat{});
 
     /**
@@ -139,7 +137,7 @@ public:
     /**
      * Compute BoW representation
      */
-    void compute_bow();
+    void compute_bow(bow_vocabulary* bow_vocab);
 
     /**
      * Check observability of the landmark
@@ -170,9 +168,6 @@ public:
 
     //! next frame ID
     static std::atomic<unsigned int> next_id_;
-
-    //! BoW vocabulary (DBoW2 or FBoW)
-    bow_vocabulary* bow_vocab_ = nullptr;
 
     // ORB extractor
     //! ORB extractor for monocular or stereo left image

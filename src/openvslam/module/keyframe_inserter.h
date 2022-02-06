@@ -19,8 +19,7 @@ namespace module {
 
 class keyframe_inserter {
 public:
-    keyframe_inserter(const camera::setup_type_t setup_type,
-                      data::map_database* map_db, data::bow_database* bow_db,
+    keyframe_inserter(const camera::setup_type_t setup_type, data::map_database* map_db,
                       const unsigned int min_num_frms, const unsigned int max_num_frms);
 
     virtual ~keyframe_inserter() = default;
@@ -51,8 +50,6 @@ private:
 
     //! map database
     data::map_database* map_db_ = nullptr;
-    //! BoW database
-    data::bow_database* bow_db_ = nullptr;
 
     //! mapping module
     mapping_module* mapper_ = nullptr;

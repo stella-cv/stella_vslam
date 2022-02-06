@@ -18,7 +18,7 @@ namespace data {
 
 std::atomic<unsigned int> keyframe::next_id_{0};
 
-keyframe::keyframe(const frame& frm, map_database* map_db, bow_database* bow_db)
+keyframe::keyframe(const frame& frm)
     : // meta information
       id_(next_id_++), src_frm_id_(frm.id_), timestamp_(frm.timestamp_),
       // camera parameters
@@ -32,9 +32,7 @@ keyframe::keyframe(const frame& frm, map_database* map_db, bow_database* bow_db)
       // BoW
       bow_vec_(frm.bow_vec_), bow_feat_vec_(frm.bow_feat_vec_),
       // observations
-      landmarks_(frm.landmarks_),
-      // databases
-      map_db_(map_db), bow_db_(bow_db), bow_vocab_(frm.bow_vocab_) {
+      landmarks_(frm.landmarks_) {
     // set pose parameters (cam_pose_wc_, cam_center_) using frm.cam_pose_cw_
     set_cam_pose(frm.cam_pose_cw_);
 }
@@ -45,7 +43,7 @@ keyframe::keyframe(const unsigned int id, const unsigned int src_frm_id, const d
                    const unsigned int num_keypts, const std::vector<cv::KeyPoint>& keypts,
                    const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
                    const std::vector<float>& stereo_x_right, const std::vector<float>& depths, const cv::Mat& descriptors,
-                   bow_vocabulary* bow_vocab, bow_database* bow_db, map_database* map_db)
+                   const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec)
     : // meta information
       id_(id), src_frm_id_(src_frm_id), timestamp_(timestamp),
       // camera parameters
@@ -56,12 +54,10 @@ keyframe::keyframe(const unsigned int id, const unsigned int src_frm_id, const d
       num_keypts_(num_keypts), keypts_(keypts), undist_keypts_(undist_keypts), bearings_(bearings),
       keypt_indices_in_cells_(assign_keypoints_to_grid(camera, undist_keypts)),
       stereo_x_right_(stereo_x_right), depths_(depths), descriptors_(descriptors.clone()),
+      // BoW
+      bow_vec_(bow_vec), bow_feat_vec_(bow_feat_vec),
       // others
-      landmarks_(std::vector<std::shared_ptr<landmark>>(num_keypts, nullptr)),
-      // databases
-      map_db_(map_db), bow_db_(bow_db), bow_vocab_(bow_vocab) {
-    // compute BoW (bow_vec_, bow_feat_vec_) using descriptors_
-    compute_bow();
+      landmarks_(std::vector<std::shared_ptr<landmark>>(num_keypts, nullptr)) {
     // set pose parameters (cam_pose_wc_, cam_center_) using cam_pose_cw_
     set_cam_pose(cam_pose_cw);
 
@@ -75,8 +71,8 @@ keyframe::keyframe(const unsigned int id, const unsigned int src_frm_id, const d
 
 keyframe::~keyframe() {}
 
-std::shared_ptr<keyframe> keyframe::make_keyframe(const frame& frm, map_database* map_db, bow_database* bow_db) {
-    auto ptr = std::allocate_shared<keyframe>(Eigen::aligned_allocator<keyframe>(), frm, map_db, bow_db);
+std::shared_ptr<keyframe> keyframe::make_keyframe(const frame& frm) {
+    auto ptr = std::allocate_shared<keyframe>(Eigen::aligned_allocator<keyframe>(), frm);
     // covisibility graph node (connections is not assigned yet)
     ptr->graph_node_ = openvslam::make_unique<graph_node>(ptr, true);
     return ptr;
@@ -89,7 +85,7 @@ std::shared_ptr<keyframe> keyframe::make_keyframe(
     const unsigned int num_keypts, const std::vector<cv::KeyPoint>& keypts,
     const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
     const std::vector<float>& stereo_x_right, const std::vector<float>& depths, const cv::Mat& descriptors,
-    bow_vocabulary* bow_vocab, bow_database* bow_db, map_database* map_db) {
+    const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec) {
     auto ptr = std::allocate_shared<keyframe>(
         Eigen::aligned_allocator<keyframe>(),
         id, src_frm_id, timestamp,
@@ -98,7 +94,7 @@ std::shared_ptr<keyframe> keyframe::make_keyframe(
         num_keypts, keypts,
         undist_keypts, bearings,
         stereo_x_right, depths, descriptors,
-        bow_vocab, bow_db, map_db);
+        bow_vec, bow_feat_vec);
     // covisibility graph node (connections is not assigned yet)
     ptr->graph_node_ = openvslam::make_unique<graph_node>(ptr, false);
     return ptr;
@@ -199,12 +195,8 @@ bool keyframe::bow_is_available() const {
     return !bow_vec_.empty() && !bow_feat_vec_.empty();
 }
 
-void keyframe::compute_bow() {
-#ifdef USE_DBOW2
-    bow_vocab_->transform(util::converter::to_desc_vec(descriptors_), bow_vec_, bow_feat_vec_, 4);
-#else
-    bow_vocab_->transform(descriptors_, 4, bow_vec_, bow_feat_vec_);
-#endif
+void keyframe::compute_bow(bow_vocabulary* bow_vocab) {
+    bow_vocabulary_util::compute_bow(bow_vocab, descriptors_, bow_vec_, bow_feat_vec_);
 }
 
 void keyframe::add_landmark(std::shared_ptr<landmark> lm, const unsigned int idx) {
@@ -406,9 +398,9 @@ void keyframe::set_to_be_erased() {
     }
 }
 
-void keyframe::prepare_for_erasing() {
+void keyframe::prepare_for_erasing(map_database* map_db, bow_database* bow_db) {
     // cannot erase the origin
-    if (*this == *(map_db_->origin_keyfrm_)) {
+    if (*this == *(map_db->origin_keyfrm_)) {
         return;
     }
 
@@ -429,7 +421,7 @@ void keyframe::prepare_for_erasing() {
             if (!lm) {
                 continue;
             }
-            lm->erase_observation(shared_from_this());
+            lm->erase_observation(map_db, shared_from_this());
         }
     }
 
@@ -442,12 +434,12 @@ void keyframe::prepare_for_erasing() {
 
     // 3. update frame statistics
 
-    map_db_->replace_reference_keyframe(shared_from_this(), graph_node_->get_spanning_parent());
+    map_db->replace_reference_keyframe(shared_from_this(), graph_node_->get_spanning_parent());
 
     // 4. remove myself from the databased
 
-    map_db_->erase_keyframe(shared_from_this());
-    bow_db_->erase_keyframe(shared_from_this());
+    map_db->erase_keyframe(shared_from_this());
+    bow_db->erase_keyframe(shared_from_this());
 }
 
 bool keyframe::will_be_erased() {

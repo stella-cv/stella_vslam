@@ -57,7 +57,7 @@ void landmark::add_observation(const std::shared_ptr<keyframe>& keyfrm, unsigned
     }
 }
 
-void landmark::erase_observation(const std::shared_ptr<keyframe>& keyfrm) {
+void landmark::erase_observation(map_database* map_db, const std::shared_ptr<keyframe>& keyfrm) {
     bool discard = false;
     {
         std::lock_guard<std::mutex> lock(mtx_observations_);
@@ -84,7 +84,7 @@ void landmark::erase_observation(const std::shared_ptr<keyframe>& keyfrm) {
     }
 
     if (discard) {
-        prepare_for_erasing();
+        prepare_for_erasing(map_db);
     }
 }
 
@@ -254,7 +254,7 @@ unsigned int landmark::predict_scale_level(const float cam_to_lm_dist, float num
     }
 }
 
-void landmark::prepare_for_erasing() {
+void landmark::prepare_for_erasing(map_database* map_db) {
     observations_t observations;
     {
         std::lock_guard<std::mutex> lock1(mtx_observations_);
@@ -268,7 +268,7 @@ void landmark::prepare_for_erasing() {
         keyfrm_and_idx.first.lock()->erase_landmark_with_index(keyfrm_and_idx.second);
     }
 
-    map_db_->erase_landmark(this->id_);
+    map_db->erase_landmark(this->id_);
 }
 
 bool landmark::will_be_erased() {

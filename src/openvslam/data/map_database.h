@@ -1,7 +1,7 @@
 #ifndef OPENVSLAM_DATA_MAP_DATABASE_H
 #define OPENVSLAM_DATA_MAP_DATABASE_H
 
-#include "openvslam/data/bow_vocabulary.h"
+#include "openvslam/data/bow_vocabulary_fwd.h"
 #include "openvslam/data/frame_statistics.h"
 
 #include <mutex>
@@ -161,11 +161,10 @@ public:
      * @param cam_db
      * @param orb_params_db
      * @param bow_vocab
-     * @param bow_db
      * @param json_keyfrms
      * @param json_landmarks
      */
-    void from_json(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
+    void from_json(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab,
                    const nlohmann::json& json_keyfrms, const nlohmann::json& json_landmarks);
 
     /**
@@ -189,11 +188,10 @@ private:
      * @param cam_db
      * @param orb_params_db
      * @param bow_vocab
-     * @param bow_db
      * @param id
      * @param json_keyfrm
      */
-    void register_keyframe(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
+    void register_keyframe(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab,
                            const unsigned int id, const nlohmann::json& json_keyfrm);
 
     /**

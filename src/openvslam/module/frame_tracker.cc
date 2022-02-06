@@ -58,11 +58,6 @@ bool frame_tracker::bow_match_based_track(data::frame& curr_frm, const data::fra
                                           std::unordered_set<unsigned int>& outlier_ids) const {
     match::bow_tree bow_matcher(0.7, true);
 
-    // Compute the BoW representations to perform the BoW match
-    if (!curr_frm.bow_is_available()) {
-        curr_frm.compute_bow();
-    }
-
     // Search 2D-2D matches between the ref keyframes and the current frame
     // to acquire 2D-3D matches between the frame keypoints and 3D points observed in the ref keyframe
     std::vector<std::shared_ptr<data::landmark>> matched_lms_in_curr;

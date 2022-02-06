@@ -27,7 +27,8 @@ local_bundle_adjuster::local_bundle_adjuster(const unsigned int num_first_iter,
                                              const unsigned int num_second_iter)
     : num_first_iter_(num_first_iter), num_second_iter_(num_second_iter) {}
 
-void local_bundle_adjuster::optimize(const std::shared_ptr<openvslam::data::keyframe>& curr_keyfrm, bool* const force_stop_flag) const {
+void local_bundle_adjuster::optimize(data::map_database* map_db,
+                                     const std::shared_ptr<openvslam::data::keyframe>& curr_keyfrm, bool* const force_stop_flag) const {
     // 1. Aggregate the local and fixed keyframes, and local landmarks
 
     // Correct the local keyframes of the current keyframe
@@ -264,7 +265,7 @@ void local_bundle_adjuster::optimize(const std::shared_ptr<openvslam::data::keyf
             const auto& keyfrm = outlier_obs.first;
             const auto& lm = outlier_obs.second;
             keyfrm->erase_landmark(lm);
-            lm->erase_observation(keyfrm);
+            lm->erase_observation(map_db, keyfrm);
         }
 
         for (const auto& id_local_keyfrm_pair : local_keyfrms) {

@@ -19,10 +19,9 @@ namespace data {
 std::atomic<unsigned int> frame::next_id_{0};
 
 frame::frame(const cv::Mat& img_gray, const double timestamp,
-             feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-             camera::base* camera,
+             feature::orb_extractor* extractor, camera::base* camera,
              const cv::Mat& mask)
-    : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor), extractor_right_(nullptr),
+    : id_(next_id_++), extractor_(extractor), extractor_right_(nullptr),
       timestamp_(timestamp), camera_(camera), orb_params_(extractor_->orb_params_) {
     // Extract ORB feature
     extractor_->extract(img_gray, mask, keypts_, descriptors_);
@@ -51,9 +50,8 @@ frame::frame(const cv::Mat& img_gray, const double timestamp,
 
 frame::frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const double timestamp,
              feature::orb_extractor* extractor_left, feature::orb_extractor* extractor_right,
-             bow_vocabulary* bow_vocab, camera::base* camera,
-             const cv::Mat& mask)
-    : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor_left), extractor_right_(extractor_right),
+             camera::base* camera, const cv::Mat& mask)
+    : id_(next_id_++), extractor_(extractor_left), extractor_right_(extractor_right),
       timestamp_(timestamp), camera_(camera), orb_params_(extractor_->orb_params_) {
     // Extract ORB feature
     std::thread thread_left([this, &left_img_gray, &mask]() { extractor_->extract(left_img_gray, mask, keypts_, descriptors_); });
@@ -87,10 +85,9 @@ frame::frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const 
 }
 
 frame::frame(const cv::Mat& img_gray, const cv::Mat& img_depth, const double timestamp,
-             feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-             camera::base* camera,
+             feature::orb_extractor* extractor, camera::base* camera,
              const cv::Mat& mask)
-    : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor), extractor_right_(nullptr),
+    : id_(next_id_++), extractor_(extractor), extractor_right_(nullptr),
       timestamp_(timestamp), camera_(camera), orb_params_(extractor_->orb_params_) {
     // Extract ORB feature
     extractor_->extract(img_gray, mask, keypts_, descriptors_);
@@ -156,12 +153,8 @@ bool frame::bow_is_available() const {
     return !bow_vec_.empty() && !bow_feat_vec_.empty();
 }
 
-void frame::compute_bow() {
-#ifdef USE_DBOW2
-    bow_vocab_->transform(util::converter::to_desc_vec(descriptors_), bow_vec_, bow_feat_vec_, 4);
-#else
-    bow_vocab_->transform(descriptors_, 4, bow_vec_, bow_feat_vec_);
-#endif
+void frame::compute_bow(bow_vocabulary* bow_vocab) {
+    bow_vocabulary_util::compute_bow(bow_vocab, descriptors_, bow_vec_, bow_feat_vec_);
 }
 
 bool frame::can_observe(const std::shared_ptr<landmark>& lm, const float ray_cos_thr,

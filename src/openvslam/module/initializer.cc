@@ -53,7 +53,7 @@ unsigned int initializer::get_initial_frame_id() const {
     return init_frm_id_;
 }
 
-bool initializer::initialize(data::frame& curr_frm) {
+bool initializer::initialize(data::bow_vocabulary* bow_vocab, data::frame& curr_frm) {
     switch (setup_type_) {
         case camera::setup_type_t::Monocular: {
             // construct an initializer if not constructed
@@ -69,7 +69,7 @@ bool initializer::initialize(data::frame& curr_frm) {
             }
 
             // create new map if succeeded
-            create_map_for_monocular(curr_frm);
+            create_map_for_monocular(bow_vocab, curr_frm);
             break;
         }
         case camera::setup_type_t::Stereo:
@@ -83,7 +83,7 @@ bool initializer::initialize(data::frame& curr_frm) {
             }
 
             // create new map if succeeded
-            create_map_for_stereo(curr_frm);
+            create_map_for_stereo(bow_vocab, curr_frm);
             break;
         }
         default: {
@@ -156,7 +156,7 @@ bool initializer::try_initialize_for_monocular(data::frame& curr_frm) {
     return initializer_->initialize(curr_frm, init_matches_);
 }
 
-bool initializer::create_map_for_monocular(data::frame& curr_frm) {
+bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data::frame& curr_frm) {
     assert(state_ == initializer_state_t::Initializing);
 
     eigen_alloc_vector<Vec3_t> init_triangulated_pts;
@@ -188,12 +188,12 @@ bool initializer::create_map_for_monocular(data::frame& curr_frm) {
     }
 
     // create initial keyframes
-    auto init_keyfrm = data::keyframe::make_keyframe(init_frm_, map_db_, bow_db_);
-    auto curr_keyfrm = data::keyframe::make_keyframe(curr_frm, map_db_, bow_db_);
+    auto init_keyfrm = data::keyframe::make_keyframe(init_frm_);
+    auto curr_keyfrm = data::keyframe::make_keyframe(curr_frm);
 
     // compute BoW representations
-    init_keyfrm->compute_bow();
-    curr_keyfrm->compute_bow();
+    init_keyfrm->compute_bow(bow_vocab);
+    curr_keyfrm->compute_bow(bow_vocab);
 
     // add the keyframes to the map DB
     map_db_->add_keyframe(init_keyfrm);
@@ -285,15 +285,15 @@ bool initializer::try_initialize_for_stereo(data::frame& curr_frm) {
     return min_num_triangulated_ <= num_valid_depths;
 }
 
-bool initializer::create_map_for_stereo(data::frame& curr_frm) {
+bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::frame& curr_frm) {
     assert(state_ == initializer_state_t::Initializing);
 
     // create an initial keyframe
     curr_frm.set_cam_pose(Mat44_t::Identity());
-    auto curr_keyfrm = data::keyframe::make_keyframe(curr_frm, map_db_, bow_db_);
+    auto curr_keyfrm = data::keyframe::make_keyframe(curr_frm);
 
     // compute BoW representation
-    curr_keyfrm->compute_bow();
+    curr_keyfrm->compute_bow(bow_vocab);
 
     // add to the map DB
     map_db_->add_keyframe(curr_keyfrm);

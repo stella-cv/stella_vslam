@@ -16,8 +16,9 @@
 
 namespace openvslam {
 
-mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* map_db)
-    : local_map_cleaner_(new module::local_map_cleaner(yaml_node["redundant_obs_ratio_thr"].as<double>(0.9))), map_db_(map_db),
+mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* map_db, data::bow_database* bow_db, data::bow_vocabulary* bow_vocab)
+    : local_map_cleaner_(new module::local_map_cleaner(map_db, bow_db, yaml_node["redundant_obs_ratio_thr"].as<double>(0.9))),
+      map_db_(map_db), bow_db_(bow_db), bow_vocab_(bow_vocab),
       local_bundle_adjuster_(new optimize::local_bundle_adjuster()) {
     spdlog::debug("CONSTRUCT: mapping_module");
     spdlog::debug("load mapping parameters");
@@ -173,7 +174,7 @@ void mapping_module::mapping_with_new_keyframe() {
     // local bundle adjustment
     abort_local_BA_ = false;
     if (2 < map_db_->get_num_keyframes()) {
-        local_bundle_adjuster_->optimize(cur_keyfrm_, &abort_local_BA_);
+        local_bundle_adjuster_->optimize(map_db_, cur_keyfrm_, &abort_local_BA_);
     }
     local_map_cleaner_->remove_redundant_keyframes(cur_keyfrm_);
 }
@@ -181,7 +182,7 @@ void mapping_module::mapping_with_new_keyframe() {
 void mapping_module::store_new_keyframe() {
     // compute BoW feature vector
     if (!cur_keyfrm_->bow_is_available()) {
-        cur_keyfrm_->compute_bow();
+        cur_keyfrm_->compute_bow(bow_vocab_);
     }
 
     // update graph

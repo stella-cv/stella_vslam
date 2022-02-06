@@ -15,6 +15,7 @@ class base;
 namespace data {
 class frame;
 class keyframe;
+class bow_database;
 } // namespace data
 
 namespace module {

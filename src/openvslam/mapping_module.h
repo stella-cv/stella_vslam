@@ -5,6 +5,7 @@
 #include "openvslam/camera/base.h"
 #include "openvslam/module/local_map_cleaner.h"
 #include "openvslam/optimize/local_bundle_adjuster.h"
+#include "openvslam/data/bow_vocabulary_fwd.h"
 
 #include <mutex>
 #include <atomic>
@@ -25,13 +26,14 @@ class base;
 
 namespace data {
 class keyframe;
+class bow_database;
 class map_database;
 } // namespace data
 
 class mapping_module {
 public:
     //! Constructor
-    mapping_module(const YAML::Node& yaml_node, data::map_database* map_db);
+    mapping_module(const YAML::Node& yaml_node, data::map_database* map_db, data::bow_database* bow_db, data::bow_vocabulary* bow_vocab);
 
     //! Destructor
     ~mapping_module();
@@ -206,6 +208,12 @@ private:
 
     //! map database
     data::map_database* map_db_ = nullptr;
+
+    //! BoW database
+    data::bow_database* bow_db_ = nullptr;
+
+    //! BoW vocabulary
+    data::bow_vocabulary* bow_vocab_ = nullptr;
 
     //-----------------------------------------
     // keyframe queue

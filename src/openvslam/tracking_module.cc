@@ -51,9 +51,9 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, system* sys
       system_(system), map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(cfg->camera_->setup_type_, map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
       frame_tracker_(camera_, 10),
-      relocalizer_(bow_db_, util::yaml_optional_ref(cfg->yaml_node_, "Relocalizer")),
+      relocalizer_(util::yaml_optional_ref(cfg->yaml_node_, "Relocalizer")),
       pose_optimizer_(),
-      keyfrm_inserter_(cfg->camera_->setup_type_, map_db, bow_db, 0, cfg->camera_->fps_) {
+      keyfrm_inserter_(cfg->camera_->setup_type_, map_db, 0, cfg->camera_->fps_) {
     spdlog::debug("CONSTRUCT: tracking_module");
 }
 
@@ -258,7 +258,7 @@ std::shared_ptr<Mat44_t> tracking_module::track(data::frame curr_frm) {
 
 bool tracking_module::initialize() {
     // try to initialize with the current frame
-    initializer_.initialize(curr_frm_);
+    initializer_.initialize(bow_vocab_, curr_frm_);
 
     // if map building was failed -> reset the map database
     if (initializer_.get_state() == module::initializer_state_t::Wrong) {
@@ -292,6 +292,10 @@ bool tracking_module::track_current_frame(std::unordered_set<unsigned int>& outl
             succeeded = frame_tracker_.motion_based_track(curr_frm_, last_frm_, twist_, outlier_ids);
         }
         if (!succeeded) {
+            // Compute the BoW representations to perform the BoW match
+            if (!curr_frm_.bow_is_available()) {
+                curr_frm_.compute_bow(bow_vocab_);
+            }
             succeeded = frame_tracker_.bow_match_based_track(curr_frm_, last_frm_, curr_frm_.ref_keyfrm_, outlier_ids);
         }
         if (!succeeded) {
@@ -300,8 +304,12 @@ bool tracking_module::track_current_frame(std::unordered_set<unsigned int>& outl
     }
     else if (enable_auto_relocalization_) {
         // Lost mode
+        // Compute the BoW representations to perform relocalization
+        if (!curr_frm_.bow_is_available()) {
+            curr_frm_.compute_bow(bow_vocab_);
+        }
         // try to relocalize
-        succeeded = relocalizer_.relocalize(curr_frm_);
+        succeeded = relocalizer_.relocalize(bow_db_, curr_frm_);
         if (succeeded) {
             last_reloc_frm_id_ = curr_frm_.id_;
         }
@@ -315,7 +323,7 @@ bool tracking_module::relocalize_by_pose(const pose_request& request) {
     curr_frm_.set_cam_pose(request.pose_);
 
     if (!curr_frm_.bow_is_available()) {
-        curr_frm_.compute_bow();
+        curr_frm_.compute_bow(bow_vocab_);
     }
     const auto candidates = get_close_keyframes(request);
 

@@ -106,7 +106,7 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     // tracking module
     tracker_ = new tracking_module(cfg_, this, map_db_, bow_vocab_, bow_db_);
     // mapping module
-    mapper_ = new mapping_module(cfg_->yaml_node_["Mapping"], map_db_);
+    mapper_ = new mapping_module(cfg_->yaml_node_["Mapping"], map_db_, bow_db_, bow_vocab_);
     // global optimization module
     global_optimizer_ = new global_optimization_module(map_db_, bow_db_, bow_vocab_, cfg_->yaml_node_, camera_->setup_type_ != camera::setup_type_t::Monocular);
 
@@ -306,7 +306,7 @@ std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const 
     util::convert_to_grayscale(img_gray, camera_->color_order_);
 
     bool is_init = tracker_->tracking_state_ == tracker_state_t::NotInitialized || tracker_->tracking_state_ == tracker_state_t::Initializing;
-    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, timestamp, is_init ? ini_extractor_left_ : extractor_left_, bow_vocab_, camera_, mask));
+    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, timestamp, is_init ? ini_extractor_left_ : extractor_left_, camera_, mask));
 
     const auto end = std::chrono::system_clock::now();
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -332,7 +332,7 @@ std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, cons
     util::convert_to_grayscale(img_gray, camera_->color_order_);
     util::convert_to_grayscale(right_img_gray, camera_->color_order_);
 
-    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, right_img_gray, timestamp, extractor_left_, extractor_right_, bow_vocab_, camera_, mask));
+    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, right_img_gray, timestamp, extractor_left_, extractor_right_, camera_, mask));
 
     const auto end = std::chrono::system_clock::now();
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -358,7 +358,7 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
     util::convert_to_grayscale(img_gray, camera_->color_order_);
     util::convert_to_true_depth(img_depth, depthmap_factor_);
 
-    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, img_depth, timestamp, extractor_left_, bow_vocab_, camera_, mask));
+    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, img_depth, timestamp, extractor_left_, camera_, mask));
 
     const auto end = std::chrono::system_clock::now();
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();

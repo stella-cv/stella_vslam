@@ -3,6 +3,7 @@
 
 #include "openvslam/data/frame.h"
 #include "openvslam/initialize/base.h"
+#include "openvslam/data/bow_vocabulary_fwd.h"
 
 #include <memory>
 
@@ -54,7 +55,7 @@ public:
     unsigned int get_initial_frame_id() const;
 
     //! Initialize with the current frame
-    bool initialize(data::frame& curr_frm);
+    bool initialize(data::bow_vocabulary* bow_vocab, data::frame& curr_frm);
 
 private:
     //! camera setup type
@@ -97,7 +98,7 @@ private:
     bool try_initialize_for_monocular(data::frame& curr_frm);
 
     //! Create an initial map with monocular camera setup
-    bool create_map_for_monocular(data::frame& curr_frm);
+    bool create_map_for_monocular(data::bow_vocabulary* bow_vocab, data::frame& curr_frm);
 
     //! Scaling up or down a initial map
     void scale_map(const std::shared_ptr<data::keyframe>& init_keyfrm, const std::shared_ptr<data::keyframe>& curr_keyfrm, const double scale);
@@ -118,7 +119,7 @@ private:
     bool try_initialize_for_stereo(data::frame& curr_frm);
 
     //! Create an initial map with stereo or RGBD camera setup
-    bool create_map_for_stereo(data::frame& curr_frm);
+    bool create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::frame& curr_frm);
 };
 
 } // namespace module

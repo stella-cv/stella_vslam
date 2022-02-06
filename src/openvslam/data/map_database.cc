@@ -6,6 +6,7 @@
 #include "openvslam/data/camera_database.h"
 #include "openvslam/data/orb_params_database.h"
 #include "openvslam/data/map_database.h"
+#include "openvslam/data/bow_vocabulary.h"
 #include "openvslam/util/converter.h"
 
 #include <spdlog/spdlog.h>
@@ -155,7 +156,7 @@ void map_database::clear() {
     spdlog::info("clear map database");
 }
 
-void map_database::from_json(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
+void map_database::from_json(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab,
                              const nlohmann::json& json_keyfrms, const nlohmann::json& json_landmarks) {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
@@ -181,7 +182,7 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
         assert(0 <= id);
         const auto json_keyfrm = json_id_keyfrm.value();
 
-        register_keyframe(cam_db, orb_params_db, bow_vocab, bow_db, id, json_keyfrm);
+        register_keyframe(cam_db, orb_params_db, bow_vocab, id, json_keyfrm);
     }
 
     // Step 3. Register 3D landmark point
@@ -242,7 +243,7 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
     }
 }
 
-void map_database::register_keyframe(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab, bow_database* bow_db,
+void map_database::register_keyframe(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab,
                                      const unsigned int id, const nlohmann::json& json_keyfrm) {
     // Metadata
     const auto src_frm_id = json_keyfrm.at("src_frm_id").get<unsigned int>();
@@ -283,10 +284,13 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     assert(descriptors.rows == static_cast<int>(num_keypts));
 
     // Construct a new object
+    data::bow_vector bow_vec;
+    data::bow_feature_vector bow_feat_vec;
+    data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
     auto keyfrm = data::keyframe::make_keyframe(
         id, src_frm_id, timestamp, cam_pose_cw, camera, orb_params,
         num_keypts, keypts, undist_keypts, bearings, stereo_x_right, depths, descriptors,
-        bow_vocab, bow_db, this);
+        bow_vec, bow_feat_vec);
 
     // Append to map database
     assert(!keyframes_.count(id));

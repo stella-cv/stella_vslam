@@ -10,21 +10,18 @@
 namespace openvslam {
 namespace module {
 
-relocalizer::relocalizer(data::bow_database* bow_db,
-                         const double bow_match_lowe_ratio, const double proj_match_lowe_ratio,
+relocalizer::relocalizer(const double bow_match_lowe_ratio, const double proj_match_lowe_ratio,
                          const double robust_match_lowe_ratio,
                          const unsigned int min_num_bow_matches, const unsigned int min_num_valid_obs)
-    : bow_db_(bow_db),
-      min_num_bow_matches_(min_num_bow_matches), min_num_valid_obs_(min_num_valid_obs),
+    : min_num_bow_matches_(min_num_bow_matches), min_num_valid_obs_(min_num_valid_obs),
       bow_matcher_(bow_match_lowe_ratio, true), proj_matcher_(proj_match_lowe_ratio, true),
       robust_matcher_(robust_match_lowe_ratio, false),
       pose_optimizer_() {
     spdlog::debug("CONSTRUCT: module::relocalizer");
 }
 
-relocalizer::relocalizer(data::bow_database* bow_db, const YAML::Node& yaml_node)
-    : relocalizer(bow_db,
-                  yaml_node["bow_match_lowe_ratio"].as<double>(0.75),
+relocalizer::relocalizer(const YAML::Node& yaml_node)
+    : relocalizer(yaml_node["bow_match_lowe_ratio"].as<double>(0.75),
                   yaml_node["proj_match_lowe_ratio"].as<double>(0.9),
                   yaml_node["robust_match_lowe_ratio"].as<double>(0.8),
                   yaml_node["min_num_bow_matches"].as<unsigned int>(20),
@@ -35,13 +32,9 @@ relocalizer::~relocalizer() {
     spdlog::debug("DESTRUCT: module::relocalizer");
 }
 
-bool relocalizer::relocalize(data::frame& curr_frm) {
-    if (!curr_frm.bow_is_available()) {
-        curr_frm.compute_bow();
-    }
-
+bool relocalizer::relocalize(data::bow_database* bow_db, data::frame& curr_frm) {
     // Acquire relocalization candidates
-    const auto reloc_candidates = bow_db_->acquire_relocalization_candidates(&curr_frm);
+    const auto reloc_candidates = bow_db->acquire_relocalization_candidates(&curr_frm);
     if (reloc_candidates.empty()) {
         return false;
     }

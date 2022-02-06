@@ -9,6 +9,8 @@ namespace openvslam {
 namespace data {
 class keyframe;
 class landmark;
+class bow_database;
+class map_database;
 } // namespace data
 
 namespace module {
@@ -18,7 +20,7 @@ public:
     /**
      * Constructor
      */
-    explicit local_map_cleaner(double redundant_obs_ratio_thr = 0.9);
+    explicit local_map_cleaner(data::map_database* map_db, data::bow_database* bow_db, double redundant_obs_ratio_thr = 0.9);
 
     /**
      * Destructor
@@ -60,6 +62,11 @@ public:
     void count_redundant_observations(const std::shared_ptr<data::keyframe>& keyfrm, unsigned int& num_valid_obs, unsigned int& num_redundant_obs) const;
 
 private:
+    //! map database
+    data::map_database* map_db_ = nullptr;
+    //! BoW database
+    data::bow_database* bow_db_ = nullptr;
+
     //!
     double redundant_obs_ratio_thr_;
 

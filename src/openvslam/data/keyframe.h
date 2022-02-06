@@ -43,7 +43,7 @@ public:
     /**
      * Constructor for building from a frame
      */
-    keyframe(const frame& frm, map_database* map_db, bow_database* bow_db);
+    explicit keyframe(const frame& frm);
 
     /**
      * Constructor for map loading
@@ -55,11 +55,11 @@ public:
              const unsigned int num_keypts, const std::vector<cv::KeyPoint>& keypts,
              const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
              const std::vector<float>& stereo_x_right, const std::vector<float>& depths, const cv::Mat& descriptors,
-             bow_vocabulary* bow_vocab, bow_database* bow_db, map_database* map_db);
+             const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec);
     virtual ~keyframe();
 
     // Factory method for create keyframe
-    static std::shared_ptr<keyframe> make_keyframe(const frame& frm, map_database* map_db, bow_database* bow_db);
+    static std::shared_ptr<keyframe> make_keyframe(const frame& frm);
     static std::shared_ptr<keyframe> make_keyframe(
         const unsigned int id, const unsigned int src_frm_id, const double timestamp,
         const Mat44_t& cam_pose_cw, camera::base* camera,
@@ -67,7 +67,7 @@ public:
         const unsigned int num_keypts, const std::vector<cv::KeyPoint>& keypts,
         const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
         const std::vector<float>& stereo_x_right, const std::vector<float>& depths, const cv::Mat& descriptors,
-        bow_vocabulary* bow_vocab, bow_database* bow_db, map_database* map_db);
+        const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec);
 
     // operator overrides
     bool operator==(const keyframe& keyfrm) const { return id_ == keyfrm.id_; }
@@ -131,7 +131,7 @@ public:
     /**
      * Compute BoW representation
      */
-    void compute_bow();
+    void compute_bow(bow_vocabulary* bow_vocab);
 
     /**
      * Add a landmark observed by myself at keypoint idx
@@ -210,7 +210,7 @@ public:
     /**
      * Erase this keyframe
      */
-    void prepare_for_erasing();
+    void prepare_for_erasing(map_database* map_db, bow_database* bow_db);
 
     /**
      * Whether this keyframe will be erased shortly or not
@@ -302,16 +302,6 @@ private:
     mutable std::mutex mtx_observations_;
     //! observed landmarks
     std::vector<std::shared_ptr<landmark>> landmarks_;
-
-    //-----------------------------------------
-    // databases
-
-    //! map database
-    map_database* map_db_;
-    //! BoW database
-    bow_database* bow_db_;
-    //! BoW vocabulary
-    bow_vocabulary* bow_vocab_;
 
     //-----------------------------------------
     // flags

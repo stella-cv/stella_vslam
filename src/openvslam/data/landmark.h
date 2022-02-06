@@ -48,7 +48,7 @@ public:
     //! add observation
     void add_observation(const std::shared_ptr<keyframe>& keyfrm, unsigned int idx);
     //! erase observation
-    void erase_observation(const std::shared_ptr<keyframe>& keyfrm);
+    void erase_observation(map_database* map_db, const std::shared_ptr<keyframe>& keyfrm);
 
     //! get observations (keyframe and keypoint idx)
     observations_t get_observations() const;
@@ -87,7 +87,7 @@ public:
     unsigned int predict_scale_level(const float cam_to_lm_dist, float num_scale_levels, float log_scale_factor) const;
 
     //! erase this landmark from database
-    void prepare_for_erasing();
+    void prepare_for_erasing(map_database* map_db);
     //! whether this landmark will be erased shortly or not
     bool will_be_erased();
 
