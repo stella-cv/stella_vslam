@@ -9,6 +9,7 @@
 #include <mutex>
 #include <atomic>
 #include <memory>
+#include <future>
 
 #include <yaml-cpp/yaml.h>
 
@@ -63,15 +64,13 @@ public:
     // management for reset process
 
     //! Request to reset the mapping module
-    //! (NOTE: this function waits for reset)
-    void request_reset();
+    std::future<void> async_reset();
 
     //-----------------------------------------
     // management for pause process
 
     //! Request to pause the mapping module
-    //! (NOTE: this function does not wait for reset)
-    void request_pause();
+    std::future<void> async_pause();
 
     //! Check if the mapping module is requested to be paused or not
     bool pause_is_requested() const;
@@ -89,8 +88,7 @@ public:
     // management for terminate process
 
     //! Request to terminate the mapping module
-    //! (NOTE: this function does not wait for terminate)
-    void request_terminate();
+    std::future<void> async_terminate();
 
     //! Check if the mapping module is terminated or not
     bool is_terminated() const;
@@ -135,6 +133,9 @@ private:
     //! mutex for access to reset procedure
     mutable std::mutex mtx_reset_;
 
+    //! promises for reset
+    std::vector<std::promise<void>> promises_reset_;
+
     //! Check and execute reset
     bool reset_is_requested() const;
 
@@ -149,6 +150,9 @@ private:
 
     //! mutex for access to pause procedure
     mutable std::mutex mtx_pause_;
+
+    //! promises for pause
+    std::vector<std::promise<void>> promises_pause_;
 
     //! Pause the mapping module
     void pause();
@@ -165,6 +169,9 @@ private:
 
     //! mutex for access to terminate procedure
     mutable std::mutex mtx_terminate_;
+
+    //! promises for terminate
+    std::vector<std::promise<void>> promises_terminate_;
 
     //! Check if termination is requested or not
     bool terminate_is_requested() const;

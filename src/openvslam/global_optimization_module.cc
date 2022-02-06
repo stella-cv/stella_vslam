@@ -146,15 +146,13 @@ void global_optimization_module::correct_loop() {
     // 0-1. stop the mapping module and the previous loop bundle adjuster
 
     // pause the mapping module
-    mapper_->request_pause();
+    auto future_pause = mapper_->async_pause();
     // abort the previous loop bundle adjuster
     if (thread_for_loop_BA_ || loop_bundle_adjuster_->is_running()) {
         abort_loop_BA();
     }
     // wait till the mapping module pauses
-    while (!mapper_->is_paused()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
-    }
+    future_pause.get();
 
     // 0-2. update the graph
 
@@ -395,22 +393,11 @@ auto global_optimization_module::extract_new_connections(const std::vector<std::
     return new_connections;
 }
 
-void global_optimization_module::request_reset() {
-    {
-        std::lock_guard<std::mutex> lock(mtx_reset_);
-        reset_is_requested_ = true;
-    }
-
-    // BLOCK until reset
-    while (true) {
-        {
-            std::lock_guard<std::mutex> lock(mtx_reset_);
-            if (!reset_is_requested_) {
-                break;
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::microseconds(3000));
-    }
+std::future<void> global_optimization_module::async_reset() {
+    std::lock_guard<std::mutex> lock(mtx_reset_);
+    reset_is_requested_ = true;
+    promises_reset_.emplace_back();
+    return promises_reset_.back().get_future();
 }
 
 bool global_optimization_module::reset_is_requested() const {
@@ -424,11 +411,17 @@ void global_optimization_module::reset() {
     keyfrms_queue_.clear();
     loop_detector_->set_loop_correct_keyframe_id(0);
     reset_is_requested_ = false;
+    for (auto& promise : promises_reset_) {
+        promise.set_value();
+    }
+    promises_reset_.clear();
 }
 
-void global_optimization_module::request_pause() {
+std::future<void> global_optimization_module::async_pause() {
     std::lock_guard<std::mutex> lock1(mtx_pause_);
     pause_is_requested_ = true;
+    promises_pause_.emplace_back();
+    return promises_pause_.back().get_future();
 }
 
 bool global_optimization_module::pause_is_requested() const {
@@ -445,6 +438,10 @@ void global_optimization_module::pause() {
     std::lock_guard<std::mutex> lock(mtx_pause_);
     spdlog::info("pause global optimization module");
     is_paused_ = true;
+    for (auto& promise : promises_pause_) {
+        promise.set_value();
+    }
+    promises_pause_.clear();
 }
 
 void global_optimization_module::resume() {
@@ -462,9 +459,11 @@ void global_optimization_module::resume() {
     spdlog::info("resume global optimization module");
 }
 
-void global_optimization_module::request_terminate() {
+std::future<void> global_optimization_module::async_terminate() {
     std::lock_guard<std::mutex> lock(mtx_terminate_);
     terminate_is_requested_ = true;
+    promises_terminate_.emplace_back();
+    return promises_terminate_.back().get_future();
 }
 
 bool global_optimization_module::is_terminated() const {
@@ -480,6 +479,10 @@ bool global_optimization_module::terminate_is_requested() const {
 void global_optimization_module::terminate() {
     std::lock_guard<std::mutex> lock(mtx_terminate_);
     is_terminated_ = true;
+    for (auto& promise : promises_terminate_) {
+        promise.set_value();
+    }
+    promises_terminate_.clear();
 }
 
 bool global_optimization_module::loop_BA_is_running() const {

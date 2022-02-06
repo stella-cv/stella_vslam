@@ -137,14 +137,10 @@ void system::startup(const bool need_initialize) {
 
 void system::shutdown() {
     // terminate the other threads
-    mapper_->request_terminate();
-    global_optimizer_->request_terminate();
-    // wait until they stop
-    while (!mapper_->is_terminated()
-           || !global_optimizer_->is_terminated()
-           || global_optimizer_->loop_BA_is_running()) {
-        std::this_thread::sleep_for(std::chrono::microseconds(5000));
-    }
+    auto future_mapper_terminate = mapper_->async_terminate();
+    auto future_global_optimizer_terminate = global_optimizer_->async_terminate();
+    future_mapper_terminate.get();
+    future_global_optimizer_terminate.get();
 
     // wait until the threads stop
     mapping_thread_->join();
@@ -207,11 +203,9 @@ void system::disable_mapping_module() {
         spdlog::critical("please call system::disable_mapping_module() after system::startup()");
     }
     // pause the mapping module
-    mapper_->request_pause();
+    auto future_pause = mapper_->async_pause();
     // wait until it stops
-    while (!mapper_->is_paused()) {
-        std::this_thread::sleep_for(std::chrono::microseconds(1000));
-    }
+    future_pause.get();
     // inform to the tracking module
     tracker_->set_mapping_module_status(false);
 }
@@ -315,7 +309,8 @@ bool system::relocalize_by_pose_2d(const Mat44_t& cam_pose_wc, const Vec3_t& nor
 }
 
 void system::pause_tracker() {
-    tracker_->request_pause();
+    auto future_pause = tracker_->async_pause();
+    future_pause.get();
 }
 
 bool system::tracker_is_paused() const {
@@ -357,16 +352,20 @@ void system::check_reset_request() {
 void system::pause_other_threads() const {
     // pause the mapping module
     if (mapper_ && !mapper_->is_terminated()) {
-        mapper_->request_pause();
-        while (!mapper_->is_paused() && !mapper_->is_terminated()) {
-            std::this_thread::sleep_for(std::chrono::microseconds(5000));
+        auto future_pause = mapper_->async_pause();
+        while (future_pause.wait_for(std::chrono::milliseconds(5)) == std::future_status::timeout) {
+            if (mapper_->is_terminated()) {
+                break;
+            }
         }
     }
     // pause the global optimization module
     if (global_optimizer_ && !global_optimizer_->is_terminated()) {
-        global_optimizer_->request_pause();
-        while (!global_optimizer_->is_paused() && !global_optimizer_->is_terminated()) {
-            std::this_thread::sleep_for(std::chrono::microseconds(5000));
+        auto future_pause = global_optimizer_->async_pause();
+        while (future_pause.wait_for(std::chrono::milliseconds(5)) == std::future_status::timeout) {
+            if (global_optimizer_->is_terminated()) {
+                break;
+            }
         }
     }
 }

@@ -264,8 +264,10 @@ void tracking_module::reset() {
     initializer_.reset();
     keyfrm_inserter_.reset();
 
-    mapper_->request_reset();
-    global_optimizer_->request_reset();
+    auto future_mapper_reset = mapper_->async_reset();
+    auto future_global_optimizer_reset = global_optimizer_->async_reset();
+    future_mapper_reset.get();
+    future_global_optimizer_reset.get();
 
     bow_db_->clear();
     map_db_->clear();
@@ -677,9 +679,11 @@ void tracking_module::insert_new_keyframe() {
     }
 }
 
-void tracking_module::request_pause() {
+std::future<void> tracking_module::async_pause() {
     std::lock_guard<std::mutex> lock1(mtx_pause_);
     pause_is_requested_ = true;
+    promises_pause_.emplace_back();
+    return promises_pause_.back().get_future();
 }
 
 bool tracking_module::pause_is_requested() const {
@@ -706,6 +710,10 @@ bool tracking_module::check_and_execute_pause() {
     if (pause_is_requested_) {
         is_paused_ = true;
         spdlog::info("pause tracking module");
+        for (auto& promise : promises_pause_) {
+            promise.set_value();
+        }
+        promises_pause_.clear();
         return true;
     }
     else {

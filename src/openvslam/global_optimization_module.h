@@ -12,6 +12,7 @@
 #include <mutex>
 #include <thread>
 #include <memory>
+#include <future>
 
 namespace openvslam {
 
@@ -63,15 +64,13 @@ public:
     // management for reset process
 
     //! Request to reset the global optimization module
-    //! (NOTE: this function waits for reset)
-    void request_reset();
+    std::future<void> async_reset();
 
     //-----------------------------------------
     // management for pause process
 
     //! Request to pause the global optimization module
-    //! (NOTE: this function does not wait for pause)
-    void request_pause();
+    std::future<void> async_pause();
 
     //! Check if the global optimization module is requested to be paused or not
     bool pause_is_requested() const;
@@ -86,8 +85,7 @@ public:
     // management for terminate process
 
     //! Request to terminate the global optimization module
-    //! (NOTE: this function does not wait for terminate)
-    void request_terminate();
+    std::future<void> async_terminate();
 
     //! Check if the global optimization module is terminated or not
     bool is_terminated() const;
@@ -136,6 +134,9 @@ private:
     //! mutex for access to reset procedure
     mutable std::mutex mtx_reset_;
 
+    //! promises for reset
+    std::vector<std::promise<void>> promises_reset_;
+
     //! Check and execute reset
     bool reset_is_requested() const;
 
@@ -151,6 +152,9 @@ private:
     //! mutex for access to pause procedure
     mutable std::mutex mtx_pause_;
 
+    //! promises for pause
+    std::vector<std::promise<void>> promises_pause_;
+
     //! Pause the global optimizer
     void pause();
 
@@ -164,6 +168,9 @@ private:
 
     //! mutex for access to terminate procedure
     mutable std::mutex mtx_terminate_;
+
+    //! promises for terminate
+    std::vector<std::promise<void>> promises_terminate_;
 
     //! Check if termination is requested or not
     bool terminate_is_requested() const;

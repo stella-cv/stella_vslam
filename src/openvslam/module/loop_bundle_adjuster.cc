@@ -64,9 +64,11 @@ void loop_bundle_adjuster::optimize(const unsigned int identifier) {
         spdlog::info("updating the map with pose propagation");
 
         // stop mapping module
-        mapper_->request_pause();
-        while (!mapper_->is_paused() && !mapper_->is_terminated()) {
-            std::this_thread::sleep_for(std::chrono::microseconds(1000));
+        auto future_pause = mapper_->async_pause();
+        while (future_pause.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout) {
+            while (mapper_->is_terminated()) {
+                break;
+            }
         }
 
         std::lock_guard<std::mutex> lock2(data::map_database::mtx_database_);

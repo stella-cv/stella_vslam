@@ -425,22 +425,11 @@ void mapping_module::fuse_landmark_duplication(const std::unordered_set<std::sha
     }
 }
 
-void mapping_module::request_reset() {
-    {
-        std::lock_guard<std::mutex> lock(mtx_reset_);
-        reset_is_requested_ = true;
-    }
-
-    // BLOCK until reset
-    while (true) {
-        {
-            std::lock_guard<std::mutex> lock(mtx_reset_);
-            if (!reset_is_requested_) {
-                break;
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::microseconds(3000));
-    }
+std::future<void> mapping_module::async_reset() {
+    std::lock_guard<std::mutex> lock(mtx_reset_);
+    reset_is_requested_ = true;
+    promises_reset_.emplace_back();
+    return promises_reset_.back().get_future();
 }
 
 bool mapping_module::reset_is_requested() const {
@@ -454,13 +443,19 @@ void mapping_module::reset() {
     keyfrms_queue_.clear();
     local_map_cleaner_->reset();
     reset_is_requested_ = false;
+    for (auto& promise : promises_reset_) {
+        promise.set_value();
+    }
+    promises_reset_.clear();
 }
 
-void mapping_module::request_pause() {
+std::future<void> mapping_module::async_pause() {
     std::lock_guard<std::mutex> lock1(mtx_pause_);
     pause_is_requested_ = true;
     std::lock_guard<std::mutex> lock2(mtx_keyfrm_queue_);
     abort_local_BA_ = true;
+    promises_pause_.emplace_back();
+    return promises_pause_.back().get_future();
 }
 
 bool mapping_module::is_paused() const {
@@ -477,6 +472,10 @@ void mapping_module::pause() {
     std::lock_guard<std::mutex> lock(mtx_pause_);
     spdlog::info("pause mapping module");
     is_paused_ = true;
+    for (auto& promise : promises_pause_) {
+        promise.set_value();
+    }
+    promises_pause_.clear();
 }
 
 bool mapping_module::set_force_to_run(const bool force_to_run) {
@@ -508,9 +507,11 @@ void mapping_module::resume() {
     spdlog::info("resume mapping module");
 }
 
-void mapping_module::request_terminate() {
+std::future<void> mapping_module::async_terminate() {
     std::lock_guard<std::mutex> lock(mtx_terminate_);
     terminate_is_requested_ = true;
+    promises_terminate_.emplace_back();
+    return promises_terminate_.back().get_future();
 }
 
 bool mapping_module::is_terminated() const {
@@ -528,6 +529,10 @@ void mapping_module::terminate() {
     std::lock_guard<std::mutex> lock2(mtx_terminate_);
     is_paused_ = true;
     is_terminated_ = true;
+    for (auto& promise : promises_terminate_) {
+        promise.set_value();
+    }
+    promises_terminate_.clear();
 }
 
 } // namespace openvslam

@@ -10,6 +10,7 @@
 
 #include <mutex>
 #include <memory>
+#include <future>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
@@ -104,7 +105,7 @@ public:
     // management for pause process
 
     //! Request to pause the tracking module
-    void request_pause();
+    std::future<void> async_pause();
 
     //! Check if the pause of the tracking module is requested or not
     bool pause_is_requested() const;
@@ -272,6 +273,9 @@ protected:
 
     //! mutex for pause process
     mutable std::mutex mtx_pause_;
+
+    //! promise for pause
+    std::vector<std::promise<void>> promises_pause_;
 
     //! Check the request frame and pause the tracking module
     bool check_and_execute_pause();
