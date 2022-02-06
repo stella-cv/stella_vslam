@@ -123,6 +123,11 @@ public:
     // features and observations
 
     /**
+     * Returns true if BoW has been computed.
+     */
+    bool bow_is_available() const;
+
+    /**
      * Compute BoW representation
      */
     void compute_bow();

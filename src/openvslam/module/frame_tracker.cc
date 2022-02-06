@@ -58,7 +58,9 @@ bool frame_tracker::bow_match_based_track(data::frame& curr_frm, const data::fra
     match::bow_tree bow_matcher(0.7, true);
 
     // Compute the BoW representations to perform the BoW match
-    curr_frm.compute_bow();
+    if (!curr_frm.bow_is_available()) {
+        curr_frm.compute_bow();
+    }
 
     // Search 2D-2D matches between the ref keyframes and the current frame
     // to acquire 2D-3D matches between the frame keypoints and 3D points observed in the ref keyframe

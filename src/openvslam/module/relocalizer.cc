@@ -36,7 +36,9 @@ relocalizer::~relocalizer() {
 }
 
 bool relocalizer::relocalize(data::frame& curr_frm) {
-    curr_frm.compute_bow();
+    if (!curr_frm.bow_is_available()) {
+        curr_frm.compute_bow();
+    }
 
     // Acquire relocalization candidates
     const auto reloc_candidates = bow_db_->acquire_relocalization_candidates(&curr_frm);

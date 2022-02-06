@@ -138,6 +138,11 @@ public:
     void update_orb_info();
 
     /**
+     * Returns true if BoW has been computed.
+     */
+    bool bow_is_available() const;
+
+    /**
      * Compute BoW representation
      */
     void compute_bow();
@@ -257,18 +262,6 @@ public:
     std::vector<float> inv_level_sigma_sq_;
 
 private:
-    //! enumeration to control the behavior of extract_orb()
-    enum class image_side { Left,
-                            Right };
-
-    /**
-     * Extract ORB feature according to img_size
-     * @param img
-     * @param mask
-     * @param img_side
-     */
-    void extract_orb(const cv::Mat& img, const cv::Mat& mask, const image_side& img_side = image_side::Left);
-
     /**
      * Compute disparities from depth information in depthmap
      * @param right_img_depth

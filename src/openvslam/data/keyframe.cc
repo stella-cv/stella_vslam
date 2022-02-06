@@ -203,14 +203,16 @@ Vec3_t keyframe::get_translation() const {
     return cam_pose_cw_.block<3, 1>(0, 3);
 }
 
+bool keyframe::bow_is_available() const {
+    return !bow_vec_.empty() && !bow_feat_vec_.empty();
+}
+
 void keyframe::compute_bow() {
-    if (bow_vec_.empty() || bow_feat_vec_.empty()) {
 #ifdef USE_DBOW2
-        bow_vocab_->transform(util::converter::to_desc_vec(descriptors_), bow_vec_, bow_feat_vec_, 4);
+    bow_vocab_->transform(util::converter::to_desc_vec(descriptors_), bow_vec_, bow_feat_vec_, 4);
 #else
-        bow_vocab_->transform(descriptors_, 4, bow_vec_, bow_feat_vec_);
+    bow_vocab_->transform(descriptors_, 4, bow_vec_, bow_feat_vec_);
 #endif
-    }
 }
 
 void keyframe::add_landmark(std::shared_ptr<landmark> lm, const unsigned int idx) {

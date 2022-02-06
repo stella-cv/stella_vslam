@@ -28,7 +28,7 @@ frame::frame(const cv::Mat& img_gray, const double timestamp,
     update_orb_info();
 
     // Extract ORB feature
-    extract_orb(img_gray, mask);
+    extractor_->extract(img_gray, mask, keypts_, descriptors_);
     num_keypts_ = keypts_.size();
     if (keypts_.empty()) {
         spdlog::warn("frame {}: cannot extract any keypoints", id_);
@@ -62,8 +62,8 @@ frame::frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const 
     update_orb_info();
 
     // Extract ORB feature
-    std::thread thread_left(&frame::extract_orb, this, left_img_gray, mask, image_side::Left);
-    std::thread thread_right(&frame::extract_orb, this, right_img_gray, mask, image_side::Right);
+    std::thread thread_left([this, &left_img_gray, &mask]() { extractor_->extract(left_img_gray, mask, keypts_, descriptors_); });
+    std::thread thread_right([this, &right_img_gray, &mask]() { extractor_right_->extract(right_img_gray, mask, keypts_right_, descriptors_right_); });
     thread_left.join();
     thread_right.join();
     num_keypts_ = keypts_.size();
@@ -102,7 +102,7 @@ frame::frame(const cv::Mat& img_gray, const cv::Mat& img_depth, const double tim
     update_orb_info();
 
     // Extract ORB feature
-    extract_orb(img_gray, mask);
+    extractor_->extract(img_gray, mask, keypts_, descriptors_);
     num_keypts_ = keypts_.size();
     if (keypts_.empty()) {
         spdlog::warn("frame {}: cannot extract any keypoints", id_);
@@ -171,14 +171,16 @@ void frame::update_orb_info() {
     inv_level_sigma_sq_ = extractor_->get_inv_level_sigma_sq();
 }
 
+bool frame::bow_is_available() const {
+    return !bow_vec_.empty() && !bow_feat_vec_.empty();
+}
+
 void frame::compute_bow() {
-    if (bow_vec_.empty()) {
 #ifdef USE_DBOW2
-        bow_vocab_->transform(util::converter::to_desc_vec(descriptors_), bow_vec_, bow_feat_vec_, 4);
+    bow_vocab_->transform(util::converter::to_desc_vec(descriptors_), bow_vec_, bow_feat_vec_, 4);
 #else
-        bow_vocab_->transform(descriptors_, 4, bow_vec_, bow_feat_vec_);
+    bow_vocab_->transform(descriptors_, 4, bow_vec_, bow_feat_vec_);
 #endif
-    }
 }
 
 bool frame::can_observe(const std::shared_ptr<landmark>& lm, const float ray_cos_thr,
@@ -274,19 +276,6 @@ Vec3_t frame::triangulate_stereo(const unsigned int idx) const {
     }
 
     return Vec3_t::Zero();
-}
-
-void frame::extract_orb(const cv::Mat& img, const cv::Mat& mask, const image_side& img_side) {
-    switch (img_side) {
-        case image_side::Left: {
-            extractor_->extract(img, mask, keypts_, descriptors_);
-            break;
-        }
-        case image_side::Right: {
-            extractor_right_->extract(img, mask, keypts_right_, descriptors_right_);
-            break;
-        }
-    }
 }
 
 void frame::compute_stereo_from_depth(const cv::Mat& img_depth) {

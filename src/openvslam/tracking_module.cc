@@ -436,7 +436,9 @@ bool tracking_module::relocalize_by_pose(const pose_request& request) {
     bool succeeded = false;
     curr_frm_.set_cam_pose(request.pose_);
 
-    curr_frm_.compute_bow();
+    if (!curr_frm_.bow_is_available()) {
+        curr_frm_.compute_bow();
+    }
     const auto candidates = get_close_keyframes(request);
 
     if (!candidates.empty()) {

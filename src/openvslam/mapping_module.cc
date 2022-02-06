@@ -183,7 +183,9 @@ void mapping_module::mapping_with_new_keyframe() {
 
 void mapping_module::store_new_keyframe() {
     // compute BoW feature vector
-    cur_keyfrm_->compute_bow();
+    if (!cur_keyfrm_->bow_is_available()) {
+        cur_keyfrm_->compute_bow();
+    }
 
     // update graph
     const auto cur_lms = cur_keyfrm_->get_landmarks();
