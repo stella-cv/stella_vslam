@@ -258,7 +258,7 @@ unsigned int projection::match_frame_and_keyframe(data::frame& curr_frm, const s
         }
 
         // Acquire keypoints in the cell where the reprojected 3D points exist
-        const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, &curr_frm);
+        const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, curr_frm.num_scale_levels_, curr_frm.log_scale_factor_);
 
         const auto indices = curr_frm.get_keypoints_in_cell(reproj(0), reproj(1),
                                                             margin * curr_frm.scale_factors_.at(pred_scale_level),
@@ -368,7 +368,7 @@ unsigned int projection::match_by_Sim3_transform(const std::shared_ptr<data::key
         }
 
         // Acquire keypoints in the cell where the reprojected 3D points exist
-        const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm);
+        const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm->num_scale_levels_, keyfrm->log_scale_factor_);
         const auto indices = keyfrm->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm->scale_factors_.at(pred_scale_level));
 
         if (indices.empty()) {
@@ -496,7 +496,7 @@ unsigned int projection::match_keyframes_mutually(const std::shared_ptr<data::ke
             }
 
             // Acquire keypoints in the cell where the reprojected 3D points exist
-            const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm_2);
+            const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm_2->num_scale_levels_, keyfrm_2->log_scale_factor_);
             const auto indices = keyfrm_2->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm_2->scale_factors_.at(pred_scale_level));
 
             if (indices.empty()) {
@@ -578,7 +578,7 @@ unsigned int projection::match_keyframes_mutually(const std::shared_ptr<data::ke
             }
 
             // Acquire keypoints in the cell where the reprojected 3D points exist
-            const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm_1);
+            const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm_1->num_scale_levels_, keyfrm_1->log_scale_factor_);
 
             const auto indices = keyfrm_1->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm_1->scale_factors_.at(pred_scale_level));
 

@@ -224,7 +224,7 @@ bool initializer::create_map_for_monocular(data::frame& curr_frm) {
         // update the descriptor
         lm->compute_descriptor();
         // update the geometry
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
 
         // set the 2D-3D assocications to the current frame
         curr_frm.landmarks_.at(curr_idx) = lm;
@@ -320,7 +320,7 @@ bool initializer::create_map_for_stereo(data::frame& curr_frm) {
         // update the descriptor
         lm->compute_descriptor();
         // update the geometry
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
 
         // set the 2D-3D associations to the current frame
         curr_frm.landmarks_.at(idx) = lm;

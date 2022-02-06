@@ -148,7 +148,7 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::fra
         curr_frm.landmarks_.at(idx) = lm;
 
         lm->compute_descriptor();
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
 
         map_db_->add_landmark(lm);
     }

@@ -254,7 +254,7 @@ void map_database::from_json(camera_database* cam_db, bow_vocabulary* bow_vocab,
         assert(landmarks_.count(id));
         const auto& lm = landmarks_.at(id);
 
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
         lm->compute_descriptor();
     }
 }
@@ -404,7 +404,7 @@ void map_database::to_json(nlohmann::json& json_keyfrms, nlohmann::json& json_la
         assert(lm);
         assert(id == lm->id_);
         assert(!lm->will_be_erased());
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
         assert(!landmarks.count(std::to_string(id)));
         landmarks[std::to_string(id)] = lm->to_json();
     }

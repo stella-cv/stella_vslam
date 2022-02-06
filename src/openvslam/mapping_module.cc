@@ -209,7 +209,7 @@ void mapping_module::store_new_keyframe() {
         // update connection
         lm->add_observation(cur_keyfrm_, idx);
         // update geometry
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
         lm->compute_descriptor();
     }
     cur_keyfrm_->graph_node_->update_connections();
@@ -306,7 +306,7 @@ void mapping_module::triangulate_with_two_keyframes(const std::shared_ptr<data::
         keyfrm_2->add_landmark(lm, idx_2);
 
         lm->compute_descriptor();
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
 
         map_db_->add_landmark(lm);
         // wait for redundancy check
@@ -337,7 +337,7 @@ void mapping_module::update_new_keyframe() {
             continue;
         }
         lm->compute_descriptor();
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
     }
 
     // update the graph

@@ -66,7 +66,7 @@ unsigned int fuse::detect_duplication(const std::shared_ptr<data::keyframe>& key
         }
 
         // Acquire keypoints in the cell where the reprojected 3D points exist
-        const int pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm);
+        const int pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm->num_scale_levels_, keyfrm->log_scale_factor_);
         const auto indices = keyfrm->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm->scale_factors_.at(pred_scale_level));
 
         if (indices.empty()) {
@@ -173,7 +173,7 @@ unsigned int fuse::replace_duplication(const std::shared_ptr<data::keyframe>& ke
         }
 
         // Acquire keypoints in the cell where the reprojected 3D points exist
-        const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm);
+        const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm->num_scale_levels_, keyfrm->log_scale_factor_);
         const auto indices = keyfrm->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm->scale_factors_.at(pred_scale_level));
 
         if (indices.empty()) {

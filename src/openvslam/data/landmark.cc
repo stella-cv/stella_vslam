@@ -77,7 +77,6 @@ void landmark::erase_observation(const std::shared_ptr<keyframe>& keyfrm) {
                 ref_keyfrm_ = observations_.begin()->first;
             }
 
-            // If only 2 observations or less, discard point
             if (num_observations_ <= 2) {
                 discard = true;
             }
@@ -183,7 +182,7 @@ void landmark::compute_descriptor() {
     }
 }
 
-void landmark::update_normal_and_depth() {
+void landmark::update_mean_normal_and_obs_scale_variance() {
     observations_t observations;
     std::shared_ptr<keyframe> ref_keyfrm = nullptr;
     Vec3_t pos_w;
@@ -236,38 +235,19 @@ float landmark::get_max_valid_distance() const {
     return 1.3 * max_valid_dist_;
 }
 
-unsigned int landmark::predict_scale_level(const float cam_to_lm_dist, const frame* frm) const {
+unsigned int landmark::predict_scale_level(const float cam_to_lm_dist, float num_scale_levels, float log_scale_factor) const {
     float ratio;
     {
         std::lock_guard<std::mutex> lock(mtx_position_);
         ratio = max_valid_dist_ / cam_to_lm_dist;
     }
 
-    const auto pred_scale_level = static_cast<int>(std::ceil(std::log(ratio) / frm->log_scale_factor_));
+    const auto pred_scale_level = static_cast<int>(std::ceil(std::log(ratio) / log_scale_factor));
     if (pred_scale_level < 0) {
         return 0;
     }
-    else if (frm->num_scale_levels_ <= static_cast<unsigned int>(pred_scale_level)) {
-        return frm->num_scale_levels_ - 1;
-    }
-    else {
-        return static_cast<unsigned int>(pred_scale_level);
-    }
-}
-
-unsigned int landmark::predict_scale_level(const float cam_to_lm_dist, const std::shared_ptr<keyframe>& keyfrm) const {
-    float ratio;
-    {
-        std::lock_guard<std::mutex> lock(mtx_position_);
-        ratio = max_valid_dist_ / cam_to_lm_dist;
-    }
-
-    const auto pred_scale_level = static_cast<int>(std::ceil(std::log(ratio) / keyfrm->log_scale_factor_));
-    if (pred_scale_level < 0) {
-        return 0;
-    }
-    else if (keyfrm->num_scale_levels_ <= static_cast<unsigned int>(pred_scale_level)) {
-        return keyfrm->num_scale_levels_ - 1;
+    else if (num_scale_levels <= static_cast<unsigned int>(pred_scale_level)) {
+        return num_scale_levels - 1;
     }
     else {
         return static_cast<unsigned int>(pred_scale_level);

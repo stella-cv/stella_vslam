@@ -204,7 +204,7 @@ bool frame::can_observe(const std::shared_ptr<landmark>& lm, const float ray_cos
         return false;
     }
 
-    pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, this);
+    pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, this->num_scale_levels_, this->log_scale_factor_);
     return true;
 }
 

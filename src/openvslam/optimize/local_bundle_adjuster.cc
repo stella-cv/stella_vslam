@@ -283,7 +283,7 @@ void local_bundle_adjuster::optimize(const std::shared_ptr<openvslam::data::keyf
 
             auto lm_vtx = lm_vtx_container.get_vertex(local_lm);
             local_lm->set_pos_in_world(lm_vtx->estimate());
-            local_lm->update_normal_and_depth();
+            local_lm->update_mean_normal_and_obs_scale_variance();
         }
     }
 }

@@ -76,17 +76,15 @@ public:
     void compute_descriptor();
 
     //! update observation mean normal and ORB scale variance
-    void update_normal_and_depth();
+    void update_mean_normal_and_obs_scale_variance();
 
     //! get max valid distance between landmark and camera
     float get_min_valid_distance() const;
     //! get min valid distance between landmark and camera
     float get_max_valid_distance() const;
 
-    //! predict scale level assuming this landmark is observed in the specified frame
-    unsigned int predict_scale_level(const float cam_to_lm_dist, const frame* frm) const;
-    //! predict scale level assuming this landmark is observed in the specified keyframe
-    unsigned int predict_scale_level(const float cam_to_lm_dist, const std::shared_ptr<keyframe>& keyfrm) const;
+    //! predict scale level assuming this landmark is observed in the specified frame/keyframe
+    unsigned int predict_scale_level(const float cam_to_lm_dist, float num_scale_levels, float log_scale_factor) const;
 
     //! erase this landmark from database
     void prepare_for_erasing();

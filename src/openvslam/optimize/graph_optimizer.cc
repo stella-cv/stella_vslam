@@ -275,7 +275,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             const Vec3_t corrected_pos_w = corrected_Sim3_wc.map(Sim3_cw.map(pos_w));
 
             lm->set_pos_in_world(corrected_pos_w);
-            lm->update_normal_and_depth();
+            lm->update_mean_normal_and_obs_scale_variance();
         }
     }
 }

@@ -172,7 +172,7 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
 
         if (lead_keyfrm_id_in_global_BA == 0) {
             lm->set_pos_in_world(pos_w);
-            lm->update_normal_and_depth();
+            lm->update_mean_normal_and_obs_scale_variance();
         }
         else {
             lm->pos_w_after_global_BA_ = pos_w;

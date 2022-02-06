@@ -294,7 +294,7 @@ void global_optimization_module::correct_covisibility_landmarks(const module::ke
             const Vec3_t pos_w_after_correction = Sim3_wn_after_correction.map(Sim3_nw_before_correction.map(pos_w_before_correction));
             lm->set_pos_in_world(pos_w_after_correction);
             // update geometry
-            lm->update_normal_and_depth();
+            lm->update_mean_normal_and_obs_scale_variance();
 
             // record the reference keyframe used in loop fusion of landmarks
             lm->ref_keyfrm_id_in_loop_fusion_ = neighbor->id_;
