@@ -41,6 +41,8 @@ Camera
     * - focal_x_baseline
       - For stereo cameras, it is the value of the baseline between the left and right cameras multiplied by the focal length fx.
         For RGBD cameras, if the measurement method is stereo, set it based on its baseline. If the measurement method is other than that, set the appropriate value based on the relationship between depth accuracy and baseline.
+    * - depth_threshold
+      - The ratio used to determine the depth threshold.
 
 .. _section-parameters-feature:
 
@@ -77,8 +79,6 @@ Tracking
       - Maximum number of feature points per frame to be used for SLAM.
     * - ini_max_num_keypoints
       - Maximum number of feature points per frame to be used for Initialization. It is only used for monocular camera models.
-    * - depth_threshold
-      - The ratio used to determine the depth threshold.
     * - depthmap_factor
       - The ratio used to convert depth image pixel values to distance.
     * - reloc_distance_threshold

@@ -24,6 +24,7 @@ Camera:
   cols: 1241
   rows: 376
   focal_x_baseline: 386.1448
+  depth_threshold: 40
 
   color_order: "Gray"
 
@@ -34,7 +35,6 @@ Camera:
 Tracking:
   max_num_keypoints: 2000
   ini_max_num_keypoints: 4000
-  depth_threshold: 40
 
 #================#
 # ORB Parameters #

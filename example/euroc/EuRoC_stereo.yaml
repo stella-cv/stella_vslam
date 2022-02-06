@@ -33,6 +33,7 @@ Camera:
   cols: 752
   rows: 480
   focal_x_baseline: 47.90639384423901
+  depth_threshold: 40
 
   color_order: "Gray"
 
@@ -58,7 +59,6 @@ StereoRectifier:
 Tracking:
   max_num_keypoints: 1000
   ini_max_num_keypoints: 2000
-  depth_threshold: 40
 
 #================#
 # ORB Parameters #
