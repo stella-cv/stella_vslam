@@ -140,22 +140,23 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
 
         // Acquire keypoints in the cell where the reprojected 3D points exist
         const auto last_scale_level = last_frm.frm_obs_.keypts_.at(idx_last).octave;
-        std::vector<unsigned int> indices;
+        int min_level;
+        int max_level;
         if (assume_forward) {
-            indices = curr_frm.get_keypoints_in_cell(reproj(0), reproj(1),
-                                                     margin * curr_frm.orb_params_->scale_factors_.at(last_scale_level),
-                                                     last_scale_level, last_frm.orb_params_->num_levels_ - 1);
+            min_level = last_scale_level;
+            max_level = last_frm.orb_params_->num_levels_ - 1;
         }
         else if (assume_backward) {
-            indices = curr_frm.get_keypoints_in_cell(reproj(0), reproj(1),
-                                                     margin * curr_frm.orb_params_->scale_factors_.at(last_scale_level),
-                                                     0, last_scale_level);
+            min_level = 0;
+            max_level = last_scale_level;
         }
         else {
-            indices = curr_frm.get_keypoints_in_cell(reproj(0), reproj(1),
-                                                     margin * curr_frm.orb_params_->scale_factors_.at(last_scale_level),
-                                                     last_scale_level - 1, last_scale_level + 1);
+            min_level = last_scale_level - 1;
+            max_level = last_scale_level + 1;
         }
+        auto indices = curr_frm.get_keypoints_in_cell(reproj(0), reproj(1),
+                                                      margin * curr_frm.orb_params_->scale_factors_.at(last_scale_level),
+                                                      min_level, max_level);
         if (indices.empty()) {
             continue;
         }
