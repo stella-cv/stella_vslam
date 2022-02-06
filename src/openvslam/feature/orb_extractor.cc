@@ -450,19 +450,28 @@ std::vector<cv::KeyPoint> orb_extractor::distribute_keypoints_via_tree(const std
         auto prev_leaf_nodes_pool = leaf_nodes_pool;
         leaf_nodes_pool.clear();
 
-        // Sort by number of keypoints in the patch of each leaf node
-        std::sort(prev_leaf_nodes_pool.rbegin(), prev_leaf_nodes_pool.rend());
-        // Do processes from the node which has much more keypoints
+        int max_num_keypts = 0;
         for (const auto& prev_leaf_node : prev_leaf_nodes_pool) {
-            // Divide node and assign to the leaf node pool
-            const auto child_nodes = prev_leaf_node.second->divide_node();
-            assign_child_nodes(child_nodes, nodes, leaf_nodes_pool);
-            // Remove the old node
-            nodes.erase(prev_leaf_node.second->iter_);
+            if (max_num_keypts < prev_leaf_node.first) {
+                max_num_keypts = prev_leaf_node.first;
+            }
+        }
 
-            if (num_keypts <= nodes.size()) {
-                is_filled = true;
-                break;
+        // Do processes from the node which has much more keypoints
+        for (int target_num_keypts = max_num_keypts; target_num_keypts > 0; --target_num_keypts) {
+            for (const auto& prev_leaf_node : prev_leaf_nodes_pool) {
+                if (prev_leaf_node.first == target_num_keypts) {
+                    // Divide node and assign to the leaf node pool
+                    const auto child_nodes = prev_leaf_node.second->divide_node();
+                    assign_child_nodes(child_nodes, nodes, leaf_nodes_pool);
+                    // Remove the old node
+                    nodes.erase(prev_leaf_node.second->iter_);
+
+                    if (num_keypts <= nodes.size()) {
+                        is_filled = true;
+                        break;
+                    }
+                }
             }
         }
 
