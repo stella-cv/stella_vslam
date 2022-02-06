@@ -54,11 +54,8 @@ public:
     //! Get the number of queued keyframes
     unsigned int get_num_queued_keyframes() const;
 
-    //! Get keyframe acceptability
-    bool get_keyframe_acceptability() const;
-
-    //! Set keyframe acceptability
-    void set_keyframe_acceptability(const bool acceptability);
+    //! True when no keyframes are being processed
+    bool is_idle() const;
 
     //-----------------------------------------
     // management for reset process
@@ -78,8 +75,11 @@ public:
     //! Check if the mapping module is paused or not
     bool is_paused() const;
 
-    //! Set the flag to force to run the mapping module
-    bool set_force_to_run(const bool force_to_run);
+    //! If it is not paused, prevent it from being paused
+    bool prevent_pause_if_not_paused();
+
+    //! Stop preventing it from pausing
+    void stop_prevent_pause();
 
     //! Resume the mapping module
     void resume();
@@ -127,6 +127,12 @@ private:
     //! Fuse duplicated landmarks between current keyframe and covisibility keyframes
     void fuse_landmark_duplication(const std::unordered_set<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms);
 
+    //! Check if pause is requested and not prevented
+    bool pause_is_requested_and_not_prevented() const;
+
+    //! Set is_idle (True when no keyframes are being processed.)
+    void set_is_idle(const bool is_idle);
+
     //-----------------------------------------
     // management for reset process
 
@@ -162,7 +168,7 @@ private:
     //! flag which indicates whether the main loop is paused or not
     bool is_paused_ = false;
     //! flag to force the mapping module to be run
-    bool force_to_run_ = false;
+    bool prevent_pause_ = false;
 
     //-----------------------------------------
     // management for terminate process
@@ -225,8 +231,8 @@ private:
     //-----------------------------------------
     // others
 
-    //! flag for keyframe acceptability
-    std::atomic<bool> keyfrm_acceptability_{true};
+    //! True when no keyframes are being processed
+    std::atomic<bool> is_idle_{true};
 
     //! current keyframe which is used in the current mapping
     std::shared_ptr<data::keyframe> cur_keyfrm_ = nullptr;

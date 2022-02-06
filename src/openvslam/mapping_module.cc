@@ -54,13 +54,11 @@ void mapping_module::run() {
     spdlog::info("start mapping module");
 
     is_terminated_ = false;
+    set_is_idle(true);
 
     while (true) {
         // waiting time for the other threads
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
-
-        // LOCK
-        set_keyframe_acceptability(false);
 
         // check if termination is requested
         if (terminate_is_requested()) {
@@ -69,8 +67,9 @@ void mapping_module::run() {
             break;
         }
 
-        // check if pause is requested
-        if (pause_is_requested()) {
+        // check if pause is requested and not prevented
+        if (pause_is_requested_and_not_prevented()) {
+            set_is_idle(false);
             // if any keyframe is queued, all of them must be processed before the pause
             while (keyframe_is_queued()) {
                 // create and extend the map with the new keyframe
@@ -78,6 +77,7 @@ void mapping_module::run() {
                 // send the new keyframe to the global optimization module
                 global_optimizer_->queue_keyframe(cur_keyfrm_);
             }
+            set_is_idle(true);
             // pause and wait
             pause();
             // check if termination or reset is requested during pause
@@ -88,26 +88,23 @@ void mapping_module::run() {
 
         // check if reset is requested
         if (reset_is_requested()) {
-            // reset, UNLOCK and continue
+            // reset and continue
             reset();
-            set_keyframe_acceptability(true);
+            set_is_idle(true);
             continue;
         }
 
         // if the queue is empty, the following process is not needed
         if (!keyframe_is_queued()) {
-            // UNLOCK and continue
-            set_keyframe_acceptability(true);
+            set_is_idle(true);
             continue;
         }
 
+        set_is_idle(false);
         // create and extend the map with the new keyframe
         mapping_with_new_keyframe();
         // send the new keyframe to the global optimization module
         global_optimizer_->queue_keyframe(cur_keyfrm_);
-
-        // LOCK end
-        set_keyframe_acceptability(true);
     }
 
     spdlog::info("terminate mapping module");
@@ -129,12 +126,12 @@ bool mapping_module::keyframe_is_queued() const {
     return !keyfrms_queue_.empty();
 }
 
-bool mapping_module::get_keyframe_acceptability() const {
-    return keyfrm_acceptability_;
+bool mapping_module::is_idle() const {
+    return is_idle_;
 }
 
-void mapping_module::set_keyframe_acceptability(const bool acceptability) {
-    keyfrm_acceptability_ = acceptability;
+void mapping_module::set_is_idle(const bool is_idle) {
+    is_idle_ = is_idle;
 }
 
 void mapping_module::abort_local_BA() {
@@ -463,9 +460,14 @@ bool mapping_module::is_paused() const {
     return is_paused_;
 }
 
+bool mapping_module::pause_is_requested_and_not_prevented() const {
+    std::lock_guard<std::mutex> lock(mtx_pause_);
+    return pause_is_requested_ && !prevent_pause_;
+}
+
 bool mapping_module::pause_is_requested() const {
     std::lock_guard<std::mutex> lock(mtx_pause_);
-    return pause_is_requested_ && !force_to_run_;
+    return pause_is_requested_;
 }
 
 void mapping_module::pause() {
@@ -478,15 +480,17 @@ void mapping_module::pause() {
     promises_pause_.clear();
 }
 
-bool mapping_module::set_force_to_run(const bool force_to_run) {
+bool mapping_module::prevent_pause_if_not_paused() {
     std::lock_guard<std::mutex> lock(mtx_pause_);
-
-    if (force_to_run && is_paused_) {
-        return false;
+    if (!is_paused_) {
+        prevent_pause_ = true;
     }
+    return prevent_pause_;
+}
 
-    force_to_run_ = force_to_run;
-    return true;
+void mapping_module::stop_prevent_pause() {
+    std::lock_guard<std::mutex> lock(mtx_pause_);
+    prevent_pause_ = false;
 }
 
 void mapping_module::resume() {
@@ -498,11 +502,10 @@ void mapping_module::resume() {
         return;
     }
 
+    assert(keyfrms_queue_.empty());
+
     is_paused_ = false;
     pause_is_requested_ = false;
-
-    // clear the queue
-    keyfrms_queue_.clear();
 
     spdlog::info("resume mapping module");
 }
@@ -529,6 +532,7 @@ void mapping_module::terminate() {
     std::lock_guard<std::mutex> lock2(mtx_terminate_);
     is_paused_ = true;
     is_terminated_ = true;
+    set_is_idle(true);
     for (auto& promise : promises_terminate_) {
         promise.set_value();
     }

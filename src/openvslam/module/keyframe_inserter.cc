@@ -37,7 +37,7 @@ bool keyframe_inserter::new_keyframe_is_needed(const data::frame& curr_frm, cons
     const auto num_reliable_lms = ref_keyfrm.get_num_tracked_landmarks(min_obs_thr);
 
     // Check if the mapping is in progress or not
-    const bool mapper_is_idle = mapper_->get_keyframe_acceptability();
+    const bool mapper_is_idle = mapper_->is_idle();
 
     // Ratio-threshold of "the number of 3D points observed in the current frame" / "that of 3D points observed in the last keyframe"
     constexpr unsigned int num_tracked_lms_thr = 15;
@@ -82,8 +82,9 @@ bool keyframe_inserter::new_keyframe_is_needed(const data::frame& curr_frm, cons
 }
 
 std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::frame& curr_frm) {
-    // Force the mapping module to run
-    if (!mapper_->set_force_to_run(true)) {
+    // Do not pause mapping_module to let this keyframe process
+    if (!mapper_->prevent_pause_if_not_paused()) {
+        // If it is already paused, exit
         return nullptr;
     }
 
@@ -160,7 +161,7 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::fra
 
 void keyframe_inserter::queue_keyframe(const std::shared_ptr<data::keyframe>& keyfrm) {
     mapper_->queue_keyframe(keyfrm);
-    mapper_->set_force_to_run(false);
+    mapper_->stop_prevent_pause();
 }
 
 } // namespace module
