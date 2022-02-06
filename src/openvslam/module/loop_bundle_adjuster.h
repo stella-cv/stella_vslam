@@ -46,7 +46,7 @@ public:
     /**
      * Run loop BA
      */
-    void optimize(const unsigned int identifier);
+    void optimize();
 
 private:
     //! map database

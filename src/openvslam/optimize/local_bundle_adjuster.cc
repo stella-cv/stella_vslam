@@ -188,10 +188,8 @@ void local_bundle_adjuster::optimize(const std::shared_ptr<openvslam::data::keyf
 
     // 5. Perform the first optimization
 
-    if (force_stop_flag) {
-        if (*force_stop_flag) {
-            return;
-        }
+    if (force_stop_flag && *force_stop_flag) {
+        return;
     }
 
     optimizer.initializeOptimization();
@@ -201,10 +199,8 @@ void local_bundle_adjuster::optimize(const std::shared_ptr<openvslam::data::keyf
 
     bool run_robust_BA = true;
 
-    if (force_stop_flag) {
-        if (*force_stop_flag) {
-            run_robust_BA = false;
-        }
+    if (force_stop_flag && *force_stop_flag) {
+        run_robust_BA = false;
     }
 
     if (run_robust_BA) {

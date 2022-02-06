@@ -116,7 +116,8 @@ private:
 
     //! Correct the positions of the landmarks which are seen in covisibilities
     void correct_covisibility_landmarks(const module::keyframe_Sim3_pairs_t& Sim3s_nw_before_correction,
-                                        const module::keyframe_Sim3_pairs_t& Sim3s_nw_after_correction) const;
+                                        const module::keyframe_Sim3_pairs_t& Sim3s_nw_after_correction,
+                                        std::unordered_map<unsigned int, unsigned int>& found_lm_to_ref_keyfrm_id) const;
 
     //! Correct the camera poses of the covisibilities
     void correct_covisibility_keyframes(const module::keyframe_Sim3_pairs_t& Sim3s_nw_after_correction) const;

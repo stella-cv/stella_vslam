@@ -23,7 +23,8 @@ graph_optimizer::graph_optimizer(data::map_database* map_db, const bool fix_scal
 void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfrm, const std::shared_ptr<data::keyframe>& curr_keyfrm,
                                const module::keyframe_Sim3_pairs_t& non_corrected_Sim3s,
                                const module::keyframe_Sim3_pairs_t& pre_corrected_Sim3s,
-                               const std::map<std::shared_ptr<data::keyframe>, std::set<std::shared_ptr<data::keyframe>>>& loop_connections) const {
+                               const std::map<std::shared_ptr<data::keyframe>, std::set<std::shared_ptr<data::keyframe>>>& loop_connections,
+                               std::unordered_map<unsigned int, unsigned int>& found_lm_to_ref_keyfrm_id) const {
     // 1. Construct an optimizer
 
     auto linear_solver = g2o::make_unique<g2o::LinearSolverCSparse<g2o::BlockSolver_7_3::PoseMatrixType>>();
@@ -262,8 +263,8 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
                 continue;
             }
 
-            const auto id = (lm->loop_fusion_identifier_ == curr_keyfrm->id_)
-                                ? lm->ref_keyfrm_id_in_loop_fusion_
+            const auto id = (found_lm_to_ref_keyfrm_id.count(lm->id_))
+                                ? found_lm_to_ref_keyfrm_id.at(lm->id_)
                                 : lm->get_ref_keyframe()->id_;
 
             const g2o::Sim3& Sim3_cw = Sim3s_cw.at(id);

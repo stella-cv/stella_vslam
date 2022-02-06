@@ -236,7 +236,7 @@ bool initializer::create_map_for_monocular(data::frame& curr_frm) {
 
     // global bundle adjustment
     const auto global_bundle_adjuster = optimize::global_bundle_adjuster(map_db_, num_ba_iters_, true);
-    global_bundle_adjuster.optimize();
+    global_bundle_adjuster.optimize_for_initialization();
 
     // scale the map so that the median of depths is 1.0
     const auto median_depth = init_keyfrm->compute_median_depth(init_keyfrm->camera_->model_type_ == camera::model_type_t::Equirectangular);

@@ -132,7 +132,7 @@ void global_optimization_module::queue_keyframe(const std::shared_ptr<data::keyf
 
 bool global_optimization_module::keyframe_is_queued() const {
     std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
-    return (!keyfrms_queue_.empty());
+    return !keyfrms_queue_.empty();
 }
 
 void global_optimization_module::correct_loop() {
@@ -171,6 +171,7 @@ void global_optimization_module::correct_loop() {
     // Sim3 camera poses AFTER loop correction
     module::keyframe_Sim3_pairs_t Sim3s_nw_after_correction;
 
+    std::unordered_map<unsigned int, unsigned int> found_lm_to_ref_keyfrm_id;
     const auto g2o_Sim3_cw_after_correction = loop_detector_->get_Sim3_world_to_current();
     {
         std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
@@ -184,7 +185,7 @@ void global_optimization_module::correct_loop() {
         Sim3s_nw_after_correction = get_Sim3s_after_loop_correction(cam_pose_wc_before_correction, g2o_Sim3_cw_after_correction, curr_neighbors);
 
         // correct covibisibility landmark positions
-        correct_covisibility_landmarks(Sim3s_nw_before_correction, Sim3s_nw_after_correction);
+        correct_covisibility_landmarks(Sim3s_nw_before_correction, Sim3s_nw_after_correction, found_lm_to_ref_keyfrm_id);
         // correct covisibility keyframe camera poses
         correct_covisibility_keyframes(Sim3s_nw_after_correction);
     }
@@ -200,7 +201,7 @@ void global_optimization_module::correct_loop() {
 
     // 4. pose graph optimization
 
-    graph_optimizer_->optimize(final_candidate_keyfrm, cur_keyfrm_, Sim3s_nw_before_correction, Sim3s_nw_after_correction, new_connections);
+    graph_optimizer_->optimize(final_candidate_keyfrm, cur_keyfrm_, Sim3s_nw_before_correction, Sim3s_nw_after_correction, new_connections, found_lm_to_ref_keyfrm_id);
 
     // add a loop edge
     final_candidate_keyfrm->graph_node_->add_loop_edge(cur_keyfrm_);
@@ -215,7 +216,7 @@ void global_optimization_module::correct_loop() {
         thread_for_loop_BA_->join();
         thread_for_loop_BA_.reset(nullptr);
     }
-    thread_for_loop_BA_ = std::unique_ptr<std::thread>(new std::thread(&module::loop_bundle_adjuster::optimize, loop_bundle_adjuster_.get(), cur_keyfrm_->id_));
+    thread_for_loop_BA_ = std::unique_ptr<std::thread>(new std::thread(&module::loop_bundle_adjuster::optimize, loop_bundle_adjuster_.get()));
 
     // 6. post-processing
 
@@ -264,7 +265,8 @@ module::keyframe_Sim3_pairs_t global_optimization_module::get_Sim3s_after_loop_c
 }
 
 void global_optimization_module::correct_covisibility_landmarks(const module::keyframe_Sim3_pairs_t& Sim3s_nw_before_correction,
-                                                                const module::keyframe_Sim3_pairs_t& Sim3s_nw_after_correction) const {
+                                                                const module::keyframe_Sim3_pairs_t& Sim3s_nw_after_correction,
+                                                                std::unordered_map<unsigned int, unsigned int>& found_lm_to_ref_keyfrm_id) const {
     for (const auto& t : Sim3s_nw_after_correction) {
         auto neighbor = t.first;
         // neighbor->world AFTER loop correction
@@ -282,10 +284,11 @@ void global_optimization_module::correct_covisibility_landmarks(const module::ke
             }
 
             // avoid duplication
-            if (lm->loop_fusion_identifier_ == cur_keyfrm_->id_) {
+            if (found_lm_to_ref_keyfrm_id.count(lm->id_)) {
                 continue;
             }
-            lm->loop_fusion_identifier_ = cur_keyfrm_->id_;
+            // record the reference keyframe used in loop fusion of landmarks
+            found_lm_to_ref_keyfrm_id[lm->id_] = neighbor->id_;
 
             // correct position of `lm`
             const Vec3_t pos_w_before_correction = lm->get_pos_in_world();
@@ -293,9 +296,6 @@ void global_optimization_module::correct_covisibility_landmarks(const module::ke
             lm->set_pos_in_world(pos_w_after_correction);
             // update geometry
             lm->update_mean_normal_and_obs_scale_variance();
-
-            // record the reference keyframe used in loop fusion of landmarks
-            lm->ref_keyfrm_id_in_loop_fusion_ = neighbor->id_;
         }
     }
 }
