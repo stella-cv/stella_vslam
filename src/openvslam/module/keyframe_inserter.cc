@@ -3,24 +3,32 @@
 #include "openvslam/data/map_database.h"
 #include "openvslam/module/keyframe_inserter.h"
 
+#include <spdlog/spdlog.h>
+
 namespace openvslam {
 namespace module {
 
-keyframe_inserter::keyframe_inserter(const camera::setup_type_t setup_type,
-                                     data::map_database* map_db,
-                                     const unsigned int min_num_frms, const unsigned int max_num_frms)
-    : setup_type_(setup_type), map_db_(map_db),
-      min_num_frms_(min_num_frms), max_num_frms_(max_num_frms) {}
+keyframe_inserter::keyframe_inserter(const double max_interval,
+                                     const double lms_ratio_thr_almost_all_lms_are_tracked,
+                                     const double lms_ratio_thr_view_changed)
+    : max_interval_(max_interval),
+      lms_ratio_thr_almost_all_lms_are_tracked_(lms_ratio_thr_almost_all_lms_are_tracked),
+      lms_ratio_thr_view_changed_(lms_ratio_thr_view_changed) {}
+
+keyframe_inserter::keyframe_inserter(const YAML::Node& yaml_node)
+    : keyframe_inserter(yaml_node["max_interval"].as<double>(1.0),
+                        yaml_node["lms_ratio_thr_almost_all_lms_are_tracked"].as<double>(0.95),
+                        yaml_node["lms_ratio_thr_view_changed"].as<double>(0.9)) {}
 
 void keyframe_inserter::set_mapping_module(mapping_module* mapper) {
     mapper_ = mapper;
 }
 
 void keyframe_inserter::reset() {
-    frm_id_of_last_keyfrm_ = 0;
 }
 
-bool keyframe_inserter::new_keyframe_is_needed(const data::frame& curr_frm, const unsigned int num_tracked_lms,
+bool keyframe_inserter::new_keyframe_is_needed(data::map_database* map_db, const data::frame& curr_frm,
+                                               const unsigned int num_tracked_lms,
                                                const data::keyframe& ref_keyfrm) const {
     assert(mapper_);
     // Any keyframes are not able to be added when the mapping module stops
@@ -28,58 +36,34 @@ bool keyframe_inserter::new_keyframe_is_needed(const data::frame& curr_frm, cons
         return false;
     }
 
-    const auto num_keyfrms = map_db_->get_num_keyframes();
+    const auto num_keyfrms = map_db->get_num_keyframes();
+    auto last_inserted_keyfrm = map_db->get_last_inserted_keyframe();
 
     // Count the number of the 3D points that are observed from more than two keyframes
     const unsigned int min_obs_thr = (3 <= num_keyfrms) ? 3 : 2;
     const auto num_reliable_lms = ref_keyfrm.get_num_tracked_landmarks(min_obs_thr);
 
-    // Check if the mapping is in progress or not
-    const bool mapper_is_idle = mapper_->is_idle();
+    // When the mapping module skips localBA, it does not insert keyframes
+    const auto mapper_is_skipping_localBA = mapper_->is_skipping_localBA();
 
-    // Ratio-threshold of "the number of 3D points observed in the current frame" / "that of 3D points observed in the last keyframe"
-    constexpr unsigned int num_tracked_lms_thr = 15;
-    const float lms_ratio_thr = 0.9;
+    constexpr unsigned int num_tracked_lms_thr_unstable = 15;
 
-    // Condition A1: Add a keyframe if the number of frames added after the previous keyframe insertion reaches the threshold
-    const bool cond_a1 = frm_id_of_last_keyfrm_ + max_num_frms_ <= curr_frm.id_;
-    // Condition A2: Add a keyframe if the number of added frames exceeds the minimum,
-    //               and concurrently the mapping module remains standing-by
-    const bool cond_a2 = (frm_id_of_last_keyfrm_ + min_num_frms_ <= curr_frm.id_) && mapper_is_idle;
-    // Condition A3: Add a keyframe if the field-of-view of the current frame is changed a lot
-    const bool cond_a3 = num_tracked_lms < num_reliable_lms * 0.25;
+    // New keyframe is needed if the time elapsed since the last keyframe insertion reaches the threshold
+    const bool max_interval_elapsed = last_inserted_keyfrm && last_inserted_keyfrm->timestamp_ + max_interval_ <= curr_frm.timestamp_;
+    // New keyframe is needed if the field-of-view of the current frame is changed a lot
+    const bool view_changed = num_tracked_lms < num_reliable_lms * lms_ratio_thr_view_changed_;
 
-    // Condition B: (Mandatory for keyframe insertion)
-    //              Add a keyframe if the number of 3D points exceeds the threshold,
-    //              and concurrently the ratio of the reliable 3D points larger than the threshold ratio
-    const bool cond_b = (num_tracked_lms_thr <= num_tracked_lms) && (num_tracked_lms < num_reliable_lms * lms_ratio_thr);
+    // (Mandatory for keyframe insertion)
+    // New keyframe is needed if the number of 3D points exceeds the threshold,
+    // and concurrently the ratio of the reliable 3D points larger than the threshold ratio
+    bool tracking_is_unstable = num_tracked_lms < num_tracked_lms_thr_unstable;
+    bool almost_all_lms_are_tracked = num_tracked_lms > num_reliable_lms * lms_ratio_thr_almost_all_lms_are_tracked_;
 
-    // Do not add any kerframes if the condition B is not satisfied
-    if (!cond_b) {
-        return false;
-    }
-
-    // Do not add any kerframes if all the conditions A are not satisfied
-    if (!cond_a1 && !cond_a2 && !cond_a3) {
-        return false;
-    }
-
-    // Add the keyframe if the mapping module isn't in the process
-    if (mapper_is_idle) {
-        return true;
-    }
-
-    // Stop the local bundle adjustment if the mapping module is in the process, then add a new keyframe
-    if (setup_type_ != camera::setup_type_t::Monocular
-        && mapper_->get_num_queued_keyframes() <= 2) {
-        mapper_->abort_local_BA();
-        return true;
-    }
-
-    return false;
+    return (max_interval_elapsed || view_changed) && !tracking_is_unstable && !almost_all_lms_are_tracked && !mapper_is_skipping_localBA;
 }
 
-std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::frame& curr_frm) {
+std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map_database* map_db,
+                                                                       data::frame& curr_frm) {
     // Do not pause mapping_module to let this keyframe process
     if (!mapper_->prevent_pause_if_not_paused()) {
         // If it is already paused, exit
@@ -88,8 +72,6 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::fra
 
     curr_frm.update_pose_params();
     auto keyfrm = data::keyframe::make_keyframe(curr_frm);
-
-    frm_id_of_last_keyfrm_ = curr_frm.id_;
 
     // Queue up the keyframe to the mapping module
     if (!keyfrm->depth_is_avaliable()) {
@@ -140,7 +122,7 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::fra
 
         // Stereo-triangulation can be performed if the 3D point is not yet associated to the keypoint index
         const Vec3_t pos_w = curr_frm.triangulate_stereo(idx);
-        auto lm = std::make_shared<data::landmark>(pos_w, keyfrm, map_db_);
+        auto lm = std::make_shared<data::landmark>(pos_w, keyfrm, map_db);
 
         lm->add_observation(keyfrm, idx);
         keyfrm->add_landmark(lm, idx);
@@ -149,7 +131,7 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::fra
         lm->compute_descriptor();
         lm->update_mean_normal_and_obs_scale_variance();
 
-        map_db_->add_landmark(lm);
+        map_db->add_landmark(lm);
     }
 
     // Queue up the keyframe to the mapping module

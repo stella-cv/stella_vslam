@@ -135,6 +135,11 @@ void mapping_module::set_is_idle(const bool is_idle) {
     is_idle_ = is_idle;
 }
 
+bool mapping_module::is_skipping_localBA() const {
+    auto queued_keyframes = get_num_queued_keyframes();
+    return queued_keyframes >= queue_threshold_;
+}
+
 void mapping_module::abort_local_BA() {
     abort_local_BA_ = true;
 }
@@ -173,8 +178,14 @@ void mapping_module::mapping_with_new_keyframe() {
 
     // local bundle adjustment
     abort_local_BA_ = false;
+    // If the processing speed is insufficient, skip localBA.
     if (2 < map_db_->get_num_keyframes()) {
-        local_bundle_adjuster_->optimize(map_db_, cur_keyfrm_, &abort_local_BA_);
+        if (is_skipping_localBA()) {
+            spdlog::debug("Skipped localBA due to insufficient performance");
+        }
+        else {
+            local_bundle_adjuster_->optimize(map_db_, cur_keyfrm_, &abort_local_BA_);
+        }
     }
     local_map_cleaner_->remove_redundant_keyframes(cur_keyfrm_);
 }

@@ -142,7 +142,7 @@ void frame_publisher::update(tracking_module* tracker, const cv::Mat& img, doubl
     curr_keypts_ = tracker->curr_frm_.frm_obs_.keypts_;
     elapsed_ms_ = elapsed_ms;
     mapping_is_enabled_ = tracker->get_mapping_module_status();
-    tracking_state_ = tracker->last_tracking_state_;
+    tracking_state_ = tracker->tracking_state_;
 
     is_tracked_ = std::vector<bool>(num_curr_keypts, false);
 

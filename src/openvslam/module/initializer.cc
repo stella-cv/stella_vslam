@@ -13,10 +13,9 @@
 namespace openvslam {
 namespace module {
 
-initializer::initializer(const camera::setup_type_t setup_type,
-                         data::map_database* map_db, data::bow_database* bow_db,
+initializer::initializer(data::map_database* map_db, data::bow_database* bow_db,
                          const YAML::Node& yaml_node)
-    : setup_type_(setup_type), map_db_(map_db), bow_db_(bow_db),
+    : map_db_(map_db), bow_db_(bow_db),
       num_ransac_iters_(yaml_node["num_ransac_iterations"].as<unsigned int>(100)),
       min_num_triangulated_(yaml_node["num_min_triangulated_pts"].as<unsigned int>(50)),
       parallax_deg_thr_(yaml_node["parallax_deg_threshold"].as<float>(1.0)),
@@ -35,6 +34,7 @@ void initializer::reset() {
     initializer_.reset(nullptr);
     state_ = initializer_state_t::NotReady;
     init_frm_id_ = 0;
+    init_frm_stamp_ = 0.0;
 }
 
 initializer_state_t initializer::get_state() const {
@@ -53,8 +53,13 @@ unsigned int initializer::get_initial_frame_id() const {
     return init_frm_id_;
 }
 
-bool initializer::initialize(data::bow_vocabulary* bow_vocab, data::frame& curr_frm) {
-    switch (setup_type_) {
+double initializer::get_initial_frame_timestamp() const {
+    return init_frm_stamp_;
+}
+
+bool initializer::initialize(const camera::setup_type_t setup_type,
+                             data::bow_vocabulary* bow_vocab, data::frame& curr_frm) {
+    switch (setup_type) {
         case camera::setup_type_t::Monocular: {
             // construct an initializer if not constructed
             if (state_ == initializer_state_t::NotReady) {
@@ -94,6 +99,7 @@ bool initializer::initialize(data::bow_vocabulary* bow_vocab, data::frame& curr_
     // check the state is succeeded or not
     if (state_ == initializer_state_t::Succeeded) {
         init_frm_id_ = curr_frm.id_;
+        init_frm_stamp_ = curr_frm.timestamp_;
         return true;
     }
     else {

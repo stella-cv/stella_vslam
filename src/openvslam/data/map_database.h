@@ -117,6 +117,12 @@ public:
     std::vector<std::shared_ptr<landmark>> get_all_landmarks() const;
 
     /**
+     * Get the last keyframe added to the database
+     * @return shared pointer to the last keyframe added to the database
+     */
+    std::shared_ptr<keyframe> get_last_inserted_keyframe() const;
+
+    /**
      * Get the number of landmarks
      * @return
      */
@@ -228,6 +234,9 @@ private:
     std::unordered_map<unsigned int, std::shared_ptr<keyframe>> keyframes_;
     //! IDs and landmarks
     std::unordered_map<unsigned int, std::shared_ptr<landmark>> landmarks_;
+
+    //! The last keyframe added to the database
+    std::shared_ptr<keyframe> last_inserted_keyfrm_ = nullptr;
 
     //! local landmarks
     std::vector<std::shared_ptr<landmark>> local_landmarks_;

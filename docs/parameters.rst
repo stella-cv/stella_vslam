@@ -178,6 +178,24 @@ Relocalizer
     * - min_num_valid_obs
       - 
 
+.. _section-parameters-keyframe-inserter:
+
+KeyframeInserter
+================
+
+.. list-table::
+    :header-rows: 1
+    :widths: 1, 3
+
+    * - Name
+      - Description
+    * - max_interval
+      - max interval to insert keyframe
+    * - lms_ratio_thr_almost_all_lms_are_tracked
+      - Threshold at which we consider that we are tracking almost all landmarks. Ratio-threshold of "the number of 3D points observed in the current frame" / "that of 3D points observed in the last keyframe"
+    * - lms_ratio_thr_view_changed
+      - Threshold at which we consider the view to have changed. Ratio-threshold of "the number of 3D points observed in the current frame" / "that of 3D points observed in the last keyframe"
+
 .. _section-parameters-pangolin:
 
 PangolinViewer

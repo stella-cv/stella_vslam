@@ -28,7 +28,6 @@ class bow_database;
 
 // tracker state
 enum class tracker_state_t {
-    NotInitialized,
     Initializing,
     Tracking,
     Lost
@@ -47,7 +46,7 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     //! Constructor
-    tracking_module(const std::shared_ptr<config>& cfg, system* system, data::map_database* map_db,
+    tracking_module(const std::shared_ptr<config>& cfg, data::map_database* map_db,
                     data::bow_vocabulary* bow_vocab, data::bow_database* bow_db);
 
     //! Destructor
@@ -75,7 +74,7 @@ public:
     std::vector<int> get_initial_matches() const;
 
     //! Main stream of the tracking module
-    std::shared_ptr<Mat44_t> track(data::frame frame);
+    std::shared_ptr<Mat44_t> feed_frame(data::frame frame);
 
     //! Request to update the pose to a given one.
     //! Return failure in case if previous request was not finished yet.
@@ -123,9 +122,7 @@ public:
     // variables
 
     //! latest tracking state
-    tracker_state_t tracking_state_ = tracker_state_t::NotInitialized;
-    //! last tracking state
-    tracker_state_t last_tracking_state_ = tracker_state_t::NotInitialized;
+    tracker_state_t tracking_state_ = tracker_state_t::Initializing;
 
     //! current frame and its image
     data::frame curr_frm_;
@@ -136,6 +133,9 @@ protected:
 
     //! Try to initialize with the current frame
     bool initialize();
+
+    //! Main stream of the tracking module
+    bool track(bool relocalization_is_needed);
 
     //! Track the current frame
     bool track_current_frame(std::unordered_set<unsigned int>& outlier_ids);
@@ -170,8 +170,6 @@ protected:
     //! Insert the new keyframe derived from the current frame
     void insert_new_keyframe();
 
-    //! system
-    system* system_ = nullptr;
     //! mapping module
     mapping_module* mapper_ = nullptr;
     //! global optimization module
@@ -209,8 +207,10 @@ protected:
     //! last frame
     data::frame last_frm_;
 
-    //! latest frame ID which succeeded in relocalization
+    //! ID of latest frame which succeeded in relocalization
     unsigned int last_reloc_frm_id_ = 0;
+    //! timestamp of latest frame which succeeded in relocalization
+    double last_reloc_frm_timestamp_ = 0.0;
 
     //! motion model
     Mat44_t twist_;

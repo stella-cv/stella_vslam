@@ -59,6 +59,9 @@ public:
     //! True when no keyframes are being processed
     bool is_idle() const;
 
+    //! If the size of the queue exceeds this threshold, skip the localBA
+    bool is_skipping_localBA() const;
+
     //-----------------------------------------
     // management for reset process
 
@@ -256,6 +259,9 @@ private:
 
     //! Create new landmarks if the baseline distance is greater than baseline_dist_thr_ of the reference keyframe.
     double baseline_dist_thr_ = 1.0;
+
+    //! If the size of the queue exceeds this threshold, skip the localBA
+    const unsigned int queue_threshold_ = 2;
 };
 
 } // namespace openvslam

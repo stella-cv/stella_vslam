@@ -107,7 +107,7 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     map_publisher_ = std::shared_ptr<publish::map_publisher>(new publish::map_publisher(cfg_, map_db_));
 
     // tracking module
-    tracker_ = new tracking_module(cfg_, this, map_db_, bow_vocab_, bow_db_);
+    tracker_ = new tracking_module(cfg_, map_db_, bow_vocab_, bow_db_);
     // mapping module
     mapper_ = new mapping_module(cfg_->yaml_node_["Mapping"], map_db_, bow_db_, bow_vocab_);
     // global optimization module
@@ -297,18 +297,12 @@ void system::abort_loop_BA() {
     global_optimizer_->abort_loop_BA();
 }
 
-std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
-    assert(camera_->setup_type_ == camera::setup_type_t::Monocular);
-
-    check_reset_request();
-
-    const auto start = std::chrono::system_clock::now();
-
+data::frame system::create_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     // color conversion
     cv::Mat img_gray = img;
     util::convert_to_grayscale(img_gray, camera_->color_order_);
 
-    bool is_init = tracker_->tracking_state_ == tracker_state_t::NotInitialized || tracker_->tracking_state_ == tracker_state_t::Initializing;
+    bool is_init = tracker_->tracking_state_ == tracker_state_t::Initializing;
 
     data::frame_observation frm_obs;
 
@@ -333,26 +327,10 @@ std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const 
     // Assign all the keypoints into grid
     data::assign_keypoints_to_grid(camera_, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_);
 
-    const auto cam_pose_wc = tracker_->track(data::frame(timestamp, camera_, orb_params_, frm_obs));
-
-    const auto end = std::chrono::system_clock::now();
-    double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-    frame_publisher_->update(tracker_, img_gray, elapsed_ms);
-    if (tracker_->tracking_state_ == tracker_state_t::Tracking && cam_pose_wc) {
-        map_publisher_->set_current_cam_pose(util::converter::inverse_pose(*cam_pose_wc));
-    }
-
-    return cam_pose_wc;
+    return data::frame(timestamp, camera_, orb_params_, frm_obs);
 }
 
-std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
-    assert(camera_->setup_type_ == camera::setup_type_t::Stereo);
-
-    check_reset_request();
-
-    const auto start = std::chrono::system_clock::now();
-
+data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
     // color conversion
     cv::Mat img_gray = left_img;
     cv::Mat right_img_gray = right_img;
@@ -395,26 +373,10 @@ std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, cons
     // Assign all the keypoints into grid
     data::assign_keypoints_to_grid(camera_, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_);
 
-    const auto cam_pose_wc = tracker_->track(data::frame(timestamp, camera_, orb_params_, frm_obs));
-
-    const auto end = std::chrono::system_clock::now();
-    double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-    frame_publisher_->update(tracker_, img_gray, elapsed_ms);
-    if (tracker_->tracking_state_ == tracker_state_t::Tracking && cam_pose_wc) {
-        map_publisher_->set_current_cam_pose(util::converter::inverse_pose(*cam_pose_wc));
-    }
-
-    return cam_pose_wc;
+    return data::frame(timestamp, camera_, orb_params_, frm_obs);
 }
 
-std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask) {
-    assert(camera_->setup_type_ == camera::setup_type_t::RGBD);
-
-    check_reset_request();
-
-    const auto start = std::chrono::system_clock::now();
-
+data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask) {
     // color and depth scale conversion
     cv::Mat img_gray = rgb_img;
     cv::Mat img_depth = depthmap;
@@ -460,13 +422,35 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
 
     // Assign all the keypoints into grid
     data::assign_keypoints_to_grid(camera_, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_);
+    return data::frame(timestamp, camera_, orb_params_, frm_obs);
+}
 
-    const auto cam_pose_wc = tracker_->track(data::frame(timestamp, camera_, orb_params_, frm_obs));
+std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
+    assert(camera_->setup_type_ == camera::setup_type_t::Monocular);
+    return feed_frame(create_monocular_frame(img, timestamp, mask), img);
+}
+
+std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
+    assert(camera_->setup_type_ == camera::setup_type_t::Stereo);
+    return feed_frame(create_stereo_frame(left_img, right_img, timestamp, mask), left_img);
+}
+
+std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask) {
+    assert(camera_->setup_type_ == camera::setup_type_t::RGBD);
+    return feed_frame(create_RGBD_frame(rgb_img, depthmap, timestamp, mask), rgb_img);
+}
+
+std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Mat& img) {
+    check_reset_request();
+
+    const auto start = std::chrono::system_clock::now();
+
+    const auto cam_pose_wc = tracker_->feed_frame(frm);
 
     const auto end = std::chrono::system_clock::now();
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    frame_publisher_->update(tracker_, img_gray, elapsed_ms);
+    frame_publisher_->update(tracker_, img, elapsed_ms);
     if (tracker_->tracking_state_ == tracker_state_t::Tracking && cam_pose_wc) {
         map_publisher_->set_current_cam_pose(util::converter::inverse_pose(*cam_pose_wc));
     }

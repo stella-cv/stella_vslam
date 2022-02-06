@@ -19,8 +19,11 @@ namespace module {
 
 class keyframe_inserter {
 public:
-    keyframe_inserter(const camera::setup_type_t setup_type, data::map_database* map_db,
-                      const unsigned int min_num_frms, const unsigned int max_num_frms);
+    explicit keyframe_inserter(const double max_interval = 1.0,
+                               const double lms_ratio_thr_almost_all_lms_are_tracked = 0.95,
+                               const double lms_ratio_thr_view_changed = 0.9);
+
+    explicit keyframe_inserter(const YAML::Node& yaml_node);
 
     virtual ~keyframe_inserter() = default;
 
@@ -31,13 +34,15 @@ public:
     /**
      * Check the new keyframe is needed or not
      */
-    bool new_keyframe_is_needed(const data::frame& curr_frm, const unsigned int num_tracked_lms,
+    bool new_keyframe_is_needed(data::map_database* map_db,
+                                const data::frame& curr_frm,
+                                const unsigned int num_tracked_lms,
                                 const data::keyframe& ref_keyfrm) const;
 
     /**
      * Insert the new keyframe derived from the current frame
      */
-    std::shared_ptr<data::keyframe> insert_new_keyframe(data::frame& curr_frm);
+    std::shared_ptr<data::keyframe> insert_new_keyframe(data::map_database* map_db, data::frame& curr_frm);
 
 private:
     /**
@@ -45,22 +50,15 @@ private:
      */
     void queue_keyframe(const std::shared_ptr<data::keyframe>& keyfrm);
 
-    //! setup type of the tracking camera
-    const camera::setup_type_t setup_type_;
-
-    //! map database
-    data::map_database* map_db_ = nullptr;
-
     //! mapping module
     mapping_module* mapper_ = nullptr;
 
-    //! min number of frames to insert keyframe
-    const unsigned int min_num_frms_;
-    //! max number of frames to insert keyframe
-    const unsigned int max_num_frms_;
+    //! max interval to insert keyframe
+    const double max_interval_;
 
-    //! frame ID of the last keyframe
-    unsigned int frm_id_of_last_keyfrm_ = 0;
+    //! Ratio-threshold of "the number of 3D points observed in the current frame" / "that of 3D points observed in the last keyframe"
+    const double lms_ratio_thr_almost_all_lms_are_tracked_ = 0.95;
+    const double lms_ratio_thr_view_changed_ = 0.9;
 };
 
 } // namespace module

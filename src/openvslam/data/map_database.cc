@@ -29,6 +29,7 @@ map_database::~map_database() {
 void map_database::add_keyframe(const std::shared_ptr<keyframe>& keyfrm) {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
     keyframes_[keyfrm->id_] = keyfrm;
+    last_inserted_keyfrm_ = keyfrm;
 }
 
 void map_database::erase_keyframe(const std::shared_ptr<keyframe>& keyfrm) {
@@ -138,6 +139,11 @@ std::vector<std::shared_ptr<landmark>> map_database::get_all_landmarks() const {
     return landmarks;
 }
 
+std::shared_ptr<keyframe> map_database::get_last_inserted_keyframe() const {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    return last_inserted_keyfrm_;
+}
+
 unsigned int map_database::get_num_landmarks() const {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
     return landmarks_.size();
@@ -148,6 +154,7 @@ void map_database::clear() {
 
     landmarks_.clear();
     keyframes_.clear();
+    last_inserted_keyfrm_ = nullptr;
     local_landmarks_.clear();
     origin_keyfrm_ = nullptr;
 
@@ -171,6 +178,8 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
 
     landmarks_.clear();
     keyframes_.clear();
+    // When loading the map, leave last_inserted_keyfrm_ as nullptr.
+    last_inserted_keyfrm_ = nullptr;
     local_landmarks_.clear();
     origin_keyfrm_ = nullptr;
 
