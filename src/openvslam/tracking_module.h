@@ -26,10 +26,6 @@ class map_database;
 class bow_database;
 } // namespace data
 
-namespace feature {
-class orb_extractor;
-} // namespace feature
-
 // tracker state
 enum class tracker_state_t {
     NotInitialized,
@@ -51,7 +47,7 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     //! Constructor
-    tracking_module(const std::shared_ptr<config>& cfg, system* system, data::map_database* map_db,
+    tracking_module(const std::shared_ptr<config>& cfg, double true_depth_thr, system* system, data::map_database* map_db,
                     data::bow_vocabulary* bow_vocab, data::bow_database* bow_db);
 
     //! Destructor
@@ -78,17 +74,8 @@ public:
     //! Get the keypoint matches between the initial frame and the current frame
     std::vector<int> get_initial_matches() const;
 
-    //! Track a monocular frame
-    //! (NOTE: distorted images are acceptable if calibrated)
-    std::shared_ptr<Mat44_t> track_monocular_image(const cv::Mat& img, const double timestamp, const cv::Mat& mask = cv::Mat{});
-
-    //! Track a stereo frame
-    //! (Note: Left and Right images must be stereo-rectified)
-    std::shared_ptr<Mat44_t> track_stereo_image(const cv::Mat& left_img_rect, const cv::Mat& right_img_rect, const double timestamp, const cv::Mat& mask = cv::Mat{});
-
-    //! Track an RGBD frame
-    //! (Note: RGB and Depth images must be aligned)
-    std::shared_ptr<Mat44_t> track_RGBD_image(const cv::Mat& img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask = cv::Mat{});
+    //! Main stream of the tracking module
+    std::shared_ptr<Mat44_t> track(data::frame frame);
 
     //! Request to update the pose to a given one.
     //! Return failure in case if previous request was not finished yet.
@@ -122,12 +109,6 @@ public:
     //! camera model
     camera::base* camera_;
 
-    //! depth threshold (Ignore depths farther than true_depth_thr_ times the baseline.)
-    double true_depth_thr_ = 40.0;
-
-    //! depthmap factor (pixel_value / depthmap_factor = true_depth)
-    double depthmap_factor_ = 1.0;
-
     //! closest keyframes thresholds (by distance and angle) to relocalize with when updating by pose
     double reloc_distance_threshold_ = 0.2;
     double reloc_angle_threshold_ = 0.45;
@@ -148,18 +129,10 @@ public:
 
     //! current frame and its image
     data::frame curr_frm_;
-    //! image of the current frame
-    cv::Mat img_gray_;
-
-    //! elapsed microseconds for each tracking
-    double elapsed_ms_ = 0.0;
 
 protected:
     //-----------------------------------------
     // tracking processes
-
-    //! Main stream of the tracking module
-    void track();
 
     //! Try to initialize with the current frame
     bool initialize();
@@ -203,14 +176,6 @@ protected:
     mapping_module* mapper_ = nullptr;
     //! global optimization module
     global_optimization_module* global_optimizer_ = nullptr;
-
-    // ORB extractors
-    //! ORB extractor for left/monocular image
-    feature::orb_extractor* extractor_left_ = nullptr;
-    //! ORB extractor for right image
-    feature::orb_extractor* extractor_right_ = nullptr;
-    //! ORB extractor only when used in initializing
-    feature::orb_extractor* ini_extractor_left_ = nullptr;
 
     //! map_database
     data::map_database* map_db_ = nullptr;

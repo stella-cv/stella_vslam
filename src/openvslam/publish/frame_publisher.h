@@ -37,7 +37,7 @@ public:
      * Update tracking information
      * NOTE: should be accessed from system thread
      */
-    void update(tracking_module* tracker);
+    void update(tracking_module* tracker, const cv::Mat& img, double elapsed_ms);
 
     /**
      * Get the current image with tracking information

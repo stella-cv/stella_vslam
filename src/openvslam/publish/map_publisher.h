@@ -49,20 +49,6 @@ public:
     Mat44_t get_current_cam_pose();
 
     /**
-     * Set current camera pose
-     * NOTE: should be accessed from tracker thread
-     * @param cam_pose_wc
-     */
-    void set_current_cam_pose_wc(const Mat44_t& cam_pose_wc);
-
-    /**
-     * Get current camera pose
-     * NOTE: should be accessed from viewer thread
-     * @return
-     */
-    Mat44_t get_current_cam_pose_wc();
-
-    /**
      * Get all keyframes
      * @param all_keyfrms
      * @return number of keyframes in map

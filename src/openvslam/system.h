@@ -30,6 +30,10 @@ class map_database;
 class bow_database;
 } // namespace data
 
+namespace feature {
+class orb_extractor;
+} // namespace feature
+
 namespace publish {
 class map_publisher;
 class frame_publisher;
@@ -153,6 +157,15 @@ public:
     //!! Termination of the system is requested or not
     bool terminate_is_requested() const;
 
+    //-----------------------------------------
+    // config
+
+    //! depth threshold (Ignore depths farther than true_depth_thr_ times the baseline.)
+    double true_depth_thr_ = 40.0;
+
+    //! depthmap factor (pixel_value / depthmap_factor = true_depth)
+    double depthmap_factor_ = 1.0;
+
 private:
     //! Check reset request of the system
     void check_reset_request();
@@ -192,6 +205,14 @@ private:
     global_optimization_module* global_optimizer_ = nullptr;
     //! global optimization thread
     std::unique_ptr<std::thread> global_optimization_thread_ = nullptr;
+
+    // ORB extractors
+    //! ORB extractor for left/monocular image
+    feature::orb_extractor* extractor_left_ = nullptr;
+    //! ORB extractor for right image
+    feature::orb_extractor* extractor_right_ = nullptr;
+    //! ORB extractor only when used in initializing
+    feature::orb_extractor* ini_extractor_left_ = nullptr;
 
     //! frame publisher
     std::shared_ptr<publish::frame_publisher> frame_publisher_ = nullptr;

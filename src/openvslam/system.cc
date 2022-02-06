@@ -8,15 +8,55 @@
 #include "openvslam/data/map_database.h"
 #include "openvslam/data/bow_database.h"
 #include "openvslam/data/bow_vocabulary.h"
+#include "openvslam/feature/orb_extractor.h"
 #include "openvslam/io/trajectory_io.h"
 #include "openvslam/io/map_database_io.h"
 #include "openvslam/publish/map_publisher.h"
 #include "openvslam/publish/frame_publisher.h"
+#include "openvslam/util/converter.h"
+#include "openvslam/util/image_converter.h"
 #include "openvslam/util/yaml.h"
 
 #include <thread>
 
 #include <spdlog/spdlog.h>
+
+namespace {
+using namespace openvslam;
+
+feature::orb_params get_orb_params(const YAML::Node& yaml_node) {
+    spdlog::debug("load ORB parameters");
+    try {
+        return feature::orb_params(yaml_node);
+    }
+    catch (const std::exception& e) {
+        spdlog::error("failed in loading ORB parameters: {}", e.what());
+        throw;
+    }
+}
+
+double get_true_depth_thr(const camera::base* camera, const YAML::Node& yaml_node) {
+    spdlog::debug("load depth threshold");
+    double true_depth_thr = 40.0;
+    if (camera->setup_type_ == camera::setup_type_t::Stereo || camera->setup_type_ == camera::setup_type_t::RGBD) {
+        const auto depth_thr_factor = yaml_node["depth_threshold"].as<double>(40.0);
+        true_depth_thr = camera->true_baseline_ * depth_thr_factor;
+    }
+    return true_depth_thr;
+}
+
+double get_depthmap_factor(const camera::base* camera, const YAML::Node& yaml_node) {
+    spdlog::debug("load depthmap factor");
+    double depthmap_factor = 1.0;
+    if (camera->setup_type_ == camera::setup_type_t::RGBD) {
+        depthmap_factor = yaml_node["depthmap_factor"].as<double>(depthmap_factor);
+    }
+    if (depthmap_factor < 0.) {
+        throw std::runtime_error("depthmap_factor must be greater than 0");
+    }
+    return depthmap_factor;
+}
+} // namespace
 
 namespace openvslam {
 
@@ -79,16 +119,31 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     int loop_min_distance_on_graph = bow_database_yaml_node["loop_min_distance_on_graph"].as<int>(30);
     bow_db_ = new data::bow_database(bow_vocab_, reject_by_graph_distance, loop_min_distance_on_graph);
 
+    const auto tracking_params = util::yaml_optional_ref(cfg->yaml_node_, "Tracking");
+    depthmap_factor_ = get_depthmap_factor(camera_, tracking_params);
+
     // frame and map publisher
     frame_publisher_ = std::shared_ptr<publish::frame_publisher>(new publish::frame_publisher(cfg_, map_db_));
     map_publisher_ = std::shared_ptr<publish::map_publisher>(new publish::map_publisher(cfg_, map_db_));
 
     // tracking module
-    tracker_ = new tracking_module(cfg_, this, map_db_, bow_vocab_, bow_db_);
+    true_depth_thr_ = get_true_depth_thr(camera_, tracking_params);
+    tracker_ = new tracking_module(cfg_, true_depth_thr_, this, map_db_, bow_vocab_, bow_db_);
     // mapping module
     mapper_ = new mapping_module(cfg_->yaml_node_["Mapping"], map_db_);
     // global optimization module
     global_optimizer_ = new global_optimization_module(map_db_, bow_db_, bow_vocab_, cfg_->yaml_node_, camera_->setup_type_ != camera::setup_type_t::Monocular);
+
+    feature::orb_params orb_params = get_orb_params(util::yaml_optional_ref(cfg->yaml_node_, "Feature"));
+    const auto max_num_keypoints = tracking_params["max_num_keypoints"].as<unsigned int>(2000);
+    extractor_left_ = new feature::orb_extractor(max_num_keypoints, orb_params);
+    if (camera_->setup_type_ == camera::setup_type_t::Monocular) {
+        const auto ini_max_num_keypoints = tracking_params["ini_max_num_keypoints"].as<unsigned int>(2 * extractor_left_->get_max_num_keypoints());
+        ini_extractor_left_ = new feature::orb_extractor(ini_max_num_keypoints, orb_params);
+    }
+    if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
+        extractor_right_ = new feature::orb_extractor(max_num_keypoints, orb_params);
+    }
 
     // connect modules each other
     tracker_->set_mapping_module(mapper_);
@@ -119,6 +174,13 @@ system::~system() {
     cam_db_ = nullptr;
     delete bow_vocab_;
     bow_vocab_ = nullptr;
+
+    delete extractor_left_;
+    extractor_left_ = nullptr;
+    delete extractor_right_;
+    extractor_right_ = nullptr;
+    delete ini_extractor_left_;
+    ini_extractor_left_ = nullptr;
 
     spdlog::debug("DESTRUCT: system");
 }
@@ -241,12 +303,21 @@ std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const 
 
     check_reset_request();
 
-    const auto cam_pose_wc = tracker_->track_monocular_image(img, timestamp, mask);
+    const auto start = std::chrono::system_clock::now();
 
-    frame_publisher_->update(tracker_);
+    // color conversion
+    cv::Mat img_gray = img;
+    util::convert_to_grayscale(img_gray, camera_->color_order_);
+
+    bool is_init = tracker_->tracking_state_ == tracker_state_t::NotInitialized || tracker_->tracking_state_ == tracker_state_t::Initializing;
+    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, timestamp, is_init ? ini_extractor_left_ : extractor_left_, bow_vocab_, camera_, true_depth_thr_, mask));
+
+    const auto end = std::chrono::system_clock::now();
+    double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    frame_publisher_->update(tracker_, img_gray, elapsed_ms);
     if (tracker_->tracking_state_ == tracker_state_t::Tracking && cam_pose_wc) {
-        map_publisher_->set_current_cam_pose(tracker_->curr_frm_.get_cam_pose());
-        map_publisher_->set_current_cam_pose_wc(*cam_pose_wc);
+        map_publisher_->set_current_cam_pose(util::converter::inverse_pose(*cam_pose_wc));
     }
 
     return cam_pose_wc;
@@ -257,12 +328,22 @@ std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, cons
 
     check_reset_request();
 
-    const auto cam_pose_wc = tracker_->track_stereo_image(left_img, right_img, timestamp, mask);
+    const auto start = std::chrono::system_clock::now();
 
-    frame_publisher_->update(tracker_);
+    // color conversion
+    cv::Mat img_gray = left_img;
+    cv::Mat right_img_gray = right_img;
+    util::convert_to_grayscale(img_gray, camera_->color_order_);
+    util::convert_to_grayscale(right_img_gray, camera_->color_order_);
+
+    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, right_img_gray, timestamp, extractor_left_, extractor_right_, bow_vocab_, camera_, true_depth_thr_, mask));
+
+    const auto end = std::chrono::system_clock::now();
+    double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    frame_publisher_->update(tracker_, img_gray, elapsed_ms);
     if (tracker_->tracking_state_ == tracker_state_t::Tracking && cam_pose_wc) {
-        map_publisher_->set_current_cam_pose(tracker_->curr_frm_.get_cam_pose());
-        map_publisher_->set_current_cam_pose_wc(*cam_pose_wc);
+        map_publisher_->set_current_cam_pose(util::converter::inverse_pose(*cam_pose_wc));
     }
 
     return cam_pose_wc;
@@ -273,37 +354,45 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
 
     check_reset_request();
 
-    const auto cam_pose_wc = tracker_->track_RGBD_image(rgb_img, depthmap, timestamp, mask);
+    const auto start = std::chrono::system_clock::now();
 
-    frame_publisher_->update(tracker_);
+    // color and depth scale conversion
+    cv::Mat img_gray = rgb_img;
+    cv::Mat img_depth = depthmap;
+    util::convert_to_grayscale(img_gray, camera_->color_order_);
+    util::convert_to_true_depth(img_depth, depthmap_factor_);
+
+    const auto cam_pose_wc = tracker_->track(data::frame(img_gray, img_depth, timestamp, extractor_left_, bow_vocab_, camera_, true_depth_thr_, mask));
+
+    const auto end = std::chrono::system_clock::now();
+    double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    frame_publisher_->update(tracker_, img_gray, elapsed_ms);
     if (tracker_->tracking_state_ == tracker_state_t::Tracking && cam_pose_wc) {
-        map_publisher_->set_current_cam_pose(tracker_->curr_frm_.get_cam_pose());
-        map_publisher_->set_current_cam_pose_wc(*cam_pose_wc);
+        map_publisher_->set_current_cam_pose(util::converter::inverse_pose(*cam_pose_wc));
     }
 
     return cam_pose_wc;
 }
 
 bool system::relocalize_by_pose(const Mat44_t& cam_pose_wc) {
-    const Mat44_t cam_pose_cw = cam_pose_wc.inverse();
+    const Mat44_t cam_pose_cw = util::converter::inverse_pose(cam_pose_wc);
     bool status = tracker_->request_relocalize_by_pose(cam_pose_cw);
     if (status) {
         // Even if state will be lost, still update the pose in map_publisher_
         // to clearly show new camera position
         map_publisher_->set_current_cam_pose(cam_pose_cw);
-        map_publisher_->set_current_cam_pose_wc(cam_pose_wc);
     }
     return status;
 }
 
 bool system::relocalize_by_pose_2d(const Mat44_t& cam_pose_wc, const Vec3_t& normal_vector) {
-    const Mat44_t cam_pose_cw = cam_pose_wc.inverse();
+    const Mat44_t cam_pose_cw = util::converter::inverse_pose(cam_pose_wc);
     bool status = tracker_->request_relocalize_by_pose_2d(cam_pose_cw, normal_vector);
     if (status) {
         // Even if state will be lost, still update the pose in map_publisher_
         // to clearly show new camera position
         map_publisher_->set_current_cam_pose(cam_pose_cw);
-        map_publisher_->set_current_cam_pose_wc(cam_pose_wc);
     }
     return status;
 }

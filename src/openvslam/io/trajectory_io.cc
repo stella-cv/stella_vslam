@@ -1,6 +1,7 @@
 #include "openvslam/data/keyframe.h"
 #include "openvslam/data/map_database.h"
 #include "openvslam/io/trajectory_io.h"
+#include "openvslam/util/converter.h"
 
 #include <iostream>
 #include <iomanip>
@@ -77,14 +78,7 @@ void trajectory_io::save_frame_trajectory(const std::string& path, const std::st
         const Mat44_t rel_cam_pose_cr = rc_itr->second;
 
         const Mat44_t cam_pose_cw = rel_cam_pose_cr * cam_pose_rw;
-
-        const Mat33_t rot_cw = cam_pose_cw.block<3, 3>(0, 0);
-        const Vec3_t trans_cw = cam_pose_cw.block<3, 1>(0, 3);
-        const Mat33_t rot_wc = rot_cw.transpose();
-        const Vec3_t cam_center = -rot_wc * trans_cw;
-        Mat44_t cam_pose_wc = Mat44_t::Identity();
-        cam_pose_wc.block<3, 3>(0, 0) = rot_wc;
-        cam_pose_wc.block<3, 1>(0, 3) = cam_center;
+        Mat44_t cam_pose_wc = util::converter::inverse_pose(cam_pose_cw);
 
         if (format == "KITTI") {
             ofs << std::setprecision(9)
