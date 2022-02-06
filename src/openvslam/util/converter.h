@@ -27,6 +27,9 @@ public:
     static Mat44_t to_eigen_mat(const g2o::Sim3& g2o_Sim3);
     static Mat44_t to_eigen_cam_pose(const Mat33_t& rot, const Vec3_t& trans);
 
+    //! inverse pose
+    static Mat44_t inverse_pose(const Mat44_t& pose_cw);
+
     //! from/to angle axis
     static Vec3_t to_angle_axis(const Mat33_t& rot_mat);
     static Mat33_t to_rot_mat(const Vec3_t& angle_axis);

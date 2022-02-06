@@ -15,13 +15,9 @@ public:
     orb_extractor() = delete;
 
     //! Constructor
-    orb_extractor(const unsigned int max_num_keypts,
-                  const float scale_factor, const unsigned int num_levels,
-                  const unsigned int ini_fast_thr, const unsigned int min_fast_thr,
+    orb_extractor(const orb_params* orb_params,
+                  const unsigned int max_num_keypts,
                   const std::vector<std::vector<float>>& mask_rects = {});
-
-    //! Constructor
-    orb_extractor(const unsigned int max_num_keypts, const orb_params& orb_params);
 
     //! Destructor
     virtual ~orb_extractor() = default;
@@ -36,41 +32,12 @@ public:
     //! Set the maximum number of keypoints
     void set_max_num_keypoints(const unsigned int max_num_keypts);
 
-    //! Get the scale factor
-    float get_scale_factor() const;
+    //! parameters for ORB extraction
+    const orb_params* orb_params_;
 
-    //! Set the scale factor
-    void set_scale_factor(const float scale_factor);
-
-    //! Get the number of scale levels
-    unsigned int get_num_scale_levels() const;
-
-    //! Set the number of scale levels
-    void set_num_scale_levels(const unsigned int num_levels);
-
-    //! Get the initial fast threshold
-    unsigned int get_initial_fast_threshold() const;
-
-    //! Set the initial fast threshold
-    void set_initial_fast_threshold(const unsigned int initial_fast_threshold);
-
-    //! Get the minimum fast threshold
-    unsigned int get_minimum_fast_threshold() const;
-
-    //! Set the minimum fast threshold
-    void set_minimum_fast_threshold(const unsigned int minimum_fast_threshold);
-
-    //! Get scale factors
-    std::vector<float> get_scale_factors() const;
-
-    //! Set scale factors
-    std::vector<float> get_inv_scale_factors() const;
-
-    //! Get sigma square for all levels
-    std::vector<float> get_level_sigma_sq() const;
-
-    //! Get inverted sigma square for all levels
-    std::vector<float> get_inv_level_sigma_sq() const;
+    //! A vector of keypoint area represents mask area
+    //! Each areas are denoted as form of [x_min / cols, x_max / cols, y_min / rows, y_max / rows]
+    std::vector<std::vector<float>> mask_rects_;
 
     //! Image pyramid
     std::vector<cv::Mat> image_pyramid_;
@@ -125,9 +92,6 @@ private:
     //! Number of feature points to be extracted
     unsigned int max_num_keypts_;
 
-    //! parameters for ORB extraction
-    orb_params orb_params_;
-
     //! BRIEF orientation
     static constexpr unsigned int fast_patch_size_ = 31;
     //! half size of FAST patch
@@ -139,13 +103,6 @@ private:
     //! rectangle mask has been already initialized or not
     bool mask_is_initialized_ = false;
     cv::Mat rect_mask_;
-
-    //! A list of the scale factor of each pyramid layer
-    std::vector<float> scale_factors_;
-    std::vector<float> inv_scale_factors_;
-    //! A list of the sigma of each pyramid layer
-    std::vector<float> level_sigma_sq_;
-    std::vector<float> inv_level_sigma_sq_;
 
     //! Maximum number of keypoint of each level
     std::vector<unsigned int> num_keypts_per_level_;

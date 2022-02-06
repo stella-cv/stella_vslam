@@ -9,38 +9,34 @@ graph_node::graph_node(std::shared_ptr<keyframe>& keyfrm, const bool spanning_pa
     : owner_keyfrm_(keyfrm), spanning_parent_is_not_set_(spanning_parent_is_not_set) {}
 
 void graph_node::add_connection(const std::shared_ptr<keyframe>& keyfrm, const unsigned int weight) {
+    std::lock_guard<std::mutex> lock(mtx_);
     bool need_update = false;
-    {
-        std::lock_guard<std::mutex> lock(mtx_);
-        if (!connected_keyfrms_and_weights_.count(keyfrm)) {
-            // if `keyfrm` not exists
-            connected_keyfrms_and_weights_[keyfrm] = weight;
-            need_update = true;
-        }
-        else if (connected_keyfrms_and_weights_.at(keyfrm) != weight) {
-            // if the weight is updated
-            connected_keyfrms_and_weights_.at(keyfrm) = weight;
-            need_update = true;
-        }
+    if (!connected_keyfrms_and_weights_.count(keyfrm)) {
+        // if `keyfrm` not exists
+        connected_keyfrms_and_weights_[keyfrm] = weight;
+        need_update = true;
+    }
+    else if (connected_keyfrms_and_weights_.at(keyfrm) != weight) {
+        // if the weight is updated
+        connected_keyfrms_and_weights_.at(keyfrm) = weight;
+        need_update = true;
     }
 
     if (need_update) {
-        update_covisibility_orders();
+        update_covisibility_orders_impl();
     }
 }
 
 void graph_node::erase_connection(const std::shared_ptr<keyframe>& keyfrm) {
+    std::lock_guard<std::mutex> lock(mtx_);
     bool need_update = false;
-    {
-        std::lock_guard<std::mutex> lock(mtx_);
-        if (connected_keyfrms_and_weights_.count(keyfrm)) {
-            connected_keyfrms_and_weights_.erase(keyfrm);
-            need_update = true;
-        }
+    if (connected_keyfrms_and_weights_.count(keyfrm)) {
+        connected_keyfrms_and_weights_.erase(keyfrm);
+        need_update = true;
     }
 
     if (need_update) {
-        update_covisibility_orders();
+        update_covisibility_orders_impl();
     }
 }
 
@@ -149,7 +145,10 @@ void graph_node::update_connections() {
 
 void graph_node::update_covisibility_orders() {
     std::lock_guard<std::mutex> lock(mtx_);
+    update_covisibility_orders_impl();
+}
 
+void graph_node::update_covisibility_orders_impl() {
     std::vector<std::pair<unsigned int, std::shared_ptr<keyframe>>> weight_keyfrm_pairs;
     weight_keyfrm_pairs.reserve(connected_keyfrms_and_weights_.size());
 

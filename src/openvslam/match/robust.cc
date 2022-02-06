@@ -36,9 +36,9 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
     // Save the matching information
     // Discard the already matched keypoints in keyframe 2
     // to acquire a unique association to each keypoint in keyframe 1
-    std::vector<bool> is_already_matched_in_keyfrm_2(keyfrm_2->num_keypts_, false);
+    std::vector<bool> is_already_matched_in_keyfrm_2(keyfrm_2->frm_obs_.num_keypts_, false);
     // Save the keypoint idx in keyframe 2 which is already associated to the keypoint idx in keyframe 1
-    std::vector<int> matched_indices_2_in_keyfrm_1(keyfrm_1->num_keypts_, -1);
+    std::vector<int> matched_indices_2_in_keyfrm_1(keyfrm_1->frm_obs_.num_keypts_, -1);
 
 #ifdef USE_DBOW2
     DBoW2::FeatureVector::const_iterator itr_1 = keyfrm_1->bow_feat_vec_.begin();
@@ -68,12 +68,12 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
                 }
 
                 // Check if it's a stereo keypoint or not
-                const bool is_stereo_keypt_1 = 0 <= keyfrm_1->stereo_x_right_.at(idx_1);
+                const bool is_stereo_keypt_1 = 0 <= keyfrm_1->frm_obs_.stereo_x_right_.at(idx_1);
 
                 // Acquire the keypoints and ORB feature vectors
-                const auto& keypt_1 = keyfrm_1->undist_keypts_.at(idx_1);
-                const Vec3_t& bearing_1 = keyfrm_1->bearings_.at(idx_1);
-                const auto& desc_1 = keyfrm_1->descriptors_.row(idx_1);
+                const auto& keypt_1 = keyfrm_1->frm_obs_.undist_keypts_.at(idx_1);
+                const Vec3_t& bearing_1 = keyfrm_1->frm_obs_.bearings_.at(idx_1);
+                const auto& desc_1 = keyfrm_1->frm_obs_.descriptors_.row(idx_1);
 
                 // Find a keypoint in keyframe 2 that has the minimum hamming distance
                 unsigned int best_hamm_dist = HAMMING_DIST_THR_LOW;
@@ -93,11 +93,11 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
                     }
 
                     // Check if it's a stereo keypoint or not
-                    const bool is_stereo_keypt_2 = 0 <= keyfrm_2->stereo_x_right_.at(idx_2);
+                    const bool is_stereo_keypt_2 = 0 <= keyfrm_2->frm_obs_.stereo_x_right_.at(idx_2);
 
                     // Acquire the keypoints and ORB feature vectors
-                    const Vec3_t& bearing_2 = keyfrm_2->bearings_.at(idx_2);
-                    const auto& desc_2 = keyfrm_2->descriptors_.row(idx_2);
+                    const Vec3_t& bearing_2 = keyfrm_2->frm_obs_.bearings_.at(idx_2);
+                    const auto& desc_2 = keyfrm_2->frm_obs_.descriptors_.row(idx_2);
 
                     // Compute the distance
                     const auto hamm_dist = compute_descriptor_distance_32(desc_1, desc_2);
@@ -120,7 +120,7 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
 
                     // Check consistency in Matrix E
                     const bool is_inlier = check_epipolar_constraint(bearing_1, bearing_2, E_12,
-                                                                     keyfrm_1->scale_factors_.at(keypt_1.octave));
+                                                                     keyfrm_1->orb_params_->scale_factors_.at(keypt_1.octave));
                     if (is_inlier) {
                         best_idx_2 = idx_2;
                         best_hamm_dist = hamm_dist;
@@ -137,7 +137,7 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
 
                 if (check_orientation_) {
                     const auto delta_angle
-                        = keypt_1.angle - keyfrm_2->undist_keypts_.at(best_idx_2).angle;
+                        = keypt_1.angle - keyfrm_2->frm_obs_.undist_keypts_.at(best_idx_2).angle;
                     angle_checker.append_delta_angle(delta_angle, idx_1);
                 }
             }
@@ -179,7 +179,7 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
 unsigned int robust::match_frame_and_keyframe(data::frame& frm, const std::shared_ptr<data::keyframe>& keyfrm,
                                               std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm) const {
     // Initialization
-    const auto num_frm_keypts = frm.num_keypts_;
+    const auto num_frm_keypts = frm.frm_obs_.num_keypts_;
     const auto keyfrm_lms = keyfrm->get_landmarks();
     unsigned int num_inlier_matches = 0;
     matched_lms_in_frm = std::vector<std::shared_ptr<data::landmark>>(num_frm_keypts, nullptr);
@@ -189,7 +189,7 @@ unsigned int robust::match_frame_and_keyframe(data::frame& frm, const std::share
     brute_force_match(frm, keyfrm, matches);
 
     // Extract only inliers with eight-point RANSAC
-    solve::essential_solver solver(frm.bearings_, keyfrm->bearings_, matches);
+    solve::essential_solver solver(frm.frm_obs_.bearings_, keyfrm->frm_obs_.bearings_, matches);
     solver.find_via_ransac(50, false);
     if (!solver.solution_is_valid()) {
         return 0;
@@ -218,13 +218,13 @@ unsigned int robust::brute_force_match(data::frame& frm, const std::shared_ptr<d
 
     // 1. Acquire the frame and keyframe information
 
-    const auto num_keypts_1 = frm.num_keypts_;
-    const auto num_keypts_2 = keyfrm->num_keypts_;
-    const auto keypts_1 = frm.keypts_;
-    const auto keypts_2 = keyfrm->keypts_;
+    const auto num_keypts_1 = frm.frm_obs_.num_keypts_;
+    const auto num_keypts_2 = keyfrm->frm_obs_.num_keypts_;
+    const auto keypts_1 = frm.frm_obs_.keypts_;
+    const auto keypts_2 = keyfrm->frm_obs_.keypts_;
     const auto lms_2 = keyfrm->get_landmarks();
-    const auto& descs_1 = frm.descriptors_;
-    const auto& descs_2 = keyfrm->descriptors_;
+    const auto& descs_1 = frm.frm_obs_.descriptors_;
+    const auto& descs_2 = keyfrm->frm_obs_.descriptors_;
 
     // 2. Acquire ORB descriptors in the keyframe which are the first and second closest to the descriptors in the frame
     //    it is assumed that keypoint in the keyframe are associated to 3D points

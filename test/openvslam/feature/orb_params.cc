@@ -9,6 +9,7 @@ using namespace openvslam;
 TEST(orb_params, load_yaml_without_rectangle_mask) {
     const std::string yaml =
         "Feature:\n"
+        "  name: \"ORB setting for test\"\n"
         "  scale_factor: 1.3\n"
         "  num_levels: 12\n"
         "  ini_fast_threshold: 25\n"
@@ -20,137 +21,7 @@ TEST(orb_params, load_yaml_without_rectangle_mask) {
     EXPECT_FLOAT_EQ(params.scale_factor_, 1.3);
     EXPECT_EQ(params.num_levels_, 12);
     EXPECT_EQ(params.ini_fast_thr_, 25);
-    EXPECT_EQ(params.min_fast_thr, 9);
-    EXPECT_EQ(params.mask_rects_.size(), 0);
-}
-
-TEST(orb_params, load_yaml_with_rectangle_mask) {
-    const std::string yaml =
-        "Camera:\n"
-        "  cols: 640\n"
-        "  rows: 480\n"
-        "Feature:\n"
-        "  scale_factor: 1.3\n"
-        "  num_levels: 12\n"
-        "  ini_fast_threshold: 25\n"
-        "  min_fast_threshold: 9\n"
-        "  mask_rectangles:\n"
-        "    - [0.2, 0.5, 0.3, 0.8]\n"
-        "    - [0.28, 0.59, 0.1, 0.2]\n";
-
-    const auto yaml_node = YAML::Load(yaml);
-    const auto params = feature::orb_params(yaml_node["Feature"]);
-
-    EXPECT_FLOAT_EQ(params.scale_factor_, 1.3);
-    EXPECT_EQ(params.num_levels_, 12);
-    EXPECT_EQ(params.ini_fast_thr_, 25);
-    EXPECT_EQ(params.min_fast_thr, 9);
-    EXPECT_EQ(params.mask_rects_.size(), 2);
-
-    EXPECT_FLOAT_EQ(params.mask_rects_.at(0).at(0), 0.2);
-    EXPECT_FLOAT_EQ(params.mask_rects_.at(0).at(1), 0.5);
-    EXPECT_FLOAT_EQ(params.mask_rects_.at(0).at(2), 0.3);
-    EXPECT_FLOAT_EQ(params.mask_rects_.at(0).at(3), 0.8);
-
-    EXPECT_FLOAT_EQ(params.mask_rects_.at(1).at(0), 0.28);
-    EXPECT_FLOAT_EQ(params.mask_rects_.at(1).at(1), 0.59);
-    EXPECT_FLOAT_EQ(params.mask_rects_.at(1).at(2), 0.1);
-    EXPECT_FLOAT_EQ(params.mask_rects_.at(1).at(3), 0.2);
-}
-
-TEST(orb_params, load_yaml_with_rectangle_mask_exception_1) {
-    // when the size of vector in mask_rectangles is not four
-    const std::string yaml =
-        "Camera:\n"
-        "  cols: 640\n"
-        "  rows: 480\n"
-        "Feature:\n"
-        "  scale_factor: 1.3\n"
-        "  num_levels: 12\n"
-        "  ini_fast_threshold: 25\n"
-        "  min_fast_threshold: 9\n"
-        "  mask_rectangles:\n"
-        "    - [0.2, 0.5, 0.3, 0.8]\n"
-        "    - [0.28, 0.59, 0.1]\n";
-
-    const auto yaml_node = YAML::Load(yaml);
-    EXPECT_THROW(const auto params = feature::orb_params(yaml_node["Feature"]), std::runtime_error);
-}
-
-TEST(orb_params, load_yaml_with_rectangle_mask_exception_2) {
-    // when x_min equals x_max
-    const std::string yaml =
-        "Camera:\n"
-        "  cols: 640\n"
-        "  rows: 480\n"
-        "Feature:\n"
-        "  scale_factor: 1.3\n"
-        "  num_levels: 12\n"
-        "  ini_fast_threshold: 25\n"
-        "  min_fast_threshold: 9\n"
-        "  mask_rectangles:\n"
-        "    - [0.2, 0.5, 0.3, 0.8]\n"
-        "    - [0.28, 0.28, 0.1, 0.2]\n";
-
-    const auto yaml_node = YAML::Load(yaml);
-    EXPECT_THROW(const auto params = feature::orb_params(yaml_node["Feature"]), std::runtime_error);
-}
-
-TEST(orb_params, load_yaml_with_rectangle_mask_exception_3) {
-    // when x_min is greater than x_max
-    const std::string yaml =
-        "Camera:\n"
-        "  cols: 640\n"
-        "  rows: 480\n"
-        "Feature:\n"
-        "  scale_factor: 1.3\n"
-        "  num_levels: 12\n"
-        "  ini_fast_threshold: 25\n"
-        "  min_fast_threshold: 9\n"
-        "  mask_rectangles:\n"
-        "    - [0.2, 0.5, 0.3, 0.8]\n"
-        "    - [0.25, 0.21, 0.1, 0.2]\n";
-
-    const auto yaml_node = YAML::Load(yaml);
-    EXPECT_THROW(const auto params = feature::orb_params(yaml_node["Feature"]), std::runtime_error);
-}
-
-TEST(orb_params, load_yaml_with_rectangle_mask_exception_4) {
-    // when y_min equals y_max
-    const std::string yaml =
-        "Camera:\n"
-        "  cols: 640\n"
-        "  rows: 480\n"
-        "Feature:\n"
-        "  scale_factor: 1.3\n"
-        "  num_levels: 12\n"
-        "  ini_fast_threshold: 25\n"
-        "  min_fast_threshold: 9\n"
-        "  mask_rectangles:\n"
-        "    - [0.2, 0.5, 0.3, 0.8]\n"
-        "    - [0.28, 0.59, 0.8, 0.8]\n";
-
-    const auto yaml_node = YAML::Load(yaml);
-    EXPECT_THROW(const auto params = feature::orb_params(yaml_node["Feature"]), std::runtime_error);
-}
-
-TEST(orb_params, load_yaml_with_rectangle_mask_exception_5) {
-    // when y_min is greater than y_max
-    const std::string yaml =
-        "Camera:\n"
-        "  cols: 640\n"
-        "  rows: 480\n"
-        "Feature:\n"
-        "  scale_factor: 1.3\n"
-        "  num_levels: 12\n"
-        "  ini_fast_threshold: 25\n"
-        "  min_fast_threshold: 9\n"
-        "  mask_rectangles:\n"
-        "    - [0.2, 0.5, 0.3, 0.8]\n"
-        "    - [0.28, 0.59, 0.7, 0.2]\n";
-
-    const auto yaml_node = YAML::Load(yaml);
-    EXPECT_THROW(const auto params = feature::orb_params(yaml_node["Feature"]), std::runtime_error);
+    EXPECT_EQ(params.min_fast_thr_, 9);
 }
 
 TEST(orb_params, calc_scale_factors) {

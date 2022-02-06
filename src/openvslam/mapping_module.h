@@ -5,10 +5,12 @@
 #include "openvslam/camera/base.h"
 #include "openvslam/module/local_map_cleaner.h"
 #include "openvslam/optimize/local_bundle_adjuster.h"
+#include "openvslam/data/bow_vocabulary_fwd.h"
 
 #include <mutex>
 #include <atomic>
 #include <memory>
+#include <future>
 
 #include <yaml-cpp/yaml.h>
 
@@ -24,13 +26,14 @@ class base;
 
 namespace data {
 class keyframe;
+class bow_database;
 class map_database;
 } // namespace data
 
 class mapping_module {
 public:
     //! Constructor
-    mapping_module(const YAML::Node& yaml_node, data::map_database* map_db);
+    mapping_module(const YAML::Node& yaml_node, data::map_database* map_db, data::bow_database* bow_db, data::bow_vocabulary* bow_vocab);
 
     //! Destructor
     ~mapping_module();
@@ -53,25 +56,23 @@ public:
     //! Get the number of queued keyframes
     unsigned int get_num_queued_keyframes() const;
 
-    //! Get keyframe acceptability
-    bool get_keyframe_acceptability() const;
+    //! True when no keyframes are being processed
+    bool is_idle() const;
 
-    //! Set keyframe acceptability
-    void set_keyframe_acceptability(const bool acceptability);
+    //! If the size of the queue exceeds this threshold, skip the localBA
+    bool is_skipping_localBA() const;
 
     //-----------------------------------------
     // management for reset process
 
     //! Request to reset the mapping module
-    //! (NOTE: this function waits for reset)
-    void request_reset();
+    std::future<void> async_reset();
 
     //-----------------------------------------
     // management for pause process
 
     //! Request to pause the mapping module
-    //! (NOTE: this function does not wait for reset)
-    void request_pause();
+    std::future<void> async_pause();
 
     //! Check if the mapping module is requested to be paused or not
     bool pause_is_requested() const;
@@ -79,8 +80,11 @@ public:
     //! Check if the mapping module is paused or not
     bool is_paused() const;
 
-    //! Set the flag to force to run the mapping module
-    bool set_force_to_run(const bool force_to_run);
+    //! If it is not paused, prevent it from being paused
+    bool prevent_pause_if_not_paused();
+
+    //! Stop preventing it from pausing
+    void stop_prevent_pause();
 
     //! Resume the mapping module
     void resume();
@@ -89,8 +93,7 @@ public:
     // management for terminate process
 
     //! Request to terminate the mapping module
-    //! (NOTE: this function does not wait for terminate)
-    void request_terminate();
+    std::future<void> async_terminate();
 
     //! Check if the mapping module is terminated or not
     bool is_terminated() const;
@@ -129,11 +132,20 @@ private:
     //! Fuse duplicated landmarks between current keyframe and covisibility keyframes
     void fuse_landmark_duplication(const std::unordered_set<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms);
 
+    //! Check if pause is requested and not prevented
+    bool pause_is_requested_and_not_prevented() const;
+
+    //! Set is_idle (True when no keyframes are being processed.)
+    void set_is_idle(const bool is_idle);
+
     //-----------------------------------------
     // management for reset process
 
     //! mutex for access to reset procedure
     mutable std::mutex mtx_reset_;
+
+    //! promises for reset
+    std::vector<std::promise<void>> promises_reset_;
 
     //! Check and execute reset
     bool reset_is_requested() const;
@@ -150,6 +162,9 @@ private:
     //! mutex for access to pause procedure
     mutable std::mutex mtx_pause_;
 
+    //! promises for pause
+    std::vector<std::promise<void>> promises_pause_;
+
     //! Pause the mapping module
     void pause();
 
@@ -158,13 +173,16 @@ private:
     //! flag which indicates whether the main loop is paused or not
     bool is_paused_ = false;
     //! flag to force the mapping module to be run
-    bool force_to_run_ = false;
+    bool prevent_pause_ = false;
 
     //-----------------------------------------
     // management for terminate process
 
     //! mutex for access to terminate procedure
     mutable std::mutex mtx_terminate_;
+
+    //! promises for terminate
+    std::vector<std::promise<void>> promises_terminate_;
 
     //! Check if termination is requested or not
     bool terminate_is_requested() const;
@@ -194,6 +212,12 @@ private:
     //! map database
     data::map_database* map_db_ = nullptr;
 
+    //! BoW database
+    data::bow_database* bow_db_ = nullptr;
+
+    //! BoW vocabulary
+    data::bow_vocabulary* bow_vocab_ = nullptr;
+
     //-----------------------------------------
     // keyframe queue
 
@@ -218,8 +242,8 @@ private:
     //-----------------------------------------
     // others
 
-    //! flag for keyframe acceptability
-    std::atomic<bool> keyfrm_acceptability_{true};
+    //! True when no keyframes are being processed
+    std::atomic<bool> is_idle_{true};
 
     //! current keyframe which is used in the current mapping
     std::shared_ptr<data::keyframe> cur_keyfrm_ = nullptr;
@@ -235,6 +259,9 @@ private:
 
     //! Create new landmarks if the baseline distance is greater than baseline_dist_thr_ of the reference keyframe.
     double baseline_dist_thr_ = 1.0;
+
+    //! If the size of the queue exceeds this threshold, skip the localBA
+    const unsigned int queue_threshold_ = 2;
 };
 
 } // namespace openvslam

@@ -3,6 +3,7 @@
 
 #include "openvslam/data/frame.h"
 #include "openvslam/initialize/base.h"
+#include "openvslam/data/bow_vocabulary_fwd.h"
 
 #include <memory>
 
@@ -31,8 +32,7 @@ public:
     initializer() = delete;
 
     //! Constructor
-    initializer(const camera::setup_type_t setup_type,
-                data::map_database* map_db, data::bow_database* bow_db,
+    initializer(data::map_database* map_db, data::bow_database* bow_db,
                 const YAML::Node& yaml_node);
 
     //! Destructor
@@ -53,12 +53,14 @@ public:
     //! Get the initial frame ID which succeeded in initialization
     unsigned int get_initial_frame_id() const;
 
+    //! Get the initial frame stamp which succeeded in initialization
+    double get_initial_frame_timestamp() const;
+
     //! Initialize with the current frame
-    bool initialize(data::frame& curr_frm);
+    bool initialize(const camera::setup_type_t setup_type,
+                    data::bow_vocabulary* bow_vocab, data::frame& curr_frm);
 
 private:
-    //! camera setup type
-    const camera::setup_type_t setup_type_;
     //! map database
     data::map_database* map_db_ = nullptr;
     //! BoW database
@@ -66,8 +68,10 @@ private:
     //! initializer status
     initializer_state_t state_ = initializer_state_t::NotReady;
 
-    //! frame ID used for initialization (will be set after succeeded)
+    //! ID of frame used for initialization (will be set after succeeded)
     unsigned int init_frm_id_ = 0;
+    //! timestamp of frame used for initialization (will be set after succeeded)
+    double init_frm_stamp_ = 0.0;
 
     //-----------------------------------------
     // parameters
@@ -97,7 +101,7 @@ private:
     bool try_initialize_for_monocular(data::frame& curr_frm);
 
     //! Create an initial map with monocular camera setup
-    bool create_map_for_monocular(data::frame& curr_frm);
+    bool create_map_for_monocular(data::bow_vocabulary* bow_vocab, data::frame& curr_frm);
 
     //! Scaling up or down a initial map
     void scale_map(const std::shared_ptr<data::keyframe>& init_keyfrm, const std::shared_ptr<data::keyframe>& curr_keyfrm, const double scale);
@@ -118,7 +122,7 @@ private:
     bool try_initialize_for_stereo(data::frame& curr_frm);
 
     //! Create an initial map with stereo or RGBD camera setup
-    bool create_map_for_stereo(data::frame& curr_frm);
+    bool create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::frame& curr_frm);
 };
 
 } // namespace module

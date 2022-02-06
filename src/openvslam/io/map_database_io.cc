@@ -2,6 +2,7 @@
 #include "openvslam/data/keyframe.h"
 #include "openvslam/data/landmark.h"
 #include "openvslam/data/camera_database.h"
+#include "openvslam/data/orb_params_database.h"
 #include "openvslam/data/bow_database.h"
 #include "openvslam/data/map_database.h"
 #include "openvslam/io/map_database_io.h"
@@ -14,20 +15,22 @@
 namespace openvslam {
 namespace io {
 
-map_database_io::map_database_io(data::camera_database* cam_db, data::map_database* map_db,
+map_database_io::map_database_io(data::camera_database* cam_db, data::orb_params_database* orb_params_db, data::map_database* map_db,
                                  data::bow_database* bow_db, data::bow_vocabulary* bow_vocab)
-    : cam_db_(cam_db), map_db_(map_db), bow_db_(bow_db), bow_vocab_(bow_vocab) {}
+    : cam_db_(cam_db), orb_params_db_(orb_params_db), map_db_(map_db), bow_db_(bow_db), bow_vocab_(bow_vocab) {}
 
 void map_database_io::save_message_pack(const std::string& path) {
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
-    assert(cam_db_ && map_db_);
+    assert(cam_db_ && orb_params_db_ && map_db_);
     const auto cameras = cam_db_->to_json();
+    const auto orb_params = orb_params_db_->to_json();
     nlohmann::json keyfrms;
     nlohmann::json landmarks;
     map_db_->to_json(keyfrms, landmarks);
 
     nlohmann::json json{{"cameras", cameras},
+                        {"orb_params", orb_params},
                         {"keyframes", keyfrms},
                         {"landmarks", landmarks},
                         {"frame_next_id", static_cast<unsigned int>(data::frame::next_id_)},
@@ -52,7 +55,7 @@ void map_database_io::load_message_pack(const std::string& path) {
 
     // 1. initialize database
 
-    assert(cam_db_ && map_db_ && bow_db_ && bow_vocab_);
+    assert(cam_db_ && orb_params_db_ && map_db_ && bow_db_ && bow_vocab_);
     map_db_->clear();
     bow_db_->clear();
 
@@ -89,9 +92,11 @@ void map_database_io::load_message_pack(const std::string& path) {
     // load database
     const auto json_cameras = json.at("cameras");
     cam_db_->from_json(json_cameras);
+    const auto json_orb_params = json.at("orb_params");
+    orb_params_db_->from_json(json_orb_params);
     const auto json_keyfrms = json.at("keyframes");
     const auto json_landmarks = json.at("landmarks");
-    map_db_->from_json(cam_db_, bow_vocab_, bow_db_, json_keyfrms, json_landmarks);
+    map_db_->from_json(cam_db_, orb_params_db_, bow_vocab_, json_keyfrms, json_landmarks);
     const auto keyfrms = map_db_->get_all_keyframes();
     for (const auto& keyfrm : keyfrms) {
         bow_db_->add_keyframe(keyfrm);

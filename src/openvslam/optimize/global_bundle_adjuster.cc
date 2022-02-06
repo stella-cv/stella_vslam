@@ -19,16 +19,14 @@
 namespace openvslam {
 namespace optimize {
 
-global_bundle_adjuster::global_bundle_adjuster(data::map_database* map_db, const unsigned int num_iter, const bool use_huber_kernel)
-    : map_db_(map_db), num_iter_(num_iter), use_huber_kernel_(use_huber_kernel) {}
-
-void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_global_BA, bool* const force_stop_flag) const {
-    // 1. Collect the dataset
-
-    const auto keyfrms = map_db_->get_all_keyframes();
-    const auto lms = map_db_->get_all_landmarks();
-    std::vector<bool> is_optimized_lm(lms.size(), true);
-
+void optimize_impl(std::vector<std::shared_ptr<data::keyframe>>& keyfrms,
+                   std::vector<std::shared_ptr<data::landmark>>& lms,
+                   std::vector<bool>& is_optimized_lm,
+                   internal::se3::shot_vertex_container& keyfrm_vtx_container,
+                   internal::landmark_vertex_container& lm_vtx_container,
+                   unsigned int num_iter,
+                   bool use_huber_kernel,
+                   bool* const force_stop_flag) {
     // 2. Construct an optimizer
 
     auto linear_solver = g2o::make_unique<g2o::LinearSolverCSparse<g2o::BlockSolver_6_3::PoseMatrixType>>();
@@ -44,10 +42,6 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
 
     // 3. Convert each of the keyframe to the g2o vertex, then set it to the optimizer
 
-    // Container of the shot vertices
-    auto vtx_id_offset = std::make_shared<unsigned int>(0);
-    internal::se3::shot_vertex_container keyfrm_vtx_container(vtx_id_offset, keyfrms.size());
-
     // Set the keyframes to the optimizer
     for (const auto& keyfrm : keyfrms) {
         if (!keyfrm) {
@@ -62,9 +56,6 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
     }
 
     // 4. Connect the vertices of the keyframe and the landmark by using reprojection edge
-
-    // Container of the landmark vertices
-    internal::landmark_vertex_container lm_vtx_container(vtx_id_offset, lms.size());
 
     // Container of the reprojection edges
     using reproj_edge_wrapper = internal::se3::reproj_edge_wrapper<data::keyframe>;
@@ -108,15 +99,15 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
             }
 
             const auto keyfrm_vtx = keyfrm_vtx_container.get_vertex(keyfrm);
-            const auto& undist_keypt = keyfrm->undist_keypts_.at(idx);
-            const float x_right = keyfrm->stereo_x_right_.at(idx);
-            const float inv_sigma_sq = keyfrm->inv_level_sigma_sq_.at(undist_keypt.octave);
+            const auto& undist_keypt = keyfrm->frm_obs_.undist_keypts_.at(idx);
+            const float x_right = keyfrm->frm_obs_.stereo_x_right_.at(idx);
+            const float inv_sigma_sq = keyfrm->orb_params_->inv_level_sigma_sq_.at(undist_keypt.octave);
             const auto sqrt_chi_sq = (keyfrm->camera_->setup_type_ == camera::setup_type_t::Monocular)
                                          ? sqrt_chi_sq_2D
                                          : sqrt_chi_sq_3D;
             auto reproj_edge_wrap = reproj_edge_wrapper(keyfrm, keyfrm_vtx, lm, lm_vtx,
                                                         idx, undist_keypt.pt.x, undist_keypt.pt.y, x_right,
-                                                        inv_sigma_sq, sqrt_chi_sq, use_huber_kernel_);
+                                                        inv_sigma_sq, sqrt_chi_sq, use_huber_kernel);
             reproj_edge_wraps.push_back(reproj_edge_wrap);
             optimizer.addEdge(reproj_edge_wrap.edge_);
             ++num_edges;
@@ -131,11 +122,29 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
     // 5. Perform optimization
 
     optimizer.initializeOptimization();
-    optimizer.optimize(num_iter_);
+    optimizer.optimize(num_iter);
 
     if (force_stop_flag && *force_stop_flag) {
         return;
     }
+}
+
+global_bundle_adjuster::global_bundle_adjuster(data::map_database* map_db, const unsigned int num_iter, const bool use_huber_kernel)
+    : map_db_(map_db), num_iter_(num_iter), use_huber_kernel_(use_huber_kernel) {}
+
+void global_bundle_adjuster::optimize_for_initialization(bool* const force_stop_flag) const {
+    // 1. Collect the dataset
+    auto keyfrms = map_db_->get_all_keyframes();
+    auto lms = map_db_->get_all_landmarks();
+    std::vector<bool> is_optimized_lm(lms.size(), true);
+
+    auto vtx_id_offset = std::make_shared<unsigned int>(0);
+    // Container of the shot vertices
+    internal::se3::shot_vertex_container keyfrm_vtx_container(vtx_id_offset, keyfrms.size());
+    // Container of the landmark vertices
+    internal::landmark_vertex_container lm_vtx_container(vtx_id_offset, lms.size());
+
+    optimize_impl(keyfrms, lms, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, num_iter_, use_huber_kernel_, force_stop_flag);
 
     // 6. Extract the result
 
@@ -145,13 +154,8 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
         }
         auto keyfrm_vtx = keyfrm_vtx_container.get_vertex(keyfrm);
         const auto cam_pose_cw = util::converter::to_eigen_mat(keyfrm_vtx->estimate());
-        if (lead_keyfrm_id_in_global_BA == 0) {
-            keyfrm->set_cam_pose(cam_pose_cw);
-        }
-        else {
-            keyfrm->cam_pose_cw_after_loop_BA_ = cam_pose_cw;
-            keyfrm->loop_BA_identifier_ = lead_keyfrm_id_in_global_BA;
-        }
+
+        keyfrm->set_cam_pose(cam_pose_cw);
     }
 
     for (unsigned int i = 0; i < lms.size(); ++i) {
@@ -170,14 +174,60 @@ void global_bundle_adjuster::optimize(const unsigned int lead_keyfrm_id_in_globa
         auto lm_vtx = lm_vtx_container.get_vertex(lm);
         const Vec3_t pos_w = lm_vtx->estimate();
 
-        if (lead_keyfrm_id_in_global_BA == 0) {
-            lm->set_pos_in_world(pos_w);
-            lm->update_normal_and_depth();
+        lm->set_pos_in_world(pos_w);
+        lm->update_mean_normal_and_obs_scale_variance();
+    }
+}
+
+void global_bundle_adjuster::optimize(std::unordered_set<unsigned int>& optimized_keyfrm_ids,
+                                      std::unordered_set<unsigned int>& optimized_landmark_ids,
+                                      eigen_alloc_unord_map<unsigned int, Vec3_t>& lm_to_pos_w_after_global_BA,
+                                      eigen_alloc_unord_map<unsigned int, Mat44_t>& keyfrm_to_pose_cw_after_global_BA,
+                                      bool* const force_stop_flag) const {
+    // 1. Collect the dataset
+    auto keyfrms = map_db_->get_all_keyframes();
+    auto lms = map_db_->get_all_landmarks();
+    std::vector<bool> is_optimized_lm(lms.size(), true);
+
+    auto vtx_id_offset = std::make_shared<unsigned int>(0);
+    // Container of the shot vertices
+    internal::se3::shot_vertex_container keyfrm_vtx_container(vtx_id_offset, keyfrms.size());
+    // Container of the landmark vertices
+    internal::landmark_vertex_container lm_vtx_container(vtx_id_offset, lms.size());
+
+    optimize_impl(keyfrms, lms, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, num_iter_, use_huber_kernel_, force_stop_flag);
+
+    // 6. Extract the result
+
+    for (auto keyfrm : keyfrms) {
+        if (keyfrm->will_be_erased()) {
+            continue;
         }
-        else {
-            lm->pos_w_after_global_BA_ = pos_w;
-            lm->loop_BA_identifier_ = lead_keyfrm_id_in_global_BA;
+        auto keyfrm_vtx = keyfrm_vtx_container.get_vertex(keyfrm);
+        const auto cam_pose_cw = util::converter::to_eigen_mat(keyfrm_vtx->estimate());
+
+        keyfrm_to_pose_cw_after_global_BA[keyfrm->id_] = cam_pose_cw;
+        optimized_keyfrm_ids.insert(keyfrm->id_);
+    }
+
+    for (unsigned int i = 0; i < lms.size(); ++i) {
+        if (!is_optimized_lm.at(i)) {
+            continue;
         }
+
+        const auto& lm = lms.at(i);
+        if (!lm) {
+            continue;
+        }
+        if (lm->will_be_erased()) {
+            continue;
+        }
+
+        auto lm_vtx = lm_vtx_container.get_vertex(lm);
+        const Vec3_t pos_w = lm_vtx->estimate();
+
+        lm_to_pos_w_after_global_BA[lm->id_] = pos_w;
+        optimized_landmark_ids.insert(lm->id_);
     }
 }
 

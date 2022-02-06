@@ -20,8 +20,8 @@ public:
     /**
      * Constructor
      */
-    map_database_io(data::camera_database* cam_db, data::map_database* map_db,
-                    data::bow_database* bow_db, data::bow_vocabulary* bow_vocab);
+    map_database_io(data::camera_database* cam_db, data::orb_params_database* orb_params_db,
+                    data::map_database* map_db, data::bow_database* bow_db, data::bow_vocabulary* bow_vocab);
 
     /**
      * Destructor
@@ -41,6 +41,8 @@ public:
 private:
     //! camera database
     data::camera_database* const cam_db_ = nullptr;
+    //! orb_params database
+    data::orb_params_database* const orb_params_db_ = nullptr;
     //! map_database
     data::map_database* const map_db_ = nullptr;
     //! BoW database

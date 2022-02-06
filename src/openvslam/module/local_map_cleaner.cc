@@ -5,8 +5,8 @@
 namespace openvslam {
 namespace module {
 
-local_map_cleaner::local_map_cleaner(double redundant_obs_ratio_thr)
-    : redundant_obs_ratio_thr_(redundant_obs_ratio_thr) {}
+local_map_cleaner::local_map_cleaner(data::map_database* map_db, data::bow_database* bow_db, double redundant_obs_ratio_thr)
+    : map_db_(map_db), bow_db_(bow_db), redundant_obs_ratio_thr_(redundant_obs_ratio_thr) {}
 
 void local_map_cleaner::reset() {
     fresh_landmarks_.clear();
@@ -57,7 +57,7 @@ unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cu
         }
         else if (lm_state == lm_state_t::Invalid) {
             ++num_removed;
-            lm->prepare_for_erasing();
+            lm->prepare_for_erasing(map_db_);
             iter = fresh_landmarks_.erase(iter);
         }
         else {
@@ -97,7 +97,7 @@ unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr
         // if the redundant observation ratio of `covisibility` is larger than the threshold, it will be removed
         if (redundant_obs_ratio_thr_ <= static_cast<float>(num_redundant_obs) / num_valid_obs) {
             ++num_removed;
-            covisibility->prepare_for_erasing();
+            covisibility->prepare_for_erasing(map_db_, bow_db_);
         }
     }
 
@@ -123,8 +123,8 @@ void local_map_cleaner::count_redundant_observations(const std::shared_ptr<data:
         }
 
         // if depth is within the valid range, it won't be considered
-        const auto depth = keyfrm->depths_.at(idx);
-        if (keyfrm->depth_is_avaliable() && (depth < 0.0 || keyfrm->depth_thr_ < depth)) {
+        const auto depth = keyfrm->frm_obs_.depths_.at(idx);
+        if (keyfrm->depth_is_avaliable() && (depth < 0.0 || keyfrm->camera_->depth_thr_ < depth)) {
             continue;
         }
 
@@ -136,7 +136,7 @@ void local_map_cleaner::count_redundant_observations(const std::shared_ptr<data:
         }
 
         // `keyfrm` observes `lm` with the scale level `scale_level`
-        const auto scale_level = keyfrm->undist_keypts_.at(idx).octave;
+        const auto scale_level = keyfrm->frm_obs_.undist_keypts_.at(idx).octave;
         // get observers of `lm`
         const auto observations = lm->get_observations();
 
@@ -152,7 +152,7 @@ void local_map_cleaner::count_redundant_observations(const std::shared_ptr<data:
             }
 
             // `ngh_keyfrm` observes `lm` with the scale level `ngh_scale_level`
-            const auto ngh_scale_level = ngh_keyfrm->undist_keypts_.at(obs.second).octave;
+            const auto ngh_scale_level = ngh_keyfrm->frm_obs_.undist_keypts_.at(obs.second).octave;
 
             // compare the scale levels
             if (ngh_scale_level <= scale_level + 1) {

@@ -25,10 +25,17 @@ class base;
 } // namespace camera
 
 namespace data {
+class frame;
 class camera_database;
+class orb_params_database;
 class map_database;
 class bow_database;
 } // namespace data
+
+namespace feature {
+class orb_extractor;
+class orb_params;
+} // namespace feature
 
 namespace publish {
 class map_publisher;
@@ -103,16 +110,21 @@ public:
     //-----------------------------------------
     // data feeding methods
 
+    std::shared_ptr<Mat44_t> feed_frame(const data::frame& frm, const cv::Mat& img);
+
     //! Feed a monocular frame to SLAM system
     //! (NOTE: distorted images are acceptable if calibrated)
+    data::frame create_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask = cv::Mat{});
     std::shared_ptr<Mat44_t> feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
     //! Feed a stereo frame to SLAM system
     //! (Note: Left and Right images must be stereo-rectified)
+    data::frame create_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask = cv::Mat{});
     std::shared_ptr<Mat44_t> feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
     //! Feed an RGBD frame to SLAM system
     //! (Note: RGB and Depth images must be aligned)
+    data::frame create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask);
     std::shared_ptr<Mat44_t> feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask = cv::Mat{});
 
     //-----------------------------------------
@@ -153,6 +165,12 @@ public:
     //!! Termination of the system is requested or not
     bool terminate_is_requested() const;
 
+    //-----------------------------------------
+    // config
+
+    //! depthmap factor (pixel_value / depthmap_factor = true_depth)
+    double depthmap_factor_ = 1.0;
+
 private:
     //! Check reset request of the system
     void check_reset_request();
@@ -170,6 +188,12 @@ private:
 
     //! camera database
     data::camera_database* cam_db_ = nullptr;
+
+    //! parameters for orb feature extraction
+    feature::orb_params* orb_params_ = nullptr;
+
+    //! orb_params database
+    data::orb_params_database* orb_params_db_ = nullptr;
 
     //! map database
     data::map_database* map_db_ = nullptr;
@@ -192,6 +216,14 @@ private:
     global_optimization_module* global_optimizer_ = nullptr;
     //! global optimization thread
     std::unique_ptr<std::thread> global_optimization_thread_ = nullptr;
+
+    // ORB extractors
+    //! ORB extractor for left/monocular image
+    feature::orb_extractor* extractor_left_ = nullptr;
+    //! ORB extractor for right image
+    feature::orb_extractor* extractor_right_ = nullptr;
+    //! ORB extractor only when used in initializing
+    feature::orb_extractor* ini_extractor_left_ = nullptr;
 
     //! frame publisher
     std::shared_ptr<publish::frame_publisher> frame_publisher_ = nullptr;

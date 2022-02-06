@@ -24,11 +24,11 @@ bool bearing_vector::initialize(const data::frame& cur_frm, const std::vector<in
     // set the current camera model
     cur_camera_ = cur_frm.camera_;
     // store the keypoints and bearings
-    cur_undist_keypts_ = cur_frm.undist_keypts_;
-    cur_bearings_ = cur_frm.bearings_;
+    cur_undist_keypts_ = cur_frm.frm_obs_.undist_keypts_;
+    cur_bearings_ = cur_frm.frm_obs_.bearings_;
     // align matching information
     ref_cur_matches_.clear();
-    ref_cur_matches_.reserve(cur_frm.undist_keypts_.size());
+    ref_cur_matches_.reserve(cur_frm.frm_obs_.undist_keypts_.size());
     for (unsigned int ref_idx = 0; ref_idx < ref_matches_with_cur.size(); ++ref_idx) {
         const auto cur_idx = ref_matches_with_cur.at(ref_idx);
         if (0 <= cur_idx) {

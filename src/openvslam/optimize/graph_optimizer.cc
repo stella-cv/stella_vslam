@@ -23,7 +23,8 @@ graph_optimizer::graph_optimizer(data::map_database* map_db, const bool fix_scal
 void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfrm, const std::shared_ptr<data::keyframe>& curr_keyfrm,
                                const module::keyframe_Sim3_pairs_t& non_corrected_Sim3s,
                                const module::keyframe_Sim3_pairs_t& pre_corrected_Sim3s,
-                               const std::map<std::shared_ptr<data::keyframe>, std::set<std::shared_ptr<data::keyframe>>>& loop_connections) const {
+                               const std::map<std::shared_ptr<data::keyframe>, std::set<std::shared_ptr<data::keyframe>>>& loop_connections,
+                               std::unordered_map<unsigned int, unsigned int>& found_lm_to_ref_keyfrm_id) const {
     // 1. Construct an optimizer
 
     auto linear_solver = g2o::make_unique<g2o::LinearSolverCSparse<g2o::BlockSolver_7_3::PoseMatrixType>>();
@@ -38,12 +39,10 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
     const auto all_keyfrms = map_db_->get_all_keyframes();
     const auto all_lms = map_db_->get_all_landmarks();
 
-    const unsigned int max_keyfrm_id = map_db_->get_max_keyframe_id();
-
     // Transform the pre-modified poses of all the keyframes to Sim3, and save them
-    std::vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3>> Sim3s_cw(max_keyfrm_id + 1);
+    eigen_alloc_unord_map<unsigned int, g2o::Sim3> Sim3s_cw;
     // Save the added vertices
-    std::vector<internal::sim3::shot_vertex*> vertices(max_keyfrm_id + 1);
+    std::unordered_map<unsigned int, internal::sim3::shot_vertex*> vertices;
 
     constexpr int min_weight = 100;
 
@@ -59,7 +58,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
         const auto iter = pre_corrected_Sim3s.find(keyfrm);
         if (iter != pre_corrected_Sim3s.end()) {
             // BEFORE optimization, set the already-modified poses for verices
-            Sim3s_cw.at(id) = iter->second;
+            Sim3s_cw[id] = iter->second;
             keyfrm_vtx->setEstimate(iter->second);
         }
         else {
@@ -68,7 +67,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             const Vec3_t trans_cw = keyfrm->get_translation();
             const g2o::Sim3 Sim3_cw(rot_cw, trans_cw, 1.0);
 
-            Sim3s_cw.at(id) = Sim3_cw;
+            Sim3s_cw[id] = Sim3_cw;
             keyfrm_vtx->setEstimate(Sim3_cw);
         }
 
@@ -82,7 +81,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
         keyfrm_vtx->fix_scale_ = fix_scale_;
 
         optimizer.addVertex(keyfrm_vtx);
-        vertices.at(id) = keyfrm_vtx;
+        vertices[id] = keyfrm_vtx;
     }
 
     // 3. Add edges
@@ -240,7 +239,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
         std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
         // For modification of a point-cloud, save the post-modified poses of all the keyframes
-        std::vector<g2o::Sim3, Eigen::aligned_allocator<g2o::Sim3>> corrected_Sim3s_wc(max_keyfrm_id + 1);
+        std::unordered_map<unsigned int, g2o::Sim3> corrected_Sim3s_wc;
 
         for (auto keyfrm : all_keyfrms) {
             const auto id = keyfrm->id_;
@@ -255,7 +254,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             const Mat44_t cam_pose_cw = util::converter::to_eigen_cam_pose(rot_cw, trans_cw);
             keyfrm->set_cam_pose(cam_pose_cw);
 
-            corrected_Sim3s_wc.at(id) = corrected_Sim3_cw.inverse();
+            corrected_Sim3s_wc[id] = corrected_Sim3_cw.inverse();
         }
 
         // Update the point-cloud
@@ -264,8 +263,8 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
                 continue;
             }
 
-            const auto id = (lm->loop_fusion_identifier_ == curr_keyfrm->id_)
-                                ? lm->ref_keyfrm_id_in_loop_fusion_
+            const auto id = (found_lm_to_ref_keyfrm_id.count(lm->id_))
+                                ? found_lm_to_ref_keyfrm_id.at(lm->id_)
                                 : lm->get_ref_keyframe()->id_;
 
             const g2o::Sim3& Sim3_cw = Sim3s_cw.at(id);
@@ -275,7 +274,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             const Vec3_t corrected_pos_w = corrected_Sim3_wc.map(Sim3_cw.map(pos_w));
 
             lm->set_pos_in_world(corrected_pos_w);
-            lm->update_normal_and_depth();
+            lm->update_mean_normal_and_obs_scale_variance();
         }
     }
 }

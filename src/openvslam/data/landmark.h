@@ -48,7 +48,7 @@ public:
     //! add observation
     void add_observation(const std::shared_ptr<keyframe>& keyfrm, unsigned int idx);
     //! erase observation
-    void erase_observation(const std::shared_ptr<keyframe>& keyfrm);
+    void erase_observation(map_database* map_db, const std::shared_ptr<keyframe>& keyfrm);
 
     //! get observations (keyframe and keypoint idx)
     observations_t get_observations() const;
@@ -76,20 +76,18 @@ public:
     void compute_descriptor();
 
     //! update observation mean normal and ORB scale variance
-    void update_normal_and_depth();
+    void update_mean_normal_and_obs_scale_variance();
 
     //! get max valid distance between landmark and camera
     float get_min_valid_distance() const;
     //! get min valid distance between landmark and camera
     float get_max_valid_distance() const;
 
-    //! predict scale level assuming this landmark is observed in the specified frame
-    unsigned int predict_scale_level(const float cam_to_lm_dist, const frame* frm) const;
-    //! predict scale level assuming this landmark is observed in the specified keyframe
-    unsigned int predict_scale_level(const float cam_to_lm_dist, const std::shared_ptr<keyframe>& keyfrm) const;
+    //! predict scale level assuming this landmark is observed in the specified frame/keyframe
+    unsigned int predict_scale_level(const float cam_to_lm_dist, float num_scale_levels, float log_scale_factor) const;
 
     //! erase this landmark from database
-    void prepare_for_erasing();
+    void prepare_for_erasing(map_database* map_db);
     //! whether this landmark will be erased shortly or not
     bool will_be_erased();
 
@@ -110,20 +108,6 @@ public:
     static std::atomic<unsigned int> next_id_;
     unsigned int first_keyfrm_id_ = 0;
     unsigned int num_observations_ = 0;
-
-    // Variables for frame tracking.
-    Vec2_t reproj_in_tracking_;
-    float x_right_in_tracking_;
-    bool is_observable_in_tracking_;
-    int scale_level_in_tracking_;
-    unsigned int identifier_in_local_map_update_ = 0;
-    unsigned int identifier_in_local_lm_search_ = 0;
-
-    // Variables for loop-closing.
-    unsigned int loop_fusion_identifier_ = 0;
-    unsigned int ref_keyfrm_id_in_loop_fusion_ = 0;
-    Vec3_t pos_w_after_global_BA_;
-    unsigned int loop_BA_identifier_ = 0;
 
 private:
     //! world coordinates of this landmark

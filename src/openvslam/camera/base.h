@@ -58,7 +58,7 @@ public:
     //! Constructor
     base(const std::string& name, const setup_type_t setup_type, const model_type_t model_type, const color_order_t color_order,
          const unsigned int cols, const unsigned int rows, const double fps,
-         const double focal_x_baseline, const double true_baseline,
+         const double focal_x_baseline, const double true_baseline, const double depth_thr,
          const unsigned int num_grid_cols = 64, const unsigned int num_grid_rows = 48);
 
     //! Destructor
@@ -113,6 +113,10 @@ public:
 
     //! true baseline length in metric scale
     const double true_baseline_;
+
+    //! depth threshold in metric scale (Ignore depths farther than depth_thr_ times the baseline.
+    //! if a stereo-triangulated point is farther than this threshold, it is invalid)
+    const double depth_thr_;
 
     //! number of columns of grid to accelerate reprojection matching
     const unsigned int num_grid_cols_;

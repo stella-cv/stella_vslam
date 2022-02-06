@@ -10,21 +10,18 @@
 namespace openvslam {
 namespace module {
 
-relocalizer::relocalizer(data::bow_database* bow_db,
-                         const double bow_match_lowe_ratio, const double proj_match_lowe_ratio,
+relocalizer::relocalizer(const double bow_match_lowe_ratio, const double proj_match_lowe_ratio,
                          const double robust_match_lowe_ratio,
                          const unsigned int min_num_bow_matches, const unsigned int min_num_valid_obs)
-    : bow_db_(bow_db),
-      min_num_bow_matches_(min_num_bow_matches), min_num_valid_obs_(min_num_valid_obs),
+    : min_num_bow_matches_(min_num_bow_matches), min_num_valid_obs_(min_num_valid_obs),
       bow_matcher_(bow_match_lowe_ratio, true), proj_matcher_(proj_match_lowe_ratio, true),
       robust_matcher_(robust_match_lowe_ratio, false),
       pose_optimizer_() {
     spdlog::debug("CONSTRUCT: module::relocalizer");
 }
 
-relocalizer::relocalizer(data::bow_database* bow_db, const YAML::Node& yaml_node)
-    : relocalizer(bow_db,
-                  yaml_node["bow_match_lowe_ratio"].as<double>(0.75),
+relocalizer::relocalizer(const YAML::Node& yaml_node)
+    : relocalizer(yaml_node["bow_match_lowe_ratio"].as<double>(0.75),
                   yaml_node["proj_match_lowe_ratio"].as<double>(0.9),
                   yaml_node["robust_match_lowe_ratio"].as<double>(0.8),
                   yaml_node["min_num_bow_matches"].as<unsigned int>(20),
@@ -35,11 +32,9 @@ relocalizer::~relocalizer() {
     spdlog::debug("DESTRUCT: module::relocalizer");
 }
 
-bool relocalizer::relocalize(data::frame& curr_frm) {
-    curr_frm.compute_bow();
-
+bool relocalizer::relocalize(data::bow_database* bow_db, data::frame& curr_frm) {
     // Acquire relocalization candidates
-    const auto reloc_candidates = bow_db_->acquire_relocalization_candidates(&curr_frm);
+    const auto reloc_candidates = bow_db->acquire_relocalization_candidates(&curr_frm);
     if (reloc_candidates.empty()) {
         return false;
     }
@@ -74,8 +69,8 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
 
         // Setup an PnP solver with the current 2D-3D matches
         const auto valid_indices = extract_valid_indices(matched_landmarks.at(i));
-        auto pnp_solver = setup_pnp_solver(valid_indices, curr_frm.bearings_, curr_frm.keypts_,
-                                           matched_landmarks.at(i), curr_frm.scale_factors_);
+        auto pnp_solver = setup_pnp_solver(valid_indices, curr_frm.frm_obs_.bearings_, curr_frm.frm_obs_.keypts_,
+                                           matched_landmarks.at(i), curr_frm.orb_params_->scale_factors_);
 
         // 1. Estimate the camera pose using EPnP (+ RANSAC)
 
@@ -94,7 +89,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         const auto inlier_indices = util::resample_by_indices(valid_indices, pnp_solver->get_inlier_flags());
 
         // Set 2D-3D matches for the pose optimization
-        curr_frm.landmarks_ = std::vector<std::shared_ptr<data::landmark>>(curr_frm.num_keypts_, nullptr);
+        curr_frm.landmarks_ = std::vector<std::shared_ptr<data::landmark>>(curr_frm.frm_obs_.num_keypts_, nullptr);
         std::set<std::shared_ptr<data::landmark>> already_found_landmarks;
         for (const auto idx : inlier_indices) {
             // Set only the valid 3D points to the current frame
@@ -112,7 +107,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         }
 
         // Reject outliers
-        for (unsigned int idx = 0; idx < curr_frm.num_keypts_; idx++) {
+        for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; idx++) {
             if (!curr_frm.outlier_flags_.at(idx)) {
                 continue;
             }
@@ -137,7 +132,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         if (num_valid_obs < min_num_valid_obs_) {
             // Exclude the already-associated landmarks
             already_found_landmarks.clear();
-            for (unsigned int idx = 0; idx < curr_frm.num_keypts_; ++idx) {
+            for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
                 if (!curr_frm.landmarks_.at(idx)) {
                     continue;
                 }
@@ -167,7 +162,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         // TODO: should set the reference keyframe of the current frame
 
         // Reject outliers
-        for (unsigned int idx = 0; idx < curr_frm.num_keypts_; ++idx) {
+        for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
             if (!curr_frm.outlier_flags_.at(idx)) {
                 continue;
             }

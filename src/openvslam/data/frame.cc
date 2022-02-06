@@ -18,112 +18,12 @@ namespace data {
 
 std::atomic<unsigned int> frame::next_id_{0};
 
-frame::frame(const cv::Mat& img_gray, const double timestamp,
-             feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-             camera::base* camera, const float depth_thr,
-             const cv::Mat& mask)
-    : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor), extractor_right_(nullptr),
-      timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr) {
-    // Get ORB scale
-    update_orb_info();
-
-    // Extract ORB feature
-    extract_orb(img_gray, mask);
-    num_keypts_ = keypts_.size();
-    if (keypts_.empty()) {
-        spdlog::warn("frame {}: cannot extract any keypoints", id_);
-    }
-
-    // Undistort keypoints
-    camera_->undistort_keypoints(keypts_, undist_keypts_);
-
-    // Ignore stereo parameters
-    stereo_x_right_ = std::vector<float>(num_keypts_, -1);
-    depths_ = std::vector<float>(num_keypts_, -1);
-
-    // Convert to bearing vector
-    camera->convert_keypoints_to_bearings(undist_keypts_, bearings_);
-
-    // Initialize association with 3D points
-    landmarks_ = std::vector<std::shared_ptr<landmark>>(num_keypts_, nullptr);
-    outlier_flags_ = std::vector<bool>(num_keypts_, false);
-
-    // Assign all the keypoints into grid
-    assign_keypoints_to_grid(camera_, undist_keypts_, keypt_indices_in_cells_);
-}
-
-frame::frame(const cv::Mat& left_img_gray, const cv::Mat& right_img_gray, const double timestamp,
-             feature::orb_extractor* extractor_left, feature::orb_extractor* extractor_right,
-             bow_vocabulary* bow_vocab, camera::base* camera, const float depth_thr,
-             const cv::Mat& mask)
-    : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor_left), extractor_right_(extractor_right),
-      timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr) {
-    // Get ORB scale
-    update_orb_info();
-
-    // Extract ORB feature
-    std::thread thread_left(&frame::extract_orb, this, left_img_gray, mask, image_side::Left);
-    std::thread thread_right(&frame::extract_orb, this, right_img_gray, mask, image_side::Right);
-    thread_left.join();
-    thread_right.join();
-    num_keypts_ = keypts_.size();
-    if (keypts_.empty()) {
-        spdlog::warn("frame {}: cannot extract any keypoints", id_);
-    }
-
-    // Undistort keypoints
-    camera_->undistort_keypoints(keypts_, undist_keypts_);
-
-    // Estimate depth with stereo match
-    match::stereo stereo_matcher(extractor_left->image_pyramid_, extractor_right_->image_pyramid_,
-                                 keypts_, keypts_right_, descriptors_, descriptors_right_,
-                                 scale_factors_, inv_scale_factors_,
-                                 camera->focal_x_baseline_, camera_->true_baseline_);
-    stereo_matcher.compute(stereo_x_right_, depths_);
-
-    // Convert to bearing vector
-    camera->convert_keypoints_to_bearings(undist_keypts_, bearings_);
-
-    // Initialize association with 3D points
-    landmarks_ = std::vector<std::shared_ptr<landmark>>(num_keypts_, nullptr);
-    outlier_flags_ = std::vector<bool>(num_keypts_, false);
-
-    // Assign all the keypoints into grid
-    assign_keypoints_to_grid(camera_, undist_keypts_, keypt_indices_in_cells_);
-}
-
-frame::frame(const cv::Mat& img_gray, const cv::Mat& img_depth, const double timestamp,
-             feature::orb_extractor* extractor, bow_vocabulary* bow_vocab,
-             camera::base* camera, const float depth_thr,
-             const cv::Mat& mask)
-    : id_(next_id_++), bow_vocab_(bow_vocab), extractor_(extractor), extractor_right_(nullptr),
-      timestamp_(timestamp), camera_(camera), depth_thr_(depth_thr) {
-    // Get ORB scale
-    update_orb_info();
-
-    // Extract ORB feature
-    extract_orb(img_gray, mask);
-    num_keypts_ = keypts_.size();
-    if (keypts_.empty()) {
-        spdlog::warn("frame {}: cannot extract any keypoints", id_);
-    }
-
-    // Undistort keypoints
-    camera_->undistort_keypoints(keypts_, undist_keypts_);
-
-    // Calculate disparity from depth
-    compute_stereo_from_depth(img_depth);
-
-    // Convert to bearing vector
-    camera->convert_keypoints_to_bearings(undist_keypts_, bearings_);
-
-    // Initialize association with 3D points
-    landmarks_ = std::vector<std::shared_ptr<landmark>>(num_keypts_, nullptr);
-    outlier_flags_ = std::vector<bool>(num_keypts_, false);
-
-    // Assign all the keypoints into grid
-    assign_keypoints_to_grid(camera_, undist_keypts_, keypt_indices_in_cells_);
-}
+frame::frame(const double timestamp, camera::base* camera, feature::orb_params* orb_params,
+             const frame_observation frm_obs)
+    : id_(next_id_++), timestamp_(timestamp), camera_(camera), orb_params_(orb_params), frm_obs_(frm_obs),
+      // Initialize association with 3D points
+      landmarks_(std::vector<std::shared_ptr<landmark>>(frm_obs_.num_keypts_, nullptr)),
+      outlier_flags_(std::vector<bool>(frm_obs_.num_keypts_, false)) {}
 
 void frame::set_cam_pose(const Mat44_t& cam_pose_cw) {
     cam_pose_cw_is_valid_ = true;
@@ -161,24 +61,12 @@ Mat33_t frame::get_rotation_inv() const {
     return rot_wc_;
 }
 
-void frame::update_orb_info() {
-    num_scale_levels_ = extractor_->get_num_scale_levels();
-    scale_factor_ = extractor_->get_scale_factor();
-    log_scale_factor_ = std::log(scale_factor_);
-    scale_factors_ = extractor_->get_scale_factors();
-    inv_scale_factors_ = extractor_->get_inv_scale_factors();
-    level_sigma_sq_ = extractor_->get_level_sigma_sq();
-    inv_level_sigma_sq_ = extractor_->get_inv_level_sigma_sq();
+bool frame::bow_is_available() const {
+    return !bow_vec_.empty() && !bow_feat_vec_.empty();
 }
 
-void frame::compute_bow() {
-    if (bow_vec_.empty()) {
-#ifdef USE_DBOW2
-        bow_vocab_->transform(util::converter::to_desc_vec(descriptors_), bow_vec_, bow_feat_vec_, 4);
-#else
-        bow_vocab_->transform(descriptors_, 4, bow_vec_, bow_feat_vec_);
-#endif
-    }
+void frame::compute_bow(bow_vocabulary* bow_vocab) {
+    bow_vocabulary_util::compute_bow(bow_vocab, frm_obs_.descriptors_, bow_vec_, bow_feat_vec_);
 }
 
 bool frame::can_observe(const std::shared_ptr<landmark>& lm, const float ray_cos_thr,
@@ -202,12 +90,12 @@ bool frame::can_observe(const std::shared_ptr<landmark>& lm, const float ray_cos
         return false;
     }
 
-    pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, this);
+    pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, this->orb_params_->num_levels_, this->orb_params_->log_scale_factor_);
     return true;
 }
 
 std::vector<unsigned int> frame::get_keypoints_in_cell(const float ref_x, const float ref_y, const float margin, const int min_level, const int max_level) const {
-    return data::get_keypoints_in_cell(camera_, undist_keypts_, keypt_indices_in_cells_, ref_x, ref_y, margin, min_level, max_level);
+    return data::get_keypoints_in_cell(camera_, frm_obs_.undist_keypts_, frm_obs_.keypt_indices_in_cells_, ref_x, ref_y, margin, min_level, max_level);
 }
 
 Vec3_t frame::triangulate_stereo(const unsigned int idx) const {
@@ -217,10 +105,10 @@ Vec3_t frame::triangulate_stereo(const unsigned int idx) const {
         case camera::model_type_t::Perspective: {
             auto camera = static_cast<camera::perspective*>(camera_);
 
-            const float depth = depths_.at(idx);
+            const float depth = frm_obs_.depths_.at(idx);
             if (0.0 < depth) {
-                const float x = undist_keypts_.at(idx).pt.x;
-                const float y = undist_keypts_.at(idx).pt.y;
+                const float x = frm_obs_.undist_keypts_.at(idx).pt.x;
+                const float y = frm_obs_.undist_keypts_.at(idx).pt.y;
                 const float unproj_x = (x - camera->cx_) * depth * camera->fx_inv_;
                 const float unproj_y = (y - camera->cy_) * depth * camera->fy_inv_;
                 const Vec3_t pos_c{unproj_x, unproj_y, depth};
@@ -235,10 +123,10 @@ Vec3_t frame::triangulate_stereo(const unsigned int idx) const {
         case camera::model_type_t::Fisheye: {
             auto camera = static_cast<camera::fisheye*>(camera_);
 
-            const float depth = depths_.at(idx);
+            const float depth = frm_obs_.depths_.at(idx);
             if (0.0 < depth) {
-                const float x = undist_keypts_.at(idx).pt.x;
-                const float y = undist_keypts_.at(idx).pt.y;
+                const float x = frm_obs_.undist_keypts_.at(idx).pt.x;
+                const float y = frm_obs_.undist_keypts_.at(idx).pt.y;
                 const float unproj_x = (x - camera->cx_) * depth * camera->fx_inv_;
                 const float unproj_y = (y - camera->cy_) * depth * camera->fy_inv_;
                 const Vec3_t pos_c{unproj_x, unproj_y, depth};
@@ -256,10 +144,10 @@ Vec3_t frame::triangulate_stereo(const unsigned int idx) const {
         case camera::model_type_t::RadialDivision: {
             auto camera = static_cast<camera::radial_division*>(camera_);
 
-            const float depth = depths_.at(idx);
+            const float depth = frm_obs_.depths_.at(idx);
             if (0.0 < depth) {
-                const float x = keypts_.at(idx).pt.x;
-                const float y = keypts_.at(idx).pt.y;
+                const float x = frm_obs_.keypts_.at(idx).pt.x;
+                const float y = frm_obs_.keypts_.at(idx).pt.y;
                 const float unproj_x = (x - camera->cx_) * depth * camera->fx_inv_;
                 const float unproj_y = (y - camera->cy_) * depth * camera->fy_inv_;
                 const Vec3_t pos_c{unproj_x, unproj_y, depth};
@@ -274,44 +162,6 @@ Vec3_t frame::triangulate_stereo(const unsigned int idx) const {
     }
 
     return Vec3_t::Zero();
-}
-
-void frame::extract_orb(const cv::Mat& img, const cv::Mat& mask, const image_side& img_side) {
-    switch (img_side) {
-        case image_side::Left: {
-            extractor_->extract(img, mask, keypts_, descriptors_);
-            break;
-        }
-        case image_side::Right: {
-            extractor_right_->extract(img, mask, keypts_right_, descriptors_right_);
-            break;
-        }
-    }
-}
-
-void frame::compute_stereo_from_depth(const cv::Mat& img_depth) {
-    assert(camera_->setup_type_ == camera::setup_type_t::RGBD);
-
-    // Initialize with invalid value
-    stereo_x_right_ = std::vector<float>(num_keypts_, -1);
-    depths_ = std::vector<float>(num_keypts_, -1);
-
-    for (unsigned int idx = 0; idx < num_keypts_; idx++) {
-        const auto& keypt = keypts_.at(idx);
-        const auto& undist_keypt = undist_keypts_.at(idx);
-
-        const float x = keypt.pt.x;
-        const float y = keypt.pt.y;
-
-        const float depth = img_depth.at<float>(y, x);
-
-        if (depth <= 0) {
-            continue;
-        }
-
-        depths_.at(idx) = depth;
-        stereo_x_right_.at(idx) = undist_keypt.pt.x - camera_->focal_x_baseline_ / depth;
-    }
 }
 
 } // namespace data

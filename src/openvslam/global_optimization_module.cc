@@ -132,7 +132,7 @@ void global_optimization_module::queue_keyframe(const std::shared_ptr<data::keyf
 
 bool global_optimization_module::keyframe_is_queued() const {
     std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
-    return (!keyfrms_queue_.empty());
+    return !keyfrms_queue_.empty();
 }
 
 void global_optimization_module::correct_loop() {
@@ -146,15 +146,13 @@ void global_optimization_module::correct_loop() {
     // 0-1. stop the mapping module and the previous loop bundle adjuster
 
     // pause the mapping module
-    mapper_->request_pause();
+    auto future_pause = mapper_->async_pause();
     // abort the previous loop bundle adjuster
     if (thread_for_loop_BA_ || loop_bundle_adjuster_->is_running()) {
         abort_loop_BA();
     }
     // wait till the mapping module pauses
-    while (!mapper_->is_paused()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
-    }
+    future_pause.get();
 
     // 0-2. update the graph
 
@@ -173,6 +171,7 @@ void global_optimization_module::correct_loop() {
     // Sim3 camera poses AFTER loop correction
     module::keyframe_Sim3_pairs_t Sim3s_nw_after_correction;
 
+    std::unordered_map<unsigned int, unsigned int> found_lm_to_ref_keyfrm_id;
     const auto g2o_Sim3_cw_after_correction = loop_detector_->get_Sim3_world_to_current();
     {
         std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
@@ -186,7 +185,7 @@ void global_optimization_module::correct_loop() {
         Sim3s_nw_after_correction = get_Sim3s_after_loop_correction(cam_pose_wc_before_correction, g2o_Sim3_cw_after_correction, curr_neighbors);
 
         // correct covibisibility landmark positions
-        correct_covisibility_landmarks(Sim3s_nw_before_correction, Sim3s_nw_after_correction);
+        correct_covisibility_landmarks(Sim3s_nw_before_correction, Sim3s_nw_after_correction, found_lm_to_ref_keyfrm_id);
         // correct covisibility keyframe camera poses
         correct_covisibility_keyframes(Sim3s_nw_after_correction);
     }
@@ -202,7 +201,7 @@ void global_optimization_module::correct_loop() {
 
     // 4. pose graph optimization
 
-    graph_optimizer_->optimize(final_candidate_keyfrm, cur_keyfrm_, Sim3s_nw_before_correction, Sim3s_nw_after_correction, new_connections);
+    graph_optimizer_->optimize(final_candidate_keyfrm, cur_keyfrm_, Sim3s_nw_before_correction, Sim3s_nw_after_correction, new_connections, found_lm_to_ref_keyfrm_id);
 
     // add a loop edge
     final_candidate_keyfrm->graph_node_->add_loop_edge(cur_keyfrm_);
@@ -217,7 +216,7 @@ void global_optimization_module::correct_loop() {
         thread_for_loop_BA_->join();
         thread_for_loop_BA_.reset(nullptr);
     }
-    thread_for_loop_BA_ = std::unique_ptr<std::thread>(new std::thread(&module::loop_bundle_adjuster::optimize, loop_bundle_adjuster_.get(), cur_keyfrm_->id_));
+    thread_for_loop_BA_ = std::unique_ptr<std::thread>(new std::thread(&module::loop_bundle_adjuster::optimize, loop_bundle_adjuster_.get()));
 
     // 6. post-processing
 
@@ -266,7 +265,8 @@ module::keyframe_Sim3_pairs_t global_optimization_module::get_Sim3s_after_loop_c
 }
 
 void global_optimization_module::correct_covisibility_landmarks(const module::keyframe_Sim3_pairs_t& Sim3s_nw_before_correction,
-                                                                const module::keyframe_Sim3_pairs_t& Sim3s_nw_after_correction) const {
+                                                                const module::keyframe_Sim3_pairs_t& Sim3s_nw_after_correction,
+                                                                std::unordered_map<unsigned int, unsigned int>& found_lm_to_ref_keyfrm_id) const {
     for (const auto& t : Sim3s_nw_after_correction) {
         auto neighbor = t.first;
         // neighbor->world AFTER loop correction
@@ -284,20 +284,18 @@ void global_optimization_module::correct_covisibility_landmarks(const module::ke
             }
 
             // avoid duplication
-            if (lm->loop_fusion_identifier_ == cur_keyfrm_->id_) {
+            if (found_lm_to_ref_keyfrm_id.count(lm->id_)) {
                 continue;
             }
-            lm->loop_fusion_identifier_ = cur_keyfrm_->id_;
+            // record the reference keyframe used in loop fusion of landmarks
+            found_lm_to_ref_keyfrm_id[lm->id_] = neighbor->id_;
 
             // correct position of `lm`
             const Vec3_t pos_w_before_correction = lm->get_pos_in_world();
             const Vec3_t pos_w_after_correction = Sim3_wn_after_correction.map(Sim3_nw_before_correction.map(pos_w_before_correction));
             lm->set_pos_in_world(pos_w_after_correction);
             // update geometry
-            lm->update_normal_and_depth();
-
-            // record the reference keyframe used in loop fusion of landmarks
-            lm->ref_keyfrm_id_in_loop_fusion_ = neighbor->id_;
+            lm->update_mean_normal_and_obs_scale_variance();
         }
     }
 }
@@ -324,7 +322,7 @@ void global_optimization_module::replace_duplicated_landmarks(const std::vector<
     {
         std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
-        for (unsigned int idx = 0; idx < cur_keyfrm_->num_keypts_; ++idx) {
+        for (unsigned int idx = 0; idx < cur_keyfrm_->frm_obs_.num_keypts_; ++idx) {
             auto curr_match_lm_in_cand = curr_match_lms_observed_in_cand.at(idx);
             if (!curr_match_lm_in_cand) {
                 continue;
@@ -395,22 +393,11 @@ auto global_optimization_module::extract_new_connections(const std::vector<std::
     return new_connections;
 }
 
-void global_optimization_module::request_reset() {
-    {
-        std::lock_guard<std::mutex> lock(mtx_reset_);
-        reset_is_requested_ = true;
-    }
-
-    // BLOCK until reset
-    while (true) {
-        {
-            std::lock_guard<std::mutex> lock(mtx_reset_);
-            if (!reset_is_requested_) {
-                break;
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::microseconds(3000));
-    }
+std::future<void> global_optimization_module::async_reset() {
+    std::lock_guard<std::mutex> lock(mtx_reset_);
+    reset_is_requested_ = true;
+    promises_reset_.emplace_back();
+    return promises_reset_.back().get_future();
 }
 
 bool global_optimization_module::reset_is_requested() const {
@@ -424,11 +411,17 @@ void global_optimization_module::reset() {
     keyfrms_queue_.clear();
     loop_detector_->set_loop_correct_keyframe_id(0);
     reset_is_requested_ = false;
+    for (auto& promise : promises_reset_) {
+        promise.set_value();
+    }
+    promises_reset_.clear();
 }
 
-void global_optimization_module::request_pause() {
+std::future<void> global_optimization_module::async_pause() {
     std::lock_guard<std::mutex> lock1(mtx_pause_);
     pause_is_requested_ = true;
+    promises_pause_.emplace_back();
+    return promises_pause_.back().get_future();
 }
 
 bool global_optimization_module::pause_is_requested() const {
@@ -445,6 +438,10 @@ void global_optimization_module::pause() {
     std::lock_guard<std::mutex> lock(mtx_pause_);
     spdlog::info("pause global optimization module");
     is_paused_ = true;
+    for (auto& promise : promises_pause_) {
+        promise.set_value();
+    }
+    promises_pause_.clear();
 }
 
 void global_optimization_module::resume() {
@@ -462,9 +459,11 @@ void global_optimization_module::resume() {
     spdlog::info("resume global optimization module");
 }
 
-void global_optimization_module::request_terminate() {
+std::future<void> global_optimization_module::async_terminate() {
     std::lock_guard<std::mutex> lock(mtx_terminate_);
     terminate_is_requested_ = true;
+    promises_terminate_.emplace_back();
+    return promises_terminate_.back().get_future();
 }
 
 bool global_optimization_module::is_terminated() const {
@@ -480,6 +479,10 @@ bool global_optimization_module::terminate_is_requested() const {
 void global_optimization_module::terminate() {
     std::lock_guard<std::mutex> lock(mtx_terminate_);
     is_terminated_ = true;
+    for (auto& promise : promises_terminate_) {
+        promise.set_value();
+    }
+    promises_terminate_.clear();
 }
 
 bool global_optimization_module::loop_BA_is_running() const {

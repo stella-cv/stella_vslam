@@ -16,8 +16,9 @@
 
 namespace openvslam {
 
-mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* map_db)
-    : local_map_cleaner_(new module::local_map_cleaner(yaml_node["redundant_obs_ratio_thr"].as<double>(0.9))), map_db_(map_db),
+mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* map_db, data::bow_database* bow_db, data::bow_vocabulary* bow_vocab)
+    : local_map_cleaner_(new module::local_map_cleaner(map_db, bow_db, yaml_node["redundant_obs_ratio_thr"].as<double>(0.9))),
+      map_db_(map_db), bow_db_(bow_db), bow_vocab_(bow_vocab),
       local_bundle_adjuster_(new optimize::local_bundle_adjuster()) {
     spdlog::debug("CONSTRUCT: mapping_module");
     spdlog::debug("load mapping parameters");
@@ -54,13 +55,11 @@ void mapping_module::run() {
     spdlog::info("start mapping module");
 
     is_terminated_ = false;
+    set_is_idle(true);
 
     while (true) {
         // waiting time for the other threads
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
-
-        // LOCK
-        set_keyframe_acceptability(false);
 
         // check if termination is requested
         if (terminate_is_requested()) {
@@ -69,8 +68,9 @@ void mapping_module::run() {
             break;
         }
 
-        // check if pause is requested
-        if (pause_is_requested()) {
+        // check if pause is requested and not prevented
+        if (pause_is_requested_and_not_prevented()) {
+            set_is_idle(false);
             // if any keyframe is queued, all of them must be processed before the pause
             while (keyframe_is_queued()) {
                 // create and extend the map with the new keyframe
@@ -78,6 +78,7 @@ void mapping_module::run() {
                 // send the new keyframe to the global optimization module
                 global_optimizer_->queue_keyframe(cur_keyfrm_);
             }
+            set_is_idle(true);
             // pause and wait
             pause();
             // check if termination or reset is requested during pause
@@ -88,26 +89,23 @@ void mapping_module::run() {
 
         // check if reset is requested
         if (reset_is_requested()) {
-            // reset, UNLOCK and continue
+            // reset and continue
             reset();
-            set_keyframe_acceptability(true);
+            set_is_idle(true);
             continue;
         }
 
         // if the queue is empty, the following process is not needed
         if (!keyframe_is_queued()) {
-            // UNLOCK and continue
-            set_keyframe_acceptability(true);
+            set_is_idle(true);
             continue;
         }
 
+        set_is_idle(false);
         // create and extend the map with the new keyframe
         mapping_with_new_keyframe();
         // send the new keyframe to the global optimization module
         global_optimizer_->queue_keyframe(cur_keyfrm_);
-
-        // LOCK end
-        set_keyframe_acceptability(true);
     }
 
     spdlog::info("terminate mapping module");
@@ -129,12 +127,17 @@ bool mapping_module::keyframe_is_queued() const {
     return !keyfrms_queue_.empty();
 }
 
-bool mapping_module::get_keyframe_acceptability() const {
-    return keyfrm_acceptability_;
+bool mapping_module::is_idle() const {
+    return is_idle_;
 }
 
-void mapping_module::set_keyframe_acceptability(const bool acceptability) {
-    keyfrm_acceptability_ = acceptability;
+void mapping_module::set_is_idle(const bool is_idle) {
+    is_idle_ = is_idle;
+}
+
+bool mapping_module::is_skipping_localBA() const {
+    auto queued_keyframes = get_num_queued_keyframes();
+    return queued_keyframes >= queue_threshold_;
 }
 
 void mapping_module::abort_local_BA() {
@@ -175,15 +178,23 @@ void mapping_module::mapping_with_new_keyframe() {
 
     // local bundle adjustment
     abort_local_BA_ = false;
+    // If the processing speed is insufficient, skip localBA.
     if (2 < map_db_->get_num_keyframes()) {
-        local_bundle_adjuster_->optimize(cur_keyfrm_, &abort_local_BA_);
+        if (is_skipping_localBA()) {
+            spdlog::debug("Skipped localBA due to insufficient performance");
+        }
+        else {
+            local_bundle_adjuster_->optimize(map_db_, cur_keyfrm_, &abort_local_BA_);
+        }
     }
     local_map_cleaner_->remove_redundant_keyframes(cur_keyfrm_);
 }
 
 void mapping_module::store_new_keyframe() {
     // compute BoW feature vector
-    cur_keyfrm_->compute_bow();
+    if (!cur_keyfrm_->bow_is_available()) {
+        cur_keyfrm_->compute_bow(bow_vocab_);
+    }
 
     // update graph
     const auto cur_lms = cur_keyfrm_->get_landmarks();
@@ -207,7 +218,7 @@ void mapping_module::store_new_keyframe() {
         // update connection
         lm->add_observation(cur_keyfrm_, idx);
         // update geometry
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
         lm->compute_descriptor();
     }
     cur_keyfrm_->graph_node_->update_connections();
@@ -304,7 +315,7 @@ void mapping_module::triangulate_with_two_keyframes(const std::shared_ptr<data::
         keyfrm_2->add_landmark(lm, idx_2);
 
         lm->compute_descriptor();
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
 
         map_db_->add_landmark(lm);
         // wait for redundancy check
@@ -335,7 +346,7 @@ void mapping_module::update_new_keyframe() {
             continue;
         }
         lm->compute_descriptor();
-        lm->update_normal_and_depth();
+        lm->update_mean_normal_and_obs_scale_variance();
     }
 
     // update the graph
@@ -399,7 +410,7 @@ void mapping_module::fuse_landmark_duplication(const std::unordered_set<std::sha
         // - duplication of matches
         // then, add matches and solve duplication
         std::unordered_set<std::shared_ptr<data::landmark>> candidate_landmarks_to_fuse;
-        candidate_landmarks_to_fuse.reserve(fuse_tgt_keyfrms.size() * cur_keyfrm_->num_keypts_);
+        candidate_landmarks_to_fuse.reserve(fuse_tgt_keyfrms.size() * cur_keyfrm_->frm_obs_.num_keypts_);
 
         for (const auto& fuse_tgt_keyfrm : fuse_tgt_keyfrms) {
             const auto fuse_tgt_landmarks = fuse_tgt_keyfrm->get_landmarks();
@@ -423,22 +434,11 @@ void mapping_module::fuse_landmark_duplication(const std::unordered_set<std::sha
     }
 }
 
-void mapping_module::request_reset() {
-    {
-        std::lock_guard<std::mutex> lock(mtx_reset_);
-        reset_is_requested_ = true;
-    }
-
-    // BLOCK until reset
-    while (true) {
-        {
-            std::lock_guard<std::mutex> lock(mtx_reset_);
-            if (!reset_is_requested_) {
-                break;
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::microseconds(3000));
-    }
+std::future<void> mapping_module::async_reset() {
+    std::lock_guard<std::mutex> lock(mtx_reset_);
+    reset_is_requested_ = true;
+    promises_reset_.emplace_back();
+    return promises_reset_.back().get_future();
 }
 
 bool mapping_module::reset_is_requested() const {
@@ -452,13 +452,19 @@ void mapping_module::reset() {
     keyfrms_queue_.clear();
     local_map_cleaner_->reset();
     reset_is_requested_ = false;
+    for (auto& promise : promises_reset_) {
+        promise.set_value();
+    }
+    promises_reset_.clear();
 }
 
-void mapping_module::request_pause() {
+std::future<void> mapping_module::async_pause() {
     std::lock_guard<std::mutex> lock1(mtx_pause_);
     pause_is_requested_ = true;
     std::lock_guard<std::mutex> lock2(mtx_keyfrm_queue_);
     abort_local_BA_ = true;
+    promises_pause_.emplace_back();
+    return promises_pause_.back().get_future();
 }
 
 bool mapping_module::is_paused() const {
@@ -466,26 +472,37 @@ bool mapping_module::is_paused() const {
     return is_paused_;
 }
 
+bool mapping_module::pause_is_requested_and_not_prevented() const {
+    std::lock_guard<std::mutex> lock(mtx_pause_);
+    return pause_is_requested_ && !prevent_pause_;
+}
+
 bool mapping_module::pause_is_requested() const {
     std::lock_guard<std::mutex> lock(mtx_pause_);
-    return pause_is_requested_ && !force_to_run_;
+    return pause_is_requested_;
 }
 
 void mapping_module::pause() {
     std::lock_guard<std::mutex> lock(mtx_pause_);
     spdlog::info("pause mapping module");
     is_paused_ = true;
+    for (auto& promise : promises_pause_) {
+        promise.set_value();
+    }
+    promises_pause_.clear();
 }
 
-bool mapping_module::set_force_to_run(const bool force_to_run) {
+bool mapping_module::prevent_pause_if_not_paused() {
     std::lock_guard<std::mutex> lock(mtx_pause_);
-
-    if (force_to_run && is_paused_) {
-        return false;
+    if (!is_paused_) {
+        prevent_pause_ = true;
     }
+    return prevent_pause_;
+}
 
-    force_to_run_ = force_to_run;
-    return true;
+void mapping_module::stop_prevent_pause() {
+    std::lock_guard<std::mutex> lock(mtx_pause_);
+    prevent_pause_ = false;
 }
 
 void mapping_module::resume() {
@@ -497,18 +514,19 @@ void mapping_module::resume() {
         return;
     }
 
+    assert(keyfrms_queue_.empty());
+
     is_paused_ = false;
     pause_is_requested_ = false;
-
-    // clear the queue
-    keyfrms_queue_.clear();
 
     spdlog::info("resume mapping module");
 }
 
-void mapping_module::request_terminate() {
+std::future<void> mapping_module::async_terminate() {
     std::lock_guard<std::mutex> lock(mtx_terminate_);
     terminate_is_requested_ = true;
+    promises_terminate_.emplace_back();
+    return promises_terminate_.back().get_future();
 }
 
 bool mapping_module::is_terminated() const {
@@ -526,6 +544,11 @@ void mapping_module::terminate() {
     std::lock_guard<std::mutex> lock2(mtx_terminate_);
     is_paused_ = true;
     is_terminated_ = true;
+    set_is_idle(true);
+    for (auto& promise : promises_terminate_) {
+        promise.set_value();
+    }
+    promises_terminate_.clear();
 }
 
 } // namespace openvslam

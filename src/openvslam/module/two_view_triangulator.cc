@@ -12,21 +12,21 @@ two_view_triangulator::two_view_triangulator(const std::shared_ptr<data::keyfram
       cam_pose_1w_(keyfrm_1->get_cam_pose()), cam_center_1_(keyfrm_1->get_cam_center()), camera_1_(keyfrm_1->camera_),
       rot_2w_(keyfrm_2->get_rotation()), rot_w2_(rot_2w_.transpose()), trans_2w_(keyfrm_2->get_translation()),
       cam_pose_2w_(keyfrm_2->get_cam_pose()), cam_center_2_(keyfrm_2->get_cam_center()), camera_2_(keyfrm_2->camera_),
-      ratio_factor_(2.0f * std::max(keyfrm_1->scale_factor_, keyfrm_2->scale_factor_)),
+      ratio_factor_(2.0f * std::max(keyfrm_1->orb_params_->scale_factor_, keyfrm_2->orb_params_->scale_factor_)),
       cos_rays_parallax_thr_(std::cos(rays_parallax_deg_thr * M_PI / 180.0)) {}
 
 bool two_view_triangulator::triangulate(const unsigned idx_1, const unsigned int idx_2, Vec3_t& pos_w) const {
-    const auto& keypt_1 = keyfrm_1_->undist_keypts_.at(idx_1);
-    const float keypt_1_x_right = keyfrm_1_->stereo_x_right_.at(idx_1);
+    const auto& keypt_1 = keyfrm_1_->frm_obs_.undist_keypts_.at(idx_1);
+    const float keypt_1_x_right = keyfrm_1_->frm_obs_.stereo_x_right_.at(idx_1);
     const bool is_stereo_1 = 0 <= keypt_1_x_right;
 
-    const auto& keypt_2 = keyfrm_2_->undist_keypts_.at(idx_2);
-    const float keypt_2_x_right = keyfrm_2_->stereo_x_right_.at(idx_2);
+    const auto& keypt_2 = keyfrm_2_->frm_obs_.undist_keypts_.at(idx_2);
+    const float keypt_2_x_right = keyfrm_2_->frm_obs_.stereo_x_right_.at(idx_2);
     const bool is_stereo_2 = 0 <= keypt_2_x_right;
 
     // rays with reference of each camera
-    const Vec3_t ray_c_1 = keyfrm_1_->bearings_.at(idx_1);
-    const Vec3_t ray_c_2 = keyfrm_2_->bearings_.at(idx_2);
+    const Vec3_t ray_c_1 = keyfrm_1_->frm_obs_.bearings_.at(idx_1);
+    const Vec3_t ray_c_2 = keyfrm_2_->frm_obs_.bearings_.at(idx_2);
     // rays with the world reference
     const Vec3_t ray_w_1 = rot_w1_ * ray_c_1;
     const Vec3_t ray_w_2 = rot_w2_ * ray_c_2;
@@ -34,10 +34,10 @@ bool two_view_triangulator::triangulate(const unsigned idx_1, const unsigned int
 
     // compute the stereo parallax if the keypoint is observed as stereo
     const auto cos_stereo_parallax_1 = is_stereo_1
-                                           ? std::cos(2.0 * atan2(camera_1_->true_baseline_ / 2.0, keyfrm_1_->depths_.at(idx_1)))
+                                           ? std::cos(2.0 * atan2(camera_1_->true_baseline_ / 2.0, keyfrm_1_->frm_obs_.depths_.at(idx_1)))
                                            : 2.0;
     const auto cos_stereo_parallax_2 = is_stereo_2
-                                           ? std::cos(2.0 * atan2(camera_2_->true_baseline_ / 2.0, keyfrm_2_->depths_.at(idx_2)))
+                                           ? std::cos(2.0 * atan2(camera_2_->true_baseline_ / 2.0, keyfrm_2_->frm_obs_.depths_.at(idx_2)))
                                            : 2.0;
     const auto cos_stereo_parallax = std::min(cos_stereo_parallax_1, cos_stereo_parallax_2);
 
@@ -71,16 +71,16 @@ bool two_view_triangulator::triangulate(const unsigned idx_1, const unsigned int
 
     // reject the point if reprojection errors are larger than reasonable threshold
     if (!check_reprojection_error(pos_w, rot_1w_, trans_1w_, camera_1_, keypt_1.pt, keypt_1_x_right,
-                                  keyfrm_1_->level_sigma_sq_.at(keypt_1.octave), is_stereo_1)
+                                  keyfrm_1_->orb_params_->level_sigma_sq_.at(keypt_1.octave), is_stereo_1)
         || !check_reprojection_error(pos_w, rot_2w_, trans_2w_, camera_2_, keypt_2.pt, keypt_2_x_right,
-                                     keyfrm_2_->level_sigma_sq_.at(keypt_2.octave), is_stereo_2)) {
+                                     keyfrm_2_->orb_params_->level_sigma_sq_.at(keypt_2.octave), is_stereo_2)) {
         return false;
     }
 
     // reject the point if the real scale factor and the predicted one are much different
     if (!check_scale_factors(pos_w,
-                             keyfrm_1_->scale_factors_.at(keypt_1.octave),
-                             keyfrm_2_->scale_factors_.at(keypt_2.octave))) {
+                             keyfrm_1_->orb_params_->scale_factors_.at(keypt_1.octave),
+                             keyfrm_2_->orb_params_->scale_factors_.at(keypt_2.octave))) {
         return false;
     }
 
