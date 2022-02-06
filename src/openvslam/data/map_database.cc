@@ -27,9 +27,6 @@ map_database::~map_database() {
 void map_database::add_keyframe(const std::shared_ptr<keyframe>& keyfrm) {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
     keyframes_[keyfrm->id_] = keyfrm;
-    if (keyfrm->id_ > max_keyfrm_id_) {
-        max_keyfrm_id_ = keyfrm->id_;
-    }
 }
 
 void map_database::erase_keyframe(const std::shared_ptr<keyframe>& keyfrm) {
@@ -144,25 +141,11 @@ unsigned int map_database::get_num_landmarks() const {
     return landmarks_.size();
 }
 
-unsigned int map_database::get_max_keyframe_id() const {
-    std::lock_guard<std::mutex> lock(mtx_map_access_);
-    return max_keyfrm_id_;
-}
-
 void map_database::clear() {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
-    for (auto& lm : landmarks_) {
-        lm.second = nullptr;
-    }
-
-    for (auto& keyfrm : keyframes_) {
-        keyfrm.second = nullptr;
-    }
-
     landmarks_.clear();
     keyframes_.clear();
-    max_keyfrm_id_ = 0;
     local_landmarks_.clear();
     origin_keyfrm_ = nullptr;
 
@@ -186,7 +169,6 @@ void map_database::from_json(camera_database* cam_db, bow_vocabulary* bow_vocab,
 
     landmarks_.clear();
     keyframes_.clear();
-    max_keyfrm_id_ = 0;
     local_landmarks_.clear();
     origin_keyfrm_ = nullptr;
 
@@ -311,9 +293,6 @@ void map_database::register_keyframe(camera_database* cam_db, bow_vocabulary* bo
     // Append to map database
     assert(!keyframes_.count(id));
     keyframes_[keyfrm->id_] = keyfrm;
-    if (keyfrm->id_ > max_keyfrm_id_) {
-        max_keyfrm_id_ = keyfrm->id_;
-    }
     if (id == 0) {
         origin_keyfrm_ = keyfrm;
     }

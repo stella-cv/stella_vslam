@@ -122,12 +122,6 @@ public:
     unsigned int get_num_landmarks() const;
 
     /**
-     * Get the maximum keyframe ID
-     * @return
-     */
-    unsigned int get_max_keyframe_id() const;
-
-    /**
      * Update frame statistics
      * @param frm
      * @param is_lost
@@ -236,9 +230,6 @@ private:
 
     //! local landmarks
     std::vector<std::shared_ptr<landmark>> local_landmarks_;
-
-    //! max keyframe ID
-    unsigned int max_keyfrm_id_ = 0;
 
     //-----------------------------------------
     // frame statistics for odometry evaluation
