@@ -34,7 +34,9 @@ Execute the following commands:
 
 .. code-block:: bash
 
-    cd /path/to/openvslam
+    git clone https://github.com/OpenVSLAM-Community/openvslam.git
+    cd openvslam
+    git submodule update -i --recursive
     docker build -t openvslam-desktop -f Dockerfile.desktop .
 
 

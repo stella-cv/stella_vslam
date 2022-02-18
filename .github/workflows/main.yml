@@ -41,7 +41,7 @@ jobs:
       run:
         shell: bash
     container:
-      image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
+      image: ghcr.io/ymd-stella/openvslam-community/openvslam:latest
     steps:
       - uses: actions/checkout@v2
       - name: cmake and make with pangolin viewer
@@ -62,7 +62,7 @@ jobs:
       run:
         shell: bash
     container:
-      image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
+      image: ghcr.io/ymd-stella/openvslam-community/openvslam:latest
     steps:
       - uses: actions/checkout@v2
       - name: cmake and make
@@ -79,32 +79,49 @@ jobs:
       - name: Convert groundtruth to TUM format
         run: |
           python3 scripts/dataset_tools/compute_euroc_cam_tf.py > tf.json
+          evo_traj euroc --transform_right tf.json /datasets/EuRoC/MH_01/state_groundtruth_estimate0/data.csv --save_as_tum
+          mv data.tum MH_01.tum
           evo_traj euroc --transform_right tf.json /datasets/EuRoC/MH_04/state_groundtruth_estimate0/data.csv --save_as_tum
-          mv data.tum euroc_gt.tum
-      - name: SLAM test (monocular) with EuRoC MAV dataset
+          mv data.tum MH_04.tum
+      - name: SLAM test (monocular) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
-          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_mono.msg
-          mv frame_trajectory.txt ../frame_trajectory_euroc_mono_slam.txt
-          mv track_times.txt ../track_times_euroc_mono_slam.txt
-      - name: SLAM test (stereo) with EuRoC MAV dataset
+          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db MH_01_mono.msg
+          mv frame_trajectory.txt ../frame_trajectory_MH_01_mono_slam.txt
+          mv track_times.txt ../track_times_MH_01_mono_slam.txt
+      - name: SLAM test (stereo) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
-          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_stereo.msg
-          mv frame_trajectory.txt ../frame_trajectory_euroc_stereo_slam.txt
-          mv track_times.txt ../track_times_euroc_stereo_slam.txt
-      - name: Localization test (monocular) with EuRoC MAV dataset
+          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db MH_01_stereo.msg
+          mv frame_trajectory.txt ../frame_trajectory_MH_01_stereo_slam.txt
+          mv track_times.txt ../track_times_MH_01_stereo_slam.txt
+      - name: Localization test (monocular) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
-          ./run_euroc_localization -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db euroc_mono.msg
-          mv frame_trajectory.txt ../frame_trajectory_euroc_mono_localization.txt
-          mv track_times.txt ../track_times_euroc_mono_localization.txt
+          ./run_euroc_localization -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db MH_01_mono.msg
+          mv frame_trajectory.txt ../frame_trajectory_MH_01_mono_localization.txt
+          mv track_times.txt ../track_times_MH_01_mono_localization.txt
+      - name: SLAM test (monocular) with EuRoC MAV dataset (MH_04)
+        run: |
+          cd build
+          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db MH_04_mono.msg
+          mv frame_trajectory.txt ../frame_trajectory_MH_04_mono_slam.txt
+          mv track_times.txt ../track_times_MH_04_mono_slam.txt
+      - name: SLAM test (stereo) with EuRoC MAV dataset (MH_04)
+        run: |
+          cd build
+          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db MH_04_stereo.msg
+          mv frame_trajectory.txt ../frame_trajectory_MH_04_stereo_slam.txt
+          mv track_times.txt ../track_times_MH_04_stereo_slam.txt
+      - name: Localization test (monocular) with EuRoC MAV dataset (MH_04)
+        run: |
+          cd build
+          ./run_euroc_localization -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --debug --eval-log --map-db MH_04_mono.msg
+          mv frame_trajectory.txt ../frame_trajectory_MH_04_mono_localization.txt
+          mv track_times.txt ../track_times_MH_04_mono_localization.txt
       - name: download openvslam_test_dataset
         run: |
-          FILE_ID="1bdkqaR99GKjg4orhqHxQkwqyi227tfCd"
-          curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${FILE_ID}" > /dev/null
-          CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
-          curl -sLb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=${FILE_ID}" -o openvslam_test_dataset.zip
+          gdown "https://drive.google.com/uc?id=1bdkqaR99GKjg4orhqHxQkwqyi227tfCd" -q
           unzip openvslam_test_dataset.zip
           rm openvslam_test_dataset.zip
       - name: make config for openvslam_test_dataset
@@ -138,17 +155,29 @@ jobs:
             echo
             echo '|dataset|track_time<br>(mean)|track_time<br>(median)|track_time<br>(max)|RPE<br>(mean)|RPE<br>(median)|RPE<br>(max)|RPE<br>(rmse)|RPE<br>(sse)|RPE<br>(std)|'
             echo '|---|---|---|---|---|---|---|---|---|---|'
+            echo -n '| EuRoC MH_01 (SLAM, perspective, mono)'
+            bash track_time_print_row.bash track_times_MH_01_mono_slam.txt
+            bash evo_rpe_print_row.bash tum MH_01.tum frame_trajectory_MH_01_mono_slam.txt -as
+            echo '|'
+            echo -n '| EuRoC MH_01 (SLAM, perspective, stereo)'
+            bash track_time_print_row.bash track_times_MH_01_stereo_slam.txt
+            bash evo_rpe_print_row.bash tum MH_01.tum frame_trajectory_MH_01_stereo_slam.txt -a
+            echo '|'
+            echo -n '| EuRoC MH_01 (Localization, perspective, mono)'
+            bash track_time_print_row.bash track_times_MH_01_mono_localization.txt
+            bash evo_rpe_print_row.bash tum MH_01.tum frame_trajectory_MH_01_mono_localization.txt -as
+            echo '|'
             echo -n '| EuRoC MH_04 (SLAM, perspective, mono)'
-            bash track_time_print_row.bash track_times_euroc_mono_slam.txt
-            bash evo_rpe_print_row.bash tum euroc_gt.tum frame_trajectory_euroc_mono_slam.txt -as
+            bash track_time_print_row.bash track_times_MH_04_mono_slam.txt
+            bash evo_rpe_print_row.bash tum MH_04.tum frame_trajectory_MH_04_mono_slam.txt -as
             echo '|'
             echo -n '| EuRoC MH_04 (SLAM, perspective, stereo)'
-            bash track_time_print_row.bash track_times_euroc_stereo_slam.txt
-            bash evo_rpe_print_row.bash tum euroc_gt.tum frame_trajectory_euroc_stereo_slam.txt -a
+            bash track_time_print_row.bash track_times_MH_04_stereo_slam.txt
+            bash evo_rpe_print_row.bash tum MH_04.tum frame_trajectory_MH_04_stereo_slam.txt -a
             echo '|'
             echo -n '| EuRoC MH_04 (Localization, perspective, mono)'
-            bash track_time_print_row.bash track_times_euroc_mono_localization.txt
-            bash evo_rpe_print_row.bash tum euroc_gt.tum frame_trajectory_euroc_mono_localization.txt -as
+            bash track_time_print_row.bash track_times_MH_04_mono_localization.txt
+            bash evo_rpe_print_row.bash tum MH_04.tum frame_trajectory_MH_04_mono_localization.txt -as
             echo '|'
             echo -n '| openvslam_test_dataset 1 (SLAM, equirectangular, mono)'
             bash track_time_print_row.bash track_times_equirectangular_1.txt
@@ -176,7 +205,7 @@ jobs:
       run:
         shell: bash
     container:
-      image: ghcr.io/ymd-stella/openvslam-community/openvslam-desktop:latest
+      image: ghcr.io/ymd-stella/openvslam-community/openvslam:latest
     steps:
       - uses: actions/checkout@v2
       - name: cmake and make
@@ -188,10 +217,7 @@ jobs:
       - name: download a dataset
         run: |
           cd build
-          FILE_ID="1TXjREzkht3iRz__qVx4oYRW1GXsv37ct"
-          curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${FILE_ID}" > /dev/null
-          CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
-          curl -sLb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=${FILE_ID}" -o video_for_ci_1.zip
+          gdown "https://drive.google.com/uc?id=1TXjREzkht3iRz__qVx4oYRW1GXsv37ct" -q
           unzip video_for_ci_1.zip
           rm video_for_ci_1.zip
       - name: mapping test with the tutorial

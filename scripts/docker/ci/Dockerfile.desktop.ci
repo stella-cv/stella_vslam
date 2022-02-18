@@ -270,19 +270,20 @@ RUN set -x && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /datasets/
-COPY orb_vocab /datasets/orb_vocab
-RUN mkdir -p /datasets/EuRoC
-COPY MH_04 /datasets/EuRoC/MH_04
-
-# evo
+# evaluation tools
 RUN set -x && \
   apt-get update -y -qq && \
   : "install evo" && \
   apt-get install -y -qq \
     python3-pip && \
-  pip3 install evo --upgrade --no-binary evo && \
+  pip3 install evo gdown --upgrade --no-binary evo && \
   : "remove cache"  && \
   rm -rf ~/.cache/pip && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /datasets/
+COPY orb_vocab /datasets/orb_vocab
+RUN mkdir -p /datasets/EuRoC
+COPY MH_01 /datasets/EuRoC/MH_01
+COPY MH_04 /datasets/EuRoC/MH_04
