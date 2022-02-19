@@ -69,7 +69,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
+          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
           make -j $(($(nproc) / 2))
       - name: unit test
         run: |

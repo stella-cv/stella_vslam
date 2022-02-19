@@ -3,10 +3,9 @@
 # popl
 set(popl_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/popl/include)
 
-set(USE_STACK_TRACE_LOGGER OFF CACHE BOOL "Enable automatic stack trace logger of google-glog")
+set(USE_STACK_TRACE_LOGGER OFF CACHE BOOL "Enable automatic stack trace logger of backward-cpp")
 if(USE_STACK_TRACE_LOGGER)
-    find_package(Glog REQUIRED)
-    include_directories(${GLOG_INCLUDE_DIR})
+    find_package(Backward REQUIRED)
     message(STATUS "Stack trace logger: ENABLED")
 else()
     message(STATUS "Stack trace logger: DISABLED")
@@ -93,7 +92,7 @@ foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
     # Setup stack trace logger
     if(USE_STACK_TRACE_LOGGER)
         target_compile_definitions(${EXECUTABLE_TARGET} PRIVATE USE_STACK_TRACE_LOGGER)
-        target_link_libraries(${EXECUTABLE_TARGET} PRIVATE ${GLOG_LIBRARIES})
+        target_link_libraries(${EXECUTABLE_TARGET} PRIVATE Backward::Backward)
     endif()
 
     # Setup google-perftools

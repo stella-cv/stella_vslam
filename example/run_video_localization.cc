@@ -19,7 +19,7 @@
 #include <popl.hpp>
 
 #ifdef USE_STACK_TRACE_LOGGER
-#include <glog/logging.h>
+#include <backward.hpp>
 #endif
 
 #ifdef USE_GOOGLE_PERFTOOLS
@@ -139,8 +139,7 @@ void mono_localization(const std::shared_ptr<openvslam::config>& cfg,
 
 int main(int argc, char* argv[]) {
 #ifdef USE_STACK_TRACE_LOGGER
-    google::InitGoogleLogging(argv[0]);
-    google::InstallFailureSignalHandler();
+    backward::SignalHandling sh;
 #endif
 
     // create options

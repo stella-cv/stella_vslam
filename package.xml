@@ -17,7 +17,6 @@
 
     <depend>eigen</depend>
     <depend>libg2o</depend>
-    <depend>libgoogle-glog-dev</depend>
     <depend>libopencv-dev</depend>
     <depend>yaml-cpp</depend>
 
