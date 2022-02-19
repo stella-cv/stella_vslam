@@ -18,7 +18,6 @@ RUN set -x && \
     unzip && \
   : "g2o dependencies" && \
   apt-get install -y -qq \
-    libgoogle-glog-dev \
     libatlas-base-dev \
     libsuitesparse-dev \
     libglew-dev && \
@@ -35,6 +34,8 @@ RUN set -x && \
     libavutil-dev \
     libswscale-dev \
     libavresample-dev && \
+  : "backward-cpp dependencies" && \
+  apt install -y -qq binutils-dev && \
   : "other dependencies" && \
   apt-get install -y -qq \
     libyaml-cpp-dev && \
@@ -175,6 +176,24 @@ RUN set -x && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
+# backward-cpp
+ARG BACKWARD_CPP_COMMIT=5ffb2c879ebdbea3bdb8477c671e32b1c984beaa
+WORKDIR /tmp
+RUN set -x && \
+  git clone https://github.com/bombela/backward-cpp.git && \
+  cd backward-cpp && \
+  git checkout ${BACKWARD_CPP_COMMIT} && \
+  mkdir -p build && \
+  cd build && \
+  cmake \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
+    .. && \
+  make -j${NUM_THREADS} && \
+  make install && \
+  cd /tmp && \
+  rm -rf *
+
 # OpenVSLAM
 COPY . /openvslam/
 WORKDIR /openvslam/
@@ -185,6 +204,7 @@ RUN set -x && \
     -DUSE_SOCKET_PUBLISHER=ON \
     -DBUILD_EXAMPLES=ON \
     -DUSE_STACK_TRACE_LOGGER=ON \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     .. && \
   make -j${NUM_THREADS} && \
   rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \

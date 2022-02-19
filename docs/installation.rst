@@ -89,7 +89,7 @@ The following libraries are the dependencies for the server.
 Recommended
 ^^^^^^^^^^^
 
-* `google-glog <https://github.com/google/glog>`_ : Used for stack-trace logger.
+* `backward-cpp <https://github.com/bombela/backward-cpp>`_ : Used for stack-trace logger.
 
 
 .. _section-prerequisites-unix:
@@ -128,8 +128,10 @@ Install the dependencies via ``apt``.
     apt install -y libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavresample-dev
     # eigen dependencies
     apt install -y gfortran
+    # backward-cpp dependencies (optional)
+    apt install -y binutils-dev
     # other dependencies
-    apt install -y libyaml-cpp-dev libgoogle-glog-dev libgflags-dev 
+    apt install -y libyaml-cpp-dev libgflags-dev 
 
     # (if you plan on using PangolinViewer)
     # Pangolin dependencies
@@ -343,7 +345,6 @@ When building with support for PangolinViewer, please specify the following cmak
         -DUSE_PANGOLIN_VIEWER=ON \
         -DINSTALL_PANGOLIN_VIEWER=ON \
         -DUSE_SOCKET_PUBLISHER=OFF \
-        -DUSE_STACK_TRACE_LOGGER=ON \
         -DBUILD_TESTS=ON \
         -DBUILD_EXAMPLES=ON \
         ..
@@ -360,7 +361,6 @@ When building with support for SocketViewer, please specify the following cmake 
         -DUSE_PANGOLIN_VIEWER=OFF \
         -DUSE_SOCKET_PUBLISHER=ON \
         -DINSTALL_SOCKET_PUBLISHER=ON \
-        -DUSE_STACK_TRACE_LOGGER=ON \
         -DBUILD_TESTS=ON \
         -DBUILD_EXAMPLES=ON \
         ..
