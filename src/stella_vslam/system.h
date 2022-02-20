@@ -42,6 +42,10 @@ class map_publisher;
 class frame_publisher;
 } // namespace publish
 
+namespace io {
+class map_database_io_base;
+}
+
 class system {
 public:
     //! Constructor
@@ -229,6 +233,9 @@ private:
     std::shared_ptr<publish::frame_publisher> frame_publisher_ = nullptr;
     //! map publisher
     std::shared_ptr<publish::map_publisher> map_publisher_ = nullptr;
+
+    //! map I/O
+    std::shared_ptr<io::map_database_io_base> map_database_io_ = nullptr;
 
     //! system running status flag
     std::atomic<bool> system_is_running_{false};

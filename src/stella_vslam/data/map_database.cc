@@ -372,7 +372,7 @@ void map_database::register_association(const unsigned int keyfrm_id, const nloh
     }
 }
 
-void map_database::to_json(nlohmann::json& json_keyfrms, nlohmann::json& json_landmarks) {
+void map_database::to_json(nlohmann::json& json_keyfrms, nlohmann::json& json_landmarks) const {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
     // Save each keyframe as json

@@ -178,7 +178,7 @@ public:
      * @param json_keyfrms
      * @param json_landmarks
      */
-    void to_json(nlohmann::json& json_keyfrms, nlohmann::json& json_landmarks);
+    void to_json(nlohmann::json& json_keyfrms, nlohmann::json& json_landmarks) const;
 
     //! origin keyframe
     std::shared_ptr<keyframe> origin_keyfrm_ = nullptr;
