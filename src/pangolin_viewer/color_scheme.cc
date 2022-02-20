@@ -6,10 +6,7 @@
 namespace pangolin_viewer {
 
 color_scheme::color_scheme(const std::string& color_set_str) {
-    if (stricmp(color_set_str, std::string("white"))) {
-        set_color_as_white();
-    }
-    else if (stricmp(color_set_str, std::string("black"))) {
+    if (stricmp(color_set_str, std::string("black"))) {
         set_color_as_black();
     }
     else if (stricmp(color_set_str, std::string("purple"))) {
@@ -18,16 +15,6 @@ color_scheme::color_scheme(const std::string& color_set_str) {
     else {
         throw std::runtime_error("undefined color scheme: " + color_set_str);
     }
-}
-
-void color_scheme::set_color_as_white() {
-    bg_ = {{1.0f, 1.0f, 1.0f, 1.0f}};
-    grid_ = {{0.7f, 0.7f, 0.7f}};
-    curr_cam_ = {{0.0f, 1.0f, 0.0f}};
-    kf_line_ = {{0.0f, 0.0f, 1.0f}};
-    graph_line_ = {{0.0f, 1.0f, 0.0f, 0.6f}};
-    lm_ = {{0.0f, 0.0f, 0.0f}};
-    local_lm_ = {{1.0f, 0.0f, 0.0f}};
 }
 
 void color_scheme::set_color_as_black() {

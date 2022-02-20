@@ -29,8 +29,6 @@ public:
     std::array<float, 3> local_lm_{};
 
 private:
-    void set_color_as_white();
-
     void set_color_as_black();
 
     void set_color_as_purple();
