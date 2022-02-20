@@ -31,6 +31,8 @@ public:
 private:
     void set_color_as_white();
 
+    void set_color_as_black();
+
     void set_color_as_purple();
 
     static bool stricmp(const std::string& str1, const std::string& str2);
