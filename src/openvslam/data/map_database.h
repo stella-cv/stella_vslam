@@ -173,6 +173,18 @@ public:
     void from_json(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab,
                    const nlohmann::json& json_keyfrms, const nlohmann::json& json_landmarks);
 
+
+    /**
+     * Load keyframes and landmarks from JSON without deleting previous ones
+     * @param cam_db
+     * @param orb_params_db
+     * @param bow_vocab
+     * @param json_keyfrms
+     * @param json_landmarks
+     */
+    void add_from_json(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab,
+                       const nlohmann::json& json_keyfrms, const nlohmann::json& json_landmarks);
+
     /**
      * Dump keyframes and landmarks as JSON
      * @param json_keyfrms
