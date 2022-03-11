@@ -232,6 +232,13 @@ void system::load_map_database(const std::string& path) const {
     resume_other_threads();
 }
 
+void system::load_new_map_database(const std::string& path) const {
+    pause_other_threads();
+    io::map_database_io map_db_io(cam_db_, orb_params_db_, map_db_, bow_db_, bow_vocab_);
+    map_db_io.load_new_message_pack(path);
+    resume_other_threads();
+}
+
 void system::save_map_database(const std::string& path) const {
     pause_other_threads();
     io::map_database_io map_db_io(cam_db_, orb_params_db_, map_db_, bow_db_, bow_vocab_);

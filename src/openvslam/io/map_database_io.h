@@ -38,6 +38,11 @@ public:
      */
     void load_message_pack(const std::string& path);
 
+    /**
+     * Load a map database from MessagePack without deleting a previous one
+     */
+    void load_new_message_pack(const std::string& path);
+
 private:
     //! camera database
     data::camera_database* const cam_db_ = nullptr;
