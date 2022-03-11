@@ -152,10 +152,7 @@ void map_database_io::load_new_message_pack(const std::string& path) {
     // change values of keyframes
     for (auto& [keyfrm_id, json_keyfrm] : json_keyfrms.items()) {
         nlohmann::json tmp_json_kyfrm;
-        // std::cout << "keyframe_id:  " << keyfrm_id << std::endl;
-        // std::cout << "length json:  " << json_keyfrm["lm_ids"].size() << std::endl;
-        // std::cout << "length array: " << json_keyfrm["lm_ids"].get<std::vector<int>>().size() << std::endl;
-        
+
         // shift ids of landmarks associated to keyframe
         std::vector<int> new_landmarks_ids;
         new_landmarks_ids.reserve(json_keyfrm["lm_ids"].size());
@@ -169,7 +166,7 @@ void map_database_io::load_new_message_pack(const std::string& path) {
         tmp_json_kyfrm["lm_ids"] = std::move(new_landmarks_ids);
 
         // shift id of frame associated to keyframe
-        tmp_json_kyfrm["src_frm_id"] =  + data::frame::next_id_;
+        tmp_json_kyfrm["src_frm_id"] = json_keyfrm["src_frm_id"].get<unsigned int>() + data::frame::next_id_;
 
         // shift id of 'span_parent'
         tmp_json_kyfrm["span_parent"] = json_keyfrm["span_parent"].get<int>() + data::keyframe::next_id_;
@@ -178,15 +175,15 @@ void map_database_io::load_new_message_pack(const std::string& path) {
         std::vector<int> new_children_ids;
         new_children_ids.reserve(json_keyfrm["span_children"].size());
         for (const auto& keyframe_id : json_keyfrm["span_children"].get<std::vector<int>>()) {
-            new_children_ids.push_back(keyframe_id);
+            new_children_ids.push_back(keyframe_id + data::keyframe::next_id_);
         }
         tmp_json_kyfrm["span_children"] = std::move(new_children_ids);
 
         // shift ids of 'loop_edges'
         std::vector<int> new_loop_edges_ids;
         new_loop_edges_ids.reserve(json_keyfrm["loop_edges"].size());
-        for (int& loop_edge_id : json_keyfrm["loop_edges"].get<std::vector<int>>()) {
-            new_loop_edges_ids.push_back(loop_edge_id);
+        for (const auto& loop_edge_id : json_keyfrm["loop_edges"].get<std::vector<int>>()) {
+            new_loop_edges_ids.push_back(loop_edge_id + data::keyframe::next_id_);
         }
         tmp_json_kyfrm["loop_edges"] = std::move(new_loop_edges_ids);
 
@@ -196,8 +193,9 @@ void map_database_io::load_new_message_pack(const std::string& path) {
         tmp_json_kyfrm["depths"] = std::move(json_keyfrm["depths"]);
         tmp_json_kyfrm["descs"] = std::move(json_keyfrm["descs"]);
         tmp_json_kyfrm["keypts"] = std::move(json_keyfrm["keypts"]);
-        tmp_json_kyfrm["n_keypoints"] = std::move(json_keyfrm["n_keypoints"]);
+        tmp_json_kyfrm["n_keypts"] = std::move(json_keyfrm["n_keypts"]);
         tmp_json_kyfrm["n_scale_levels"] = std::move(json_keyfrm["n_scale_levels"]);
+        tmp_json_kyfrm["orb_params"] = std::move(json_keyfrm["orb_params"]);
         tmp_json_kyfrm["rot_cw"] = std::move(json_keyfrm["rot_cw"]);
         tmp_json_kyfrm["scale_factor"] = std::move(json_keyfrm["scale_factor"]);
         tmp_json_kyfrm["trans_cw"] = std::move(json_keyfrm["trans_cw"]);
@@ -212,7 +210,6 @@ void map_database_io::load_new_message_pack(const std::string& path) {
     // change values of landmarks
     for (auto& [landmark_id, json_landmark] : json_landmarks.items()) {
         nlohmann::json tmp_json_ldmrk;
-        // std::cout << "landmark_id: " << landmark_id << std::endl;
 
         // shift 'ref_keyfrm' id
         tmp_json_ldmrk["ref_keyfrm"] = json_landmark["ref_keyfrm"].get<int>() + data::keyframe::next_id_;
@@ -234,8 +231,8 @@ void map_database_io::load_new_message_pack(const std::string& path) {
     data::keyframe::next_id_ += json.at("keyframe_next_id").get<unsigned int>();
     data::landmark::next_id_ += json.at("landmark_next_id").get<unsigned int>();
     
-    // load new database with the new keyfrms and landmarks
-    map_db_->from_json(cam_db_, orb_params_db_, bow_vocab_, json_keyfrms, json_landmarks);
+    // add to database with the new keyfrms and landmarks
+    map_db_->add_from_json(cam_db_, orb_params_db_, bow_vocab_, tmp_json_keyframes, tmp_json_landmarks);
     const auto keyfrms = map_db_->get_all_keyframes();
     for (const auto keyfrm : keyfrms) {
         bow_db_->add_keyframe(keyfrm);
