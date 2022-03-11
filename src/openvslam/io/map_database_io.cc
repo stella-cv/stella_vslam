@@ -103,5 +103,14 @@ void map_database_io::load_message_pack(const std::string& path) {
     }
 }
 
+void map_database_io::transform_map(const nlohmann::json& json_keyfrms, const nlohmann::json& json_landmarks, Mat44_t rotation) {
+    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+
+    // For each landmark
+    for (const auto& json_id_landmark : json_landmarks.items()) {
+        
+    }
+}
+
 } // namespace io
 } // namespace openvslam
