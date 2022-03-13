@@ -19,7 +19,8 @@
 namespace openvslam {
 namespace optimize {
 
-void optimize_impl(std::vector<std::shared_ptr<data::keyframe>>& keyfrms,
+void optimize_impl(g2o::SparseOptimizer& optimizer,
+                   std::vector<std::shared_ptr<data::keyframe>>& keyfrms,
                    std::vector<std::shared_ptr<data::landmark>>& lms,
                    std::vector<bool>& is_optimized_lm,
                    internal::se3::shot_vertex_container& keyfrm_vtx_container,
@@ -33,7 +34,6 @@ void optimize_impl(std::vector<std::shared_ptr<data::keyframe>>& keyfrms,
     auto block_solver = g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linear_solver));
     auto algorithm = new g2o::OptimizationAlgorithmLevenberg(std::move(block_solver));
 
-    g2o::SparseOptimizer optimizer;
     optimizer.setAlgorithm(algorithm);
 
     if (force_stop_flag) {
@@ -144,7 +144,9 @@ void global_bundle_adjuster::optimize_for_initialization(bool* const force_stop_
     // Container of the landmark vertices
     internal::landmark_vertex_container lm_vtx_container(vtx_id_offset, lms.size());
 
-    optimize_impl(keyfrms, lms, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, num_iter_, use_huber_kernel_, force_stop_flag);
+    g2o::SparseOptimizer optimizer;
+
+    optimize_impl(optimizer, keyfrms, lms, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, num_iter_, use_huber_kernel_, force_stop_flag);
 
     // 6. Extract the result
 
@@ -195,7 +197,9 @@ void global_bundle_adjuster::optimize(std::unordered_set<unsigned int>& optimize
     // Container of the landmark vertices
     internal::landmark_vertex_container lm_vtx_container(vtx_id_offset, lms.size());
 
-    optimize_impl(keyfrms, lms, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, num_iter_, use_huber_kernel_, force_stop_flag);
+    g2o::SparseOptimizer optimizer;
+
+    optimize_impl(optimizer, keyfrms, lms, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, num_iter_, use_huber_kernel_, force_stop_flag);
 
     // 6. Extract the result
 
