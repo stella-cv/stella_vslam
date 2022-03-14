@@ -59,7 +59,10 @@ void mono_localization(const std::shared_ptr<openvslam::config>& cfg,
         // Define Map Translation with WC coordinates
         openvslam::Vec3_t translation {translation_xyz[0], translation_xyz[1], translation_xyz[2]};
         // Call load_new_map_to_merge
-        SLAM.load_new_map_database(map_db_path2);
+        openvslam::Mat44_t transf_matrix = openvslam::Mat44_t::Identity();
+        transf_matrix.block<3, 3>(0, 0) = rotation_matrix;
+        transf_matrix.block<3, 1>(0, 3) = translation;
+        SLAM.load_new_map_database(map_db_path2, transf_matrix, map_scale);
     }
     // startup the SLAM process (it does not need initialization of a map)
     SLAM.startup(false);
