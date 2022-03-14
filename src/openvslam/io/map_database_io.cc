@@ -152,7 +152,7 @@ void map_database_io::load_new_message_pack(const std::string& path, const Mat44
     nlohmann::json tmp_json_landmarks;
 
     Mat33_t rotation_matrix = transf_matrix.block<3,3>(0,0);
-    Vect3_t translation = transf_matrix.block<3,1>(0,3);
+    Vec3_t translation = transf_matrix.block<3,1>(0,3);
     // change values of keyframes
     for (auto& [keyfrm_id, json_keyfrm] : json_keyfrms.items()) {
         nlohmann::json tmp_json_kyfrm;
@@ -163,7 +163,7 @@ void map_database_io::load_new_message_pack(const std::string& path, const Mat44
         // Transform keyframes
         if (tmp_json_kyfrm.contains("rot_cw")) {
             Mat33_t rot_wc = openvslam::data::convert_json_to_rotation(json_keyfrm["rot_cw"]).transpose();
-            Vec3_t trans_wc = -rot_wc * openvslam::data::convert_json_to_translation(json_keyfrm["trans_cw"])
+            Vec3_t trans_wc = (-rot_wc).inverse() * openvslam::data::convert_json_to_translation(json_keyfrm["trans_cw"]);
 
             Vec3_t new_position = (scale_factor * rotation_matrix) * trans_wc + translation;
 
