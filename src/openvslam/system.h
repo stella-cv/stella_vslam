@@ -72,7 +72,7 @@ public:
     void load_map_database(const std::string& path) const;
     
     //! Load a new map database from the MessagePack file without deleting a precious one
-    void load_new_map_database(const std::string& path) const;
+    void load_new_map_database(const std::string& path, const Mat44_t transf_matrix = Mat44_t::Identity() , float scale_factor = 1.0) const;
 
     //! Save the map database to the MessagePack file
     void save_map_database(const std::string& path) const;

@@ -6,6 +6,7 @@
 #include "openvslam/data/bow_database.h"
 #include "openvslam/data/map_database.h"
 #include "openvslam/io/map_database_io.h"
+#include "openvslam/data/common.h"
 
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
@@ -103,7 +104,7 @@ void map_database_io::load_message_pack(const std::string& path) {
     }
 }
 
-void map_database_io::load_new_message_pack(const std::string& path) {
+void map_database_io::load_new_message_pack(const std::string& path, const Mat44_t transf_matrix, float scale_factor) {
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
     // 1. Check if exists a map databse already
@@ -149,10 +150,27 @@ void map_database_io::load_new_message_pack(const std::string& path) {
     // create temporaly json to sotre the new values
     nlohmann::json tmp_json_keyframes;
     nlohmann::json tmp_json_landmarks;
+
+    Mat33_t rotation_matrix = transf_matrix.block<3,3>(0,0);
+    Vec3_t translation = transf_matrix.block<3,1>(0,3);
     // change values of keyframes
     for (auto& [keyfrm_id, json_keyfrm] : json_keyfrms.items()) {
         nlohmann::json tmp_json_kyfrm;
 
+        // Transform keyframes
+        if (json_keyfrm.contains("rot_cw")) {
+            Mat33_t rot_wc = openvslam::data::convert_json_to_rotation(json_keyfrm["rot_cw"]).transpose();
+            Vec3_t trans_wc = (-rot_wc) * openvslam::data::convert_json_to_translation(json_keyfrm["trans_cw"]);
+            Vec3_t new_position = (scale_factor * rotation_matrix) * trans_wc + translation;
+            nlohmann::json new_rot_cw =  openvslam::data::convert_rotation_to_json((rotation_matrix * rot_wc).transpose());
+            tmp_json_kyfrm["rot_cw"] = std::move(new_rot_cw);
+            nlohmann::json new_trans_cw =  openvslam::data::convert_translation_to_json((-rot_wc).inverse() * new_position);
+            tmp_json_kyfrm["trans_cw"] = std::move(new_trans_cw);
+        }
+        else {
+            tmp_json_kyfrm["trans_cw"] = std::move(json_keyfrm["trans_cw"]);
+            tmp_json_kyfrm["rot_cw"] = std::move(json_keyfrm["rot_cw"]);
+        }
         // shift ids of landmarks associated to keyframe
         std::vector<int> new_landmarks_ids;
         new_landmarks_ids.reserve(json_keyfrm["lm_ids"].size());
@@ -196,9 +214,7 @@ void map_database_io::load_new_message_pack(const std::string& path) {
         tmp_json_kyfrm["n_keypts"] = std::move(json_keyfrm["n_keypts"]);
         tmp_json_kyfrm["n_scale_levels"] = std::move(json_keyfrm["n_scale_levels"]);
         tmp_json_kyfrm["orb_params"] = std::move(json_keyfrm["orb_params"]);
-        tmp_json_kyfrm["rot_cw"] = std::move(json_keyfrm["rot_cw"]);
         tmp_json_kyfrm["scale_factor"] = std::move(json_keyfrm["scale_factor"]);
-        tmp_json_kyfrm["trans_cw"] = std::move(json_keyfrm["trans_cw"]);
         tmp_json_kyfrm["ts"] = std::move(json_keyfrm["ts"]);
         tmp_json_kyfrm["undists"] = std::move(json_keyfrm["undists"]);
         tmp_json_kyfrm["x_rights"] = std::move(json_keyfrm["x_rights"]);
@@ -218,7 +234,7 @@ void map_database_io::load_new_message_pack(const std::string& path) {
         tmp_json_ldmrk["1st_keyfrm"] = json_landmark["1st_keyfrm"].get<int>() + data::keyframe::next_id_;
 
         // copy other values unchanged
-        tmp_json_ldmrk["pos_w"] = std::move(json_landmark.at("pos_w"));
+        tmp_json_ldmrk["pos_w"] = openvslam::data::convert_translation_to_json((scale_factor * rotation_matrix)*openvslam::data::convert_json_to_translation(json_landmark["pos_w"]) + translation);
         tmp_json_ldmrk["n_vis"] = std::move(json_landmark.at("n_vis"));
         tmp_json_ldmrk["n_fnd"] = std::move(json_landmark.at("n_fnd"));
 
@@ -236,8 +252,10 @@ void map_database_io::load_new_message_pack(const std::string& path) {
     const auto keyfrms = map_db_->get_all_keyframes();
     for (const auto keyfrm : keyfrms) {
         bow_db_->add_keyframe(keyfrm);
+
     }
 }
+
 
 } // namespace io
 } // namespace openvslam
