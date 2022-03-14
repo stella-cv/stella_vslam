@@ -43,21 +43,15 @@ void mono_localization(const std::shared_ptr<openvslam::config>& cfg,
     if (!map_db_path2.empty()){
         // Define Map Scale Factor
         double map_scale = scale;
-        // Define Map Rotation with WC coordinates
-        double cos_x = cos(rotation_xyz[0]);
-        double sin_x = sin(rotation_xyz[0]);
-        double cos_y = cos(rotation_xyz[1]);
-        double sin_y = sin(rotation_xyz[1]);
-        double cos_z = cos(rotation_xyz[2]);
-        double sin_z = sin(rotation_xyz[2]);
-
+        // Define Map Rotation with WC coordinates from Euler angles
         openvslam::Mat33_t rotation_matrix;
-        rotation_matrix << cos_y*cos_z, sin_x*sin_y*cos_z - cos_x*sin_z, cos_x*sin_y*cos_z + sin_x*sin_z,
-                           cos_y*sin_z, sin_x*sin_y*sin_z + cos_x*cos_z, cos_x*sin_y*sin_z - sin_x*cos_z,
-                                -sin_y,                     sin_x*cos_y,                     cos_x*cos_y;
+        rotation_matrix =   Eigen::AngleAxisd(rotation_xyz[0], Eigen::Vector3d::UnitX())
+                          * Eigen::AngleAxisd(rotation_xyz[1], Eigen::Vector3d::UnitY())
+                          * Eigen::AngleAxisd(rotation_xyz[2], Eigen::Vector3d::UnitZ());
 
         // Define Map Translation with WC coordinates
         openvslam::Vec3_t translation {translation_xyz[0], translation_xyz[1], translation_xyz[2]};
+        
         // Call load_new_map_to_merge
         openvslam::Mat44_t transf_matrix = openvslam::Mat44_t::Identity();
         transf_matrix.block<3, 3>(0, 0) = rotation_matrix;
