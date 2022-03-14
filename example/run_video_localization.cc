@@ -8,6 +8,7 @@
 #include "openvslam/config.h"
 #include "openvslam/util/yaml.h"
 
+#include <cmath>
 #include <iostream>
 #include <chrono>
 #include <numeric>
@@ -29,7 +30,8 @@
 void mono_localization(const std::shared_ptr<openvslam::config>& cfg,
                        const std::string& vocab_file_path, const std::string& video_file_path, const std::string& mask_img_path,
                        const std::string& map_db_path, const std::string& map_db_path2, const bool mapping,
-                       const unsigned int frame_skip, const bool no_sleep, const bool auto_term) {
+                       const unsigned int frame_skip, const bool no_sleep, const bool auto_term,
+                       const double scale, const std::vector<double> rotation_xyz, const std::vector<double> translation_xyz) {
     // load the mask image
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
 
@@ -40,13 +42,24 @@ void mono_localization(const std::shared_ptr<openvslam::config>& cfg,
     // if another map is passed load an merge it
     if (!map_db_path2.empty()){
         // Define Map Scale Factor
+        double map_scale = scale;
+        // Define Map Rotation with WC coordinates
+        double cos_x = cos(rotation_xyz[0]);
+        double sin_x = sin(rotation_xyz[0]);
+        double cos_y = cos(rotation_xyz[1]);
+        double sin_y = sin(rotation_xyz[1]);
+        double cos_z = cos(rotation_xyz[2]);
+        double sin_z = sin(rotation_xyz[2]);
 
-        // Define Map Rotation
+        openvslam::Mat33_t rotation_matrix;
+        rotation_matrix << cos_y*cos_z, sin_x*sin_y*cos_z - cos_x*sin_z, cos_x*sin_y*cos_z + sin_x*sin_z,
+                           cos_y*sin_z, sin_x*sin_y*sin_z + cos_x*cos_z, cos_x*sin_y*sin_z - sin_x*cos_z,
+                                -sin_y,                     sin_x*cos_y,                     cos_x*cos_y;
 
-        // Define Map Translation
-
+        // Define Map Translation with WC coordinates
+        openvslam::Vec3_t translation {translation_xyz[0], translation_xyz[1], translation_xyz[2]};
         // Call load_new_map_to_merge
-        
+        SLAM.load_new_map_database(map_db_path2);
     }
     // startup the SLAM process (it does not need initialization of a map)
     SLAM.startup(false);
@@ -161,6 +174,13 @@ int main(int argc, char* argv[]) {
     auto config_file_path = op.add<popl::Value<std::string>>("c", "config", "config file path");
     auto map_db_path = op.add<popl::Value<std::string>>("p", "map-db", "path to a prebuilt map database");
     auto map_db_path2 = op.add<popl::Value<std::string>>("", "map-db2", "path to another prebuilt map database");
+    auto map_2_scale = op.add<popl::Value<double>>("s", "map-scale", "path to another prebuilt map database");
+    auto map_2_rotation_x = op.add<popl::Value<double>>("", "map-rotation-x", "Euler angle of X coordinate value to rotate map-db2 in rad");
+    auto map_2_rotation_y = op.add<popl::Value<double>>("", "map-rotation-y", "Euler angle of Y coordinate value to rotate map-db2 in rad");
+    auto map_2_rotation_z = op.add<popl::Value<double>>("", "map-rotation-z", "Euler angle of Z coordinate value to rotate map-db2 in rad");
+    auto map_2_translation_x = op.add<popl::Value<double>>("", "map-translation-x", "X coordinate value to translate map-db2");
+    auto map_2_translation_y = op.add<popl::Value<double>>("", "map-translation-y", "Y coordinate value to translate map-db2");
+    auto map_2_translation_z = op.add<popl::Value<double>>("", "map-translation-z", "Z coordinate value to translate map-db2");
     auto mapping = op.add<popl::Switch>("", "mapping", "perform mapping as well as localization");
     auto mask_img_path = op.add<popl::Value<std::string>>("", "mask", "mask image path", "");
     auto frame_skip = op.add<popl::Value<unsigned int>>("", "frame-skip", "interval of frame skip", 1);
@@ -209,6 +229,33 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
+    // transformation of second map
+    if (!map_2_scale->is_set()) {
+        map_2_scale->set_value(1.0);
+    }
+    if (!map_2_rotation_x->is_set()) {
+        map_2_rotation_x->set_value(0);
+    }
+    if (!map_2_rotation_y->is_set()) {
+        map_2_rotation_y->set_value(0);
+    }
+    if (!map_2_rotation_z->is_set()) {
+        map_2_rotation_z->set_value(0);
+    }
+    if (!map_2_translation_x->is_set()) {
+        map_2_translation_x->set_value(0);
+    }
+    if (!map_2_translation_y->is_set()) {
+        map_2_translation_y->set_value(0);
+    }
+    if (!map_2_translation_z->is_set()) {
+        map_2_translation_z->set_value(0);
+    }
+    
+    std::vector<double> rotation_xyz = {map_2_rotation_x->value(), map_2_rotation_y->value(), map_2_rotation_z->value()};
+    std::vector<double> translation_xyz = {map_2_translation_x->value(), map_2_translation_y->value(), map_2_translation_z->value()};
+
+
 #ifdef USE_GOOGLE_PERFTOOLS
     ProfilerStart("slam.prof");
 #endif
@@ -217,7 +264,8 @@ int main(int argc, char* argv[]) {
     if (cfg->camera_->setup_type_ == openvslam::camera::setup_type_t::Monocular) {
         mono_localization(cfg, vocab_file_path->value(), video_file_path->value(), mask_img_path->value(),
                           map_db_path->value(), map_db_path2->value(), mapping->is_set(),
-                          frame_skip->value(), no_sleep->is_set(), auto_term->is_set());
+                          frame_skip->value(), no_sleep->is_set(), auto_term->is_set(), 
+                          map_2_scale->value(), rotation_xyz, translation_xyz);
     }
     else {
         throw std::runtime_error("Invalid setup type: " + cfg->camera_->get_setup_type_string());

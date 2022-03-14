@@ -252,6 +252,84 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
     }
 }
 
+void map_database::add_from_json(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab,
+                             const nlohmann::json& json_keyfrms, const nlohmann::json& json_landmarks) {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+
+    // When loading the map, leave last_inserted_keyfrm_ as nullptr.
+    last_inserted_keyfrm_ = nullptr;
+    local_landmarks_.clear();
+    origin_keyfrm_ = nullptr;
+
+    // Step 1. Register keyframes
+    // If the object does not exist at this step, the corresponding pointer is set as nullptr.
+    spdlog::info("decoding {} keyframes to load", json_keyfrms.size());
+    for (const auto& json_id_keyfrm : json_keyfrms.items()) {
+        const auto id = std::stoi(json_id_keyfrm.key());
+        assert(0 <= id);
+        const auto json_keyfrm = json_id_keyfrm.value();
+
+        register_keyframe(cam_db, orb_params_db, bow_vocab, id, json_keyfrm);
+    }
+
+    // Step 2. Register 3D landmark point
+    // If the object does not exist at this step, the corresponding pointer is set as nullptr.
+    spdlog::info("decoding {} landmarks to load", json_landmarks.size());
+    for (const auto& json_id_landmark : json_landmarks.items()) {
+        const auto id = std::stoi(json_id_landmark.key());
+        assert(0 <= id);
+        const auto json_landmark = json_id_landmark.value();
+
+        register_landmark(id, json_landmark);
+    }
+
+    // Step 3. Register graph information
+    spdlog::info("registering essential graph");
+    for (const auto& json_id_keyfrm : json_keyfrms.items()) {
+        const auto id = std::stoi(json_id_keyfrm.key());
+        assert(0 <= id);
+        const auto json_keyfrm = json_id_keyfrm.value();
+
+        register_graph(id, json_keyfrm);
+    }
+
+    // Step 4. Register association between keyframs and 3D points
+    spdlog::info("registering keyframe-landmark association");
+    for (const auto& json_id_keyfrm : json_keyfrms.items()) {
+        const auto id = std::stoi(json_id_keyfrm.key());
+        assert(0 <= id);
+        const auto json_keyfrm = json_id_keyfrm.value();
+
+        register_association(id, json_keyfrm);
+    }
+
+    // Step 5. Update graph
+    spdlog::info("updating covisibility graph");
+    for (const auto& json_id_keyfrm : json_keyfrms.items()) {
+        const auto id = std::stoi(json_id_keyfrm.key());
+        assert(0 <= id);
+
+        assert(keyframes_.count(id));
+        auto keyfrm = keyframes_.at(id);
+
+        keyfrm->graph_node_->update_connections();
+        keyfrm->graph_node_->update_covisibility_orders();
+    }
+
+    // Step 6. Update geometry
+    spdlog::info("updating landmark geometry");
+    for (const auto& json_id_landmark : json_landmarks.items()) {
+        const auto id = std::stoi(json_id_landmark.key());
+        assert(0 <= id);
+
+        assert(landmarks_.count(id));
+        const auto& lm = landmarks_.at(id);
+
+        lm->update_mean_normal_and_obs_scale_variance();
+        lm->compute_descriptor();
+    }
+}
+
 void map_database::register_keyframe(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab,
                                      const unsigned int id, const nlohmann::json& json_keyfrm) {
     // Metadata
