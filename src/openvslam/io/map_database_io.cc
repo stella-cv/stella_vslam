@@ -147,12 +147,15 @@ void map_database_io::load_new_message_pack(const std::string& path, const Mat44
     // shift keyframes and landmarks ids to not collide with first map loaded
     const auto json_keyfrms = json.at("keyframes");
     const auto json_landmarks = json.at("landmarks");
+    
     // create temporaly json to sotre the new values
     nlohmann::json tmp_json_keyframes;
     nlohmann::json tmp_json_landmarks;
 
+    // Translation anb rotation
     Mat33_t rotation_matrix = transf_matrix.block<3,3>(0,0);
     Vec3_t translation = transf_matrix.block<3,1>(0,3);
+
     // change values of keyframes
     for (auto& [keyfrm_id, json_keyfrm] : json_keyfrms.items()) {
         nlohmann::json tmp_json_kyfrm;
@@ -164,7 +167,7 @@ void map_database_io::load_new_message_pack(const std::string& path, const Mat44
             Vec3_t new_position = (scale_factor * rotation_matrix) * trans_wc + translation;
             nlohmann::json new_rot_cw =  openvslam::data::convert_rotation_to_json((rotation_matrix * rot_wc).transpose());
             tmp_json_kyfrm["rot_cw"] = std::move(new_rot_cw);
-            nlohmann::json new_trans_cw =  openvslam::data::convert_translation_to_json((-rot_wc).inverse() * new_position);
+            nlohmann::json new_trans_cw =  openvslam::data::convert_translation_to_json((-rotation_matrix * rot_wc).inverse() * new_position);
             tmp_json_kyfrm["trans_cw"] = std::move(new_trans_cw);
         }
         else {
@@ -227,6 +230,9 @@ void map_database_io::load_new_message_pack(const std::string& path, const Mat44
     for (auto& [landmark_id, json_landmark] : json_landmarks.items()) {
         nlohmann::json tmp_json_ldmrk;
 
+        // transform the position in world
+        tmp_json_ldmrk["pos_w"] = std::move(openvslam::data::convert_translation_to_json((scale_factor * rotation_matrix)*openvslam::data::convert_json_to_translation(json_landmark["pos_w"]) + translation));
+
         // shift 'ref_keyfrm' id
         tmp_json_ldmrk["ref_keyfrm"] = json_landmark["ref_keyfrm"].get<int>() + data::keyframe::next_id_;
 
@@ -234,7 +240,6 @@ void map_database_io::load_new_message_pack(const std::string& path, const Mat44
         tmp_json_ldmrk["1st_keyfrm"] = json_landmark["1st_keyfrm"].get<int>() + data::keyframe::next_id_;
 
         // copy other values unchanged
-        tmp_json_ldmrk["pos_w"] = openvslam::data::convert_translation_to_json((scale_factor * rotation_matrix)*openvslam::data::convert_json_to_translation(json_landmark["pos_w"]) + translation);
         tmp_json_ldmrk["n_vis"] = std::move(json_landmark.at("n_vis"));
         tmp_json_ldmrk["n_fnd"] = std::move(json_landmark.at("n_fnd"));
 
