@@ -28,7 +28,7 @@
 
 void mono_localization(const std::shared_ptr<openvslam::config>& cfg,
                        const std::string& vocab_file_path, const std::string& video_file_path, const std::string& mask_img_path,
-                       const std::string& map_db_path, const bool mapping,
+                       const std::string& map_db_path, const std::string& map_db_path2, const bool mapping,
                        const unsigned int frame_skip, const bool no_sleep, const bool auto_term) {
     // load the mask image
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
@@ -37,6 +37,17 @@ void mono_localization(const std::shared_ptr<openvslam::config>& cfg,
     openvslam::system SLAM(cfg, vocab_file_path);
     // load the prebuilt map
     SLAM.load_map_database(map_db_path);
+    // if another map is passed load an merge it
+    if (!map_db_path2.empty()){
+        // Define Map Scale Factor
+
+        // Define Map Rotation
+
+        // Define Map Translation
+
+        // Call load_new_map_to_merge
+        
+    }
     // startup the SLAM process (it does not need initialization of a map)
     SLAM.startup(false);
     // select to activate the mapping module or not
@@ -149,6 +160,7 @@ int main(int argc, char* argv[]) {
     auto video_file_path = op.add<popl::Value<std::string>>("m", "video", "video file path");
     auto config_file_path = op.add<popl::Value<std::string>>("c", "config", "config file path");
     auto map_db_path = op.add<popl::Value<std::string>>("p", "map-db", "path to a prebuilt map database");
+    auto map_db_path2 = op.add<popl::Value<std::string>>("", "map-db2", "path to another prebuilt map database");
     auto mapping = op.add<popl::Switch>("", "mapping", "perform mapping as well as localization");
     auto mask_img_path = op.add<popl::Value<std::string>>("", "mask", "mask image path", "");
     auto frame_skip = op.add<popl::Value<unsigned int>>("", "frame-skip", "interval of frame skip", 1);
@@ -204,7 +216,7 @@ int main(int argc, char* argv[]) {
     // run localization
     if (cfg->camera_->setup_type_ == openvslam::camera::setup_type_t::Monocular) {
         mono_localization(cfg, vocab_file_path->value(), video_file_path->value(), mask_img_path->value(),
-                          map_db_path->value(), mapping->is_set(),
+                          map_db_path->value(), map_db_path2->value(), mapping->is_set(),
                           frame_skip->value(), no_sleep->is_set(), auto_term->is_set());
     }
     else {

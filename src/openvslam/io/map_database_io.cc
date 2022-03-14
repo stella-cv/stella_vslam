@@ -6,6 +6,7 @@
 #include "openvslam/data/bow_database.h"
 #include "openvslam/data/map_database.h"
 #include "openvslam/io/map_database_io.h"
+#include "openvslam/data/common.h"
 
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
@@ -103,7 +104,7 @@ void map_database_io::load_message_pack(const std::string& path) {
     }
 }
 
-void map_database_io::load_new_message_pack(const std::string& path) {
+void map_database_io::load_new_message_pack(const std::string& path, const Mat44_t transf_matrix, float scale_factor) {
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
     // 1. Check if exists a map databse already
@@ -149,6 +150,9 @@ void map_database_io::load_new_message_pack(const std::string& path) {
     // create temporaly json to sotre the new values
     nlohmann::json tmp_json_keyframes;
     nlohmann::json tmp_json_landmarks;
+
+    Mat33_t rotation_matrix = transf_matrix.block<3,3>(0,0);
+    Vect3_t translation = transf_matrix.block<3,1>(0,3);
     // change values of keyframes
     for (auto& [keyfrm_id, json_keyfrm] : json_keyfrms.items()) {
         nlohmann::json tmp_json_kyfrm;
@@ -156,6 +160,15 @@ void map_database_io::load_new_message_pack(const std::string& path) {
         // std::cout << "length json:  " << json_keyfrm["lm_ids"].size() << std::endl;
         // std::cout << "length array: " << json_keyfrm["lm_ids"].get<std::vector<int>>().size() << std::endl;
         
+        // Transform keyframes
+        if (tmp_json_kyfrm.contains("rot_cw")) {
+            Mat33_t rot_wc = openvslam::data::convert_json_to_rotation(json_keyfrm["rot_cw"]).transpose();
+            Vec3_t trans_wc = -rot_wc * openvslam::data::convert_json_to_translation(json_keyfrm["trans_cw"])
+
+            Vec3_t new_position = (scale_factor * rotation_matrix) * trans_wc + translation;
+
+
+        }
         // shift ids of landmarks associated to keyframe
         std::vector<int> new_landmarks_ids;
         new_landmarks_ids.reserve(json_keyfrm["lm_ids"].size());
@@ -239,8 +252,10 @@ void map_database_io::load_new_message_pack(const std::string& path) {
     const auto keyfrms = map_db_->get_all_keyframes();
     for (const auto keyfrm : keyfrms) {
         bow_db_->add_keyframe(keyfrm);
+
     }
 }
+
 
 } // namespace io
 } // namespace openvslam

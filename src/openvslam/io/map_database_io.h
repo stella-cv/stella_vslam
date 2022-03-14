@@ -41,7 +41,7 @@ public:
     /**
      * Load a map database from MessagePack without deleting a previous one
      */
-    void load_new_message_pack(const std::string& path);
+    void load_new_message_pack(const std::string& pat, const Mat44_t transf_matrix , float scale_factor);
 
 private:
     //! camera database
