@@ -227,6 +227,9 @@ int main(int argc, char* argv[]) {
     }
 
     // transformation of second map
+    if (!map_db_path2->is_set()) {
+        map_db_path2->set_value("");
+    }
     if (!map_2_scale->is_set()) {
         map_2_scale->set_value(1.0);
     }
