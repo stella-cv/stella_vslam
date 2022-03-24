@@ -39,8 +39,8 @@ Contents
     ./relocalization
     ./trouble_shooting
 
-Cite Us
--------
+Citation
+--------
 
 If you use OpenVSLAM for a publication, please cite it as:
 

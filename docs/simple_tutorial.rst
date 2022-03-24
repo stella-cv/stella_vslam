@@ -298,6 +298,8 @@ If the two viewers are not launching correctly, check if you launched the comman
     Copyright (C) 2019,
     National Institute of Advanced Industrial Science and Technology (AIST)
     All rights reserved.
+    For the changes after forking,
+    Copyright (C) 2022, OpenVSLAM-Community, All rights reserved.
 
     This is free software,
     and you are welcome to redistribute it under certain conditions.
@@ -431,6 +433,8 @@ You can see if the current frame is being localized, based on the prebuild map.
     Copyright (C) 2019,
     National Institute of Advanced Industrial Science and Technology (AIST)
     All rights reserved.
+    For the changes after forking,
+    Copyright (C) 2022, OpenVSLAM-Community, All rights reserved.
 
     This is free software,
     and you are welcome to redistribute it under certain conditions.

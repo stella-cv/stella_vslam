@@ -59,6 +59,8 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     message_stream << "Copyright (C) 2019," << std::endl;
     message_stream << "National Institute of Advanced Industrial Science and Technology (AIST)" << std::endl;
     message_stream << "All rights reserved." << std::endl;
+    message_stream << "For the changes after forking," << std::endl;
+    message_stream << "Copyright (C) 2022, OpenVSLAM-Community, All rights reserved." << std::endl;
     message_stream << std::endl;
     message_stream << "This is free software," << std::endl;
     message_stream << "and you are welcome to redistribute it under certain conditions." << std::endl;
