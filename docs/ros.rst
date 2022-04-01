@@ -4,7 +4,7 @@
 Running on ROS
 ==============
 
-We provide ROS and ROS2 package examples to help you run OpenVSLAM on ROS framework.
+We provide ROS and ROS2 package examples to help you run stella_vslam on ROS framework.
 
 .. toctree::
     :maxdepth: 2

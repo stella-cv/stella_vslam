@@ -14,11 +14,11 @@ Requirements
 
 * `ROS2 <https://index.ros.org/doc/ros2//>`_ : ``foxy`` or later.
 
-* :ref:`OpenVSLAM <chapter-installation>`
+* :ref:`stella_vslam <chapter-installation>`
 
 * `image_common <https://index.ros.org/r/image_common/github-ros-perception-image_common>`_ : Required by this ROS package examples.
 
-* `vision_opencv <https://index.ros.org/r/vision_opencv/github-ros-perception-vision_opencv>`_ : Please build it with the same version of OpenCV used in OpenVSLAM.
+* `vision_opencv <https://index.ros.org/r/vision_opencv/github-ros-perception-vision_opencv>`_ : Please build it with the same version of OpenCV used in stella_vslam.
 
 * `image_tools <https://index.ros.org/p/image_tools/#dashing>`_ : An optional requirement to use USB cameras.
 
@@ -33,11 +33,11 @@ Please install the following dependencies.
 
 * ROS2 : Please follow `Installation of ROS2 <https://index.ros.org/doc/ros2/Installation/>`_.
 
-* OpenVSLAM : Please follow :ref:`Installation of OpenVSLAM <chapter-installation>`.
+* stella_vslam : Please follow :ref:`Installation of stella_vslam <chapter-installation>`.
 
 .. NOTE ::
 
-    Please build OpenVSLAM with PangolinViewer or SocketViewer if you plan on using it for the examples.
+    Please build stella_vslam with PangolinViewer or SocketViewer if you plan on using it for the examples.
 
 Download repositories of ``image_common`` and ``vision_opencv``.
 
@@ -60,13 +60,13 @@ For using USB cam as a image source, donload a repository of ``demos`` and pick 
 Build Instructions
 ^^^^^^^^^^^^^^^^^^
 
-When building with support for PangolinViewer, please specify the following cmake options: ``-DUSE_PANGOLIN_VIEWER=ON`` and ``-DUSE_SOCKET_PUBLISHER=OFF`` as described in :ref:`build of OpenVSLAM <section-build-unix>`.
-openvslam and openvslam_ros need to be built with the same options.
+When building with support for PangolinViewer, please specify the following cmake options: ``-DUSE_PANGOLIN_VIEWER=ON`` and ``-DUSE_SOCKET_PUBLISHER=OFF`` as described in :ref:`build of stella_vslam <section-build-unix>`.
+stella_vslam and stella_vslam_ros need to be built with the same options.
 
 .. code-block:: bash
 
     cd ~/catkin_ws/src
-    git clone --branch ros2 --depth 1 https://github.com/OpenVSLAM-Community/openvslam_ros.git
+    git clone --branch ros2 --depth 1 https://github.com/stella-cv/stella_vslam_ros.git
     cd ~/ros2_ws
     colcon build --symlink-install --cmake-args -DUSE_PANGOLIN_VIEWER=ON -DUSE_SOCKET_PUBLISHER=OFF
 
@@ -76,7 +76,7 @@ Examples
 Publisher
 ^^^^^^^^^
 
-If you want to input image sequences or videos into openvslam_ros, please refer to `dataset_publisher_ros2 <https://github.com/mirellameelo/dataset_publisher_ros2>`_.
+If you want to input image sequences or videos into stella_vslam_ros, please refer to `dataset_publisher_ros2 <https://github.com/mirellameelo/dataset_publisher_ros2>`_.
 
 Publish Images Captured by a USB Camera
 ------------------------------
@@ -102,18 +102,18 @@ Please execute one of the following command snippets in the new terminal.
 
 .. NOTE ::
 
-    Option arguments are the same as :ref:`the examples of OpenVSLAM <chapter-example>`.
+    Option arguments are the same as :ref:`the examples of stella_vslam <chapter-example>`.
 
 Tracking and Mapping
 --------------------
 
 We provide an example snippet for visual SLAM.
-The source code is placed at ``openvslam_ros/src/run_slam.cc``.
+The source code is placed at ``stella_vslam_ros/src/run_slam.cc``.
 
 .. code-block:: bash
 
     source ~/ros2_ws/install/setup.bash
-    ros2 run openvslam_ros run_slam \
+    ros2 run stella_vslam_ros run_slam \
         -v /path/to/orb_vocab.fbow \
         -c /path/to/config.yaml
 
@@ -121,12 +121,12 @@ Localization
 ------------
 
 We provide an example snippet for localization based on a prebuilt map.
-The source code is placed at ``openvslam_ros/src/run_localization.cc``.
+The source code is placed at ``stella_vslam_ros/src/run_localization.cc``.
 
 .. code-block:: bash
 
     source ~/ros2_ws/install/setup.bash
-    ros2 run openvslam_ros run_localization \
+    ros2 run stella_vslam_ros run_localization \
         -v /path/to/orb_vocab.fbow \
         -c /path/to/config.yaml \
         --map-db /path/to/map.msg

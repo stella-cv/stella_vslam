@@ -6,9 +6,9 @@
 #include "socket_publisher/publisher.h"
 #endif
 
-#include "openvslam/system.h"
-#include "openvslam/config.h"
-#include "openvslam/util/yaml.h"
+#include "stella_vslam/system.h"
+#include "stella_vslam/config.h"
+#include "stella_vslam/util/yaml.h"
 
 #include <iostream>
 #include <chrono>
@@ -27,7 +27,7 @@
 #include <gperftools/profiler.h>
 #endif
 
-void mono_localization(const std::shared_ptr<openvslam::config>& cfg,
+void mono_localization(const std::shared_ptr<stella_vslam::config>& cfg,
                        const std::string& vocab_file_path, const std::string& image_dir_path, const std::string& mask_img_path,
                        const std::string& map_db_path, const bool mapping,
                        const unsigned int frame_skip, const bool no_sleep, const bool auto_term) {
@@ -38,7 +38,7 @@ void mono_localization(const std::shared_ptr<openvslam::config>& cfg,
     const auto frames = sequence.get_frames();
 
     // build a SLAM system
-    openvslam::system SLAM(cfg, vocab_file_path);
+    stella_vslam::system SLAM(cfg, vocab_file_path);
     // load the prebuilt map
     SLAM.load_map_database(map_db_path);
     // startup the SLAM process (it does not need initialization of a map)
@@ -55,10 +55,10 @@ void mono_localization(const std::shared_ptr<openvslam::config>& cfg,
     // and pass the frame_publisher and the map_publisher
 #ifdef USE_PANGOLIN_VIEWER
     pangolin_viewer::viewer viewer(
-        openvslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
 #elif USE_SOCKET_PUBLISHER
     socket_publisher::publisher publisher(
-        openvslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
 #endif
 
     std::vector<double> track_times;
@@ -184,9 +184,9 @@ int main(int argc, char* argv[]) {
     }
 
     // load configuration
-    std::shared_ptr<openvslam::config> cfg;
+    std::shared_ptr<stella_vslam::config> cfg;
     try {
-        cfg = std::make_shared<openvslam::config>(config_file_path->value());
+        cfg = std::make_shared<stella_vslam::config>(config_file_path->value());
     }
     catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
@@ -198,7 +198,7 @@ int main(int argc, char* argv[]) {
 #endif
 
     // run localization
-    if (cfg->camera_->setup_type_ == openvslam::camera::setup_type_t::Monocular) {
+    if (cfg->camera_->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
         mono_localization(cfg, vocab_file_path->value(), img_dir_path->value(), mask_img_path->value(),
                           map_db_path->value(), mapping->is_set(),
                           frame_skip->value(), no_sleep->is_set(), auto_term->is_set());

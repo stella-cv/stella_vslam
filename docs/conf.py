@@ -17,8 +17,8 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'OpenVSLAM'
-copyright = '2019, National Institute of Advanced Industrial Science and Technology (AIST). For the changes after forking, Copyright (C) 2022, OpenVSLAM-Community, All rights reserved.'
+project = 'stella_vslam'
+copyright = '2019, National Institute of Advanced Industrial Science and Technology (AIST). For the changes after forking, Copyright (C) 2022, stella-cv, All rights reserved.'
 author = 'Shinya Sumikura'
 
 

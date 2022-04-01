@@ -41,7 +41,7 @@ jobs:
       run:
         shell: bash
     container:
-      image: ghcr.io/ymd-stella/openvslam-community/openvslam:latest
+      image: ghcr.io/ymd-stella/stella-cv/stella_vslam:latest
     steps:
       - uses: actions/checkout@v2
       - name: cmake and make with pangolin viewer
@@ -62,7 +62,7 @@ jobs:
       run:
         shell: bash
     container:
-      image: ghcr.io/ymd-stella/openvslam-community/openvslam:latest
+      image: ghcr.io/ymd-stella/stella-cv/stella_vslam:latest
     steps:
       - uses: actions/checkout@v2
       - name: cmake and make
@@ -205,7 +205,7 @@ jobs:
       run:
         shell: bash
     container:
-      image: ghcr.io/ymd-stella/openvslam-community/openvslam:latest
+      image: ghcr.io/ymd-stella/stella-cv/stella_vslam:latest
     steps:
       - uses: actions/checkout@v2
       - name: cmake and make
@@ -235,14 +235,14 @@ jobs:
       run:
         shell: bash
     container:
-      image: ghcr.io/ymd-stella/openvslam-community/ros:foxy-ros-base
+      image: ghcr.io/ymd-stella/stella-cv/ros:foxy-ros-base
     steps:
       - uses: actions/checkout@v2
       - name: build ros2 packages
         run: |
           mkdir -p /ros_ws/src
-          cp -r . /ros_ws/src/openvslam
-          cd /ros_ws/src/openvslam
+          cp -r . /ros_ws/src/stella_vslam
+          cd /ros_ws/src/stella_vslam
           git submodule update -i --recursive
           cd ../..
           rosdep update

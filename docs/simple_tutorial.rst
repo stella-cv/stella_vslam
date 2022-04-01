@@ -11,19 +11,19 @@ TL; DR
 
   If you use :ref:`SocketViewer <subsection-dependencies-socketviewer>`, please launch the server in the other terminal and access to it with the web browser **in advance**.
 
-Running the following commands will give a feel for what OpenVSLAM can do.
+Running the following commands will give a feel for what stella_vslam can do.
 The later parts of this chapter explains what each of the commands do in more detail.
 
 .. code-block:: bash
 
-    # at the build directory of openvslam ...
+    # at the build directory of stella_vslam ...
     $ pwd
-    /path/to/openvslam/build/
+    /path/to/stella_vslam/build/
     $ ls
     run_video_slam   run_video_localization   lib/   ...
 
     # download an ORB vocabulary from GitHub
-    curl -sL "https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow" -o orb_vocab.fbow
+    curl -sL "https://github.com/stella-cv/FBoW_orb_vocab/raw/main/orb_vocab.fbow" -o orb_vocab.fbow
 
     # download a sample dataset from Google Drive
     FILE_ID="1d8kADKWBptEqTF7jEVhKatBEdN7g0ikY"
@@ -51,8 +51,8 @@ The later parts of this chapter explains what each of the commands do in more de
 Sample Datasets
 ^^^^^^^^^^^^^^^
 
-You can use OpenVSLAM with various video datasets.
-If you want to run OpenVSLAM with standard benchmarking detasets, please see :ref:`this section <section-example-standard-datasets>`.
+You can use stella_vslam with various video datasets.
+If you want to run stella_vslam with standard benchmarking detasets, please see :ref:`this section <section-example-standard-datasets>`.
 
 Start by downloading some datasets you like.
 
@@ -224,7 +224,7 @@ After downloading and uncompressing a zip file, you will find a video file and a
 
 You can put the dataset in any directory where you have access to.
 
-| Additionally, please download a vocabulary file for FBoW from `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
+| Additionally, please download a vocabulary file for FBoW from `here <https://github.com/stella-cv/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 For the rest of this chapter, we will use ``aist_living_lab_1`` and ``aist_living_lab_2`` datasets for our example.
 
@@ -238,7 +238,7 @@ You can use ``./run_video_slam`` to run SLAM with the video file.
 
 .. code-block:: bash
 
-    # at the build directory of OpenVSLAM
+    # at the build directory of stella_vslam
     $ ls
     ...
     run_video_slam
@@ -266,7 +266,7 @@ The paths should be changed accordingly.
 
     $ ./run_video_slam \
         -v /path/to/orb_vocab/orb_vocab.fbow \
-        -c /path/to/openvslam/example/aist/equirectangular.yaml \
+        -c /path/to/stella_vslam/example/aist/equirectangular.yaml \
         -m /path/to/aist_living_lab_1/video.mp4 \
         --frame-skip 3 \
         --map-db aist_living_lab_1_map.msg
@@ -288,7 +288,7 @@ If the two viewers are not launching correctly, check if you launched the comman
 
 .. code-block:: none
 
-    [2019-05-20 17:52:41.677] [I] config file loaded: /path/to/openvslam/example/aist/equirectangular.yaml
+    [2019-05-20 17:52:41.677] [I] config file loaded: /path/to/stella_vslam/example/aist/equirectangular.yaml
       ___               __   _____ _      _   __  __  
      / _ \ _ __  ___ _ _\ \ / / __| |    /_\ |  \/  | 
     | (_) | '_ \/ -_) ' \\ V /\__ \ |__ / _ \| |\/| | 
@@ -299,7 +299,7 @@ If the two viewers are not launching correctly, check if you launched the comman
     National Institute of Advanced Industrial Science and Technology (AIST)
     All rights reserved.
     For the changes after forking,
-    Copyright (C) 2022, OpenVSLAM-Community, All rights reserved.
+    Copyright (C) 2022, stella-cv, All rights reserved.
 
     This is free software,
     and you are welcome to redistribute it under certain conditions.
@@ -368,7 +368,7 @@ After terminating, you will find a map database file ``aist_living_lab_1_map.msg
     ...
 
 
-The format of map database files is `MessagePack <https://msgpack.org/>`_, so you can reuse created maps for any third-party applications other than OpenVSLAM.
+The format of map database files is `MessagePack <https://msgpack.org/>`_, so you can reuse created maps for any third-party applications other than stella_vslam.
 
 
 Localization
@@ -403,7 +403,7 @@ The paths should be changed accordingly.
 
     $ ./run_video_localization \
         -v /path/to/orb_vocab/orb_vocab.fbow \
-        -c /path/to/openvslam/example/aist/equirectangular.yaml \
+        -c /path/to/stella_vslam/example/aist/equirectangular.yaml \
         -m /path/to/aist_living_lab_2/video.mp4 \
         --frame-skip 3 \
         --map-db aist_living_lab_1_map.msg
@@ -423,7 +423,7 @@ You can see if the current frame is being localized, based on the prebuild map.
 
 .. code-block:: none
 
-    [2019-05-20 17:58:54.728] [I] config file loaded: /path/to/openvslam/example/aist/equirectangular.yaml
+    [2019-05-20 17:58:54.728] [I] config file loaded: /path/to/stella_vslam/example/aist/equirectangular.yaml
       ___               __   _____ _      _   __  __  
      / _ \ _ __  ___ _ _\ \ / / __| |    /_\ |  \/  | 
     | (_) | '_ \/ -_) ' \\ V /\__ \ |__ / _ \| |\/| | 
@@ -434,7 +434,7 @@ You can see if the current frame is being localized, based on the prebuild map.
     National Institute of Advanced Industrial Science and Technology (AIST)
     All rights reserved.
     For the changes after forking,
-    Copyright (C) 2022, OpenVSLAM-Community, All rights reserved.
+    Copyright (C) 2022, stella-cv, All rights reserved.
 
     This is free software,
     and you are welcome to redistribute it under certain conditions.

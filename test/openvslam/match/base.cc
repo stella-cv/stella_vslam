@@ -1,12 +1,12 @@
-#include "openvslam/type.h"
-#include "openvslam/match/base.h"
+#include "stella_vslam/type.h"
+#include "stella_vslam/match/base.h"
 
 #include <chrono>
 #include <thread>
 
 #include <gtest/gtest.h>
 
-using namespace openvslam;
+using namespace stella_vslam;
 
 TEST(base, compute_hamming_distance_1) {
     cv::Mat desc_1(1, 32, CV_8U);

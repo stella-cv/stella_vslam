@@ -10,9 +10,9 @@ Trouble Shooting
 For building
 ============
 
-#. OpenVSLAM terminates abnormaly soon after **launching** or **optimization with g2o**.
+#. stella_vslam terminates abnormaly soon after **launching** or **optimization with g2o**.
 
-    Please configure and rebuild g2o and OpenVSLAM with ``-DBUILD_WITH_MARCH_NATIVE=OFF`` option for ``cmake``.
+    Please configure and rebuild g2o and stella_vslam with ``-DBUILD_WITH_MARCH_NATIVE=OFF`` option for ``cmake``.
 
 
 .. _section-trouble-slam:

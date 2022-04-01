@@ -6,9 +6,9 @@
 #include "socket_publisher/publisher.h"
 #endif
 
-#include "openvslam/system.h"
-#include "openvslam/config.h"
-#include "openvslam/util/yaml.h"
+#include "stella_vslam/system.h"
+#include "stella_vslam/config.h"
+#include "stella_vslam/util/yaml.h"
 
 #include <iostream>
 #include <chrono>
@@ -28,7 +28,7 @@
 #include <gperftools/profiler.h>
 #endif
 
-void mono_tracking(const std::shared_ptr<openvslam::config>& cfg,
+void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
                    const std::string& vocab_file_path, const std::string& image_dir_path, const std::string& mask_img_path,
                    const unsigned int frame_skip, const bool no_sleep, const bool auto_term,
                    const bool eval_log, const std::string& map_db_path) {
@@ -39,16 +39,16 @@ void mono_tracking(const std::shared_ptr<openvslam::config>& cfg,
     const auto frames = sequence.get_frames();
 
     // build a SLAM system
-    openvslam::system SLAM(cfg, vocab_file_path);
+    stella_vslam::system SLAM(cfg, vocab_file_path);
     // startup the SLAM process
     SLAM.startup();
 
 #ifdef USE_PANGOLIN_VIEWER
     pangolin_viewer::viewer viewer(
-        openvslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
 #elif USE_SOCKET_PUBLISHER
     socket_publisher::publisher publisher(
-        openvslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
 #endif
 
     std::vector<double> track_times;
@@ -192,9 +192,9 @@ int main(int argc, char* argv[]) {
     }
 
     // load configuration
-    std::shared_ptr<openvslam::config> cfg;
+    std::shared_ptr<stella_vslam::config> cfg;
     try {
-        cfg = std::make_shared<openvslam::config>(config_file_path->value());
+        cfg = std::make_shared<stella_vslam::config>(config_file_path->value());
     }
     catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
@@ -206,7 +206,7 @@ int main(int argc, char* argv[]) {
 #endif
 
     // run tracking
-    if (cfg->camera_->setup_type_ == openvslam::camera::setup_type_t::Monocular) {
+    if (cfg->camera_->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
         mono_tracking(cfg, vocab_file_path->value(), img_dir_path->value(), mask_img_path->value(),
                       frame_skip->value(), no_sleep->is_set(), auto_term->is_set(),
                       eval_log->is_set(), map_db_path->value());

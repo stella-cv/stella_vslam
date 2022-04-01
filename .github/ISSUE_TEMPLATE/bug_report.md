@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 <!--
-For general questions, please ask on https://github.com/OpenVSLAM-Community/openvslam/discussions.
+For general questions, please ask on https://github.com/stella-cv/stella_vslam/discussions.
 Please complete the following information.
 -->
 
@@ -16,7 +16,9 @@ Please complete the following information.
 <!-- A clear and concise description of what the bug is. -->
 
 ## To Reproduce
+
 Steps to reproduce the behavior:
+
 1. Go to '...'
 2. Click on '....'
 3. Scroll down to '....'
@@ -35,13 +37,14 @@ Camera:
 ## Screenshots or videos
 <!-- If applicable, add screenshots to help explain your problem. -->
 
-## Environment:
- - Hardware: [e.g. PC, Raspberry Pi 4, Jetson Nano]
- - CPU: [e.g. Intel Core i7-11700]
- - OS: [e.g. Ubuntu 20.04]
- - Commit id: [e.g. openvslam=577cb04d9245aa68b0905212293a802292d01787, openvslam_ros=fdbd287d80a3a5cc4ac1a143dc937adb4697b120]
- - Install procedure: [docker or native]
- - dataset: [e.g. EuRoC MH_01]
+## Environment
+
+- Hardware: [e.g. PC, Raspberry Pi 4, Jetson Nano]
+- CPU: [e.g. Intel Core i7-11700]
+- OS: [e.g. Ubuntu 20.04]
+- Commit id: [e.g. stella_vslam=577cb04d9245aa68b0905212293a802292d01787, stella_vslam_ros=fdbd287d80a3a5cc4ac1a143dc937adb4697b120]
+- Install procedure: [docker or native]
+- dataset: [e.g. EuRoC MH_01]
 
 ## Additional context
 <!-- Add any other context about the problem here. -->

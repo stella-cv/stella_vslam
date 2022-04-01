@@ -1,10 +1,10 @@
-#include "openvslam/feature/orb_params.h"
+#include "stella_vslam/feature/orb_params.h"
 
 #include <cmath>
 
 #include <gtest/gtest.h>
 
-using namespace openvslam;
+using namespace stella_vslam;
 
 TEST(orb_params, load_yaml_without_rectangle_mask) {
     const std::string yaml =

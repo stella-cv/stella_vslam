@@ -4,7 +4,7 @@
 Example
 =======
 
-We provided example code snippets for running OpenVSLAM with variety of datasets.
+We provided example code snippets for running stella_vslam with variety of datasets.
 
 .. _section-example-video:
 
@@ -35,7 +35,7 @@ The following options are allowed:
     -p, --map-db arg       store a map database at this path after SLAM
 
 | The camera that captures the video file must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
-| We provided a vocabulary file for FBoW at `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
+| We provided a vocabulary file for FBoW at `here <https://github.com/stella-cv/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 Localization
 ^^^^^^^^^^^^
@@ -61,7 +61,7 @@ The following options are allowed:
     --debug                debug mode
 
 | The camera that captures the video file must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
-| We provided a vocabulary file for FBoW at `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
+| We provided a vocabulary file for FBoW at `here <https://github.com/stella-cv/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 You can create a map database file by running one of the ``run_****_slam`` executables with ``--map-db map_file_name.msg`` option.
 
@@ -94,7 +94,7 @@ The following options are allowed:
     -p, --map-db arg       store a map database at this path after SLAM
 
 | The camera that captures the video file must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
-| We provided a vocabulary file for FBoW at `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
+| We provided a vocabulary file for FBoW at `here <https://github.com/stella-cv/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 Localization
 ^^^^^^^^^^^^
@@ -120,7 +120,7 @@ The following options are allowed:
     --debug                debug mode
 
 | The camera that captures the video file must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
-| We provided a vocabulary file for FBoW at `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
+| We provided a vocabulary file for FBoW at `here <https://github.com/stella-cv/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 You can create a map database file by running one of the ``run_****_slam`` executables with ``--map-db map_file_name.msg`` option.
 
@@ -148,7 +148,7 @@ After downloading and uncompressing it, you will find several sequences under th
     $ ls sequences/
     00  01  02  03  04  05  06  07  08  09  10  11  12  13  14  15  16  17  18  19  20  21
 
-In addition, download a vocabulary file for FBoW from `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
+In addition, download a vocabulary file for FBoW from `here <https://github.com/stella-cv/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 A configuration file for each sequence is contained under ``./example/kitti/``.
 
@@ -156,7 +156,7 @@ If you built examples with Pangolin Viewer support, a map viewer and frame viewe
 
 .. code-block:: bash
 
-    # at the build directory of OpenVSLAM
+    # at the build directory of stella_vslam
     $ ls
     ...
     run_kitti_slam
@@ -208,7 +208,7 @@ After downloading and uncompressing it, you will find several directories under 
     $ ls mav0/
     body.yaml  cam0  cam1  imu0  leica0  state_groundtruth_estimate0
 
-In addition, download a vocabulary file for FBoW from `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
+In addition, download a vocabulary file for FBoW from `here <https://github.com/stella-cv/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 We provided the two config files for EuRoC, ``./example/euroc/EuRoC_mono.yaml`` for monocular and ``./example/euroc/EuRoC_stereo.yaml`` for stereo.
 
@@ -216,7 +216,7 @@ If you have built examples with Pangolin Viewer support, a map viewer and frame 
 
 .. code-block:: bash
 
-    # at the build directory of OpenVSLAM
+    # at the build directory of stella_vslam
     $ ls
     ...
     run_euroc_slam
@@ -270,7 +270,7 @@ After downloading and uncompressing it, you will find two directories and few te
 
 If you would like to preprocess dataset then you can usee tool from `here <https://vision.in.tum.de/data/datasets/rgbd-dataset/tools>`__.
 
-In addition, download a vocabulary file for FBoW from `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
+In addition, download a vocabulary file for FBoW from `here <https://github.com/stella-cv/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 We provided the config files for RGBD dataset at, ``./example/tum_rgbd``.
 
@@ -281,7 +281,7 @@ Tracking and Mapping
 
 .. code-block:: bash
 
-    # at the build directory of OpenVSLAM
+    # at the build directory of stella_vslam
     $ ls
     ...
     run_tum_rgbd_slam
@@ -326,7 +326,7 @@ Localization
 
 .. code-block:: bash
 
-    # at the build directory of OpenVSLAM
+    # at the build directory of stella_vslam
     $ ls
     ...
     run_tum_rgbd_localization
@@ -394,7 +394,7 @@ The following options are allowed:
 | Please specify the camera number you want to use by ``-n`` option.
 | The camera must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
 | You can scale input images to the performance of your machine by ``-s`` option. Please modify the config accordingly.
-| We provided a vocabulary file for FBoW at `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
+| We provided a vocabulary file for FBoW at `here <https://github.com/stella-cv/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 
 Localization
 ^^^^^^^^^^^^
@@ -420,4 +420,4 @@ The following options are allowed:
 | Please specify the camera number you want to use by ``-n`` option.
 | The camera must be calibrated. Create a config file (``.yaml``) according to the camera parameters.
 | You can scale input images to the performance of your machine by ``-s`` option. Please modify the config accordingly.
-| We provided a vocabulary file for FBoW at `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
+| We provided a vocabulary file for FBoW at `here <https://github.com/stella-cv/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.

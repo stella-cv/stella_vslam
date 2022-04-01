@@ -12,16 +12,16 @@ Overview
     :width: 640px
     :align: center
 
-OpenVSLAM is a monocular, stereo, and RGBD visual SLAM system.
+stella_vslam is a monocular, stereo, and RGBD visual SLAM system.
 The notable features are:
 
 * It is compatible with **various type of camera models** and can be easily customized for other camera models.
-* Created maps can be **stored and loaded**, then OpenVSLAM can **localize new images** based on the prebuilt maps.
+* Created maps can be **stored and loaded**, then stella_vslam can **localize new images** based on the prebuilt maps.
 * The system is fully modular. It is designed by encapsulating several functions in separated components with easy-to-understand APIs.
 * We provided **some code snippets** to understand the core functionalities of this system.
 
-OpenVSLAM is based on an indirect SLAM algorithm with sparse features, such as ORB-SLAM, ProSLAM, and UcoSLAM.
-One of the noteworthy features of OpenVSLAM is that the system can deal with various type of camera models, such as perspective, fisheye, and equirectangular.
+stella_vslam is based on an indirect SLAM algorithm with sparse features, such as ORB-SLAM, ProSLAM, and UcoSLAM.
+One of the noteworthy features of stella_vslam is that the system can deal with various type of camera models, such as perspective, fisheye, and equirectangular.
 If needed, users can implement extra camera models (e.g. dual fisheye, catadioptric) with ease.
 For example, visual SLAM algorithm using **equirectangular camera models** (e.g. RICOH THETA series, insta360 series, etc) is shown above.
 
@@ -29,10 +29,10 @@ Some code snippets to understand the core functionalities of the system are prov
 You can employ these snippets for in your own programs.
 Please see the ``*.cc`` files in ``./example`` directory or check  :ref:`Simple Tutorial <chapter-simple-tutorial>` and :ref:`Example <chapter-example>`.
 
-Also, some examples to run OpenVSLAM on ROS framework are provided.
+Also, some examples to run stella_vslam on ROS framework are provided.
 Please check :ref:`ROS Package <chapter-ros-package>`.
 
-Please contact us via `GitHub issues <https://github.com/OpenVSLAM-Community/openvslam/issues>`__ if you have any questions or notice any bugs about the software.
+Please contact us via `GitHub issues <https://github.com/stella-cv/stella_vslam/issues>`__ if you have any questions or notice any bugs about the software.
 
 .. _section-overview-installation:
 
@@ -50,7 +50,7 @@ Tutorial
 
 Please see :ref:`Simple Tutorial <chapter-simple-tutorial>`.
 
-| A sample ORB vocabulary file can be downloaded from `here <https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
+| A sample ORB vocabulary file can be downloaded from `here <https://github.com/stella-cv/FBoW_orb_vocab/raw/main/orb_vocab.fbow>`__.
 | Sample datasets are also provided at `here <https://drive.google.com/open?id=1A_gq8LYuENePhNHsuscLZQPhbJJwzAq4>`__. 
 
 If you would like to run visual SLAM with standard benchmarking datasets (e.g. KITTI Odometry dataset), please see :ref:`SLAM with standard datasets <section-example-standard-datasets>`.

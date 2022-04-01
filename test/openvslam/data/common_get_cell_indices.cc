@@ -1,9 +1,9 @@
-#include "openvslam/data/common.h"
-#include "openvslam/camera/perspective.h"
+#include "stella_vslam/data/common.h"
+#include "stella_vslam/camera/perspective.h"
 
 #include <gtest/gtest.h>
 
-using namespace openvslam;
+using namespace stella_vslam;
 
 camera::perspective create_perspective_camera(const unsigned int cols, const unsigned int rows,
                                               const float k1 = 0.0, const float k2 = 0.0) {

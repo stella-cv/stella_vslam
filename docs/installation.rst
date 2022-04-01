@@ -10,18 +10,18 @@ Installation
 Source code
 ===========
 
-The source code can be viewed from this `GitHub repository <https://github.com/OpenVSLAM-Community/openvslam>`_.
+The source code can be viewed from this `GitHub repository <https://github.com/stella-cv/stella_vslam>`_.
 
 Cloning the repository:
 
 .. code-block:: bash
 
-       git clone https://github.com/OpenVSLAM-Community/openvslam.git
-       cd openvslam
+       git clone https://github.com/stella-cv/stella_vslam.git
+       cd stella_vslam
        git submodule update -i --recursive
 
-If you are Windows 10 user, please install the dependencies and OpenVSLAM with :ref:`SocketViewer support <subsection-dependencies-socketviewer>` on `Windows Subsystem for Linux (WSL) <https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux>`__.
-We have checked the correct operation of OpenVSLAM and SocketViewer on Ubuntu 16.04 running on WSL.
+If you are Windows 10 user, please install the dependencies and stella_vslam with :ref:`SocketViewer support <subsection-dependencies-socketviewer>` on `Windows Subsystem for Linux (WSL) <https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux>`__.
+We have checked the correct operation of stella_vslam and SocketViewer on Ubuntu 16.04 running on WSL.
 
 :ref:`Docker <chapter-docker>` systems can be used instead of preparing the dependencies manually.
 
@@ -30,10 +30,10 @@ We have checked the correct operation of OpenVSLAM and SocketViewer on Ubuntu 16
 Dependencies
 ============
 
-OpenVSLAM requires a **C++11-compliant** compiler.
+stella_vslam requires a **C++11-compliant** compiler.
 It relies on several open-source libraries as shown below.
 
-Requirements for OpenVSLAM
+Requirements for stella_vslam
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 * `Eigen <http://eigen.tuxfamily.org/>`_ : version 3.3.0 or later.
@@ -42,7 +42,7 @@ Requirements for OpenVSLAM
 
 * `SuiteSparse <http://faculty.cse.tamu.edu/davis/suitesparse.html>`_ : Required by g2o.
 
-* `FBoW <https://github.com/OpenVSLAM-Community/FBoW>`_ : **Please use the custom version of FBoW** released in `https://github.com/OpenVSLAM-Community/FBoW <https://github.com/OpenVSLAM-Community/FBoW>`_.
+* `FBoW <https://github.com/stella-cv/FBoW>`_ : **Please use the custom version of FBoW** released in `https://github.com/stella-cv/FBoW <https://github.com/stella-cv/FBoW>`_.
 
 * `yaml-cpp <https://github.com/jbeder/yaml-cpp>`_ : version 0.6.0 or later.
 
@@ -235,7 +235,7 @@ Download, build and install **the custom FBoW** from source.
 .. code-block:: bash
 
     cd /path/to/working/dir
-    git clone https://github.com/OpenVSLAM-Community/FBoW.git
+    git clone https://github.com/stella-cv/FBoW.git
     cd FBoW
     mkdir build && cd build
     cmake \
@@ -339,7 +339,7 @@ When building with support for PangolinViewer, please specify the following cmak
 
 .. code-block:: bash
 
-    cd /path/to/openvslam
+    cd /path/to/stella_vslam
     mkdir build && cd build
     cmake \
         -DUSE_PANGOLIN_VIEWER=ON \
@@ -355,7 +355,7 @@ When building with support for SocketViewer, please specify the following cmake 
 
 .. code-block:: bash
 
-    cd /path/to/openvslam
+    cd /path/to/stella_vslam
     mkdir build && cd build
     cmake \
         -DUSE_PANGOLIN_VIEWER=OFF \
@@ -394,7 +394,7 @@ If you plan on using SocketViewer, please setup the environment for the server w
 
 .. code-block:: bash
 
-    $ cd /path/to/openvslam/viewer
+    $ cd /path/to/stella_vslam/viewer
     $ ls
     Dockerfile  app.js  package.json  public  views
     $ npm install
@@ -407,7 +407,7 @@ Then, launch the server with ``node app.js``.
 
 .. code-block:: bash
 
-    $ cd /path/to/openvslam/viewer
+    $ cd /path/to/stella_vslam/viewer
     $ ls
     Dockerfile  app.js  node_modules  package-lock.json  package.json  public  views
     $ node app.js

@@ -52,5 +52,5 @@ Steps in Relocalization
 
 .. _section-run-relocalizatoin:
 
-| See the details on how to run the relocalization at `here <https://openvslam-community.readthedocs.io/en/latest/simple_tutorial.html#simple-tutorial>`__.
+| See the details on how to run the relocalization at `here <https://stella-cv.readthedocs.io/en/latest/simple_tutorial.html#simple-tutorial>`__.
 

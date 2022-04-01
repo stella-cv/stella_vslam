@@ -14,11 +14,11 @@ Requirements
 
 * `ROS <http://wiki.ros.org/>`_ : ``noetic`` is recommended. (If you have built OpenCV (3.3.1 or later) manually, you can use ``melodic`` or later.)
 
-* :ref:`OpenVSLAM <chapter-installation>`
+* :ref:`stella_vslam <chapter-installation>`
 
 * `image_transport <http://wiki.ros.org/image_transport>`_ : Required by this ROS package examples.
 
-* `cv_bridge <http://wiki.ros.org/cv_bridge>`_ : Please build it with the same version of OpenCV used in OpenVSLAM.
+* `cv_bridge <http://wiki.ros.org/cv_bridge>`_ : Please build it with the same version of OpenCV used in stella_vslam.
 
 .. _section-prerequisites:
 
@@ -31,11 +31,11 @@ Please install the following dependencies.
 
 * ROS : Please follow `Installation of ROS <http://wiki.ros.org/ROS/Installation>`_.
 
-* OpenVSLAM : Please follow :ref:`Installation of OpenVSLAM <chapter-installation>`.
+* stella_vslam : Please follow :ref:`Installation of stella_vslam <chapter-installation>`.
 
 .. NOTE ::
 
-    Please build OpenVSLAM with PangolinViewer or SocketViewer if you plan on using it for the examples.
+    Please build stella_vslam with PangolinViewer or SocketViewer if you plan on using it for the examples.
 
 Install the dependencies via ``apt``.
 
@@ -56,13 +56,13 @@ Download the source of ``cv_bridge``.
 Build Instructions
 ^^^^^^^^^^^^^^^^^^
 
-When building with support for PangolinViewer, please specify the following cmake options: ``-DUSE_PANGOLIN_VIEWER=ON`` and ``-DUSE_SOCKET_PUBLISHER=OFF`` as described in :ref:`build of OpenVSLAM <section-build-unix>`.
-openvslam and openvslam_ros need to be built with the same options.
+When building with support for PangolinViewer, please specify the following cmake options: ``-DUSE_PANGOLIN_VIEWER=ON`` and ``-DUSE_SOCKET_PUBLISHER=OFF`` as described in :ref:`build of stella_vslam <section-build-unix>`.
+stella_vslam and stella_vslam_ros need to be built with the same options.
 
 .. code-block:: bash
 
     cd ~/catkin_ws/src
-    git clone --branch ros --depth 1 https://github.com/OpenVSLAM-Community/openvslam_ros.git
+    git clone --branch ros --depth 1 https://github.com/stella-cv/stella_vslam_ros.git
     cd ~/catkin_ws
     catkin_make -DUSE_PANGOLIN_VIEWER=ON -DUSE_SOCKET_PUBLISHER=OFF
 
@@ -82,7 +82,7 @@ Run the core program required for ROS-based system in advance.
 Publisher
 ^^^^^^^^^
 
-If you want to input image sequences or videos into openvslam_ros, please use ROS2.
+If you want to input image sequences or videos into stella_vslam_ros, please use ROS2.
 
 Publish Images of a USB Camera
 ------------------------------
@@ -113,18 +113,18 @@ Please execute one of the following command snippets in the new terminal.
 
 .. NOTE ::
 
-    Option arguments are the same as :ref:`the examples of OpenVSLAM <chapter-example>`.
+    Option arguments are the same as :ref:`the examples of stella_vslam <chapter-example>`.
 
 Tracking and Mapping
 --------------------
 
 We provide an example snippet for visual SLAM.
-The source code is placed at ``openvslam_ros/src/run_slam.cc``.
+The source code is placed at ``stella_vslam_ros/src/run_slam.cc``.
 
 .. code-block:: bash
 
     source ~/catkin_ws/devel/setup.bash
-    rosrun openvslam_ros run_slam \
+    rosrun stella_vslam_ros run_slam \
         -v /path/to/orb_vocab.fbow \
         -c /path/to/config.yaml
 
@@ -132,12 +132,12 @@ Localization
 ------------
 
 We provide an example snippet for localization based on a prebuilt map.
-The source code is placed at ``openvslam_ros/src/run_localization.cc``.
+The source code is placed at ``stella_vslam_ros/src/run_localization.cc``.
 
 .. code-block:: bash
 
     source ~/catkin_ws/devel/setup.bash
-    rosrun openvslam_ros run_localization \
+    rosrun stella_vslam_ros run_localization \
         -v /path/to/orb_vocab.fbow \
         -c /path/to/config.yaml \
         --map-db /path/to/map.msg

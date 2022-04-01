@@ -34,10 +34,10 @@ Execute the following commands:
 
 .. code-block:: bash
 
-    git clone https://github.com/OpenVSLAM-Community/openvslam.git
-    cd openvslam
+    git clone https://github.com/stella-cv/stella_vslam.git
+    cd stella_vslam
     git submodule update -i --recursive
-    docker build -t openvslam-desktop -f Dockerfile.desktop .
+    docker build -t stella_vslam-desktop -f Dockerfile.desktop .
 
 
 You can accelerate the build of the docker image with ``--build-arg NUM_THREADS=<number of parallel builds>`` option. For example:
@@ -45,7 +45,7 @@ You can accelerate the build of the docker image with ``--build-arg NUM_THREADS=
 .. code-block:: bash
 
     # building the docker image with four threads
-    docker build -t openvslam-desktop -f Dockerfile.desktop . --build-arg NUM_THREADS=`expr $(nproc) - 1`
+    docker build -t stella_vslam-desktop -f Dockerfile.desktop . --build-arg NUM_THREADS=`expr $(nproc) - 1`
 
 Starting Docker Container
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -57,7 +57,7 @@ In order to enable X11 forwarding, supplemental options (``-e DISPLAY=$DISPLAY``
     # before launching the container, allow display access from local users
     xhost +local:
     # launch the container
-    docker run -it --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix:ro openvslam-desktop
+    docker run -it --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix:ro stella_vslam-desktop
 
 .. NOTE ::
 
@@ -70,7 +70,7 @@ After launching the container, the shell interface will be launched in the docke
 
 .. code-block:: bash
 
-    root@ddad048b5fff:/openvslam/build# ls
+    root@ddad048b5fff:/stella_vslam/build# ls
     lib                     run_image_slam          run_video_slam
     run_euroc_slam          run_kitti_slam          run_tum_slam
     run_image_localization  run_video_localization  run_tum_rgbd_localization
@@ -95,15 +95,15 @@ This chapter provides instructions on building and running examples with SocketV
 Building Docker Images
 ^^^^^^^^^^^^^^^^^^^^^^
 
-Docker Image of OpenVSLAM
+Docker Image of stella_vslam
 `````````````````````````
 
 Execute the following commands:
 
 .. code-block:: bash
 
-    cd /path/to/openvslam
-    docker build -t openvslam-socket -f Dockerfile.socket .
+    cd /path/to/stella_vslam
+    docker build -t stella_vslam-socket -f Dockerfile.socket .
 
 
 You can accelerate the build of the docker image with ``--build-arg NUM_THREADS=<number of parallel builds>`` option. For example:
@@ -111,7 +111,7 @@ You can accelerate the build of the docker image with ``--build-arg NUM_THREADS=
 .. code-block:: bash
 
     # building the docker image with four threads
-    docker build -t openvslam-socket -f Dockerfile.socket . --build-arg NUM_THREADS=`expr $(nproc) - 1`
+    docker build -t stella_vslam-socket -f Dockerfile.socket . --build-arg NUM_THREADS=`expr $(nproc) - 1`
 
 Docker Image of Server
 ``````````````````````
@@ -120,9 +120,9 @@ Execute the following commands:
 
 .. code-block:: bash
 
-    cd /path/to/openvslam
+    cd /path/to/stella_vslam
     cd viewer
-    docker build -t openvslam-server .
+    docker build -t stella_vslam-server .
 
 Starting Docker Containers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -135,19 +135,19 @@ Please specify ``--net=host`` in order to share the network with the host machin
 
 .. code-block:: bash
 
-    $ docker run --rm -it --name openvslam-server --net=host openvslam-server
+    $ docker run --rm -it --name stella_vslam-server --net=host stella_vslam-server
     WebSocket: listening on *:3000
     HTTP server: listening on *:3001
 
 After launching, access to ``http://localhost:3001/`` with the web browser.
 
-Next, launch the container of OpenVSLAM.
+Next, launch the container of stella_vslam.
 The shell interface will be launched in the docker container.
 
 .. code-block:: bash
 
-    $ docker run --rm -it --name openvslam-socket --net=host openvslam-socket
-    root@hostname:/openvslam/build#
+    $ docker run --rm -it --name stella_vslam-socket --net=host stella_vslam-socket
+    root@hostname:/stella_vslam/build#
 
 See :ref:`Tutorial <chapter-simple-tutorial>` to run SLAM examples in the container.
 
@@ -161,23 +161,23 @@ Please specify ``-p 3001:3001`` for port-forwarding.
 
 .. code-block:: bash
 
-    $ docker run --rm -it --name openvslam-server -p 3001:3001 openvslam-server
+    $ docker run --rm -it --name stella_vslam-server -p 3001:3001 stella_vslam-server
     WebSocket: listening on *:3000
     HTTP server: listening on *:3001
 
 After launching, access to ``http://localhost:3001/`` with the web browser.
 
-Then, inspect the container's IP address and append the ``SocketPublisher.server_uri`` entry to the YAML config file of OpenVSLAM.
+Then, inspect the container's IP address and append the ``SocketPublisher.server_uri`` entry to the YAML config file of stella_vslam.
 
 .. code-block:: bash
 
     # inspect the server's IP address
-    $ docker inspect openvslam-server | grep -m 1 \"IPAddress\" | sed 's/ //g' | sed 's/,//g'
+    $ docker inspect stella_vslam-server | grep -m 1 \"IPAddress\" | sed 's/ //g' | sed 's/,//g'
     "IPAddress": "172.17.0.2"
 
 .. code-block:: yaml
 
-    # config file of OpenVSLAM
+    # config file of stella_vslam
 
     ...
 
@@ -188,13 +188,13 @@ Then, inspect the container's IP address and append the ``SocketPublisher.server
     # append this entry
     SocketPublisher.server_uri: "http://172.17.0.2:3000"
 
-Next, launch the container of OpenVSLAM.
+Next, launch the container of stella_vslam.
 The shell interface will be launched in the docker container.
 
 .. code-block:: bash
 
-    $ docker run --rm -it --name openvslam-socket openvslam-socket
-    root@hostname:/openvslam/build#
+    $ docker run --rm -it --name stella_vslam-socket stella_vslam-socket
+    root@hostname:/stella_vslam/build#
 
 | See :ref:`Tutorial <chapter-simple-tutorial>` to run SLAM examples in the container.
 | Please don't forget to append ``SocketPublisher.server_uri`` entry to the ``config.yaml`` if you use the downloaded datasets in the tutorial.
@@ -213,22 +213,22 @@ For example:
 
 .. code-block:: bash
 
-    # launch a container of openvslam-desktop with --volume option
+    # launch a container of stella_vslam-desktop with --volume option
     $ docker run -it --rm --runtime=nvidia -e DISPLAY=$DISPLAY -v /tmp/.X11-unix/:/tmp/.X11-unix:ro \
         --volume /path/to/dataset/dir/:/dataset:ro \
         --volume /path/to/vocab/dir:/vocab:ro \
-        openvslam-desktop
+        stella_vslam-desktop
     # dataset/ and vocab/ are found at the root directory in the container
     root@0c0c9f115d74:/# ls /
     ...   dataset/   vocab/   ...
 
 .. code-block:: bash
 
-    # launch a container of openvslam-socket with --volume option
-    $ docker run --rm -it --name openvslam-socket --net=host \
+    # launch a container of stella_vslam-socket with --volume option
+    $ docker run --rm -it --name stella_vslam-socket --net=host \
         --volume /path/to/dataset/dir/:/dataset:ro \
         --volume /path/to/vocab/dir:/vocab:ro \
-        openvslam-socket
+        stella_vslam-socket
     # dataset/ and vocab/ are found at the root directory in the container
     root@0c0c9f115d74:/# ls /
     ...   dataset/   vocab/   ...

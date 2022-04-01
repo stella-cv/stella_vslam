@@ -143,7 +143,7 @@ ENV OpenCV_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/opencv4
 ARG FBoW_COMMIT=30f45f1d97314145f81b49617bb37846a861dfe7
 WORKDIR /tmp
 RUN set -x && \
-  git clone https://github.com/OpenVSLAM-Community/FBoW.git && \
+  git clone https://github.com/stella-cv/FBoW.git && \
   cd FBoW && \
   git checkout ${FBoW_COMMIT} && \
   mkdir -p build && \
@@ -157,25 +157,6 @@ RUN set -x && \
   cd /tmp && \
   rm -rf *
 ENV FBoW_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/FBoW
-
-# DBoW2
-ARG DBOW2_COMMIT=687fcb74dd13717c46add667e3fbfa9828a7019f
-WORKDIR /tmp
-RUN set -x && \
-  git clone https://github.com/OpenVSLAM-Community/DBoW2.git && \
-  cd DBoW2 && \
-  git checkout ${DBOW2_COMMIT} && \
-  mkdir -p build && \
-  cd build && \
-  cmake \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
-    .. && \
-  make -j${NUM_THREADS} && \
-  make install && \
-  cd /tmp && \
-  rm -rf *
-ENV DBoW2_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/DBoW2
 
 # Pangolin
 ARG PANGOLIN_COMMIT=ad8b5f83222291c51b4800d5a5873b0e90a0cf81

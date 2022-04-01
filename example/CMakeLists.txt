@@ -101,7 +101,7 @@ foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
         target_link_libraries(${EXECUTABLE_TARGET} PRIVATE ${GPERFTOOLS_LIBRARIES})
     endif()
 
-    # Link OpenVSLAM
+    # Link stella_vslam
     target_link_libraries(${EXECUTABLE_TARGET}
                           PRIVATE
                           ${PROJECT_NAME}

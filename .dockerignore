@@ -4,7 +4,7 @@
 .idea/
 .vscode/
 
-# not needed for building OpenVSLAM
+# not needed for building
 Dockerfile*
 LICENSE
 README.md

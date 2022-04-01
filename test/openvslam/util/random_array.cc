@@ -1,9 +1,9 @@
-#include "openvslam/type.h"
-#include "openvslam/util/random_array.h"
+#include "stella_vslam/type.h"
+#include "stella_vslam/util/random_array.h"
 
 #include <gtest/gtest.h>
 
-using namespace openvslam;
+using namespace stella_vslam;
 
 TEST(random_array, create_random_array_1) {
     auto random_engine = util::create_random_engine();

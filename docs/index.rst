@@ -1,11 +1,7 @@
-.. OpenVSLAM documentation master file, created by
+.. stella_vslam documentation master file, created by
    sphinx-quickstart on Sun May 19 18:46:30 2019.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
-
-.. image:: ./img/logo.png
-    :width: 435px
-    :align: center
 
 |
 
@@ -15,7 +11,11 @@
 
 |
 
-This is the `OpenVSLAM <https://github.com/OpenVSLAM-Community/openvslam>`_ documentation.
+This is the `stella_vslam <https://github.com/stella-cv/stella_vslam>`_ documentation.
+NOTE: This is a community fork of xdspacelab/openvslam.
+It was created to continue active development of OpenVSLAM on Jan 31, 2021.
+The original repository is no longer available.
+Please read README.md in `stella_vslam <https://github.com/stella-cv/stella_vslam>`.
 
 Contents
 --------
@@ -39,10 +39,8 @@ Contents
     ./relocalization
     ./trouble_shooting
 
-Citation
---------
-
-If you use OpenVSLAM for a publication, please cite it as:
+Citation of original version of OpenVSLAM (xdspacelab/openvslam)
+----------------------------------------------------------------
 
 .. code-block:: bibtex
 

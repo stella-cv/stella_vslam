@@ -1,9 +1,9 @@
-#include "openvslam/type.h"
-#include "openvslam/util/fancy_index.h"
+#include "stella_vslam/type.h"
+#include "stella_vslam/util/fancy_index.h"
 
 #include <gtest/gtest.h>
 
-using namespace openvslam;
+using namespace stella_vslam;
 
 TEST(fancy_index, resample_int) {
     constexpr unsigned int num_elements = 200;

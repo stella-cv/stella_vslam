@@ -1,13 +1,13 @@
 #include "helper/bearing_vector.h"
 #include "helper/landmark.h"
 
-#include "openvslam/type.h"
-#include "openvslam/solve/essential_solver.h"
-#include "openvslam/util/converter.h"
+#include "stella_vslam/type.h"
+#include "stella_vslam/solve/essential_solver.h"
+#include "stella_vslam/util/converter.h"
 
 #include <gtest/gtest.h>
 
-using namespace openvslam;
+using namespace stella_vslam;
 
 TEST(essential_solver, linear_solve) {
     // create 3D points

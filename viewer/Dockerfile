@@ -1,9 +1,9 @@
 FROM node:8.16.0-alpine
 
-COPY . /openvslam-viewer/
+COPY . /viewer/
 
 RUN set -x && \
-  cd /openvslam-viewer/ && \
+  cd /viewer/ && \
   npm install
 
-ENTRYPOINT ["node", "/openvslam-viewer/app.js"]
+ENTRYPOINT ["node", "/viewer/app.js"]

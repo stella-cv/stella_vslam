@@ -1,4 +1,4 @@
-#include "openvslam/feature/orb_extractor.h"
+#include "stella_vslam/feature/orb_extractor.h"
 
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
@@ -19,7 +19,7 @@ cv::Mat draw_lines(const cv::Mat& img, const unsigned int num_segments = 4) {
     return lined_img;
 }
 
-using namespace openvslam;
+using namespace stella_vslam;
 
 TEST(orb_extractor, extract_toy_sample_1) {
     const auto params = feature::orb_params("ORB setting for test");
