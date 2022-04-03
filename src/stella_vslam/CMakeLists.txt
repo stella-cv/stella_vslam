@@ -204,3 +204,12 @@ add_subdirectory(optimize)
 add_subdirectory(publish)
 add_subdirectory(solve)
 add_subdirectory(util)
+
+# ----- Configure IDE -----
+
+if (CMAKE_GENERATOR MATCHES "Visual Studio")
+    get_target_property(SRC_FILES ${PROJECT_NAME} SOURCES)
+
+    # Preserve folder structure in Visual Studio 
+    source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SRC_FILES})
+endif()
