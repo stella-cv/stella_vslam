@@ -160,7 +160,7 @@ void mapping_module::mapping_with_new_keyframe() {
     store_new_keyframe();
 
     // remove redundant landmarks
-    local_map_cleaner_->remove_redundant_landmarks(cur_keyfrm_->id_, cur_keyfrm_->depth_is_avaliable());
+    local_map_cleaner_->remove_redundant_landmarks(cur_keyfrm_->id_, cur_keyfrm_->depth_is_available());
 
     // triangulate new landmarks between the current frame and each of the covisibilities
     create_new_landmarks();
@@ -231,7 +231,7 @@ void mapping_module::create_new_landmarks() {
     // get the covisibilities of `cur_keyfrm_`
     // in order to triangulate landmarks between `cur_keyfrm_` and each of the covisibilities
     constexpr unsigned int num_covisibilities = 10;
-    const unsigned int heuristic_ratio = cur_keyfrm_->depth_is_avaliable() ? 1 : 2;
+    const unsigned int heuristic_ratio = cur_keyfrm_->depth_is_available() ? 1 : 2;
     const auto cur_covisibilities = cur_keyfrm_->graph_node_->get_top_n_covisibilities(num_covisibilities * heuristic_ratio);
 
     // lowe's_ratio will not be used
@@ -330,7 +330,7 @@ void mapping_module::triangulate_with_two_keyframes(const std::shared_ptr<data::
 
 void mapping_module::update_new_keyframe() {
     // get the targets to check landmark fusion
-    const unsigned int num_covisibilities = cur_keyfrm_->depth_is_avaliable() ? 10 : 20;
+    const unsigned int num_covisibilities = cur_keyfrm_->depth_is_available() ? 10 : 20;
     const auto fuse_tgt_keyfrms = get_second_order_covisibilities(num_covisibilities, 5);
 
     // resolve the duplication of landmarks between the current keyframe and the targets

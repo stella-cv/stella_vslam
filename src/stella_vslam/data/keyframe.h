@@ -190,7 +190,7 @@ public:
     /**
      * Whether or not the camera setting is capable of obtaining depth information
      */
-    bool depth_is_avaliable() const;
+    bool depth_is_available() const;
 
     /**
      * Add a marker

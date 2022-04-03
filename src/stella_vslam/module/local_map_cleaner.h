@@ -49,7 +49,7 @@ public:
     /**
      * Remove redundant landmarks
      */
-    unsigned int remove_redundant_landmarks(const unsigned int cur_keyfrm_id, const bool depth_is_avaliable);
+    unsigned int remove_redundant_landmarks(const unsigned int cur_keyfrm_id, const bool depth_is_available);
 
     /**
      * Remove redundant keyframes

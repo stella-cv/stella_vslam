@@ -12,10 +12,10 @@ void local_map_cleaner::reset() {
     fresh_landmarks_.clear();
 }
 
-unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cur_keyfrm_id, const bool depth_is_avaliable) {
+unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cur_keyfrm_id, const bool depth_is_available) {
     constexpr float observed_ratio_thr = 0.3;
     constexpr unsigned int num_reliable_keyfrms = 2;
-    const unsigned int num_obs_thr = depth_is_avaliable ? 3 : 2;
+    const unsigned int num_obs_thr = depth_is_available ? 3 : 2;
 
     // states of observed landmarks
     enum class lm_state_t { Valid,
@@ -124,7 +124,7 @@ void local_map_cleaner::count_redundant_observations(const std::shared_ptr<data:
 
         // if depth is within the valid range, it won't be considered
         const auto depth = keyfrm->frm_obs_.depths_.at(idx);
-        if (keyfrm->depth_is_avaliable() && (depth < 0.0 || keyfrm->camera_->depth_thr_ < depth)) {
+        if (keyfrm->depth_is_available() && (depth < 0.0 || keyfrm->camera_->depth_thr_ < depth)) {
             continue;
         }
 

@@ -91,7 +91,7 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
     }
 
     // Queue up the keyframe to the mapping module
-    if (!keyfrm->depth_is_avaliable()) {
+    if (!keyfrm->depth_is_available()) {
         queue_keyframe(keyfrm);
         return keyfrm;
     }
