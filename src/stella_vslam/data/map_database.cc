@@ -734,27 +734,27 @@ bool map_database::save_keyframes_to_db(sqlite3* db) const {
         {"descs", "BLOB"}};
 
     int ret = SQLITE_ERROR;
-    std::string stmt_str = "CREATE TABLE keyframes(id INTEGER PRIMARY KEY";
+    std::string create_stmt_str = "CREATE TABLE keyframes(id INTEGER PRIMARY KEY";
     for (const auto& column : keyframes_columns) {
-        stmt_str += ", " + column.first + " " + column.second;
+        create_stmt_str += ", " + column.first + " " + column.second;
     }
-    stmt_str += ");";
-    ret = sqlite3_exec(db, stmt_str.c_str(), nullptr, nullptr, nullptr);
+    create_stmt_str += ");";
+    ret = sqlite3_exec(db, create_stmt_str.c_str(), nullptr, nullptr, nullptr);
     if (ret == SQLITE_OK) {
         ret = sqlite3_exec(db, "BEGIN;", nullptr, nullptr, nullptr);
     }
-    sqlite3_stmt* stmt;
+    sqlite3_stmt* stmt = nullptr;
     if (ret == SQLITE_OK) {
-        std::string stmt_str = "INSERT INTO keyframes(id";
+        std::string insert_stmt_str = "INSERT INTO keyframes(id";
         for (const auto& column : keyframes_columns) {
-            stmt_str += ", " + column.first;
+            insert_stmt_str += ", " + column.first;
         }
-        stmt_str += ") VALUES(?";
+        insert_stmt_str += ") VALUES(?";
         for (size_t i = 0; i < keyframes_columns.size(); ++i) {
-            stmt_str += ", ?";
+            insert_stmt_str += ", ?";
         }
-        stmt_str += ")";
-        ret = sqlite3_prepare_v2(db, stmt_str.c_str(), -1, &stmt, nullptr);
+        insert_stmt_str += ")";
+        ret = sqlite3_prepare_v2(db, insert_stmt_str.c_str(), -1, &stmt, nullptr);
     }
     if (ret != SQLITE_OK) {
         spdlog::error("SQLite error (prepare): {}", sqlite3_errmsg(db));
@@ -788,7 +788,7 @@ bool map_database::save_keyframes_to_db(sqlite3* db) const {
             const Mat44_t pose_cw = keyfrm->get_cam_pose();
             ret = sqlite3_bind_blob(stmt, column_id++, pose_cw.data(), pose_cw.rows() * pose_cw.cols() * sizeof(decltype(pose_cw)::Scalar), SQLITE_TRANSIENT);
         }
-        size_t num_keypts;
+        size_t num_keypts = 0;
         if (ret == SQLITE_OK) {
             num_keypts = keyfrm->frm_obs_.keypts_.size();
             ret = sqlite3_bind_int64(stmt, column_id++, num_keypts);
@@ -857,27 +857,27 @@ bool map_database::save_landmarks_to_db(sqlite3* db) const {
         {"n_fnd", "INTEGER"}};
 
     int ret = SQLITE_ERROR;
-    std::string stmt_str = "CREATE TABLE landmarks(id INTEGER PRIMARY KEY";
+    std::string create_stmt_str = "CREATE TABLE landmarks(id INTEGER PRIMARY KEY";
     for (const auto& column : landmarks_columns) {
-        stmt_str += ", " + column.first + " " + column.second;
+        create_stmt_str += ", " + column.first + " " + column.second;
     }
-    stmt_str += ");";
-    ret = sqlite3_exec(db, stmt_str.c_str(), nullptr, nullptr, nullptr);
+    create_stmt_str += ");";
+    ret = sqlite3_exec(db, create_stmt_str.c_str(), nullptr, nullptr, nullptr);
     if (ret == SQLITE_OK) {
         ret = sqlite3_exec(db, "BEGIN;", nullptr, nullptr, nullptr);
     }
-    sqlite3_stmt* stmt;
+    sqlite3_stmt* stmt = nullptr;
     if (ret == SQLITE_OK) {
-        std::string stmt_str = "INSERT INTO landmarks(id";
+        std::string insert_stmt_str = "INSERT INTO landmarks(id";
         for (const auto& column : landmarks_columns) {
-            stmt_str += ", " + column.first;
+            insert_stmt_str += ", " + column.first;
         }
-        stmt_str += ") VALUES(?";
+        insert_stmt_str += ") VALUES(?";
         for (size_t i = 0; i < landmarks_columns.size(); ++i) {
-            stmt_str += ", ?";
+            insert_stmt_str += ", ?";
         }
-        stmt_str += ")";
-        ret = sqlite3_prepare_v2(db, stmt_str.c_str(), -1, &stmt, nullptr);
+        insert_stmt_str += ")";
+        ret = sqlite3_prepare_v2(db, insert_stmt_str.c_str(), -1, &stmt, nullptr);
     }
     if (ret != SQLITE_OK) {
         spdlog::error("SQLite error (prepare): {}", sqlite3_errmsg(db));
@@ -946,27 +946,27 @@ bool map_database::save_associations_to_db(sqlite3* db) const {
         {"loop_edges", "BLOB"}};
 
     int ret = SQLITE_ERROR;
-    std::string stmt_str = "CREATE TABLE associations(id INTEGER PRIMARY KEY";
+    std::string create_stmt_str = "CREATE TABLE associations(id INTEGER PRIMARY KEY";
     for (const auto& column : associations_columns) {
-        stmt_str += ", " + column.first + " " + column.second;
+        create_stmt_str += ", " + column.first + " " + column.second;
     }
-    stmt_str += ");";
-    ret = sqlite3_exec(db, stmt_str.c_str(), nullptr, nullptr, nullptr);
+    create_stmt_str += ");";
+    ret = sqlite3_exec(db, create_stmt_str.c_str(), nullptr, nullptr, nullptr);
     if (ret == SQLITE_OK) {
         ret = sqlite3_exec(db, "BEGIN;", nullptr, nullptr, nullptr);
     }
-    sqlite3_stmt* stmt;
+    sqlite3_stmt* stmt = nullptr;
     if (ret == SQLITE_OK) {
-        std::string stmt_str = "INSERT INTO associations(id";
+        std::string insert_stmt_str = "INSERT INTO associations(id";
         for (const auto& column : associations_columns) {
-            stmt_str += ", " + column.first;
+            insert_stmt_str += ", " + column.first;
         }
-        stmt_str += ") VALUES(?";
+        insert_stmt_str += ") VALUES(?";
         for (size_t i = 0; i < associations_columns.size(); ++i) {
-            stmt_str += ", ?";
+            insert_stmt_str += ", ?";
         }
-        stmt_str += ")";
-        ret = sqlite3_prepare_v2(db, stmt_str.c_str(), -1, &stmt, nullptr);
+        insert_stmt_str += ")";
+        ret = sqlite3_prepare_v2(db, insert_stmt_str.c_str(), -1, &stmt, nullptr);
     }
     if (ret != SQLITE_OK) {
         spdlog::error("SQLite error (prepare): {}", sqlite3_errmsg(db));
