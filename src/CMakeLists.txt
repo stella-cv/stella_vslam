@@ -1,4 +1,4 @@
-add_subdirectory(openvslam)
+add_subdirectory(stella_vslam)
 
 if(USE_PANGOLIN_VIEWER)
     add_subdirectory(pangolin_viewer)

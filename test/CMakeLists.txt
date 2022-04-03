@@ -11,8 +11,8 @@ add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
 
 # ----- Glob test codes----- 
 
-file(GLOB_RECURSE OPENVSLAM_SOURCE_PATHS "./openvslam/*.cc")
-list(APPEND SOURCE_PATHS ${OPENVSLAM_SOURCE_PATHS})
+file(GLOB_RECURSE STELLA_VSLAM_SOURCE_PATHS "./stella_vslam/*.cc")
+list(APPEND SOURCE_PATHS ${STELLA_VSLAM_SOURCE_PATHS})
 
 # ----- Build test executables -----
 

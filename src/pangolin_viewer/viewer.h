@@ -3,15 +3,15 @@
 
 #include "pangolin_viewer/color_scheme.h"
 
-#include "openvslam/type.h"
-#include "openvslam/util/yaml.h"
+#include "stella_vslam/type.h"
+#include "stella_vslam/util/yaml.h"
 
 #include <memory>
 #include <mutex>
 
 #include <pangolin/pangolin.h>
 
-namespace openvslam {
+namespace stella_vslam {
 
 class config;
 class system;
@@ -21,7 +21,7 @@ class frame_publisher;
 class map_publisher;
 } // namespace publish
 
-} // namespace openvslam
+} // namespace stella_vslam
 
 namespace pangolin_viewer {
 
@@ -34,9 +34,9 @@ public:
      * @param frame_publisher
      * @param map_publisher
      */
-    viewer(const YAML::Node& yaml_node, openvslam::system* system,
-           const std::shared_ptr<openvslam::publish::frame_publisher>& frame_publisher,
-           const std::shared_ptr<openvslam::publish::map_publisher>& map_publisher);
+    viewer(const YAML::Node& yaml_node, stella_vslam::system* system,
+           const std::shared_ptr<stella_vslam::publish::frame_publisher>& frame_publisher,
+           const std::shared_ptr<stella_vslam::publish::map_publisher>& map_publisher);
 
     /**
      * Main loop for window refresh
@@ -106,7 +106,7 @@ private:
      * @param gl_cam_pose_wc
      * @param width
      */
-    void draw_camera(const openvslam::Mat44_t& cam_pose_wc, const float width) const;
+    void draw_camera(const stella_vslam::Mat44_t& cam_pose_wc, const float width) const;
 
     /**
      * Draw a frustum of a camera
@@ -131,11 +131,11 @@ private:
     void check_state_transition();
 
     //! system
-    openvslam::system* system_;
+    stella_vslam::system* system_;
     //! frame publisher
-    const std::shared_ptr<openvslam::publish::frame_publisher> frame_publisher_;
+    const std::shared_ptr<stella_vslam::publish::frame_publisher> frame_publisher_;
     //! map publisher
-    const std::shared_ptr<openvslam::publish::map_publisher> map_publisher_;
+    const std::shared_ptr<stella_vslam::publish::map_publisher> map_publisher_;
 
     const unsigned int interval_ms_;
 

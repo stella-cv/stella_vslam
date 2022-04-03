@@ -2,17 +2,17 @@
 
 set param_1=%1
 
-set openvslam_root="%~dp0\..\.."
+set stella_vslam_root="%~dp0\..\.."
 
-cd %openvslam_root%
+cd %stella_vslam_root%
 
 if "%param_1%" == "" (
     echo No option specified
     echo options are: 
     echo.
-    echo setup      Build dependencies for openvslam
-    echo debug      Build openvslam in debug mode
-    echo release    Build openvslam in release mode
+    echo setup      Build dependencies for stella_vslam
+    echo debug      Build stella_vslam in debug mode
+    echo release    Build stella_vslam in release mode
     echo develop    Setup Visual Studio solution file
     echo clean      Clean build and install directory
     echo.

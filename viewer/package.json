@@ -1,8 +1,8 @@
 {
-  "name": "openvslam-viewer",
+  "name": "socket-viewer",
   "version": "0.0.1",
-  "description": "A cross-platform viewer for OpenVSLAM",
-  "repository": "https://github.com/OpenVSLAM-Community/openvslam",
+  "description": "A cross-platform keyframe/landmark/graph viewer",
+  "repository": "https://github.com/stella-cv/stella_vslam",
   "license": "BSD-2-Clause",
   "dependencies": {
     "express": "^4.16.2",

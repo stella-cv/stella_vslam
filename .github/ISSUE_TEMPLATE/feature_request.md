@@ -8,10 +8,10 @@ assignees: ''
 ---
 
 <!--
-For general questions, please ask on https://github.com/OpenVSLAM-Community/openvslam/discussions
+For general questions, please ask on https://github.com/stella-cv/stella_vslam/discussions
 -->
 
-## Is your feature request related to a problem?
+## What issue is the feature request related to?
 <!-- A clear and concise description of what the problem is. Ex. I'm always frustrated when [...] -->
 
 ## Describe the solution you'd like

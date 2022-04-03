@@ -1,9 +1,9 @@
 #include "helper/landmark.h"
 #include "helper/bearing_vector.h"
 
-#include "openvslam/type.h"
-#include "openvslam/util/converter.h"
-#include "openvslam/solve/pnp_solver.h"
+#include "stella_vslam/type.h"
+#include "stella_vslam/util/converter.h"
+#include "stella_vslam/solve/pnp_solver.h"
 
 #include <memory>
 
@@ -11,7 +11,7 @@
 
 #include <gtest/gtest.h>
 
-using namespace openvslam;
+using namespace stella_vslam;
 
 TEST(pnp_solver, without_ransac) {
     // Create four landmarks which needed the least number for solve problem

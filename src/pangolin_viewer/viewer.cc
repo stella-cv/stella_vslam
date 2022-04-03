@@ -1,20 +1,20 @@
 #include "pangolin_viewer/viewer.h"
 
-#include "openvslam/config.h"
-#include "openvslam/system.h"
-#include "openvslam/data/keyframe.h"
-#include "openvslam/data/landmark.h"
-#include "openvslam/publish/frame_publisher.h"
-#include "openvslam/publish/map_publisher.h"
-#include "openvslam/util/yaml.h"
+#include "stella_vslam/config.h"
+#include "stella_vslam/system.h"
+#include "stella_vslam/data/keyframe.h"
+#include "stella_vslam/data/landmark.h"
+#include "stella_vslam/publish/frame_publisher.h"
+#include "stella_vslam/publish/map_publisher.h"
+#include "stella_vslam/util/yaml.h"
 
 #include <opencv2/highgui.hpp>
 
 namespace pangolin_viewer {
 
-viewer::viewer(const YAML::Node& yaml_node, openvslam::system* system,
-               const std::shared_ptr<openvslam::publish::frame_publisher>& frame_publisher,
-               const std::shared_ptr<openvslam::publish::map_publisher>& map_publisher)
+viewer::viewer(const YAML::Node& yaml_node, stella_vslam::system* system,
+               const std::shared_ptr<stella_vslam::publish::frame_publisher>& frame_publisher,
+               const std::shared_ptr<stella_vslam::publish::map_publisher>& map_publisher)
     : system_(system), frame_publisher_(frame_publisher), map_publisher_(map_publisher),
       interval_ms_(1000.0f / yaml_node["fps"].as<float>(30.0)),
       viewpoint_x_(yaml_node["viewpoint_x"].as<float>(0.0)),
@@ -27,7 +27,7 @@ viewer::viewer(const YAML::Node& yaml_node, openvslam::system* system,
       point_size_(yaml_node["point_size"].as<unsigned int>(2)),
       camera_size_(yaml_node["camera_size"].as<float>(0.15)),
       camera_line_width_(yaml_node["camera_line_width"].as<unsigned int>(2)),
-      cs_(yaml_node["color_scheme"].as<std::string>("white")),
+      cs_(yaml_node["color_scheme"].as<std::string>("black")),
       mapping_mode_(system->mapping_module_is_enabled()),
       loop_detection_mode_(system->loop_detector_is_enabled()) {}
 
@@ -202,7 +202,7 @@ void viewer::draw_keyframes() {
     // frustum size of keyframes
     const float w = keyfrm_size_ * *menu_frm_size_;
 
-    std::vector<std::shared_ptr<openvslam::data::keyframe>> keyfrms;
+    std::vector<std::shared_ptr<stella_vslam::data::keyframe>> keyfrms;
     map_publisher_->get_keyframes(keyfrms);
 
     if (*menu_show_keyfrms_) {
@@ -220,7 +220,7 @@ void viewer::draw_keyframes() {
         glLineWidth(graph_line_width_);
         glColor4fv(cs_.graph_line_.data());
 
-        const auto draw_edge = [](const openvslam::Vec3_t& cam_center_1, const openvslam::Vec3_t& cam_center_2) {
+        const auto draw_edge = [](const stella_vslam::Vec3_t& cam_center_1, const stella_vslam::Vec3_t& cam_center_2) {
             glVertex3fv(cam_center_1.cast<float>().eval().data());
             glVertex3fv(cam_center_2.cast<float>().eval().data());
         };
@@ -232,7 +232,7 @@ void viewer::draw_keyframes() {
                 continue;
             }
 
-            const openvslam::Vec3_t cam_center_1 = keyfrm->get_cam_center();
+            const stella_vslam::Vec3_t cam_center_1 = keyfrm->get_cam_center();
 
             // covisibility graph
             const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_weight(100);
@@ -244,7 +244,7 @@ void viewer::draw_keyframes() {
                     if (covisibility->id_ < keyfrm->id_) {
                         continue;
                     }
-                    const openvslam::Vec3_t cam_center_2 = covisibility->get_cam_center();
+                    const stella_vslam::Vec3_t cam_center_2 = covisibility->get_cam_center();
                     draw_edge(cam_center_1, cam_center_2);
                 }
             }
@@ -252,7 +252,7 @@ void viewer::draw_keyframes() {
             // spanning tree
             auto spanning_parent = keyfrm->graph_node_->get_spanning_parent();
             if (spanning_parent) {
-                const openvslam::Vec3_t cam_center_2 = spanning_parent->get_cam_center();
+                const stella_vslam::Vec3_t cam_center_2 = spanning_parent->get_cam_center();
                 draw_edge(cam_center_1, cam_center_2);
             }
 
@@ -265,7 +265,7 @@ void viewer::draw_keyframes() {
                 if (loop_edge->id_ < keyfrm->id_) {
                     continue;
                 }
-                const openvslam::Vec3_t cam_center_2 = loop_edge->get_cam_center();
+                const stella_vslam::Vec3_t cam_center_2 = loop_edge->get_cam_center();
                 draw_edge(cam_center_1, cam_center_2);
             }
         }
@@ -279,8 +279,8 @@ void viewer::draw_landmarks() {
         return;
     }
 
-    std::vector<std::shared_ptr<openvslam::data::landmark>> landmarks;
-    std::set<std::shared_ptr<openvslam::data::landmark>> local_landmarks;
+    std::vector<std::shared_ptr<stella_vslam::data::landmark>> landmarks;
+    std::set<std::shared_ptr<stella_vslam::data::landmark>> local_landmarks;
 
     map_publisher_->get_landmarks(landmarks, local_landmarks);
 
@@ -300,7 +300,7 @@ void viewer::draw_landmarks() {
         if (*menu_show_local_map_ && local_landmarks.count(lm)) {
             continue;
         }
-        const openvslam::Vec3_t pos_w = lm->get_pos_in_world();
+        const stella_vslam::Vec3_t pos_w = lm->get_pos_in_world();
         glVertex3fv(pos_w.cast<float>().eval().data());
     }
 
@@ -319,7 +319,7 @@ void viewer::draw_landmarks() {
         if (local_lm->will_be_erased()) {
             continue;
         }
-        const openvslam::Vec3_t pos_w = local_lm->get_pos_in_world();
+        const stella_vslam::Vec3_t pos_w = local_lm->get_pos_in_world();
         glVertex3fv(pos_w.cast<float>().eval().data());
     }
 
@@ -341,7 +341,7 @@ void viewer::draw_camera(const pangolin::OpenGlMatrix& gl_cam_pose_wc, const flo
     glPopMatrix();
 }
 
-void viewer::draw_camera(const openvslam::Mat44_t& cam_pose_wc, const float width) const {
+void viewer::draw_camera(const stella_vslam::Mat44_t& cam_pose_wc, const float width) const {
     glPushMatrix();
     glMultMatrixf(cam_pose_wc.transpose().cast<float>().eval().data());
 

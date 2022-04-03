@@ -1,9 +1,9 @@
-#include "openvslam/type.h"
-#include "openvslam/util/trigonometric.h"
+#include "stella_vslam/type.h"
+#include "stella_vslam/util/trigonometric.h"
 
 #include <gtest/gtest.h>
 
-using namespace openvslam;
+using namespace stella_vslam;
 
 TEST(trigonometric, cos) {
     for (unsigned int deg = 0; deg <= 3600; ++deg) {

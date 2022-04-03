@@ -1,14 +1,14 @@
 #include "socket_publisher/publisher.h"
 
-#include "openvslam/system.h"
-#include "openvslam/publish/frame_publisher.h"
-#include "openvslam/util/yaml.h"
+#include "stella_vslam/system.h"
+#include "stella_vslam/publish/frame_publisher.h"
+#include "stella_vslam/util/yaml.h"
 
 namespace socket_publisher {
 
-publisher::publisher(const YAML::Node& yaml_node, openvslam::system* system,
-                     const std::shared_ptr<openvslam::publish::frame_publisher>& frame_publisher,
-                     const std::shared_ptr<openvslam::publish::map_publisher>& map_publisher)
+publisher::publisher(const YAML::Node& yaml_node, stella_vslam::system* system,
+                     const std::shared_ptr<stella_vslam::publish::frame_publisher>& frame_publisher,
+                     const std::shared_ptr<stella_vslam::publish::map_publisher>& map_publisher)
     : system_(system),
       emitting_interval_(yaml_node["emitting_interval"].as<unsigned int>(15000)),
       image_quality_(yaml_node["image_quality"].as<unsigned int>(20)),

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
-project(openvslam LANGUAGES CXX C)
+project(stella_vslam LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -21,7 +21,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-option(BUILD_SHARED_LIBS "Build OpenVSLAM as a shared library" ON)
+option(BUILD_SHARED_LIBS "Build stella_vslam as a shared library" ON)
 
 # ----- Build selection -----
 
@@ -105,7 +105,7 @@ find_package(OpenCV 3.3.1 QUIET
              COMPONENTS
              core imgcodecs videoio features2d calib3d highgui)
 if(NOT OpenCV_FOUND)
-    find_package(OpenCV 4.0 REQUIRED
+    find_package(OpenCV 4.0 QUIET
                  COMPONENTS
                  core imgcodecs videoio features2d calib3d highgui)
     if(NOT OpenCV_FOUND)
@@ -114,32 +114,48 @@ if(NOT OpenCV_FOUND)
 endif()
 message(STATUS "Use OpenCV ${OpenCV_VERSION}")
 
+# Check aruco module
+set(USE_ARUCO ON CACHE BOOL "Enable aruco")
+list(APPEND ARUCO_CHECK_INCLUDE_DIRS
+     ${OpenCV_INSTALL_PATH}/include/
+     ${OpenCV_INSTALL_PATH}/include/opencv4)
+unset(ARUCO_INCLUDE_DIRS CACHE)
+find_path(ARUCO_INCLUDE_DIRS NAMES aruco.hpp
+          PATH_SUFFIXES opencv2
+          PATHS ${ARUCO_CHECK_INCLUDE_DIRS})
+if(USE_ARUCO AND ARUCO_INCLUDE_DIRS)
+    message(STATUS "aruco: enabled (Found in ${ARUCO_INCLUDE_DIRS})")
+else()
+    set(USE_ARUCO OFF)
+    message(STATUS "aruco: disabled")
+endif()
+
 # ----- Install configuration -----
 
 include(CMakePackageConfigHelpers)
 
 # Generate cmake configuration scripts
-set(OPENVSLAM_GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
-set(OPENVSLAM_VERSION_CONFIG ${OPENVSLAM_GENERATED_DIR}/${PROJECT_NAME}ConfigVersion.cmake)
-set(OPENVSLAM_PROJECT_CONFIG ${OPENVSLAM_GENERATED_DIR}/${PROJECT_NAME}Config.cmake)
-set(OPENVSLAM_TARGETS_EXPORT_NAME ${PROJECT_NAME}Targets)
-set(OPENVSLAM_CONFIG_INSTALL_DIR lib/cmake/${PROJECT_NAME})
-set(OPENVSLAM_NAMESPACE "${PROJECT_NAME}::")
-set(OPENVSLAM_VERSION 0.3.0)
+set(STELLA_VSLAM_GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
+set(STELLA_VSLAM_VERSION_CONFIG ${STELLA_VSLAM_GENERATED_DIR}/${PROJECT_NAME}ConfigVersion.cmake)
+set(STELLA_VSLAM_PROJECT_CONFIG ${STELLA_VSLAM_GENERATED_DIR}/${PROJECT_NAME}Config.cmake)
+set(STELLA_VSLAM_TARGETS_EXPORT_NAME ${PROJECT_NAME}Targets)
+set(STELLA_VSLAM_CONFIG_INSTALL_DIR lib/cmake/${PROJECT_NAME})
+set(STELLA_VSLAM_NAMESPACE "${PROJECT_NAME}::")
+set(STELLA_VSLAM_VERSION 0.3.0)
 
 # Create a version config file
-write_basic_package_version_file(${OPENVSLAM_VERSION_CONFIG}
-                                 VERSION ${OPENVSLAM_VERSION}
+write_basic_package_version_file(${STELLA_VSLAM_VERSION_CONFIG}
+                                 VERSION ${STELLA_VSLAM_VERSION}
                                  COMPATIBILITY SameMajorVersion)
 # Create a project config file
-configure_file(${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in ${OPENVSLAM_PROJECT_CONFIG} @ONLY)
+configure_file(${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in ${STELLA_VSLAM_PROJECT_CONFIG} @ONLY)
 
 # Install to the specified directory
-install(FILES ${OPENVSLAM_VERSION_CONFIG} ${OPENVSLAM_PROJECT_CONFIG}
-        DESTINATION ${OPENVSLAM_CONFIG_INSTALL_DIR})
-install(EXPORT ${OPENVSLAM_TARGETS_EXPORT_NAME}
-        NAMESPACE ${OPENVSLAM_NAMESPACE}
-        DESTINATION ${OPENVSLAM_CONFIG_INSTALL_DIR})
+install(FILES ${STELLA_VSLAM_VERSION_CONFIG} ${STELLA_VSLAM_PROJECT_CONFIG}
+        DESTINATION ${STELLA_VSLAM_CONFIG_INSTALL_DIR})
+install(EXPORT ${STELLA_VSLAM_TARGETS_EXPORT_NAME}
+        NAMESPACE ${STELLA_VSLAM_NAMESPACE}
+        DESTINATION ${STELLA_VSLAM_CONFIG_INSTALL_DIR})
 
 # Set standard installation directories
 set(RUNTIME_DESTINATION bin)

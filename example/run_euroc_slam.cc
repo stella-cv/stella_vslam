@@ -6,11 +6,11 @@
 #include "socket_publisher/publisher.h"
 #endif
 
-#include "openvslam/system.h"
-#include "openvslam/config.h"
-#include "openvslam/util/stereo_rectifier.h"
-#include "openvslam/util/image_converter.h"
-#include "openvslam/util/yaml.h"
+#include "stella_vslam/system.h"
+#include "stella_vslam/config.h"
+#include "stella_vslam/util/stereo_rectifier.h"
+#include "stella_vslam/util/image_converter.h"
+#include "stella_vslam/util/yaml.h"
 
 #include <iostream>
 #include <algorithm>
@@ -25,14 +25,14 @@
 #include <popl.hpp>
 
 #ifdef USE_STACK_TRACE_LOGGER
-#include <glog/logging.h>
+#include <backward.hpp>
 #endif
 
 #ifdef USE_GOOGLE_PERFTOOLS
 #include <gperftools/profiler.h>
 #endif
 
-void mono_tracking(const std::shared_ptr<openvslam::config>& cfg,
+void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
                    const std::string& vocab_file_path, const std::string& sequence_dir_path,
                    const unsigned int frame_skip, const bool no_sleep, const bool auto_term,
                    const bool eval_log, const std::string& map_db_path, const bool equal_hist) {
@@ -40,7 +40,7 @@ void mono_tracking(const std::shared_ptr<openvslam::config>& cfg,
     const auto frames = sequence.get_frames();
 
     // build a SLAM system
-    openvslam::system SLAM(cfg, vocab_file_path);
+    stella_vslam::system SLAM(cfg, vocab_file_path);
     // startup the SLAM process
     SLAM.startup();
 
@@ -48,10 +48,10 @@ void mono_tracking(const std::shared_ptr<openvslam::config>& cfg,
     // and pass the frame_publisher and the map_publisher
 #ifdef USE_PANGOLIN_VIEWER
     pangolin_viewer::viewer viewer(
-        openvslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
 #elif USE_SOCKET_PUBLISHER
     socket_publisher::publisher publisher(
-        openvslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
 #endif
 
     std::vector<double> track_times;
@@ -64,7 +64,7 @@ void mono_tracking(const std::shared_ptr<openvslam::config>& cfg,
             cv::Mat img;
             if (equal_hist) {
                 img = cv::imread(frame.left_img_path_, cv::IMREAD_UNCHANGED);
-                openvslam::util::equalize_histogram(img);
+                stella_vslam::util::equalize_histogram(img);
             }
             else {
                 img = cv::imread(frame.left_img_path_, cv::IMREAD_GRAYSCALE);
@@ -152,17 +152,17 @@ void mono_tracking(const std::shared_ptr<openvslam::config>& cfg,
     std::cout << "mean tracking time: " << total_track_time / track_times.size() << "[s]" << std::endl;
 }
 
-void stereo_tracking(const std::shared_ptr<openvslam::config>& cfg,
+void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
                      const std::string& vocab_file_path, const std::string& sequence_dir_path,
                      const unsigned int frame_skip, const bool no_sleep, const bool auto_term,
                      const bool eval_log, const std::string& map_db_path, const bool equal_hist) {
     const euroc_sequence sequence(sequence_dir_path);
     const auto frames = sequence.get_frames();
 
-    const openvslam::util::stereo_rectifier rectifier(cfg);
+    const stella_vslam::util::stereo_rectifier rectifier(cfg);
 
     // build a SLAM system
-    openvslam::system SLAM(cfg, vocab_file_path);
+    stella_vslam::system SLAM(cfg, vocab_file_path);
     // startup the SLAM process
     SLAM.startup();
 
@@ -170,10 +170,10 @@ void stereo_tracking(const std::shared_ptr<openvslam::config>& cfg,
     // and pass the frame_publisher and the map_publisher
 #ifdef USE_PANGOLIN_VIEWER
     pangolin_viewer::viewer viewer(
-        openvslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
 #elif USE_SOCKET_PUBLISHER
     socket_publisher::publisher publisher(
-        openvslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
 #endif
 
     std::vector<double> track_times;
@@ -189,8 +189,8 @@ void stereo_tracking(const std::shared_ptr<openvslam::config>& cfg,
             if (equal_hist) {
                 left_img = cv::imread(frame.left_img_path_, cv::IMREAD_UNCHANGED);
                 right_img = cv::imread(frame.right_img_path_, cv::IMREAD_UNCHANGED);
-                openvslam::util::equalize_histogram(left_img);
-                openvslam::util::equalize_histogram(right_img);
+                stella_vslam::util::equalize_histogram(left_img);
+                stella_vslam::util::equalize_histogram(right_img);
             }
             else {
                 left_img = cv::imread(frame.left_img_path_, cv::IMREAD_GRAYSCALE);
@@ -287,8 +287,7 @@ void stereo_tracking(const std::shared_ptr<openvslam::config>& cfg,
 
 int main(int argc, char* argv[]) {
 #ifdef USE_STACK_TRACE_LOGGER
-    google::InitGoogleLogging(argv[0]);
-    google::InstallFailureSignalHandler();
+    backward::SignalHandling sh;
 #endif
 
     // create options
@@ -337,9 +336,9 @@ int main(int argc, char* argv[]) {
     }
 
     // load configuration
-    std::shared_ptr<openvslam::config> cfg;
+    std::shared_ptr<stella_vslam::config> cfg;
     try {
-        cfg = std::make_shared<openvslam::config>(config_file_path->value());
+        cfg = std::make_shared<stella_vslam::config>(config_file_path->value());
     }
     catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
@@ -351,12 +350,12 @@ int main(int argc, char* argv[]) {
 #endif
 
     // run tracking
-    if (cfg->camera_->setup_type_ == openvslam::camera::setup_type_t::Monocular) {
+    if (cfg->camera_->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
         mono_tracking(cfg, vocab_file_path->value(), data_dir_path->value(),
                       frame_skip->value(), no_sleep->is_set(), auto_term->is_set(),
                       eval_log->is_set(), map_db_path->value(), equal_hist->is_set());
     }
-    else if (cfg->camera_->setup_type_ == openvslam::camera::setup_type_t::Stereo) {
+    else if (cfg->camera_->setup_type_ == stella_vslam::camera::setup_type_t::Stereo) {
         stereo_tracking(cfg, vocab_file_path->value(), data_dir_path->value(),
                         frame_skip->value(), no_sleep->is_set(), auto_term->is_set(),
                         eval_log->is_set(), map_db_path->value(), equal_hist->is_set());

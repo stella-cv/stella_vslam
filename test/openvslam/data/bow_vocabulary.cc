@@ -1,5 +1,5 @@
-#include "openvslam/feature/orb_extractor.h"
-#include "openvslam/data/bow_vocabulary.h"
+#include "stella_vslam/feature/orb_extractor.h"
+#include "stella_vslam/data/bow_vocabulary.h"
 
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-using namespace openvslam;
+using namespace stella_vslam;
 
 float get_score(data::bow_vocabulary* bow_vocab, const std::string& file1, const std::string& file2) {
     auto params = feature::orb_params("ORB setting for test");

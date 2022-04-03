@@ -1,25 +1,28 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-    <name>openvslam</name>
+    <name>stella_vslam</name>
     <version>0.3.0</version>
-    <description>OpenVSLAM: A Versatile Visual SLAM Framework</description>
+    <description>fork of OpenVSLAM</description>
 
+    <!-- Authors of the original version of OpenVSLAM -->
     <author>Shinya Sumikura</author>
     <author>Mikiya Shibuya</author>
     <author>Ken Sakurada</author>
+    <!-- Author/maintainer of the stella_vslam (fork version of OpenVSLAM) -->
+    <author>ymd-stella</author>
     <maintainer email="world.applepie@gmail.com">ymd-stella</maintainer>
 
     <license>2-clause BSD</license>
-    <url type="website">https://openvslam-community.readthedocs.io/</url>
+    <url type="website">https://stella.readthedocs.io/</url>
 
     <buildtool_depend>cmake</buildtool_depend>
 
     <depend>eigen</depend>
     <depend>libg2o</depend>
-    <depend>libgoogle-glog-dev</depend>
     <depend>libopencv-dev</depend>
     <depend>yaml-cpp</depend>
+    <depend>libsqlite3-dev</depend>
 
     <export>
         <build_type>cmake</build_type>

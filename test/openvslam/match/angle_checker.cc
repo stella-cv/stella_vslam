@@ -1,8 +1,8 @@
-#include "openvslam/match/angle_checker.h"
+#include "stella_vslam/match/angle_checker.h"
 
 #include <gtest/gtest.h>
 
-using namespace openvslam;
+using namespace stella_vslam;
 
 TEST(angle_checker, check_assert) {
     EXPECT_NO_THROW(match::angle_checker<int>(30, 3));

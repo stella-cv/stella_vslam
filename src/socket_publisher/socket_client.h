@@ -1,13 +1,13 @@
 #ifndef SOCKET_PUBLISHER_SOCKET_CLIENT_H
 #define SOCKET_PUBLISHER_SOCKET_CLIENT_H
 
-#include "openvslam/config.h"
+#include "stella_vslam/config.h"
 
 #include <sioclient/sio_client.h>
 
-namespace openvslam {
+namespace stella_vslam {
 class config;
-} // namespace openvslam
+} // namespace stella_vslam
 
 namespace socket_publisher {
 

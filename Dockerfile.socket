@@ -18,7 +18,6 @@ RUN set -x && \
     unzip && \
   : "g2o dependencies" && \
   apt-get install -y -qq \
-    libgoogle-glog-dev \
     libatlas-base-dev \
     libsuitesparse-dev \
     libglew-dev && \
@@ -35,9 +34,13 @@ RUN set -x && \
     libavutil-dev \
     libswscale-dev \
     libavresample-dev && \
+  : "backward-cpp dependencies" && \
+  apt install -y -qq binutils-dev && \
   : "other dependencies" && \
   apt-get install -y -qq \
-    libyaml-cpp-dev && \
+    libyaml-cpp-dev \
+    sqlite3 \
+    libsqlite3-dev && \
   : "remove cache" && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
@@ -106,6 +109,12 @@ RUN set -x && \
   wget -q https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip && \
   unzip -q ${OPENCV_VERSION}.zip && \
   rm -rf ${OPENCV_VERSION}.zip && \
+  wget -q https://github.com/opencv/opencv_contrib/archive/refs/tags/${OPENCV_VERSION}.zip -O opencv_contrib-${OPENCV_VERSION}.zip && \
+  unzip -q opencv_contrib-${OPENCV_VERSION}.zip && \
+  rm -rf opencv_contrib-${OPENCV_VERSION}.zip && \
+  mkdir extra && \
+  mv opencv_contrib-${OPENCV_VERSION}/modules/aruco extra && \
+  rm -rf opencv_contrib-${OPENCV_VERSION} && \
   cd opencv-${OPENCV_VERSION} && \
   mkdir -p build && \
   cd build && \
@@ -118,6 +127,7 @@ RUN set -x && \
     -DBUILD_OPENEXR=OFF \
     -DBUILD_PERF_TESTS=OFF \
     -DBUILD_TESTS=OFF \
+    -DBUILD_PROTOBUF=OFF \
     -DBUILD_opencv_apps=OFF \
     -DBUILD_opencv_dnn=OFF \
     -DBUILD_opencv_ml=OFF \
@@ -127,6 +137,7 @@ RUN set -x && \
     -DWITH_EIGEN=ON \
     -DWITH_FFMPEG=ON \
     -DWITH_OPENMP=ON \
+    -DOPENCV_EXTRA_MODULES_PATH=/tmp/extra \
     .. && \
   make -j${NUM_THREADS} && \
   make install && \
@@ -175,9 +186,27 @@ RUN set -x && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
-# OpenVSLAM
-COPY . /openvslam/
-WORKDIR /openvslam/
+# backward-cpp
+ARG BACKWARD_CPP_COMMIT=5ffb2c879ebdbea3bdb8477c671e32b1c984beaa
+WORKDIR /tmp
+RUN set -x && \
+  git clone https://github.com/bombela/backward-cpp.git && \
+  cd backward-cpp && \
+  git checkout ${BACKWARD_CPP_COMMIT} && \
+  mkdir -p build && \
+  cd build && \
+  cmake \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
+    .. && \
+  make -j${NUM_THREADS} && \
+  make install && \
+  cd /tmp && \
+  rm -rf *
+
+# stella_vslam
+COPY . /stella_vslam/
+WORKDIR /stella_vslam/
 RUN set -x && \
   mkdir -p build && \
   cd build && \
@@ -185,10 +214,11 @@ RUN set -x && \
     -DUSE_SOCKET_PUBLISHER=ON \
     -DBUILD_EXAMPLES=ON \
     -DUSE_STACK_TRACE_LOGGER=ON \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     .. && \
   make -j${NUM_THREADS} && \
   rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \
   chmod -R 777 ./*
 
-WORKDIR /openvslam/build/
+WORKDIR /stella_vslam/build/
 ENTRYPOINT ["/bin/bash"]

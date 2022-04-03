@@ -1,6 +1,6 @@
 #!/bin/sh
 
-TOPDIR="$(dirname $(realpath "$0"))"/../../ #openvslam directory
+TOPDIR="$(dirname $(realpath "$0"))"/../../ #stella_vslam directory
 
 # create data directory to store downloaded data
 mkdir $TOPDIR/dataset
@@ -10,7 +10,7 @@ mkdir $TOPDIR/vocab
 # download an ORB vocabulary from GitHub
 (
     cd ${TOPDIR}/vocab
-    curl -sL "https://github.com/OpenVSLAM-Community/FBoW_orb_vocab/raw/main/orb_vocab.fbow" -o orb_vocab.fbow
+    curl -sL "https://github.com/stella-cv/FBoW_orb_vocab/raw/main/orb_vocab.fbow" -o orb_vocab.fbow
 )
 
 # download a sample dataset from Google Drive
@@ -30,4 +30,4 @@ mkdir $TOPDIR/vocab
 )
 
 # reference
-## https://openvslam-community.readthedocs.io/en/latest/simple_tutorial.html#chapter-simple-tutorial
+## https://stella-cv.readthedocs.io/en/latest/simple_tutorial.html#chapter-simple-tutorial
