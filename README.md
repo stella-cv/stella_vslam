@@ -14,7 +14,7 @@
 
 ## Overview
 
-[<img src="https://raw.githubusercontent.com/stella-cv/stella_vslam/main/docs/img/teaser.png" width="640px">](https://arxiv.org/abs/1910.01122)
+[<img src="https://raw.githubusercontent.com/stella-cv/docs/main/docs/img/teaser.png" width="640px">](https://arxiv.org/abs/1910.01122)
 
 <img src="https://j.gifs.com/81m1QL.gif" width="640px">
 
