@@ -98,6 +98,8 @@ public:
 
     void increase_num_observable(unsigned int num_observable = 1);
     void increase_num_observed(unsigned int num_observed = 1);
+    unsigned int get_num_observed() const;
+    unsigned int get_num_observable() const;
     float get_observed_ratio() const;
 
     //! encode landmark information as JSON

@@ -14,7 +14,8 @@
 #include "stella_vslam/match/stereo.h"
 #include "stella_vslam/feature/orb_extractor.h"
 #include "stella_vslam/io/trajectory_io.h"
-#include "stella_vslam/io/map_database_io.h"
+#include "stella_vslam/io/map_database_io_msgpack.h"
+#include "stella_vslam/io/map_database_io_sqlite3.h"
 #include "stella_vslam/publish/map_publisher.h"
 #include "stella_vslam/publish/frame_publisher.h"
 #include "stella_vslam/util/converter.h"
@@ -102,6 +103,18 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     // frame and map publisher
     frame_publisher_ = std::shared_ptr<publish::frame_publisher>(new publish::frame_publisher(cfg_, map_db_));
     map_publisher_ = std::shared_ptr<publish::map_publisher>(new publish::map_publisher(cfg_, map_db_));
+
+    // map I/O
+    auto map_format = util::yaml_optional_ref(cfg->yaml_node_, "System")["map_format"].as<std::string>("msgpack");
+    if (map_format == "sqlite3") {
+        map_database_io_ = std::make_shared<io::map_database_io_sqlite3>();
+    }
+    else if (map_format == "msgpack") {
+        map_database_io_ = std::make_shared<io::map_database_io_msgpack>();
+    }
+    else {
+        throw std::runtime_error("Invalid map format: " + map_format);
+    }
 
     // tracking module
     tracker_ = new tracking_module(cfg_, map_db_, bow_vocab_, bow_db_);
@@ -224,15 +237,13 @@ void system::save_keyframe_trajectory(const std::string& path, const std::string
 
 void system::load_map_database(const std::string& path) const {
     pause_other_threads();
-    io::map_database_io map_db_io(cam_db_, orb_params_db_, map_db_, bow_db_, bow_vocab_);
-    map_db_io.load_message_pack(path);
+    map_database_io_->load(path, cam_db_, orb_params_db_, map_db_, bow_db_, bow_vocab_);
     resume_other_threads();
 }
 
 void system::save_map_database(const std::string& path) const {
     pause_other_threads();
-    io::map_database_io map_db_io(cam_db_, orb_params_db_, map_db_, bow_db_, bow_vocab_);
-    map_db_io.save_message_pack(path);
+    map_database_io_->save(path, cam_db_, orb_params_db_, map_db_);
     resume_other_threads();
 }
 

@@ -6,6 +6,8 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+typedef struct sqlite3 sqlite3;
+
 namespace stella_vslam {
 
 namespace camera {
@@ -25,6 +27,10 @@ public:
     void from_json(const nlohmann::json& json_cameras);
 
     nlohmann::json to_json() const;
+
+    bool from_db(sqlite3* db);
+
+    bool to_db(sqlite3* db) const;
 
 private:
     //-----------------------------------------

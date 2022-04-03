@@ -334,6 +334,16 @@ float landmark::get_observed_ratio() const {
     return static_cast<float>(num_observed_) / num_observable_;
 }
 
+unsigned int landmark::get_num_observed() const {
+    std::lock_guard<std::mutex> lock(mtx_observations_);
+    return num_observed_;
+}
+
+unsigned int landmark::get_num_observable() const {
+    std::lock_guard<std::mutex> lock(mtx_observations_);
+    return num_observable_;
+}
+
 nlohmann::json landmark::to_json() const {
     return {{"1st_keyfrm", first_keyfrm_id_},
             {"pos_w", {pos_w_(0), pos_w_(1), pos_w_(2)}},
