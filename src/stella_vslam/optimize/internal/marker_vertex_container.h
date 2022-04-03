@@ -79,7 +79,7 @@ inline landmark_vertex* marker_vertex_container::create_vertex(const unsigned in
     vtx->setId(vtx_id);
     vtx->setEstimate(pos_w);
     vtx->setFixed(is_constant);
-    vtx->setMarginalized(false);
+    vtx->setMarginalized(true);
     // Set to id database
     id_container_[vtx_id] = std::make_pair(marker_id, corner_id);
     return vtx;
