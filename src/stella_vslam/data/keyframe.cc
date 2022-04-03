@@ -6,6 +6,7 @@
 #include "stella_vslam/data/frame.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
+#include "stella_vslam/data/marker.h"
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/data/bow_database.h"
 #include "stella_vslam/feature/orb_params.h"
@@ -21,7 +22,8 @@ std::atomic<unsigned int> keyframe::next_id_{0};
 keyframe::keyframe(const frame& frm)
     : id_(next_id_++), src_frm_id_(frm.id_), timestamp_(frm.timestamp_),
       camera_(frm.camera_), orb_params_(frm.orb_params_),
-      frm_obs_(frm.frm_obs_), bow_vec_(frm.bow_vec_), bow_feat_vec_(frm.bow_feat_vec_),
+      frm_obs_(frm.frm_obs_), markers_2d_(frm.markers_2d_),
+      bow_vec_(frm.bow_vec_), bow_feat_vec_(frm.bow_feat_vec_),
       landmarks_(frm.landmarks_) {
     // set pose parameters (cam_pose_wc_, cam_center_) using frm.cam_pose_cw_
     set_cam_pose(frm.cam_pose_cw_);
@@ -357,6 +359,21 @@ float keyframe::compute_median_depth(const bool abs) const {
 
 bool keyframe::depth_is_avaliable() const {
     return camera_->setup_type_ != camera::setup_type_t::Monocular;
+}
+
+void keyframe::add_marker(const std::shared_ptr<marker>& mkr) {
+    std::lock_guard<std::mutex> lock(mtx_observations_);
+    markers_[mkr->id_] = mkr;
+}
+
+std::vector<std::shared_ptr<marker>> keyframe::get_markers() const {
+    std::lock_guard<std::mutex> lock(mtx_observations_);
+    std::vector<std::shared_ptr<marker>> markers;
+    markers.reserve(markers_.size());
+    for (const auto id_marker : markers_) {
+        markers.push_back(id_marker.second);
+    }
+    return markers;
 }
 
 void keyframe::set_not_to_be_erased() {

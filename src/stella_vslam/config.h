@@ -8,6 +8,10 @@
 
 namespace stella_vslam {
 
+namespace marker_model {
+class base;
+}
+
 class config {
 public:
     //! Constructor
@@ -30,6 +34,9 @@ public:
 
     //! ORB feature extraction model
     feature::orb_params* orb_params_ = nullptr;
+
+    //! Marker model
+    std::shared_ptr<marker_model::base> marker_model_ = nullptr;
 };
 
 } // namespace stella_vslam

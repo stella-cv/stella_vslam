@@ -37,6 +37,10 @@ class orb_extractor;
 class orb_params;
 } // namespace feature
 
+namespace marker_detector {
+class base;
+} // namespace marker_detector
+
 namespace publish {
 class map_publisher;
 class frame_publisher;
@@ -228,6 +232,9 @@ private:
     feature::orb_extractor* extractor_right_ = nullptr;
     //! ORB extractor only when used in initializing
     feature::orb_extractor* ini_extractor_left_ = nullptr;
+
+    //! marker detector
+    marker_detector::base* marker_detector_ = nullptr;
 
     //! frame publisher
     std::shared_ptr<publish::frame_publisher> frame_publisher_ = nullptr;

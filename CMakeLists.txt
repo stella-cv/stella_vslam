@@ -105,7 +105,7 @@ find_package(OpenCV 3.3.1 QUIET
              COMPONENTS
              core imgcodecs videoio features2d calib3d highgui)
 if(NOT OpenCV_FOUND)
-    find_package(OpenCV 4.0 REQUIRED
+    find_package(OpenCV 4.0 QUIET
                  COMPONENTS
                  core imgcodecs videoio features2d calib3d highgui)
     if(NOT OpenCV_FOUND)
@@ -113,6 +113,22 @@ if(NOT OpenCV_FOUND)
     endif()
 endif()
 message(STATUS "Use OpenCV ${OpenCV_VERSION}")
+
+# Check aruco module
+set(USE_ARUCO ON CACHE BOOL "Enable aruco")
+list(APPEND ARUCO_CHECK_INCLUDE_DIRS
+     ${OpenCV_INSTALL_PATH}/include/
+     ${OpenCV_INSTALL_PATH}/include/opencv4)
+unset(ARUCO_INCLUDE_DIRS CACHE)
+find_path(ARUCO_INCLUDE_DIRS NAMES aruco.hpp
+          PATH_SUFFIXES opencv2
+          PATHS ${ARUCO_CHECK_INCLUDE_DIRS})
+if(USE_ARUCO AND ARUCO_INCLUDE_DIRS)
+    message(STATUS "aruco: enabled (Found in ${ARUCO_INCLUDE_DIRS})")
+else()
+    set(USE_ARUCO OFF)
+    message(STATUS "aruco: disabled")
+endif()
 
 # ----- Install configuration -----
 

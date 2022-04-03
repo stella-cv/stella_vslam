@@ -125,6 +125,10 @@ else()
     message(FATAL_ERROR "Invalid BoW framework: ${BOW_FRAMEWORK}")
 endif()
 
+if(USE_ARUCO)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC USE_ARUCO)
+endif()
+
 # ----- Configure stella_vslam library -----
 
 # Include directories
@@ -148,6 +152,7 @@ target_link_libraries(${PROJECT_NAME}
                       opencv_core
                       opencv_features2d
                       opencv_calib3d
+                      "$<$<BOOL:${USE_ARUCO}>:opencv_aruco>"
                       g2o::core
                       g2o::stuff
                       g2o::types_sba
@@ -191,6 +196,8 @@ add_subdirectory(data)
 add_subdirectory(feature)
 add_subdirectory(initialize)
 add_subdirectory(io)
+add_subdirectory(marker_detector)
+add_subdirectory(marker_model)
 add_subdirectory(match)
 add_subdirectory(module)
 add_subdirectory(optimize)

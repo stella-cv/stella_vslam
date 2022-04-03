@@ -1,8 +1,11 @@
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
+#include "stella_vslam/data/marker.h"
 #include "stella_vslam/data/map_database.h"
+#include "stella_vslam/marker_model/base.h"
 #include "stella_vslam/optimize/global_bundle_adjuster.h"
 #include "stella_vslam/optimize/internal/landmark_vertex_container.h"
+#include "stella_vslam/optimize/internal/marker_vertex_container.h"
 #include "stella_vslam/optimize/internal/se3/shot_vertex_container.h"
 #include "stella_vslam/optimize/internal/se3/reproj_edge_wrapper.h"
 #include "stella_vslam/util/converter.h"
@@ -22,16 +25,19 @@ namespace optimize {
 void optimize_impl(g2o::SparseOptimizer& optimizer,
                    std::vector<std::shared_ptr<data::keyframe>>& keyfrms,
                    std::vector<std::shared_ptr<data::landmark>>& lms,
+                   std::vector<std::shared_ptr<data::marker>>& markers,
                    std::vector<bool>& is_optimized_lm,
                    internal::se3::shot_vertex_container& keyfrm_vtx_container,
                    internal::landmark_vertex_container& lm_vtx_container,
+                   internal::marker_vertex_container& marker_vtx_container,
                    unsigned int num_iter,
                    bool use_huber_kernel,
                    bool* const force_stop_flag) {
     // 2. Construct an optimizer
 
+    std::unique_ptr<g2o::BlockSolverBase> block_solver;
     auto linear_solver = g2o::make_unique<g2o::LinearSolverCSparse<g2o::BlockSolver_6_3::PoseMatrixType>>();
-    auto block_solver = g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linear_solver));
+    block_solver = g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linear_solver));
     auto algorithm = new g2o::OptimizationAlgorithmLevenberg(std::move(block_solver));
 
     optimizer.setAlgorithm(algorithm);
@@ -119,6 +125,43 @@ void optimize_impl(g2o::SparseOptimizer& optimizer,
         }
     }
 
+    // Connect marker vertices
+    for (unsigned int marker_idx = 0; marker_idx < markers.size(); ++marker_idx) {
+        auto mkr = markers.at(marker_idx);
+        if (!mkr) {
+            continue;
+        }
+
+        // Convert the corners to the g2o vertex, then set it to the optimizer
+        auto corner_vertices = marker_vtx_container.create_vertices(mkr, true);
+        for (unsigned int corner_idx = 0; corner_idx < corner_vertices.size(); ++corner_idx) {
+            const auto corner_vtx = corner_vertices[corner_idx];
+            optimizer.addVertex(corner_vtx);
+
+            for (const auto& keyfrm : mkr->observations_) {
+                if (!keyfrm) {
+                    continue;
+                }
+                if (keyfrm->will_be_erased()) {
+                    continue;
+                }
+                if (!keyfrm_vtx_container.contain(keyfrm)) {
+                    continue;
+                }
+                const auto keyfrm_vtx = keyfrm_vtx_container.get_vertex(keyfrm);
+                const auto& mkr_2d = keyfrm->markers_2d_.at(mkr->id_);
+                const auto& undist_pt = mkr_2d.undist_corners_.at(corner_idx);
+                const float x_right = -1.0;
+                const float inv_sigma_sq = 1.0;
+                auto reproj_edge_wrap = reproj_edge_wrapper(keyfrm, keyfrm_vtx, nullptr, corner_vtx,
+                                                            0, undist_pt.x, undist_pt.y, x_right,
+                                                            inv_sigma_sq, 0.0, false);
+                reproj_edge_wraps.push_back(reproj_edge_wrap);
+                optimizer.addEdge(reproj_edge_wrap.edge_);
+            }
+        }
+    }
+
     // 5. Perform optimization
 
     optimizer.initializeOptimization();
@@ -136,6 +179,7 @@ void global_bundle_adjuster::optimize_for_initialization(bool* const force_stop_
     // 1. Collect the dataset
     auto keyfrms = map_db_->get_all_keyframes();
     auto lms = map_db_->get_all_landmarks();
+    auto markers = map_db_->get_all_markers();
     std::vector<bool> is_optimized_lm(lms.size(), true);
 
     auto vtx_id_offset = std::make_shared<unsigned int>(0);
@@ -143,10 +187,13 @@ void global_bundle_adjuster::optimize_for_initialization(bool* const force_stop_
     internal::se3::shot_vertex_container keyfrm_vtx_container(vtx_id_offset, keyfrms.size());
     // Container of the landmark vertices
     internal::landmark_vertex_container lm_vtx_container(vtx_id_offset, lms.size());
+    // Container of the landmark vertices
+    internal::marker_vertex_container marker_vtx_container(vtx_id_offset, markers.size());
 
     g2o::SparseOptimizer optimizer;
 
-    optimize_impl(optimizer, keyfrms, lms, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, num_iter_, use_huber_kernel_, force_stop_flag);
+    optimize_impl(optimizer, keyfrms, lms, markers, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, marker_vtx_container,
+                  num_iter_, use_huber_kernel_, force_stop_flag);
 
     // 6. Extract the result
 
@@ -189,6 +236,7 @@ void global_bundle_adjuster::optimize(std::unordered_set<unsigned int>& optimize
     // 1. Collect the dataset
     auto keyfrms = map_db_->get_all_keyframes();
     auto lms = map_db_->get_all_landmarks();
+    auto markers = map_db_->get_all_markers();
     std::vector<bool> is_optimized_lm(lms.size(), true);
 
     auto vtx_id_offset = std::make_shared<unsigned int>(0);
@@ -196,10 +244,13 @@ void global_bundle_adjuster::optimize(std::unordered_set<unsigned int>& optimize
     internal::se3::shot_vertex_container keyfrm_vtx_container(vtx_id_offset, keyfrms.size());
     // Container of the landmark vertices
     internal::landmark_vertex_container lm_vtx_container(vtx_id_offset, lms.size());
+    // Container of the landmark vertices
+    internal::marker_vertex_container marker_vtx_container(vtx_id_offset, markers.size());
 
     g2o::SparseOptimizer optimizer;
 
-    optimize_impl(optimizer, keyfrms, lms, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, num_iter_, use_huber_kernel_, force_stop_flag);
+    optimize_impl(optimizer, keyfrms, lms, markers, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, marker_vtx_container,
+                  num_iter_, use_huber_kernel_, force_stop_flag);
 
     // 6. Extract the result
 
