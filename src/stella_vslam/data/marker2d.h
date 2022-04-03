@@ -1,11 +1,15 @@
-#ifndef OPENVSLAM_DATA_MARKER2D_H
-#define OPENVSLAM_DATA_MARKER2D_H
+#ifndef STELLA_VSLAM_DATA_MARKER2D_H
+#define STELLA_VSLAM_DATA_MARKER2D_H
 
-#include "openvslam/type.h"
+#include "stella_vslam/type.h"
 #include <opencv2/core/core.hpp>
 #include <Eigen/Core>
 
-namespace openvslam {
+namespace stella_vslam {
+namespace marker_model {
+class base;
+}
+
 namespace data {
 
 class marker2d {
@@ -14,7 +18,7 @@ public:
 
     //! constructor
     marker2d(const std::vector<cv::Point2f>& undist_corners, const eigen_alloc_vector<Vec3_t>& bearings,
-             const Mat33_t& rot_cm, const Vec3_t& trans_cm, unsigned int id);
+             const Mat33_t& rot_cm, const Vec3_t& trans_cm, unsigned int id, const std::shared_ptr<marker_model::base>& marker_model);
 
     //! Compute corner positions on the world from camera pose and corner positions on the camera
     eigen_alloc_vector<Vec3_t> compute_corners_pos_w(const Mat44_t& cam_pose_wc, const eigen_alloc_vector<Vec3_t>& corners_pos) const;
@@ -31,9 +35,12 @@ public:
 
     //! marker ID
     unsigned int id_;
+
+    //! marker model
+    std::shared_ptr<marker_model::base> marker_model_;
 };
 
 } // namespace data
-} // namespace openvslam
+} // namespace stella_vslam
 
-#endif // OPENVSLAM_DATA_MARKER2D_H
+#endif // STELLA_VSLAM_DATA_MARKER2D_H

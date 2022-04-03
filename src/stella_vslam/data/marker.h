@@ -1,11 +1,15 @@
-#ifndef OPENVSLAM_DATA_MARKER_H
-#define OPENVSLAM_DATA_MARKER_H
+#ifndef STELLA_VSLAM_DATA_MARKER_H
+#define STELLA_VSLAM_DATA_MARKER_H
 
-#include "openvslam/type.h"
+#include "stella_vslam/type.h"
 #include <opencv2/core/core.hpp>
 #include <Eigen/Core>
 
-namespace openvslam {
+namespace stella_vslam {
+namespace marker_model {
+class base;
+}
+
 namespace data {
 
 class keyframe;
@@ -15,7 +19,7 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     //! constructor
-    marker(const eigen_alloc_vector<Vec3_t>& corners_pos_w, unsigned int id);
+    marker(const eigen_alloc_vector<Vec3_t>& corners_pos_w, unsigned int id, const std::shared_ptr<marker_model::base>& marker_model);
 
     void set_corner_pos(const eigen_alloc_vector<Vec3_t>& corner_pos_w);
 
@@ -25,6 +29,9 @@ public:
     //! marker ID
     unsigned int id_;
 
+    //! marker model
+    std::shared_ptr<marker_model::base> marker_model_;
+
     //! observed keyframes
     std::vector<std::shared_ptr<keyframe>> observations_;
 
@@ -32,6 +39,6 @@ public:
 };
 
 } // namespace data
-} // namespace openvslam
+} // namespace stella_vslam
 
-#endif // OPENVSLAM_DATA_MARKER_H
+#endif // STELLA_VSLAM_DATA_MARKER_H
