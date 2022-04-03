@@ -151,6 +151,9 @@ public:
     //! constant observations
     frame_observation frm_obs_;
 
+    //! markers 2D (ID to marker2d map)
+    std::unordered_map<unsigned int, marker2d> markers_2d_;
+
     //! BoW features (DBoW2 or FBoW)
 #ifdef USE_DBOW2
     DBoW2::BowVector bow_vec_;
@@ -162,9 +165,6 @@ public:
 
     //! landmarks, whose nullptr indicates no-association
     std::vector<std::shared_ptr<landmark>> landmarks_;
-
-    //! markers 2D (ID to marker2d map)
-    std::unordered_map<unsigned int, marker2d> markers_2d_;
 
     //! outlier flags, which are mainly used in pose optimization and bundle adjustment
     std::vector<bool> outlier_flags_;
