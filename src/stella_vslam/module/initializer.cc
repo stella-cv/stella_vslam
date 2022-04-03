@@ -1,9 +1,11 @@
 #include "stella_vslam/config.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
+#include "stella_vslam/data/marker.h"
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/initialize/bearing_vector.h"
 #include "stella_vslam/initialize/perspective.h"
+#include "stella_vslam/marker_model/base.h"
 #include "stella_vslam/match/area.h"
 #include "stella_vslam/module/initializer.h"
 #include "stella_vslam/optimize/global_bundle_adjuster.h"
@@ -240,19 +242,48 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
         map_db_->add_landmark(lm);
     }
 
+    bool indefinite_scale = true;
+    for (const auto& id_mkr2d : init_keyfrm->markers_2d_) {
+        if (curr_keyfrm->markers_2d_.count(id_mkr2d.first)) {
+            indefinite_scale = false;
+            break;
+        }
+    }
+
+    // assign marker associations
+    const auto assign_marker_associations = [this](const std::shared_ptr<data::keyframe>& keyfrm) {
+        for (const auto& id_mkr2d : keyfrm->markers_2d_) {
+            auto marker = map_db_->get_marker(id_mkr2d.first);
+            if (!marker) {
+                auto mkr2d = id_mkr2d.second;
+                eigen_alloc_vector<Vec3_t> corners_pos_w = mkr2d.compute_corners_pos_w(keyfrm->get_cam_pose_inv(), mkr2d.marker_model_->corners_pos_);
+                marker = std::make_shared<data::marker>(corners_pos_w, id_mkr2d.first, mkr2d.marker_model_);
+                // add the marker to the map DB
+                map_db_->add_marker(marker);
+            }
+            // Set the association to the new marker
+            keyfrm->add_marker(marker);
+            marker->observations_.push_back(keyfrm);
+        }
+    };
+    assign_marker_associations(init_keyfrm);
+    assign_marker_associations(curr_keyfrm);
+
     // global bundle adjustment
     const auto global_bundle_adjuster = optimize::global_bundle_adjuster(map_db_, num_ba_iters_, true);
     global_bundle_adjuster.optimize_for_initialization();
 
-    // scale the map so that the median of depths is 1.0
-    const auto median_depth = init_keyfrm->compute_median_depth(init_keyfrm->camera_->model_type_ == camera::model_type_t::Equirectangular);
-    const auto inv_median_depth = 1.0 / median_depth;
-    if (curr_keyfrm->get_num_tracked_landmarks(1) < min_num_triangulated_ && median_depth < 0) {
-        spdlog::info("seems to be wrong initialization, resetting");
-        state_ = initializer_state_t::Wrong;
-        return false;
+    if (indefinite_scale) {
+        // scale the map so that the median of depths is 1.0
+        const auto median_depth = init_keyfrm->compute_median_depth(init_keyfrm->camera_->model_type_ == camera::model_type_t::Equirectangular);
+        const auto inv_median_depth = 1.0 / median_depth;
+        if (curr_keyfrm->get_num_tracked_landmarks(1) < min_num_triangulated_ && median_depth < 0) {
+            spdlog::info("seems to be wrong initialization, resetting");
+            state_ = initializer_state_t::Wrong;
+            return false;
+        }
+        scale_map(init_keyfrm, curr_keyfrm, inv_median_depth * scaling_factor_);
     }
-    scale_map(init_keyfrm, curr_keyfrm, inv_median_depth * scaling_factor_);
 
     // update the current frame pose
     curr_frm.set_cam_pose(curr_keyfrm->get_cam_pose());
