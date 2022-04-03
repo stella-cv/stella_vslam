@@ -1,6 +1,8 @@
 #include "stella_vslam/mapping_module.h"
 #include "stella_vslam/data/landmark.h"
+#include "stella_vslam/data/marker.h"
 #include "stella_vslam/data/map_database.h"
+#include "stella_vslam/marker_model/base.h"
 #include "stella_vslam/module/keyframe_inserter.h"
 
 #include <spdlog/spdlog.h>
@@ -72,6 +74,21 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
 
     curr_frm.update_pose_params();
     auto keyfrm = data::keyframe::make_keyframe(curr_frm);
+
+    for (const auto& id_mkr2d : keyfrm->markers_2d_) {
+        auto marker = map_db->get_marker(id_mkr2d.first);
+        if (!marker) {
+            // Create new marker
+            auto mkr2d = id_mkr2d.second;
+            eigen_alloc_vector<Vec3_t> corners_pos_w = mkr2d.compute_corners_pos_w(keyfrm->get_cam_pose_inv(), mkr2d.marker_model_->corners_pos_);
+            marker = std::make_shared<data::marker>(corners_pos_w, id_mkr2d.first, mkr2d.marker_model_);
+            // add the marker to the map DB
+            map_db->add_marker(marker);
+        }
+        // Set the association to the new marker
+        keyfrm->add_marker(marker);
+        marker->observations_.push_back(keyfrm);
+    }
 
     // Queue up the keyframe to the mapping module
     if (!keyfrm->depth_is_avaliable()) {
