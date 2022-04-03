@@ -7,6 +7,7 @@
 #include "stella_vslam/util/converter.h"
 #include "stella_vslam/data/frame_observation.h"
 #include "stella_vslam/data/bow_vocabulary.h"
+#include "stella_vslam/data/marker2d.h"
 
 #include <vector>
 #include <atomic>
@@ -54,9 +55,10 @@ public:
      * @param camera
      * @param orb_params
      * @param frm_obs
+     * @param markers_2d
      */
     frame(const double timestamp, camera::base* camera, feature::orb_params* orb_params,
-          const frame_observation frm_obs);
+          const frame_observation frm_obs, const std::unordered_map<unsigned int, marker2d>& markers_2d);
 
     /**
      * Set camera pose and refresh rotation and translation
@@ -160,6 +162,9 @@ public:
 
     //! landmarks, whose nullptr indicates no-association
     std::vector<std::shared_ptr<landmark>> landmarks_;
+
+    //! markers 2D (ID to marker2d map)
+    std::unordered_map<unsigned int, marker2d> markers_2d_;
 
     //! outlier flags, which are mainly used in pose optimization and bundle adjustment
     std::vector<bool> outlier_flags_;
