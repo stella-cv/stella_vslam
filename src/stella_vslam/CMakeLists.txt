@@ -6,6 +6,9 @@ set(spdlog_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/spdlog/include)
 # json
 set(json_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/json/include)
 
+# sqlite3
+find_package(SQLite3 REQUIRED)
+
 # g2o
 find_package(g2o REQUIRED
              COMPONENTS
@@ -141,6 +144,7 @@ target_link_libraries(${PROJECT_NAME}
                       OpenMP::OpenMP_CXX
                       Eigen3::Eigen
                       yaml-cpp
+                      ${SQLite3_LIBRARIES}
                       opencv_core
                       opencv_features2d
                       opencv_calib3d

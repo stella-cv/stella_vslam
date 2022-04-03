@@ -38,7 +38,9 @@ RUN set -x && \
   apt install -y -qq binutils-dev && \
   : "other dependencies" && \
   apt-get install -y -qq \
-    libyaml-cpp-dev && \
+    libyaml-cpp-dev \
+    sqlite3 \
+    libsqlite3-dev && \
   : "remove cache" && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
