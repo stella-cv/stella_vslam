@@ -34,7 +34,7 @@ class bow_database;
 
 namespace feature {
 class orb_extractor;
-class orb_params;
+struct orb_params;
 } // namespace feature
 
 namespace marker_detector {
