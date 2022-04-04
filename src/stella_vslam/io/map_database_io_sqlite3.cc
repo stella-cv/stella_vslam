@@ -91,7 +91,7 @@ bool map_database_io_sqlite3::save_stats(sqlite3* db) const {
     if (ret == SQLITE_OK) {
         ret = sqlite3_exec(db, "BEGIN;", nullptr, nullptr, nullptr);
     }
-    sqlite3_stmt* stmt;
+    sqlite3_stmt* stmt = nullptr;
     if (ret == SQLITE_OK) {
         ret = sqlite3_prepare_v2(db, "INSERT INTO stats(id, frame_next_id, keyframe_next_id, landmark_next_id) VALUES(?, ?, ?, ?)", -1, &stmt, nullptr);
     }

@@ -270,7 +270,7 @@ bool camera_database::to_db(sqlite3* db) const {
     if (ret == SQLITE_OK) {
         ret = sqlite3_exec(db, "BEGIN;", nullptr, nullptr, nullptr);
     }
-    sqlite3_stmt* stmt;
+    sqlite3_stmt* stmt = nullptr;
     if (ret == SQLITE_OK) {
         std::string stmt_str = "INSERT INTO cameras(id";
         for (const auto& column : columns) {

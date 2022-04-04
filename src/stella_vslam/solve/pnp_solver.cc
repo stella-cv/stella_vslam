@@ -567,15 +567,12 @@ Vec4_t pnp_solver::gauss_newton(const MatRC_t<6, 10>& L_6x10, const Vec6_t& Rho,
 
     MatRC_t<6, 4> A;
     Vec6_t B;
-    Vec4_t X;
 
     for (unsigned int j = 0; j < num_iter; j++) {
         compute_A_and_b_for_gauss_newton(L_6x10, Rho, betas, A, B);
 
         // Using fastest QR decomposition in Eigen
-        const Vec4_t X = A.householderQr().solve(B);
-
-        betas += X;
+        betas += A.householderQr().solve(B);
     }
     return betas;
 }
