@@ -13,6 +13,7 @@
 #include <g2o/core/robust_kernel_impl.h>
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
+#include <g2o/core/sparse_optimizer_terminate_action.h>
 
 namespace stella_vslam {
 namespace optimize {
@@ -32,6 +33,9 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
     auto algorithm = new g2o::OptimizationAlgorithmLevenberg(std::move(block_solver));
 
     g2o::SparseOptimizer optimizer;
+    auto terminateAction = new g2o::SparseOptimizerTerminateAction;
+    terminateAction->setGainThreshold(1e-3);
+    optimizer.addPostIterationAction(terminateAction);
     optimizer.setAlgorithm(algorithm);
 
     // 2. Add vertices

@@ -18,6 +18,7 @@
 #include <g2o/solvers/eigen/linear_solver_eigen.h>
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
+#include <g2o/core/sparse_optimizer_terminate_action.h>
 
 namespace stella_vslam {
 namespace optimize {
@@ -248,6 +249,9 @@ void global_bundle_adjuster::optimize(std::unordered_set<unsigned int>& optimize
     internal::marker_vertex_container marker_vtx_container(vtx_id_offset, markers.size());
 
     g2o::SparseOptimizer optimizer;
+    auto terminateAction = new g2o::SparseOptimizerTerminateAction;
+    terminateAction->setGainThreshold(1e-3);
+    optimizer.addPostIterationAction(terminateAction);
 
     optimize_impl(optimizer, keyfrms, lms, markers, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, marker_vtx_container,
                   num_iter_, use_huber_kernel_, force_stop_flag);
