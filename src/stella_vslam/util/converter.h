@@ -8,7 +8,7 @@
 
 namespace g2o {
 class SE3Quat;
-class Sim3;
+struct Sim3;
 } // namespace g2o
 
 namespace stella_vslam {

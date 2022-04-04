@@ -32,7 +32,7 @@ class base;
 
 namespace feature {
 class orb_extractor;
-class orb_params;
+struct orb_params;
 } // namespace feature
 
 namespace data {

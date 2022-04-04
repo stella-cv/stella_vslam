@@ -9,7 +9,7 @@
 namespace stella_vslam {
 
 namespace feature {
-class orb_params;
+struct orb_params;
 } // namespace feature
 
 namespace data {

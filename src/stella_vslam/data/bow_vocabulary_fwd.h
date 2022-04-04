@@ -15,8 +15,8 @@ class FeatureVector;
 #else
 namespace fbow {
 class Vocabulary;
-class BoWVector;
-class BoWFeatVector;
+struct BoWVector;
+struct BoWFeatVector;
 } // namespace fbow
 #endif // USE_DBOW2
 
