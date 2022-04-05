@@ -17,7 +17,7 @@
 namespace stella_vslam {
 
 mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* map_db, data::bow_database* bow_db, data::bow_vocabulary* bow_vocab)
-    : local_map_cleaner_(new module::local_map_cleaner(map_db, bow_db, yaml_node["redundant_obs_ratio_thr"].as<double>(0.9))),
+    : local_map_cleaner_(new module::local_map_cleaner(yaml_node, map_db, bow_db)),
       map_db_(map_db), bow_db_(bow_db), bow_vocab_(bow_vocab),
       local_bundle_adjuster_(new optimize::local_bundle_adjuster()) {
     spdlog::debug("CONSTRUCT: mapping_module");
@@ -160,7 +160,7 @@ void mapping_module::mapping_with_new_keyframe() {
     store_new_keyframe();
 
     // remove redundant landmarks
-    local_map_cleaner_->remove_redundant_landmarks(cur_keyfrm_->id_, cur_keyfrm_->depth_is_available());
+    local_map_cleaner_->remove_redundant_landmarks(cur_keyfrm_->id_);
 
     // triangulate new landmarks between the current frame and each of the covisibilities
     create_new_landmarks();

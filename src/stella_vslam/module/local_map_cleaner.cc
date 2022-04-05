@@ -5,18 +5,18 @@
 namespace stella_vslam {
 namespace module {
 
-local_map_cleaner::local_map_cleaner(data::map_database* map_db, data::bow_database* bow_db, double redundant_obs_ratio_thr)
-    : map_db_(map_db), bow_db_(bow_db), redundant_obs_ratio_thr_(redundant_obs_ratio_thr) {}
+local_map_cleaner::local_map_cleaner(const YAML::Node& yaml_node, data::map_database* map_db, data::bow_database* bow_db)
+    : map_db_(map_db), bow_db_(bow_db),
+      redundant_obs_ratio_thr_(yaml_node["redundant_obs_ratio_thr"].as<double>(0.9)),
+      observed_ratio_thr_(yaml_node["observed_ratio_thr"].as<double>(0.3)),
+      num_obs_thr_(yaml_node["num_obs_thr"].as<unsigned int>(2)),
+      num_reliable_keyfrms_(yaml_node["num_reliable_keyfrms"].as<unsigned int>(2)) {}
 
 void local_map_cleaner::reset() {
     fresh_landmarks_.clear();
 }
 
-unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cur_keyfrm_id, const bool depth_is_available) {
-    constexpr float observed_ratio_thr = 0.3;
-    constexpr unsigned int num_reliable_keyfrms = 2;
-    const unsigned int num_obs_thr = depth_is_available ? 3 : 2;
-
+unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cur_keyfrm_id) {
     // states of observed landmarks
     enum class lm_state_t { Valid,
                             Invalid,
@@ -34,18 +34,18 @@ unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cu
             // remove `lm` from the buffer
             lm_state = lm_state_t::Valid;
         }
-        else if (lm->get_observed_ratio() < observed_ratio_thr) {
+        else if (lm->get_observed_ratio() < observed_ratio_thr_) {
             // if `lm` is not reliable
             // remove `lm` from the buffer and the database
             lm_state = lm_state_t::Invalid;
         }
-        else if (num_reliable_keyfrms + lm->first_keyfrm_id_ <= cur_keyfrm_id
-                 && lm->num_observations() <= num_obs_thr) {
+        else if (num_reliable_keyfrms_ + lm->first_keyfrm_id_ <= cur_keyfrm_id
+                 && lm->num_observations() <= num_obs_thr_) {
             // if the number of the observers of `lm` is small after some keyframes were inserted
             // remove `lm` from the buffer and the database
             lm_state = lm_state_t::Invalid;
         }
-        else if (num_reliable_keyfrms + 1U + lm->first_keyfrm_id_ <= cur_keyfrm_id) {
+        else if (num_reliable_keyfrms_ + lm->first_keyfrm_id_ < cur_keyfrm_id) {
             // if the number of the observers of `lm` is sufficient after some keyframes were inserted
             // remove `lm` from the buffer
             lm_state = lm_state_t::Valid;

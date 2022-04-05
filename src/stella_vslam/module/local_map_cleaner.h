@@ -20,7 +20,7 @@ public:
     /**
      * Constructor
      */
-    explicit local_map_cleaner(data::map_database* map_db, data::bow_database* bow_db, double redundant_obs_ratio_thr = 0.9);
+    explicit local_map_cleaner(const YAML::Node& yaml_node, data::map_database* map_db, data::bow_database* bow_db);
 
     /**
      * Destructor
@@ -49,7 +49,7 @@ public:
     /**
      * Remove redundant landmarks
      */
-    unsigned int remove_redundant_landmarks(const unsigned int cur_keyfrm_id, const bool depth_is_available);
+    unsigned int remove_redundant_landmarks(const unsigned int cur_keyfrm_id);
 
     /**
      * Remove redundant keyframes
@@ -69,6 +69,15 @@ private:
 
     //!
     double redundant_obs_ratio_thr_;
+
+    //!
+    double observed_ratio_thr_ = 0.3;
+
+    //!
+    unsigned int num_obs_thr_ = 2;
+
+    //!
+    unsigned int num_reliable_keyfrms_ = 2;
 
     //! origin keyframe ID
     unsigned int origin_keyfrm_id_ = 0;
