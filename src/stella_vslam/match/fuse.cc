@@ -123,7 +123,8 @@ unsigned int fuse::detect_duplication(const std::shared_ptr<data::keyframe>& key
 }
 
 template<typename T>
-unsigned int fuse::replace_duplication(const std::shared_ptr<data::keyframe>& keyfrm, const T& landmarks_to_check, const float margin) {
+unsigned int fuse::replace_duplication(data::map_database* map_db,
+                                       const std::shared_ptr<data::keyframe>& keyfrm, const T& landmarks_to_check, const float margin) {
     unsigned int num_fused = 0;
 
     const Mat33_t rot_cw = keyfrm->get_rotation();
@@ -244,11 +245,11 @@ unsigned int fuse::replace_duplication(const std::shared_ptr<data::keyframe>& ke
                 // Replace with more reliable 3D points (= more observable)
                 if (lm->num_observations() < lm_in_keyfrm->num_observations()) {
                     // Replace lm with lm_in_keyfrm
-                    lm->replace(lm_in_keyfrm);
+                    lm->replace(lm_in_keyfrm, map_db);
                 }
                 else {
                     // Replace lm_in_keyfrm with lm
-                    lm_in_keyfrm->replace(lm);
+                    lm_in_keyfrm->replace(lm, map_db);
                 }
             }
         }
@@ -265,8 +266,8 @@ unsigned int fuse::replace_duplication(const std::shared_ptr<data::keyframe>& ke
     return num_fused;
 }
 
-template unsigned int fuse::replace_duplication(const std::shared_ptr<data::keyframe>&, const std::vector<std::shared_ptr<data::landmark>>&, const float);
-template unsigned int fuse::replace_duplication(const std::shared_ptr<data::keyframe>&, const std::unordered_set<std::shared_ptr<data::landmark>>&, const float);
+template unsigned int fuse::replace_duplication(data::map_database*, const std::shared_ptr<data::keyframe>&, const std::vector<std::shared_ptr<data::landmark>>&, const float);
+template unsigned int fuse::replace_duplication(data::map_database*, const std::shared_ptr<data::keyframe>&, const std::unordered_set<std::shared_ptr<data::landmark>>&, const float);
 
 } // namespace match
 } // namespace stella_vslam

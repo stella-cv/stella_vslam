@@ -16,6 +16,7 @@ global_optimization_module::global_optimization_module(data::map_database* map_d
                                                        const bool fix_scale)
     : loop_detector_(new module::loop_detector(bow_db, bow_vocab, util::yaml_optional_ref(yaml_node, "LoopDetector"), fix_scale)),
       loop_bundle_adjuster_(new module::loop_bundle_adjuster(map_db)),
+      map_db_(map_db),
       graph_optimizer_(new optimize::graph_optimizer(map_db, fix_scale)) {
     spdlog::debug("CONSTRUCT: global_optimization_module");
 }
@@ -332,7 +333,7 @@ void global_optimization_module::replace_duplicated_landmarks(const std::vector<
             if (lm_in_curr) {
                 // if the landmark corresponding `idx` exists,
                 // replace it with `curr_match_lm_in_cand` (observed in the candidate)
-                lm_in_curr->replace(curr_match_lm_in_cand);
+                lm_in_curr->replace(curr_match_lm_in_cand, map_db_);
             }
             else {
                 // if landmark corresponding `idx` does not exists,
@@ -361,7 +362,7 @@ void global_optimization_module::replace_duplicated_landmarks(const std::vector<
         for (unsigned int i = 0; i < curr_match_lms_observed_in_cand_covis.size(); ++i) {
             const auto& lm_to_replace = lms_to_replace.at(i);
             if (lm_to_replace) {
-                lm_to_replace->replace(curr_match_lms_observed_in_cand_covis.at(i));
+                lm_to_replace->replace(curr_match_lms_observed_in_cand_covis.at(i), map_db_);
             }
         }
     }

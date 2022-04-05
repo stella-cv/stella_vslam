@@ -27,13 +27,12 @@ public:
     using observations_t = std::map<std::weak_ptr<keyframe>, unsigned int, std::owner_less<std::weak_ptr<keyframe>>>;
 
     //! constructor
-    landmark(const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm, map_database* map_db);
+    landmark(const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm);
 
     //! constructor for map loading with computing parameters which can be recomputed
     landmark(const unsigned int id, const unsigned int first_keyfrm_id,
              const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm,
-             const unsigned int num_visible, const unsigned int num_found,
-             map_database* map_db);
+             const unsigned int num_visible, const unsigned int num_found);
 
     //! set world coordinates of this landmark
     void set_pos_in_world(const Vec3_t& pos_w);
@@ -92,7 +91,7 @@ public:
     bool will_be_erased();
 
     //! replace this with specified landmark
-    void replace(std::shared_ptr<landmark> lm);
+    void replace(std::shared_ptr<landmark> lm, data::map_database* map_db);
     //! get replace landmark
     std::shared_ptr<landmark> get_replaced() const;
 
@@ -142,9 +141,6 @@ private:
     float min_valid_dist_ = 0;
     //! min valid distance between landmark and camera
     float max_valid_dist_ = 0;
-
-    //! map database
-    map_database* map_db_;
 
     mutable std::mutex mtx_position_;
     mutable std::mutex mtx_observations_;

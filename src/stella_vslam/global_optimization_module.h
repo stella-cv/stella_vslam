@@ -197,6 +197,9 @@ private:
     //! loop bundle adjuster
     std::unique_ptr<module::loop_bundle_adjuster> loop_bundle_adjuster_ = nullptr;
 
+    //! map database
+    data::map_database* map_db_ = nullptr;
+
     //-----------------------------------------
     // keyframe queue
 

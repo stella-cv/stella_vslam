@@ -11,6 +11,7 @@ namespace stella_vslam {
 namespace data {
 class keyframe;
 class landmark;
+class map_database;
 } // namespace data
 
 namespace match {
@@ -33,7 +34,7 @@ public:
     //! 重複しているものはより信頼できる3次元点を選択してreplaceする
     //! detect_duplication()とは異なり，関数内でreplaceを行う
     template<typename T>
-    unsigned int replace_duplication(const std::shared_ptr<data::keyframe>& keyfrm, const T& landmarks_to_check, const float margin = 3.0);
+    unsigned int replace_duplication(data::map_database* map_db, const std::shared_ptr<data::keyframe>& keyfrm, const T& landmarks_to_check, const float margin = 3.0);
 };
 
 } // namespace match

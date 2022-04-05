@@ -363,7 +363,7 @@ void map_database::register_landmark(const unsigned int id, const nlohmann::json
 
     auto lm = std::make_shared<data::landmark>(
         id, first_keyfrm_id, pos_w, ref_keyfrm,
-        num_visible, num_found, this);
+        num_visible, num_found);
     assert(!landmarks_.count(id));
     landmarks_[lm->id_] = lm;
 }
@@ -612,7 +612,7 @@ bool map_database::load_landmarks_from_db(sqlite3* db) {
 
         auto lm = std::make_shared<data::landmark>(
             id, first_keyfrm_id, pos_w, ref_keyfrm,
-            num_visible, num_found, this);
+            num_visible, num_found);
         assert(!landmarks_.count(id));
         landmarks_[lm->id_] = lm;
     }

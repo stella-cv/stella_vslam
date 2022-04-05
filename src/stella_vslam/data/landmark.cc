@@ -11,16 +11,15 @@ namespace data {
 
 std::atomic<unsigned int> landmark::next_id_{0};
 
-landmark::landmark(const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm, map_database* map_db)
+landmark::landmark(const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm)
     : id_(next_id_++), first_keyfrm_id_(ref_keyfrm->id_), pos_w_(pos_w),
-      ref_keyfrm_(ref_keyfrm), map_db_(map_db) {}
+      ref_keyfrm_(ref_keyfrm) {}
 
 landmark::landmark(const unsigned int id, const unsigned int first_keyfrm_id,
                    const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm,
-                   const unsigned int num_visible, const unsigned int num_found,
-                   map_database* map_db)
+                   const unsigned int num_visible, const unsigned int num_found)
     : id_(id), first_keyfrm_id_(first_keyfrm_id), pos_w_(pos_w), ref_keyfrm_(ref_keyfrm),
-      num_observable_(num_visible), num_observed_(num_found), map_db_(map_db) {}
+      num_observable_(num_visible), num_observed_(num_found) {}
 
 void landmark::set_pos_in_world(const Vec3_t& pos_w) {
     std::lock_guard<std::mutex> lock(mtx_position_);
@@ -276,7 +275,7 @@ bool landmark::will_be_erased() {
     return will_be_erased_;
 }
 
-void landmark::replace(std::shared_ptr<landmark> lm) {
+void landmark::replace(std::shared_ptr<landmark> lm, data::map_database* map_db) {
     if (lm->id_ == this->id_) {
         return;
     }
@@ -310,7 +309,7 @@ void landmark::replace(std::shared_ptr<landmark> lm) {
     lm->increase_num_observable(num_observable);
     lm->compute_descriptor();
 
-    map_db_->erase_landmark(this->id_);
+    map_db->erase_landmark(this->id_);
 }
 
 std::shared_ptr<landmark> landmark::get_replaced() const {

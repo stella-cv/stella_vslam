@@ -139,7 +139,7 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
 
         // Stereo-triangulation can be performed if the 3D point is not yet associated to the keypoint index
         const Vec3_t pos_w = curr_frm.triangulate_stereo(idx);
-        auto lm = std::make_shared<data::landmark>(pos_w, keyfrm, map_db);
+        auto lm = std::make_shared<data::landmark>(pos_w, keyfrm);
 
         lm->add_observation(keyfrm, idx);
         keyfrm->add_landmark(lm, idx);
