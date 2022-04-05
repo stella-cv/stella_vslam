@@ -11,16 +11,25 @@ namespace stella_vslam {
 namespace module {
 
 keyframe_inserter::keyframe_inserter(const double max_interval,
+                                     const double min_interval,
+                                     const double max_distance,
                                      const double lms_ratio_thr_almost_all_lms_are_tracked,
-                                     const double lms_ratio_thr_view_changed)
+                                     const double lms_ratio_thr_view_changed,
+                                     const unsigned int enough_lms_thr)
     : max_interval_(max_interval),
+      min_interval_(min_interval),
+      max_distance_(max_distance),
       lms_ratio_thr_almost_all_lms_are_tracked_(lms_ratio_thr_almost_all_lms_are_tracked),
-      lms_ratio_thr_view_changed_(lms_ratio_thr_view_changed) {}
+      lms_ratio_thr_view_changed_(lms_ratio_thr_view_changed),
+      enough_lms_thr_(enough_lms_thr) {}
 
 keyframe_inserter::keyframe_inserter(const YAML::Node& yaml_node)
     : keyframe_inserter(yaml_node["max_interval"].as<double>(1.0),
-                        yaml_node["lms_ratio_thr_almost_all_lms_are_tracked"].as<double>(0.95),
-                        yaml_node["lms_ratio_thr_view_changed"].as<double>(0.9)) {}
+                        yaml_node["min_interval"].as<double>(0.1),
+                        yaml_node["max_distance"].as<double>(-1.0),
+                        yaml_node["lms_ratio_thr_almost_all_lms_are_tracked"].as<double>(0.9),
+                        yaml_node["lms_ratio_thr_view_changed"].as<double>(0.8),
+                        yaml_node["enough_lms_thr"].as<unsigned int>(100)) {}
 
 void keyframe_inserter::set_mapping_module(mapping_module* mapper) {
     mapper_ = mapper;
@@ -29,39 +38,58 @@ void keyframe_inserter::set_mapping_module(mapping_module* mapper) {
 void keyframe_inserter::reset() {
 }
 
-bool keyframe_inserter::new_keyframe_is_needed(data::map_database* map_db, const data::frame& curr_frm,
+bool keyframe_inserter::new_keyframe_is_needed(data::map_database* map_db,
+                                               const data::frame& curr_frm,
                                                const unsigned int num_tracked_lms,
-                                               const data::keyframe& ref_keyfrm) const {
+                                               const unsigned int num_reliable_lms,
+                                               const data::keyframe& ref_keyfrm,
+                                               const unsigned int min_num_obs_thr) const {
     assert(mapper_);
     // Any keyframes are not able to be added when the mapping module stops
     if (mapper_->is_paused() || mapper_->pause_is_requested()) {
         return false;
     }
 
-    const auto num_keyfrms = map_db->get_num_keyframes();
     auto last_inserted_keyfrm = map_db->get_last_inserted_keyframe();
 
     // Count the number of the 3D points that are observed from more than two keyframes
-    const unsigned int min_obs_thr = (3 <= num_keyfrms) ? 3 : 2;
-    const auto num_reliable_lms = ref_keyfrm.get_num_tracked_landmarks(min_obs_thr);
+    const auto num_reliable_lms_ref = ref_keyfrm.get_num_tracked_landmarks(min_num_obs_thr);
 
     // When the mapping module skips localBA, it does not insert keyframes
     const auto mapper_is_skipping_localBA = mapper_->is_skipping_localBA();
 
-    constexpr unsigned int num_tracked_lms_thr_unstable = 15;
+    constexpr unsigned int num_enough_keyfrms_thr = 5;
+    const bool enough_keyfrms = map_db->get_num_keyframes() > num_enough_keyfrms_thr;
 
     // New keyframe is needed if the time elapsed since the last keyframe insertion reaches the threshold
-    const bool max_interval_elapsed = last_inserted_keyfrm && last_inserted_keyfrm->timestamp_ + max_interval_ <= curr_frm.timestamp_;
+    bool max_interval_elapsed = false;
+    if (max_interval_ > 0.0) {
+        max_interval_elapsed = last_inserted_keyfrm && last_inserted_keyfrm->timestamp_ + max_interval_ <= curr_frm.timestamp_;
+    }
+    bool min_interval_elapsed = false;
+    if (min_interval_ > 0.0) {
+        min_interval_elapsed = last_inserted_keyfrm && last_inserted_keyfrm->timestamp_ + min_interval_ <= curr_frm.timestamp_;
+    }
+    bool max_distance_traveled = false;
+    if (max_distance_ > 0.0) {
+        max_distance_traveled = last_inserted_keyfrm && (last_inserted_keyfrm->get_cam_center() - curr_frm.get_cam_center()).norm() > max_distance_;
+    }
     // New keyframe is needed if the field-of-view of the current frame is changed a lot
-    const bool view_changed = num_tracked_lms < num_reliable_lms * lms_ratio_thr_view_changed_;
+    const bool view_changed = num_reliable_lms < num_reliable_lms_ref * lms_ratio_thr_view_changed_;
+    // const bool view_changed = num_tracked_lms < num_tracked_lms_on_ref_keyfrm * lms_ratio_thr_view_changed_;
+    const bool not_enough_lms = num_reliable_lms < enough_lms_thr_;
 
     // (Mandatory for keyframe insertion)
     // New keyframe is needed if the number of 3D points exceeds the threshold,
     // and concurrently the ratio of the reliable 3D points larger than the threshold ratio
+    constexpr unsigned int num_tracked_lms_thr_unstable = 15;
     bool tracking_is_unstable = num_tracked_lms < num_tracked_lms_thr_unstable;
-    bool almost_all_lms_are_tracked = num_tracked_lms > num_reliable_lms * lms_ratio_thr_almost_all_lms_are_tracked_;
-
-    return (max_interval_elapsed || view_changed) && !tracking_is_unstable && !almost_all_lms_are_tracked && !mapper_is_skipping_localBA;
+    bool almost_all_lms_are_tracked = num_reliable_lms > num_reliable_lms_ref * lms_ratio_thr_almost_all_lms_are_tracked_;
+    return (max_interval_elapsed || max_distance_traveled || view_changed || not_enough_lms)
+           && (!enough_keyfrms || min_interval_elapsed)
+           && !tracking_is_unstable
+           && !almost_all_lms_are_tracked
+           && !mapper_is_skipping_localBA;
 }
 
 std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map_database* map_db,

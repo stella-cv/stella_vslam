@@ -156,7 +156,10 @@ protected:
     void update_last_frame();
 
     //! Optimize the camera pose of the current frame
-    bool optimize_current_frame_with_local_map(unsigned int& num_tracked_lms, std::unordered_set<unsigned int>& outlier_ids);
+    bool optimize_current_frame_with_local_map(unsigned int& num_tracked_lms,
+                                               unsigned int& num_reliable_lms,
+                                               std::unordered_set<unsigned int>& outlier_ids,
+                                               const unsigned int min_num_obs_thr);
 
     //! Update the local map
     void update_local_map(std::unordered_set<unsigned int>& outlier_ids);
@@ -165,7 +168,9 @@ protected:
     void search_local_landmarks(std::unordered_set<unsigned int>& outlier_ids);
 
     //! Check the new keyframe is needed or not
-    bool new_keyframe_is_needed(unsigned int num_tracked_lms) const;
+    bool new_keyframe_is_needed(unsigned int num_tracked_lms,
+                                unsigned int num_reliable_lms,
+                                const unsigned int min_num_obs_thr) const;
 
     //! Insert the new keyframe derived from the current frame
     void insert_new_keyframe();
