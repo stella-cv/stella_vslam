@@ -222,8 +222,20 @@ std::vector<std::shared_ptr<keyframe>> graph_node::get_covisibilities_over_weigh
         return std::vector<std::shared_ptr<keyframe>>();
     }
     else {
-        const auto num = static_cast<unsigned int>(itr - ordered_weights_.begin());
-        return std::vector<std::shared_ptr<keyframe>>(ordered_covisibilities_.begin(), ordered_covisibilities_.begin() + num);
+        const auto upper_bound_idx = static_cast<unsigned int>(itr - ordered_weights_.begin());
+        std::vector<std::shared_ptr<keyframe>> covisibilities;
+        unsigned int idx = 0;
+        for (const auto& covisibility : ordered_covisibilities_) {
+            if (idx == upper_bound_idx) {
+                break;
+            }
+            idx++;
+            if (covisibility.expired()) {
+                continue;
+            }
+            covisibilities.push_back(covisibility.lock());
+        }
+        return covisibilities;
     }
 }
 
