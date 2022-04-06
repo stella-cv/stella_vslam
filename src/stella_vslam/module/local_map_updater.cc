@@ -50,6 +50,9 @@ local_map_updater::keyframe_weights_t local_map_updater::count_keyframe_weights(
         if (!lm) {
             continue;
         }
+        if (lm->will_be_erased()) {
+            continue;
+        }
         const auto observations = lm->get_observations();
         for (auto obs : observations) {
             ++keyfrm_weights[obs.first.lock()];
