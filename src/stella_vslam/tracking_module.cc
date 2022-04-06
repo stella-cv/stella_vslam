@@ -215,13 +215,12 @@ bool tracking_module::track(bool relocalization_is_needed) {
     curr_frm_.ref_keyfrm_ = last_frm_.ref_keyfrm_;
 
     bool succeeded = false;
-    std::unordered_set<unsigned int> outlier_ids;
     if (relocalize_by_pose_is_requested()) {
         // Force relocalization by pose
         succeeded = relocalize_by_pose(get_relocalize_by_pose_request());
     }
     else if (!relocalization_is_needed) {
-        succeeded = track_current_frame(outlier_ids);
+        succeeded = track_current_frame();
     }
     else if (enable_auto_relocalization_) {
         // Compute the BoW representations to perform relocalization
@@ -241,8 +240,8 @@ bool tracking_module::track(bool relocalization_is_needed) {
     unsigned int num_tracked_lms = 0;
     unsigned int num_reliable_lms = 0;
     if (succeeded) {
-        update_local_map(outlier_ids);
-        succeeded = optimize_current_frame_with_local_map(num_tracked_lms, num_reliable_lms, outlier_ids, min_num_obs_thr);
+        update_local_map();
+        succeeded = optimize_current_frame_with_local_map(num_tracked_lms, num_reliable_lms, min_num_obs_thr);
     }
 
     // update the motion model
@@ -289,23 +288,23 @@ bool tracking_module::initialize() {
     return true;
 }
 
-bool tracking_module::track_current_frame(std::unordered_set<unsigned int>& outlier_ids) {
+bool tracking_module::track_current_frame() {
     bool succeeded = false;
 
     // Tracking mode
     if (twist_is_valid_ && last_reloc_frm_id_ + 2 < curr_frm_.id_) {
         // if the motion model is valid
-        succeeded = frame_tracker_.motion_based_track(curr_frm_, last_frm_, twist_, outlier_ids);
+        succeeded = frame_tracker_.motion_based_track(curr_frm_, last_frm_, twist_);
     }
     if (!succeeded) {
         // Compute the BoW representations to perform the BoW match
         if (!curr_frm_.bow_is_available()) {
             curr_frm_.compute_bow(bow_vocab_);
         }
-        succeeded = frame_tracker_.bow_match_based_track(curr_frm_, last_frm_, curr_frm_.ref_keyfrm_, outlier_ids);
+        succeeded = frame_tracker_.bow_match_based_track(curr_frm_, last_frm_, curr_frm_.ref_keyfrm_);
     }
     if (!succeeded) {
-        succeeded = frame_tracker_.robust_match_based_track(curr_frm_, last_frm_, curr_frm_.ref_keyfrm_, outlier_ids);
+        succeeded = frame_tracker_.robust_match_based_track(curr_frm_, last_frm_, curr_frm_.ref_keyfrm_);
     }
 
     return succeeded;
@@ -388,10 +387,9 @@ void tracking_module::update_last_frame() {
 
 bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tracked_lms,
                                                             unsigned int& num_reliable_lms,
-                                                            std::unordered_set<unsigned int>& outlier_ids,
                                                             const unsigned int min_num_obs_thr) {
     // acquire more 2D-3D matches by reprojecting the local landmarks to the current frame
-    search_local_landmarks(outlier_ids);
+    search_local_landmarks();
 
     // optimize the pose
     g2o::SE3Quat optimized_pose;
@@ -449,7 +447,7 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
     return true;
 }
 
-void tracking_module::update_local_map(std::unordered_set<unsigned int>& outlier_ids) {
+void tracking_module::update_local_map() {
     // clean landmark associations
     for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.num_keypts_; ++idx) {
         const auto& lm = curr_frm_.landmarks_.at(idx);
@@ -465,7 +463,7 @@ void tracking_module::update_local_map(std::unordered_set<unsigned int>& outlier
     // acquire the current local map
     constexpr unsigned int max_num_local_keyfrms = 60;
     auto local_map_updater = module::local_map_updater(curr_frm_, max_num_local_keyfrms);
-    if (!local_map_updater.acquire_local_map(outlier_ids)) {
+    if (!local_map_updater.acquire_local_map()) {
         return;
     }
     // update the variables
@@ -481,7 +479,7 @@ void tracking_module::update_local_map(std::unordered_set<unsigned int>& outlier
     map_db_->set_local_landmarks(local_landmarks_);
 }
 
-void tracking_module::search_local_landmarks(std::unordered_set<unsigned int>& outlier_ids) {
+void tracking_module::search_local_landmarks() {
     // select the landmarks which can be reprojected from the ones observed in the current frame
     std::unordered_set<unsigned int> curr_landmark_ids;
     for (const auto& lm : curr_frm_.landmarks_) {
@@ -510,9 +508,6 @@ void tracking_module::search_local_landmarks(std::unordered_set<unsigned int>& o
     std::unordered_map<unsigned int, int> lm_to_scale;
     for (const auto& lm : local_landmarks_) {
         if (curr_landmark_ids.count(curr_frm_.id_)) {
-            continue;
-        }
-        if (outlier_ids.count(curr_frm_.id_)) {
             continue;
         }
         if (lm->will_be_erased()) {

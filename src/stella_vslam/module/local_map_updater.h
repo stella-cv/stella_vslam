@@ -33,7 +33,7 @@ public:
     std::shared_ptr<data::keyframe> get_nearest_covisibility() const;
 
     //! Acquire the new local map
-    bool acquire_local_map(std::unordered_set<unsigned int>& outlier_ids);
+    bool acquire_local_map();
 
 private:
     //! Find the local keyframes
@@ -53,7 +53,7 @@ private:
         -> std::vector<std::shared_ptr<data::keyframe>>;
 
     //! Find the local landmarks
-    bool find_local_landmarks(std::unordered_set<unsigned int>& outlier_ids);
+    bool find_local_landmarks();
 
     // frame ID
     const unsigned int frm_id_;

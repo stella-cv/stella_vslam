@@ -138,7 +138,7 @@ protected:
     bool track(bool relocalization_is_needed);
 
     //! Track the current frame
-    bool track_current_frame(std::unordered_set<unsigned int>& outlier_ids);
+    bool track_current_frame();
 
     //! Relocalization by pose
     bool relocalize_by_pose(const pose_request& request);
@@ -158,14 +158,13 @@ protected:
     //! Optimize the camera pose of the current frame
     bool optimize_current_frame_with_local_map(unsigned int& num_tracked_lms,
                                                unsigned int& num_reliable_lms,
-                                               std::unordered_set<unsigned int>& outlier_ids,
                                                const unsigned int min_num_obs_thr);
 
     //! Update the local map
-    void update_local_map(std::unordered_set<unsigned int>& outlier_ids);
+    void update_local_map();
 
     //! Acquire more 2D-3D matches using initial camera pose estimation
-    void search_local_landmarks(std::unordered_set<unsigned int>& outlier_ids);
+    void search_local_landmarks();
 
     //! Check the new keyframe is needed or not
     bool new_keyframe_is_needed(unsigned int num_tracked_lms,

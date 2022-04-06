@@ -24,17 +24,14 @@ class frame_tracker {
 public:
     explicit frame_tracker(camera::base* camera, const unsigned int num_matches_thr = 20);
 
-    bool motion_based_track(data::frame& curr_frm, const data::frame& last_frm, const Mat44_t& velocity,
-                            std::unordered_set<unsigned int>& outlier_ids) const;
+    bool motion_based_track(data::frame& curr_frm, const data::frame& last_frm, const Mat44_t& velocity) const;
 
-    bool bow_match_based_track(data::frame& curr_frm, const data::frame& last_frm, const std::shared_ptr<data::keyframe>& ref_keyfrm,
-                               std::unordered_set<unsigned int>& outlier_ids) const;
+    bool bow_match_based_track(data::frame& curr_frm, const data::frame& last_frm, const std::shared_ptr<data::keyframe>& ref_keyfrm) const;
 
-    bool robust_match_based_track(data::frame& curr_frm, const data::frame& last_frm, const std::shared_ptr<data::keyframe>& ref_keyfrm,
-                                  std::unordered_set<unsigned int>& outlier_ids) const;
+    bool robust_match_based_track(data::frame& curr_frm, const data::frame& last_frm, const std::shared_ptr<data::keyframe>& ref_keyfrm) const;
 
 private:
-    unsigned int discard_outliers(const std::vector<bool>& outlier_flags, data::frame& curr_frm, std::unordered_set<unsigned int>& outlier_ids) const;
+    unsigned int discard_outliers(const std::vector<bool>& outlier_flags, data::frame& curr_frm) const;
 
     const camera::base* camera_;
     const unsigned int num_matches_thr_;
