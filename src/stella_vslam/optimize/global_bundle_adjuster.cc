@@ -196,6 +196,10 @@ void global_bundle_adjuster::optimize_for_initialization(bool* const force_stop_
     optimize_impl(optimizer, keyfrms, lms, markers, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, marker_vtx_container,
                   num_iter_, use_huber_kernel_, force_stop_flag);
 
+    if (force_stop_flag && *force_stop_flag) {
+        return;
+    }
+
     // 6. Extract the result
 
     for (auto keyfrm : keyfrms) {
@@ -255,6 +259,10 @@ void global_bundle_adjuster::optimize(std::unordered_set<unsigned int>& optimize
 
     optimize_impl(optimizer, keyfrms, lms, markers, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, marker_vtx_container,
                   num_iter_, use_huber_kernel_, force_stop_flag);
+
+    if (force_stop_flag && *force_stop_flag) {
+        return;
+    }
 
     // 6. Extract the result
 
