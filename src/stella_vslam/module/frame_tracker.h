@@ -34,7 +34,7 @@ public:
                                   std::unordered_set<unsigned int>& outlier_ids) const;
 
 private:
-    unsigned int discard_outliers(data::frame& curr_frm, std::unordered_set<unsigned int>& outlier_ids) const;
+    unsigned int discard_outliers(const std::vector<bool>& outlier_flags, data::frame& curr_frm, std::unordered_set<unsigned int>& outlier_ids) const;
 
     const camera::base* camera_;
     const unsigned int num_matches_thr_;

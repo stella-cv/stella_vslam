@@ -158,9 +158,6 @@ void frame_publisher::update(tracking_module* tracker, const cv::Mat& img, doubl
                 if (!lm) {
                     continue;
                 }
-                if (tracker->curr_frm_.outlier_flags_.at(i)) {
-                    continue;
-                }
 
                 if (0 < lm->num_observations()) {
                     is_tracked_.at(i) = true;

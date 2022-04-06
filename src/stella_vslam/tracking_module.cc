@@ -255,13 +255,6 @@ bool tracking_module::track(bool relocalization_is_needed) {
         insert_new_keyframe();
     }
 
-    // tidy up observations
-    for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.num_keypts_; ++idx) {
-        if (curr_frm_.landmarks_.at(idx) && curr_frm_.outlier_flags_.at(idx)) {
-            curr_frm_.landmarks_.at(idx) = nullptr;
-        }
-    }
-
     // update the frame statistics
     map_db_->update_frame_statistics(curr_frm_, !succeeded);
 
@@ -401,7 +394,18 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
     search_local_landmarks(outlier_ids);
 
     // optimize the pose
-    pose_optimizer_.optimize(curr_frm_);
+    g2o::SE3Quat optimized_pose;
+    std::vector<bool> outlier_flags;
+    pose_optimizer_.optimize(curr_frm_, optimized_pose, outlier_flags);
+    curr_frm_.set_cam_pose(optimized_pose);
+
+    // Reject outliers
+    for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.num_keypts_; ++idx) {
+        if (!outlier_flags.at(idx)) {
+            continue;
+        }
+        curr_frm_.landmarks_.at(idx) = nullptr;
+    }
 
     // count up the number of tracked landmarks
     num_tracked_lms = 0;
@@ -415,24 +419,17 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
             continue;
         }
 
-        if (!curr_frm_.outlier_flags_.at(idx)) {
-            // the observation has been considered as inlier in the pose optimization
-            assert(lm->has_observation());
-            // count up
-            if (0 < min_num_obs_thr) {
-                if (min_num_obs_thr <= lm->num_observations()) {
-                    ++num_reliable_lms;
-                }
+        // the observation has been considered as inlier in the pose optimization
+        assert(lm->has_observation());
+        // count up
+        if (0 < min_num_obs_thr) {
+            if (min_num_obs_thr <= lm->num_observations()) {
+                ++num_reliable_lms;
             }
-            ++num_tracked_lms;
-            // increment the number of tracked frame
-            lm->increase_num_observed();
         }
-        else {
-            // the observation has been considered as outlier in the pose optimization
-            // remove the observation
-            curr_frm_.landmarks_.at(idx) = nullptr;
-        }
+        ++num_tracked_lms;
+        // increment the number of tracked frame
+        lm->increase_num_observed();
     }
 
     constexpr unsigned int num_tracked_lms_thr = 20;

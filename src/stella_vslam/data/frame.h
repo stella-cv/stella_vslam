@@ -166,9 +166,6 @@ public:
     //! landmarks, whose nullptr indicates no-association
     std::vector<std::shared_ptr<landmark>> landmarks_;
 
-    //! outlier flags, which are mainly used in pose optimization and bundle adjustment
-    std::vector<bool> outlier_flags_;
-
     //! camera pose: world -> camera
     bool cam_pose_cw_is_valid_ = false;
     Mat44_t cam_pose_cw_;

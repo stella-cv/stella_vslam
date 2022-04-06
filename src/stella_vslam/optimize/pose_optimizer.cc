@@ -1,4 +1,5 @@
 #include "stella_vslam/data/frame.h"
+#include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
 #include "stella_vslam/optimize/pose_optimizer.h"
 #include "stella_vslam/optimize/internal/se3/pose_opt_edge_wrapper.h"
@@ -22,7 +23,24 @@ namespace optimize {
 pose_optimizer::pose_optimizer(const unsigned int num_trials, const unsigned int num_each_iter)
     : num_trials_(num_trials), num_each_iter_(num_each_iter) {}
 
-unsigned int pose_optimizer::optimize(data::frame& frm) const {
+unsigned int pose_optimizer::optimize(const data::frame& frm, g2o::SE3Quat& optimized_pose, std::vector<bool>& outlier_flags) const {
+    auto num_valid_obs = optimize(frm.cam_pose_cw_, frm.frm_obs_, frm.orb_params_, frm.camera_,
+                                  frm.landmarks_, optimized_pose, outlier_flags);
+    return num_valid_obs;
+}
+
+unsigned int pose_optimizer::optimize(const data::keyframe* keyfrm, g2o::SE3Quat& optimized_pose, std::vector<bool>& outlier_flags) const {
+    auto num_valid_obs = optimize(keyfrm->get_cam_pose(), keyfrm->frm_obs_, keyfrm->orb_params_, keyfrm->camera_,
+                                  keyfrm->get_landmarks(), optimized_pose, outlier_flags);
+    return num_valid_obs;
+}
+
+unsigned int pose_optimizer::optimize(const Mat44_t& cam_pose_cw, const data::frame_observation& frm_obs,
+                                      const feature::orb_params* orb_params,
+                                      const camera::base* camera,
+                                      const std::vector<std::shared_ptr<data::landmark>>& landmarks,
+                                      g2o::SE3Quat& optimized_pose,
+                                      std::vector<bool>& outlier_flags) const {
     // 1. Construct an optimizer
 
     auto linear_solver = g2o::make_unique<g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>>();
@@ -37,17 +55,19 @@ unsigned int pose_optimizer::optimize(data::frame& frm) const {
     // 2. Convert the frame to the g2o vertex, then set it to the optimizer
 
     auto frm_vtx = new internal::se3::shot_vertex();
-    frm_vtx->setId(frm.id_);
-    frm_vtx->setEstimate(util::converter::to_g2o_SE3(frm.cam_pose_cw_));
+    frm_vtx->setId(0);
+    frm_vtx->setEstimate(util::converter::to_g2o_SE3(cam_pose_cw));
     frm_vtx->setFixed(false);
     optimizer.addVertex(frm_vtx);
 
-    const unsigned int num_keypts = frm.frm_obs_.num_keypts_;
+    const unsigned int num_keypts = frm_obs.num_keypts_;
+    outlier_flags.resize(num_keypts);
+    std::fill(outlier_flags.begin(), outlier_flags.end(), false);
 
     // 3. Connect the landmark vertices by using projection edges
 
     // Container of the reprojection edges
-    using pose_opt_edge_wrapper = internal::se3::pose_opt_edge_wrapper<data::frame>;
+    using pose_opt_edge_wrapper = internal::se3::pose_opt_edge_wrapper;
     std::vector<pose_opt_edge_wrapper> pose_opt_edge_wraps;
     pose_opt_edge_wraps.reserve(num_keypts);
 
@@ -60,7 +80,7 @@ unsigned int pose_optimizer::optimize(data::frame& frm) const {
     const float sqrt_chi_sq_3D = std::sqrt(chi_sq_3D);
 
     for (unsigned int idx = 0; idx < num_keypts; ++idx) {
-        const auto& lm = frm.landmarks_.at(idx);
+        const auto& lm = landmarks.at(idx);
         if (!lm) {
             continue;
         }
@@ -69,16 +89,15 @@ unsigned int pose_optimizer::optimize(data::frame& frm) const {
         }
 
         ++num_init_obs;
-        frm.outlier_flags_.at(idx) = false;
 
         // Connect the frame and the landmark vertices using the projection edges
-        const auto& undist_keypt = frm.frm_obs_.undist_keypts_.at(idx);
-        const float x_right = frm.frm_obs_.stereo_x_right_.at(idx);
-        const float inv_sigma_sq = frm.orb_params_->inv_level_sigma_sq_.at(undist_keypt.octave);
-        const auto sqrt_chi_sq = (frm.camera_->setup_type_ == camera::setup_type_t::Monocular)
+        const auto& undist_keypt = frm_obs.undist_keypts_.at(idx);
+        const float x_right = frm_obs.stereo_x_right_.at(idx);
+        const float inv_sigma_sq = orb_params->inv_level_sigma_sq_.at(undist_keypt.octave);
+        const auto sqrt_chi_sq = (camera->setup_type_ == camera::setup_type_t::Monocular)
                                      ? sqrt_chi_sq_2D
                                      : sqrt_chi_sq_3D;
-        auto pose_opt_edge_wrap = pose_opt_edge_wrapper(&frm, frm_vtx, lm->get_pos_in_world(),
+        auto pose_opt_edge_wrap = pose_opt_edge_wrapper(camera, frm_vtx, lm->get_pos_in_world(),
                                                         idx, undist_keypt.pt.x, undist_keypt.pt.y, x_right,
                                                         inv_sigma_sq, sqrt_chi_sq);
         pose_opt_edge_wraps.push_back(pose_opt_edge_wrap);
@@ -101,29 +120,29 @@ unsigned int pose_optimizer::optimize(data::frame& frm) const {
         for (auto& pose_opt_edge_wrap : pose_opt_edge_wraps) {
             auto edge = pose_opt_edge_wrap.edge_;
 
-            if (frm.outlier_flags_.at(pose_opt_edge_wrap.idx_)) {
+            if (outlier_flags.at(pose_opt_edge_wrap.idx_)) {
                 edge->computeError();
             }
 
             if (pose_opt_edge_wrap.is_monocular_) {
                 if (chi_sq_2D < edge->chi2()) {
-                    frm.outlier_flags_.at(pose_opt_edge_wrap.idx_) = true;
+                    outlier_flags.at(pose_opt_edge_wrap.idx_) = true;
                     pose_opt_edge_wrap.set_as_outlier();
                     ++num_bad_obs;
                 }
                 else {
-                    frm.outlier_flags_.at(pose_opt_edge_wrap.idx_) = false;
+                    outlier_flags.at(pose_opt_edge_wrap.idx_) = false;
                     pose_opt_edge_wrap.set_as_inlier();
                 }
             }
             else {
                 if (chi_sq_3D < edge->chi2()) {
-                    frm.outlier_flags_.at(pose_opt_edge_wrap.idx_) = true;
+                    outlier_flags.at(pose_opt_edge_wrap.idx_) = true;
                     pose_opt_edge_wrap.set_as_outlier();
                     ++num_bad_obs;
                 }
                 else {
-                    frm.outlier_flags_.at(pose_opt_edge_wrap.idx_) = false;
+                    outlier_flags.at(pose_opt_edge_wrap.idx_) = false;
                     pose_opt_edge_wrap.set_as_inlier();
                 }
             }
@@ -140,7 +159,7 @@ unsigned int pose_optimizer::optimize(data::frame& frm) const {
 
     // 5. Update the information
 
-    frm.set_cam_pose(frm_vtx->estimate());
+    optimized_pose = frm_vtx->estimate();
 
     return num_init_obs - num_bad_obs;
 }

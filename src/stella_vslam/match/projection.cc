@@ -120,10 +120,6 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
         if (!lm) {
             continue;
         }
-        // Discard any matches that were marked as outliers after applyng pose optimization
-        if (last_frm.outlier_flags_.at(idx_last)) {
-            continue;
-        }
 
         // 3D point coordinates with the global reference
         const Vec3_t pos_w = lm->get_pos_in_world();

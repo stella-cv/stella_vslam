@@ -236,7 +236,6 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
 
         // set the 2D-3D assocications to the current frame
         curr_frm.landmarks_.at(curr_idx) = lm;
-        curr_frm.outlier_flags_.at(curr_idx) = false;
 
         // add the landmark to the map DB
         map_db_->add_landmark(lm);
@@ -361,7 +360,6 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
 
         // set the 2D-3D associations to the current frame
         curr_frm.landmarks_.at(idx) = lm;
-        curr_frm.outlier_flags_.at(idx) = false;
 
         // add the landmark to the map DB
         map_db_->add_landmark(lm);

@@ -37,6 +37,20 @@ public:
     bool reloc_by_candidates(data::frame& curr_frm,
                              const std::vector<std::shared_ptr<stella_vslam::data::keyframe>>& reloc_candidates,
                              bool use_robust_matcher = false);
+    bool reloc_by_candidate(data::frame& curr_frm,
+                            const std::shared_ptr<stella_vslam::data::keyframe>& candidate_keyfrm,
+                            bool use_robust_matcher);
+    bool relocalize_by_pnp_solver(data::frame& curr_frm,
+                                  const std::shared_ptr<stella_vslam::data::keyframe>& candidate_keyfrm,
+                                  bool use_robust_matcher,
+                                  std::vector<unsigned int>& inlier_indices,
+                                  std::vector<std::shared_ptr<data::landmark>>& matched_landmarks) const;
+    bool optimize_pose(data::frame& curr_frm,
+                       const std::shared_ptr<stella_vslam::data::keyframe>& candidate_keyfrm,
+                       std::vector<bool>& outlier_flags) const;
+    bool refine_pose(data::frame& curr_frm,
+                     const std::shared_ptr<stella_vslam::data::keyframe>& candidate_keyfrm,
+                     const std::set<std::shared_ptr<data::landmark>>& already_found_landmarks) const;
 
 private:
     //! Extract valid (non-deleted) landmarks from landmark vector

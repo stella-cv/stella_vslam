@@ -1,11 +1,22 @@
 #ifndef STELLA_VSLAM_OPTIMIZE_POSE_OPTIMIZER_H
 #define STELLA_VSLAM_OPTIMIZE_POSE_OPTIMIZER_H
 
+#include "stella_vslam/type.h"
+
 namespace stella_vslam {
 
 namespace data {
 class frame;
-}
+class keyframe;
+} // namespace data
+
+namespace camera {
+class base;
+} // namespace camera
+
+namespace feature {
+class orb_params;
+} // namespace feature
 
 namespace optimize {
 
@@ -28,7 +39,15 @@ public:
      * @param frm
      * @return
      */
-    unsigned int optimize(data::frame& frm) const;
+    unsigned int optimize(const data::frame& frm, g2o::SE3Quat& optimized_pose, std::vector<bool>& outlier_flags) const;
+    unsigned int optimize(const data::keyframe* keyfrm, g2o::SE3Quat& optimized_pose, std::vector<bool>& outlier_flags) const;
+
+    unsigned int optimize(const Mat44_t& cam_pose_cw, const data::frame_observation& frm_obs,
+                          const feature::orb_params* orb_params,
+                          const camera::base* camera,
+                          const std::vector<std::shared_ptr<data::landmark>>& landmarks,
+                          g2o::SE3Quat& optimized_pose,
+                          std::vector<bool>& outlier_flags) const;
 
 private:
     //! robust optimizationの試行回数
