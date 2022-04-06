@@ -79,6 +79,12 @@ private:
     //!
     unsigned int num_reliable_keyfrms_ = 2;
 
+    //! Desired number of valid observations per keyframe (If 0, redundant connection removal is disabled.)
+    unsigned int desired_valid_obs_ = 0;
+
+    //! Desired number of observations per landmark
+    unsigned int num_obs_keyfrms_thr_ = 10;
+
     //! origin keyframe ID
     unsigned int origin_keyfrm_id_ = 0;
 

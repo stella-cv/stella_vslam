@@ -10,7 +10,9 @@ local_map_cleaner::local_map_cleaner(const YAML::Node& yaml_node, data::map_data
       redundant_obs_ratio_thr_(yaml_node["redundant_obs_ratio_thr"].as<double>(0.9)),
       observed_ratio_thr_(yaml_node["observed_ratio_thr"].as<double>(0.3)),
       num_obs_thr_(yaml_node["num_obs_thr"].as<unsigned int>(2)),
-      num_reliable_keyfrms_(yaml_node["num_reliable_keyfrms"].as<unsigned int>(2)) {}
+      num_reliable_keyfrms_(yaml_node["num_reliable_keyfrms"].as<unsigned int>(2)),
+      desired_valid_obs_(yaml_node["desired_valid_obs"].as<unsigned int>(0)),
+      num_obs_keyfrms_thr_(yaml_node["num_obs_keyfrms_thr"].as<unsigned int>(10)) {}
 
 void local_map_cleaner::reset() {
     fresh_landmarks_.clear();
@@ -93,6 +95,32 @@ unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr
         unsigned int num_redundant_obs = 0;
         unsigned int num_valid_obs = 0;
         count_redundant_observations(covisibility, num_valid_obs, num_redundant_obs);
+
+        // Remove redundant connections
+        unsigned int num_removed_connection = 0;
+        if (desired_valid_obs_ > 0 && num_valid_obs > desired_valid_obs_) {
+            auto lms = covisibility->get_landmarks();
+            for (unsigned int idx = 0; idx < lms.size(); ++idx) {
+                const auto& lm = lms.at(idx);
+                if (!lm) {
+                    continue;
+                }
+                if (lm->will_be_erased()) {
+                    continue;
+                }
+
+                const auto num_obs_keyfrms = lm->num_observations();
+                if (num_obs_keyfrms > num_obs_keyfrms_thr_) {
+                    covisibility->erase_landmark_with_index(idx);
+                    lm->erase_observation(map_db_, covisibility);
+                    num_removed_connection++;
+                    if (num_removed_connection >= num_valid_obs - desired_valid_obs_) {
+                        break;
+                    }
+                }
+            }
+            covisibility->graph_node_->update_connections();
+        }
 
         // if the redundant observation ratio of `covisibility` is larger than the threshold, it will be removed
         if (redundant_obs_ratio_thr_ <= static_cast<float>(num_redundant_obs) / num_valid_obs) {
