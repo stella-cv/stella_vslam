@@ -2,7 +2,10 @@
 #define STELLA_VSLAM_MARKER_DETECTOR_BASE_H
 
 #include <unordered_map>
-#include <opencv2/core.hpp>
+#include <memory>
+
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/types.hpp>
 
 namespace stella_vslam {
 

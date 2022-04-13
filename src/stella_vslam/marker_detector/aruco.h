@@ -4,7 +4,8 @@
 #include "stella_vslam/marker_detector/base.h"
 
 #include <unordered_map>
-#include <opencv2/core.hpp>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/types.hpp>
 
 namespace cv {
 namespace aruco {

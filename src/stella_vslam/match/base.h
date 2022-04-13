@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <numeric>
 
-#include <opencv2/core.hpp>
+#include <opencv2/core/mat.hpp>
 
 namespace stella_vslam {
 namespace match {

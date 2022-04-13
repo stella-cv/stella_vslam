@@ -1,7 +1,8 @@
 #include "stella_vslam/feature/orb_extractor.h"
 #include "stella_vslam/data/bow_vocabulary.h"
 
-#include <opencv2/core.hpp>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/types.hpp>
 #include <opencv2/features2d.hpp>
 #include <opencv2/highgui.hpp>
 

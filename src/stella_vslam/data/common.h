@@ -4,7 +4,8 @@
 #include "stella_vslam/type.h"
 #include "stella_vslam/camera/base.h"
 
-#include <opencv2/core.hpp>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/types.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 namespace stella_vslam {

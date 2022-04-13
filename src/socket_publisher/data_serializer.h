@@ -7,7 +7,6 @@
 
 #include <Eigen/Core>
 #include <sioclient/sio_client.h>
-#include <opencv2/core.hpp>
 
 namespace stella_vslam {
 

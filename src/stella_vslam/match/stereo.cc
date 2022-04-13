@@ -1,5 +1,7 @@
 #include "stella_vslam/match/stereo.h"
 
+#include <opencv2/core.hpp>
+
 namespace stella_vslam {
 namespace match {
 

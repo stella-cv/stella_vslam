@@ -2,7 +2,7 @@
 #define STELLA_VSLAM_DATA_BOW_VOCABULARY_FWD_H
 
 #ifdef USE_DBOW2
-#include <opencv2/core.hpp>
+#include <opencv2/core/mat.hpp>
 
 namespace DBoW2 {
 class FORB;

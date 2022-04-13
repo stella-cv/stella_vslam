@@ -3,7 +3,7 @@
 
 #include "stella_vslam/camera/base.h"
 
-#include <opencv2/core.hpp>
+#include <opencv2/core/mat.hpp>
 
 namespace stella_vslam {
 namespace util {
