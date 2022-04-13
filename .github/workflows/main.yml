@@ -41,7 +41,7 @@ jobs:
       run:
         shell: bash
     container:
-      image: ghcr.io/ymd-stella/stella-cv/stella_vslam:latest
+      image: ghcr.io/ymd-stella/stella-cv/stella_vslam:cv-4.x
     steps:
       - uses: actions/checkout@v2
       - name: cmake and make with pangolin viewer
@@ -56,13 +56,34 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_SOCKET_PUBLISHER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
           make -j $(($(nproc) / 2))
 
+  build_without_gui_cv3:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: ghcr.io/ymd-stella/stella-cv/stella_vslam:cv-3.x
+    steps:
+      - uses: actions/checkout@v2
+      - name: cmake and make
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
+          make -j $(($(nproc) / 2))
+      - name: unit test
+        run: |
+          cd build
+          export BOW_VOCAB=/datasets/orb_vocab/orb_vocab.fbow
+          ctest -V
+
   build_without_gui:
     runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
     container:
-      image: ghcr.io/ymd-stella/stella-cv/stella_vslam:latest
+      image: ghcr.io/ymd-stella/stella-cv/stella_vslam:cv-4.x
     steps:
       - uses: actions/checkout@v2
       - name: cmake and make
@@ -205,7 +226,7 @@ jobs:
       run:
         shell: bash
     container:
-      image: ghcr.io/ymd-stella/stella-cv/stella_vslam:latest
+      image: ghcr.io/ymd-stella/stella-cv/stella_vslam:cv-4.x
     steps:
       - uses: actions/checkout@v2
       - name: cmake and make
