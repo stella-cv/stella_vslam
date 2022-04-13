@@ -6,7 +6,6 @@
 #include <string>
 #include <limits>
 
-#include <opencv2/core.hpp>
 #include <yaml-cpp/yaml.h>
 #include <nlohmann/json_fwd.hpp>
 

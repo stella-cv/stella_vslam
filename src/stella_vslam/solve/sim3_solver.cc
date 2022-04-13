@@ -7,8 +7,6 @@
 #include <vector>
 #include <cmath>
 
-#include <opencv2/core/core.hpp>
-
 namespace stella_vslam {
 namespace solve {
 

@@ -8,7 +8,8 @@
 #include <vector>
 #include <memory>
 
-#include <opencv2/core/core.hpp>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/types.hpp>
 
 namespace stella_vslam {
 

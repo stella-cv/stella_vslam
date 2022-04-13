@@ -2,7 +2,7 @@
 #define STELLA_VSLAM_DATA_MARKER2D_H
 
 #include "stella_vslam/type.h"
-#include <opencv2/core/core.hpp>
+#include <opencv2/core/types.hpp>
 #include <Eigen/Core>
 
 namespace stella_vslam {

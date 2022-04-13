@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#include <opencv2/core.hpp>
+#include <opencv2/core/types.hpp>
 
 namespace stella_vslam {
 namespace solve {

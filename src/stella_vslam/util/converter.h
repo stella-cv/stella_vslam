@@ -4,7 +4,8 @@
 #include "stella_vslam/type.h"
 
 #include <Eigen/Dense>
-#include <opencv2/core/core.hpp>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/types.hpp>
 
 namespace g2o {
 class SE3Quat;

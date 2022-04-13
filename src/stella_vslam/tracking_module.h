@@ -12,7 +12,7 @@
 #include <memory>
 #include <future>
 
-#include <opencv2/core/core.hpp>
+#include <opencv2/core/types.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
 namespace stella_vslam {

@@ -8,7 +8,7 @@
 #include <atomic>
 #include <memory>
 
-#include <opencv2/core/core.hpp>
+#include <opencv2/core/mat.hpp>
 #include <nlohmann/json_fwd.hpp>
 
 namespace stella_vslam {

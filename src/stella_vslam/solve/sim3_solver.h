@@ -7,8 +7,6 @@
 #include <random>
 #include <memory>
 
-#include <opencv2/core.hpp>
-
 namespace stella_vslam {
 namespace solve {
 

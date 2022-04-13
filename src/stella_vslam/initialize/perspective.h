@@ -4,8 +4,6 @@
 #include "stella_vslam/type.h"
 #include "stella_vslam/initialize/base.h"
 
-#include <opencv2/core.hpp>
-
 namespace stella_vslam {
 
 namespace data {
