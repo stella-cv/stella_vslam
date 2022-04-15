@@ -120,7 +120,7 @@ bool relocalizer::relocalize_by_pnp_solver(data::frame& curr_frm,
 
     // Setup an PnP solver with the current 2D-3D matches
     const auto valid_indices = extract_valid_indices(matched_landmarks);
-    auto pnp_solver = setup_pnp_solver(valid_indices, curr_frm.frm_obs_.bearings_, curr_frm.frm_obs_.keypts_,
+    auto pnp_solver = setup_pnp_solver(valid_indices, curr_frm.frm_obs_.bearings_, curr_frm.frm_obs_.undist_keypts_,
                                        matched_landmarks, curr_frm.orb_params_->scale_factors_);
 
     // 1. Estimate the camera pose using EPnP (+ RANSAC)

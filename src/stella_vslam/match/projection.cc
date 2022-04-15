@@ -135,7 +135,7 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
         }
 
         // Acquire keypoints in the cell where the reprojected 3D points exist
-        const auto last_scale_level = last_frm.frm_obs_.keypts_.at(idx_last).octave;
+        const auto last_scale_level = last_frm.frm_obs_.undist_keypts_.at(idx_last).octave;
         int min_level;
         int max_level;
         if (assume_forward) {
@@ -389,7 +389,7 @@ unsigned int projection::match_by_Sim3_transform(const std::shared_ptr<data::key
                 continue;
             }
 
-            const auto scale_level = static_cast<unsigned int>(keyfrm->frm_obs_.keypts_.at(idx).octave);
+            const auto scale_level = static_cast<unsigned int>(keyfrm->frm_obs_.undist_keypts_.at(idx).octave);
 
             // TODO: should determine the scale with 'keyfrm-> get_keypts_in_cell ()'
             if (scale_level < pred_scale_level - 1 || pred_scale_level < scale_level) {
@@ -513,7 +513,7 @@ unsigned int projection::match_keyframes_mutually(const std::shared_ptr<data::ke
             int best_idx_2 = -1;
 
             for (const auto idx_2 : indices) {
-                const auto scale_level = static_cast<unsigned int>(keyfrm_2->frm_obs_.keypts_.at(idx_2).octave);
+                const auto scale_level = static_cast<unsigned int>(keyfrm_2->frm_obs_.undist_keypts_.at(idx_2).octave);
 
                 // TODO: should determine the scale with 'keyfrm-> get_keypts_in_cell ()'
                 if (scale_level < pred_scale_level - 1 || pred_scale_level < scale_level) {
@@ -596,7 +596,7 @@ unsigned int projection::match_keyframes_mutually(const std::shared_ptr<data::ke
             int best_idx_1 = -1;
 
             for (const auto idx_1 : indices) {
-                const auto scale_level = static_cast<unsigned int>(keyfrm_1->frm_obs_.keypts_.at(idx_1).octave);
+                const auto scale_level = static_cast<unsigned int>(keyfrm_1->frm_obs_.undist_keypts_.at(idx_1).octave);
 
                 // TODO: should determine the scale with 'keyfrm-> get_keypts_in_cell ()'
                 if (scale_level < pred_scale_level - 1 || pred_scale_level < scale_level) {

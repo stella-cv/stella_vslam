@@ -80,14 +80,6 @@ bool tracking_module::get_mapping_module_status() const {
     return mapping_is_enabled_;
 }
 
-std::vector<cv::KeyPoint> tracking_module::get_initial_keypoints() const {
-    return initializer_.get_initial_keypoints();
-}
-
-std::vector<int> tracking_module::get_initial_matches() const {
-    return initializer_.get_initial_matches();
-}
-
 bool tracking_module::request_relocalize_by_pose(const Mat44_t& pose) {
     std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
     if (relocalize_by_pose_is_requested_) {

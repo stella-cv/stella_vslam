@@ -38,7 +38,7 @@ public:
      * Update tracking information
      * NOTE: should be accessed from system thread
      */
-    void update(tracking_module* tracker, const cv::Mat& img, double elapsed_ms);
+    void update(tracking_module* tracker, std::vector<cv::KeyPoint>& keypts, const cv::Mat& img, double elapsed_ms);
 
     /**
      * Get the current image with tracking information
@@ -47,10 +47,6 @@ public:
     cv::Mat draw_frame();
 
 protected:
-    unsigned int draw_initial_points(cv::Mat& img, const std::vector<cv::KeyPoint>& init_keypts,
-                                     const std::vector<int>& init_matches, const std::vector<cv::KeyPoint>& curr_keypts,
-                                     const float mag = 1.0) const;
-
     unsigned int draw_tracked_points(cv::Mat& img, const std::vector<cv::KeyPoint>& curr_keypts,
                                      const std::vector<bool>& is_tracked, const bool mapping_is_enabled,
                                      const float mag = 1.0) const;
@@ -74,11 +70,6 @@ protected:
     cv::Mat img_;
     //! tracking state
     tracker_state_t tracking_state_;
-
-    //! initial keypoints
-    std::vector<cv::KeyPoint> init_keypts_;
-    //! matching between initial frame and current frame
-    std::vector<int> init_matches_;
 
     //! current keypoints
     std::vector<cv::KeyPoint> curr_keypts_;

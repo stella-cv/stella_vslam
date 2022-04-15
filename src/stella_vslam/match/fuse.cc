@@ -80,7 +80,7 @@ unsigned int fuse::detect_duplication(const std::shared_ptr<data::keyframe>& key
         int best_idx = -1;
 
         for (const auto idx : indices) {
-            const auto scale_level = keyfrm->frm_obs_.keypts_.at(idx).octave;
+            const auto scale_level = keyfrm->frm_obs_.undist_keypts_.at(idx).octave;
 
             // TODO: shoud determine the scale with 'keyfrm-> get_keypts_in_cell ()'
             if (scale_level < pred_scale_level - 1 || pred_scale_level < scale_level) {

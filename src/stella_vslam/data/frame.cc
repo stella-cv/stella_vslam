@@ -146,8 +146,8 @@ Vec3_t frame::triangulate_stereo(const unsigned int idx) const {
 
             const float depth = frm_obs_.depths_.empty() ? -1.0f : frm_obs_.depths_.at(idx);
             if (0.0 < depth) {
-                const float x = frm_obs_.keypts_.at(idx).pt.x;
-                const float y = frm_obs_.keypts_.at(idx).pt.y;
+                const float x = frm_obs_.undist_keypts_.at(idx).pt.x;
+                const float y = frm_obs_.undist_keypts_.at(idx).pt.y;
                 const float unproj_x = (x - camera->cx_) * depth * camera->fx_inv_;
                 const float unproj_y = (y - camera->cy_) * depth * camera->fy_inv_;
                 const Vec3_t pos_c{unproj_x, unproj_y, depth};

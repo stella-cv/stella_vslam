@@ -308,12 +308,8 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
 
     // Keypoints information
     const auto num_keypts = json_keyfrm.at("n_keypts").get<unsigned int>();
-    // keypts
-    const auto json_keypts = json_keyfrm.at("keypts");
-    const auto keypts = convert_json_to_keypoints(json_keypts);
-    assert(keypts.size() == num_keypts);
     // undist_keypts
-    const auto json_undist_keypts = json_keyfrm.at("undists");
+    const auto json_undist_keypts = json_keyfrm.at("undist_keypts");
     const auto undist_keypts = convert_json_to_undistorted(json_undist_keypts);
     assert(undist_keypts.size() == num_keypts);
     // bearings
@@ -336,7 +332,7 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     std::vector<std::vector<std::vector<unsigned int>>> keypt_indices_in_cells;
     data::assign_keypoints_to_grid(camera, undist_keypts, keypt_indices_in_cells);
     // Construct frame_observation
-    frame_observation frm_obs{num_keypts, keypts, descriptors, undist_keypts, bearings, stereo_x_right, depths, keypt_indices_in_cells};
+    frame_observation frm_obs{num_keypts, descriptors, undist_keypts, bearings, stereo_x_right, depths, keypt_indices_in_cells};
     // Compute BoW
     data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
     auto keyfrm = data::keyframe::make_keyframe(
@@ -531,10 +527,6 @@ bool map_database::load_keyframes_from_db(sqlite3* db,
         column_id++;
         unsigned int num_keypts = sqlite3_column_int64(stmt, column_id);
         column_id++;
-        std::vector<cv::KeyPoint> keypts(num_keypts);
-        p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
-        std::memcpy(keypts.data(), p, sqlite3_column_bytes(stmt, column_id));
-        column_id++;
         std::vector<cv::KeyPoint> undist_keypts(num_keypts);
         p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
         std::memcpy(undist_keypts.data(), p, sqlite3_column_bytes(stmt, column_id));
@@ -562,7 +554,7 @@ bool map_database::load_keyframes_from_db(sqlite3* db,
         std::vector<std::vector<std::vector<unsigned int>>> keypt_indices_in_cells;
         data::assign_keypoints_to_grid(camera, undist_keypts, keypt_indices_in_cells);
         // Construct frame_observation
-        frame_observation frm_obs{num_keypts, keypts, descriptors, undist_keypts, bearings, stereo_x_right, depths, keypt_indices_in_cells};
+        frame_observation frm_obs{num_keypts, descriptors, undist_keypts, bearings, stereo_x_right, depths, keypt_indices_in_cells};
         // Compute BoW
         data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
         auto keyfrm = data::keyframe::make_keyframe(
@@ -725,8 +717,7 @@ bool map_database::save_keyframes_to_db(sqlite3* db) const {
         {"orb_params", "BLOB"},
         {"pose_cw", "BLOB"},
         {"n_keypts", "INTEGER"},
-        {"keypts", "BLOB"},
-        {"undists", "BLOB"},
+        {"undist_keypts", "BLOB"},
         {"x_rights", "BLOB"},
         {"depths", "BLOB"},
         {"descs", "BLOB"}};
@@ -788,12 +779,8 @@ bool map_database::save_keyframes_to_db(sqlite3* db) const {
         }
         size_t num_keypts = 0;
         if (ret == SQLITE_OK) {
-            num_keypts = keyfrm->frm_obs_.keypts_.size();
+            num_keypts = keyfrm->frm_obs_.undist_keypts_.size();
             ret = sqlite3_bind_int64(stmt, column_id++, num_keypts);
-        }
-        if (ret == SQLITE_OK) {
-            const auto& keypts = keyfrm->frm_obs_.keypts_;
-            ret = sqlite3_bind_blob(stmt, column_id++, keypts.data(), keypts.size() * sizeof(std::remove_reference<decltype(keypts)>::type::value_type), SQLITE_TRANSIENT);
         }
         if (ret == SQLITE_OK) {
             const auto& undist_keypts = keyfrm->frm_obs_.undist_keypts_;

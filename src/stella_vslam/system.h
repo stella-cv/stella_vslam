@@ -262,6 +262,9 @@ private:
 
     //! mutex for flags of enable/disable loop detector
     mutable std::mutex mtx_loop_detector_;
+
+    //! Temporary variables for visualization
+    std::vector<cv::KeyPoint> keypts_;
 };
 
 } // namespace stella_vslam

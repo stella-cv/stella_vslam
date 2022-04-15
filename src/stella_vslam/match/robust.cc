@@ -220,8 +220,8 @@ unsigned int robust::brute_force_match(data::frame& frm, const std::shared_ptr<d
 
     const auto num_keypts_1 = frm.frm_obs_.num_keypts_;
     const auto num_keypts_2 = keyfrm->frm_obs_.num_keypts_;
-    const auto keypts_1 = frm.frm_obs_.keypts_;
-    const auto keypts_2 = keyfrm->frm_obs_.keypts_;
+    const auto keypts_1 = frm.frm_obs_.undist_keypts_;
+    const auto keypts_2 = keyfrm->frm_obs_.undist_keypts_;
     const auto lms_2 = keyfrm->get_landmarks();
     const auto& descs_1 = frm.frm_obs_.descriptors_;
     const auto& descs_2 = keyfrm->frm_obs_.descriptors_;

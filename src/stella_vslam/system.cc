@@ -331,14 +331,15 @@ data::frame system::create_monocular_frame(const cv::Mat& img, const double time
 
     // Extract ORB feature
     auto extractor = is_init ? ini_extractor_left_ : extractor_left_;
-    extractor->extract(img_gray, mask, frm_obs.keypts_, frm_obs.descriptors_);
-    frm_obs.num_keypts_ = frm_obs.keypts_.size();
-    if (frm_obs.keypts_.empty()) {
+    keypts_.clear();
+    extractor->extract(img_gray, mask, keypts_, frm_obs.descriptors_);
+    frm_obs.num_keypts_ = keypts_.size();
+    if (keypts_.empty()) {
         spdlog::warn("preprocess: cannot extract any keypoints");
     }
 
     // Undistort keypoints
-    camera_->undistort_keypoints(frm_obs.keypts_, frm_obs.undist_keypts_);
+    camera_->undistort_keypoints(keypts_, frm_obs.undist_keypts_);
 
     // Convert to bearing vector
     camera_->convert_keypoints_to_bearings(frm_obs.undist_keypts_, frm_obs.bearings_);
@@ -369,25 +370,26 @@ data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& 
     cv::Mat descriptors_right;
 
     // Extract ORB feature
+    keypts_.clear();
     std::thread thread_left([this, &frm_obs, &img_gray, &mask]() {
-        extractor_left_->extract(img_gray, mask, frm_obs.keypts_, frm_obs.descriptors_);
+        extractor_left_->extract(img_gray, mask, keypts_, frm_obs.descriptors_);
     });
     std::thread thread_right([this, &frm_obs, &right_img_gray, &mask, &keypts_right, &descriptors_right]() {
         extractor_right_->extract(right_img_gray, mask, keypts_right, descriptors_right);
     });
     thread_left.join();
     thread_right.join();
-    frm_obs.num_keypts_ = frm_obs.keypts_.size();
-    if (frm_obs.keypts_.empty()) {
+    frm_obs.num_keypts_ = keypts_.size();
+    if (keypts_.empty()) {
         spdlog::warn("preprocess: cannot extract any keypoints");
     }
 
     // Undistort keypoints
-    camera_->undistort_keypoints(frm_obs.keypts_, frm_obs.undist_keypts_);
+    camera_->undistort_keypoints(keypts_, frm_obs.undist_keypts_);
 
     // Estimate depth with stereo match
     match::stereo stereo_matcher(extractor_left_->image_pyramid_, extractor_right_->image_pyramid_,
-                                 frm_obs.keypts_, keypts_right, frm_obs.descriptors_, descriptors_right,
+                                 keypts_, keypts_right, frm_obs.descriptors_, descriptors_right,
                                  orb_params_->scale_factors_, orb_params_->inv_scale_factors_,
                                  camera_->focal_x_baseline_, camera_->true_baseline_);
     stereo_matcher.compute(frm_obs.stereo_x_right_, frm_obs.depths_);
@@ -417,14 +419,15 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
     data::frame_observation frm_obs;
 
     // Extract ORB feature
-    extractor_left_->extract(img_gray, mask, frm_obs.keypts_, frm_obs.descriptors_);
-    frm_obs.num_keypts_ = frm_obs.keypts_.size();
-    if (frm_obs.keypts_.empty()) {
+    keypts_.clear();
+    extractor_left_->extract(img_gray, mask, keypts_, frm_obs.descriptors_);
+    frm_obs.num_keypts_ = keypts_.size();
+    if (keypts_.empty()) {
         spdlog::warn("preprocess: cannot extract any keypoints");
     }
 
     // Undistort keypoints
-    camera_->undistort_keypoints(frm_obs.keypts_, frm_obs.undist_keypts_);
+    camera_->undistort_keypoints(keypts_, frm_obs.undist_keypts_);
 
     // Calculate disparity from depth
     // Initialize with invalid value
@@ -432,7 +435,7 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
     frm_obs.depths_ = std::vector<float>(frm_obs.num_keypts_, -1);
 
     for (unsigned int idx = 0; idx < frm_obs.num_keypts_; idx++) {
-        const auto& keypt = frm_obs.keypts_.at(idx);
+        const auto& keypt = keypts_.at(idx);
         const auto& undist_keypt = frm_obs.undist_keypts_.at(idx);
 
         const float x = keypt.pt.x;
@@ -488,7 +491,7 @@ std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Ma
     const auto end = std::chrono::system_clock::now();
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    frame_publisher_->update(tracker_, img, elapsed_ms);
+    frame_publisher_->update(tracker_, keypts_, img, elapsed_ms);
     if (tracker_->tracking_state_ == tracker_state_t::Tracking && cam_pose_wc) {
         map_publisher_->set_current_cam_pose(util::converter::inverse_pose(*cam_pose_wc));
     }
