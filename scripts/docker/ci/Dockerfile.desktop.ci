@@ -107,7 +107,7 @@ RUN set -x && \
 ENV g2o_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/g2o
 
 # OpenCV
-ARG OPENCV_VERSION=4.1.0
+ARG OPENCV_VERSION=4.5.5
 WORKDIR /tmp
 RUN set -x && \
   wget -q https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip && \
