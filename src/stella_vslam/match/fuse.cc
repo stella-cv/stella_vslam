@@ -197,7 +197,7 @@ unsigned int fuse::replace_duplication(data::map_database* map_db,
                 continue;
             }
 
-            if (keyfrm->frm_obs_.stereo_x_right_.at(idx) >= 0) {
+            if (!keyfrm->frm_obs_.stereo_x_right_.empty() && keyfrm->frm_obs_.stereo_x_right_.at(idx) >= 0) {
                 // Compute reprojection error with 3 degrees of freedom if a stereo match exists
                 const auto e_x = reproj(0) - keypt.pt.x;
                 const auto e_y = reproj(1) - keypt.pt.y;

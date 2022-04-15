@@ -322,10 +322,8 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     camera->convert_keypoints_to_bearings(undist_keypts, bearings);
     // stereo_x_right
     const auto stereo_x_right = json_keyfrm.at("x_rights").get<std::vector<float>>();
-    assert(stereo_x_right.size() == num_keypts);
     // depths
     const auto depths = json_keyfrm.at("depths").get<std::vector<float>>();
-    assert(depths.size() == num_keypts);
     // descriptors
     const auto json_descriptors = json_keyfrm.at("descs");
     const auto descriptors = convert_json_to_descriptors(json_descriptors);
@@ -804,12 +802,10 @@ bool map_database::save_keyframes_to_db(sqlite3* db) const {
         }
         if (ret == SQLITE_OK) {
             const auto& stereo_x_right = keyfrm->frm_obs_.stereo_x_right_;
-            assert(stereo_x_right.size() == num_keypts);
             ret = sqlite3_bind_blob(stmt, column_id++, stereo_x_right.data(), stereo_x_right.size() * sizeof(std::remove_reference<decltype(stereo_x_right)>::type::value_type), SQLITE_TRANSIENT);
         }
         if (ret == SQLITE_OK) {
             const auto& depths = keyfrm->frm_obs_.depths_;
-            assert(depths.size() == num_keypts);
             ret = sqlite3_bind_blob(stmt, column_id++, depths.data(), depths.size() * sizeof(std::remove_reference<decltype(depths)>::type::value_type), SQLITE_TRANSIENT);
         }
         if (ret == SQLITE_OK) {

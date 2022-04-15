@@ -340,10 +340,6 @@ data::frame system::create_monocular_frame(const cv::Mat& img, const double time
     // Undistort keypoints
     camera_->undistort_keypoints(frm_obs.keypts_, frm_obs.undist_keypts_);
 
-    // Ignore stereo parameters
-    frm_obs.stereo_x_right_ = std::vector<float>(frm_obs.num_keypts_, -1);
-    frm_obs.depths_ = std::vector<float>(frm_obs.num_keypts_, -1);
-
     // Convert to bearing vector
     camera_->convert_keypoints_to_bearings(frm_obs.undist_keypts_, frm_obs.bearings_);
 

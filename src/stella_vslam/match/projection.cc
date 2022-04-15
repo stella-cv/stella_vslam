@@ -49,7 +49,7 @@ unsigned int projection::match_frame_and_landmarks(data::frame& frm,
                 continue;
             }
 
-            if (0 < frm.frm_obs_.stereo_x_right_.at(idx)) {
+            if (!frm.frm_obs_.stereo_x_right_.empty() && 0 < frm.frm_obs_.stereo_x_right_.at(idx)) {
                 const auto reproj_error = std::abs(lm_to_x_right.at(local_lm->id_) - frm.frm_obs_.stereo_x_right_.at(idx));
                 if (margin * frm.orb_params_->scale_factors_.at(pred_scale_level) < reproj_error) {
                     continue;
@@ -167,7 +167,7 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
                 continue;
             }
 
-            if (curr_frm.frm_obs_.stereo_x_right_.at(curr_idx) > 0) {
+            if (!curr_frm.frm_obs_.stereo_x_right_.empty() && curr_frm.frm_obs_.stereo_x_right_.at(curr_idx) > 0) {
                 const float reproj_error = std::fabs(x_right - curr_frm.frm_obs_.stereo_x_right_.at(curr_idx));
                 if (margin * curr_frm.orb_params_->scale_factors_.at(last_scale_level) < reproj_error) {
                     continue;

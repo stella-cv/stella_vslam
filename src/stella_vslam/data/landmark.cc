@@ -48,7 +48,7 @@ void landmark::add_observation(const std::shared_ptr<keyframe>& keyfrm, unsigned
     }
     observations_[keyfrm] = idx;
 
-    if (0 <= keyfrm->frm_obs_.stereo_x_right_.at(idx)) {
+    if (!keyfrm->frm_obs_.stereo_x_right_.empty() && 0 <= keyfrm->frm_obs_.stereo_x_right_.at(idx)) {
         num_observations_ += 2;
     }
     else {
@@ -63,7 +63,7 @@ void landmark::erase_observation(map_database* map_db, const std::shared_ptr<key
 
         if (observations_.count(keyfrm)) {
             int idx = observations_.at(keyfrm);
-            if (0 <= keyfrm->frm_obs_.stereo_x_right_.at(idx)) {
+            if (!keyfrm->frm_obs_.stereo_x_right_.empty() && 0 <= keyfrm->frm_obs_.stereo_x_right_.at(idx)) {
                 num_observations_ -= 2;
             }
             else {

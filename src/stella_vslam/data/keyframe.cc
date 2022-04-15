@@ -268,7 +268,7 @@ Vec3_t keyframe::triangulate_stereo(const unsigned int idx) const {
         case camera::model_type_t::Perspective: {
             auto camera = static_cast<camera::perspective*>(camera_);
 
-            const float depth = frm_obs_.depths_.at(idx);
+            const float depth = frm_obs_.depths_.empty() ? -1.0f : frm_obs_.depths_.at(idx);
             if (0.0 < depth) {
                 const float x = frm_obs_.undist_keypts_.at(idx).pt.x;
                 const float y = frm_obs_.undist_keypts_.at(idx).pt.y;
@@ -286,7 +286,7 @@ Vec3_t keyframe::triangulate_stereo(const unsigned int idx) const {
         case camera::model_type_t::Fisheye: {
             auto camera = static_cast<camera::fisheye*>(camera_);
 
-            const float depth = frm_obs_.depths_.at(idx);
+            const float depth = frm_obs_.depths_.empty() ? -1.0f : frm_obs_.depths_.at(idx);
             if (0.0 < depth) {
                 const float x = frm_obs_.undist_keypts_.at(idx).pt.x;
                 const float y = frm_obs_.undist_keypts_.at(idx).pt.y;
@@ -307,7 +307,7 @@ Vec3_t keyframe::triangulate_stereo(const unsigned int idx) const {
         case camera::model_type_t::RadialDivision: {
             auto camera = static_cast<camera::radial_division*>(camera_);
 
-            const float depth = frm_obs_.depths_.at(idx);
+            const float depth = frm_obs_.depths_.empty() ? -1.0f : frm_obs_.depths_.at(idx);
             if (0.0 < depth) {
                 const float x = frm_obs_.keypts_.at(idx).pt.x;
                 const float y = frm_obs_.keypts_.at(idx).pt.y;
