@@ -68,7 +68,7 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
                 }
 
                 // Check if it's a stereo keypoint or not
-                const bool is_stereo_keypt_1 = 0 <= keyfrm_1->frm_obs_.stereo_x_right_.at(idx_1);
+                const bool is_stereo_keypt_1 = !keyfrm_1->frm_obs_.stereo_x_right_.empty() && 0 <= keyfrm_1->frm_obs_.stereo_x_right_.at(idx_1);
 
                 // Acquire the keypoints and ORB feature vectors
                 const auto& keypt_1 = keyfrm_1->frm_obs_.undist_keypts_.at(idx_1);
@@ -93,7 +93,7 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
                     }
 
                     // Check if it's a stereo keypoint or not
-                    const bool is_stereo_keypt_2 = 0 <= keyfrm_2->frm_obs_.stereo_x_right_.at(idx_2);
+                    const bool is_stereo_keypt_2 = !keyfrm_2->frm_obs_.stereo_x_right_.empty() && 0 <= keyfrm_2->frm_obs_.stereo_x_right_.at(idx_2);
 
                     // Acquire the keypoints and ORB feature vectors
                     const Vec3_t& bearing_2 = keyfrm_2->frm_obs_.bearings_.at(idx_2);
@@ -220,8 +220,8 @@ unsigned int robust::brute_force_match(data::frame& frm, const std::shared_ptr<d
 
     const auto num_keypts_1 = frm.frm_obs_.num_keypts_;
     const auto num_keypts_2 = keyfrm->frm_obs_.num_keypts_;
-    const auto keypts_1 = frm.frm_obs_.keypts_;
-    const auto keypts_2 = keyfrm->frm_obs_.keypts_;
+    const auto keypts_1 = frm.frm_obs_.undist_keypts_;
+    const auto keypts_2 = keyfrm->frm_obs_.undist_keypts_;
     const auto lms_2 = keyfrm->get_landmarks();
     const auto& descs_1 = frm.frm_obs_.descriptors_;
     const auto& descs_2 = keyfrm->frm_obs_.descriptors_;

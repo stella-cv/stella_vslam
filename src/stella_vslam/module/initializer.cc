@@ -43,14 +43,6 @@ initializer_state_t initializer::get_state() const {
     return state_;
 }
 
-std::vector<cv::KeyPoint> initializer::get_initial_keypoints() const {
-    return init_frm_.frm_obs_.keypts_;
-}
-
-std::vector<int> initializer::get_initial_matches() const {
-    return init_matches_;
-}
-
 unsigned int initializer::get_initial_frame_id() const {
     return init_frm_id_;
 }

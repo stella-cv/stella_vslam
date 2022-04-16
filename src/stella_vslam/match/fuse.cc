@@ -80,7 +80,7 @@ unsigned int fuse::detect_duplication(const std::shared_ptr<data::keyframe>& key
         int best_idx = -1;
 
         for (const auto idx : indices) {
-            const auto scale_level = keyfrm->frm_obs_.keypts_.at(idx).octave;
+            const auto scale_level = keyfrm->frm_obs_.undist_keypts_.at(idx).octave;
 
             // TODO: shoud determine the scale with 'keyfrm-> get_keypts_in_cell ()'
             if (scale_level < pred_scale_level - 1 || pred_scale_level < scale_level) {
@@ -197,7 +197,7 @@ unsigned int fuse::replace_duplication(data::map_database* map_db,
                 continue;
             }
 
-            if (keyfrm->frm_obs_.stereo_x_right_.at(idx) >= 0) {
+            if (!keyfrm->frm_obs_.stereo_x_right_.empty() && keyfrm->frm_obs_.stereo_x_right_.at(idx) >= 0) {
                 // Compute reprojection error with 3 degrees of freedom if a stereo match exists
                 const auto e_x = reproj(0) - keypt.pt.x;
                 const auto e_y = reproj(1) - keypt.pt.y;

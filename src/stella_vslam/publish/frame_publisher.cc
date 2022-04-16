@@ -24,8 +24,6 @@ frame_publisher::~frame_publisher() {
 cv::Mat frame_publisher::draw_frame() {
     cv::Mat img;
     tracker_state_t tracking_state;
-    std::vector<cv::KeyPoint> init_keypts;
-    std::vector<int> init_matches;
     std::vector<cv::KeyPoint> curr_keypts;
     bool mapping_is_enabled;
     std::vector<bool> is_tracked;
@@ -39,11 +37,6 @@ cv::Mat frame_publisher::draw_frame() {
         tracking_state = tracking_state_;
 
         // copy tracking information
-        if (tracking_state == tracker_state_t::Initializing) {
-            init_keypts = init_keypts_;
-            init_matches = init_matches_;
-        }
-
         curr_keypts = curr_keypts_;
 
         mapping_is_enabled = mapping_is_enabled_;
@@ -65,10 +58,6 @@ cv::Mat frame_publisher::draw_frame() {
     // draw keypoints
     unsigned int num_tracked = 0;
     switch (tracking_state) {
-        case tracker_state_t::Initializing: {
-            num_tracked = draw_initial_points(img, init_keypts, init_matches, curr_keypts, mag);
-            break;
-        }
         case tracker_state_t::Tracking: {
             num_tracked = draw_tracked_points(img, curr_keypts, is_tracked, mapping_is_enabled, mag);
             break;
@@ -81,26 +70,6 @@ cv::Mat frame_publisher::draw_frame() {
     spdlog::trace("num_tracked: {}", num_tracked);
 
     return img;
-}
-
-unsigned int frame_publisher::draw_initial_points(cv::Mat& img, const std::vector<cv::KeyPoint>& init_keypts,
-                                                  const std::vector<int>& init_matches, const std::vector<cv::KeyPoint>& curr_keypts,
-                                                  const float mag) const {
-    unsigned int num_tracked = 0;
-
-    for (unsigned int i = 0; i < init_matches.size(); ++i) {
-        if (init_matches.at(i) < 0) {
-            continue;
-        }
-
-        cv::circle(img, init_keypts.at(i).pt * mag, 2, mapping_color_, -1);
-        cv::circle(img, curr_keypts.at(init_matches.at(i)).pt * mag, 2, mapping_color_, -1);
-        cv::line(img, init_keypts.at(i).pt * mag, curr_keypts.at(init_matches.at(i)).pt * mag, mapping_color_);
-
-        ++num_tracked;
-    }
-
-    return num_tracked;
 }
 
 unsigned int frame_publisher::draw_tracked_points(cv::Mat& img, const std::vector<cv::KeyPoint>& curr_keypts,
@@ -133,13 +102,13 @@ unsigned int frame_publisher::draw_tracked_points(cv::Mat& img, const std::vecto
     return num_tracked;
 }
 
-void frame_publisher::update(tracking_module* tracker, const cv::Mat& img, double elapsed_ms) {
+void frame_publisher::update(tracking_module* tracker, std::vector<cv::KeyPoint>& keypts, const cv::Mat& img, double elapsed_ms) {
     std::lock_guard<std::mutex> lock(mtx_);
 
     img.copyTo(img_);
 
-    const auto num_curr_keypts = tracker->curr_frm_.frm_obs_.num_keypts_;
-    curr_keypts_ = tracker->curr_frm_.frm_obs_.keypts_;
+    const auto num_curr_keypts = keypts.size();
+    curr_keypts_ = keypts;
     elapsed_ms_ = elapsed_ms;
     mapping_is_enabled_ = tracker->get_mapping_module_status();
     tracking_state_ = tracker->tracking_state_;
@@ -147,11 +116,6 @@ void frame_publisher::update(tracking_module* tracker, const cv::Mat& img, doubl
     is_tracked_ = std::vector<bool>(num_curr_keypts, false);
 
     switch (tracking_state_) {
-        case tracker_state_t::Initializing: {
-            init_keypts_ = tracker->get_initial_keypoints();
-            init_matches_ = tracker->get_initial_matches();
-            break;
-        }
         case tracker_state_t::Tracking: {
             for (unsigned int i = 0; i < num_curr_keypts; ++i) {
                 const auto& lm = tracker->curr_frm_.landmarks_.at(i);
