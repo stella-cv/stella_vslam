@@ -142,6 +142,7 @@ private:
     int min_distance_on_graph_ = 50;
 
     unsigned int num_matches_thr_ = 20;
+    unsigned int num_matches_thr2_ = 20;
     unsigned int num_optimized_inliers_thr_ = 20;
 
     //! Top n covisibilities to search (0 means disabled)

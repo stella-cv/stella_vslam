@@ -3,6 +3,7 @@
 #include "stella_vslam/data/bow_database.h"
 #include "stella_vslam/match/bow_tree.h"
 #include "stella_vslam/match/projection.h"
+#include "stella_vslam/match/robust.h"
 #include "stella_vslam/module/loop_detector.h"
 #include "stella_vslam/solve/sim3_solver.h"
 #include "stella_vslam/util/converter.h"
@@ -21,6 +22,7 @@ loop_detector::loop_detector(data::bow_database* bow_db, data::bow_vocabulary* b
       reject_by_graph_distance_(yaml_node["reject_by_graph_distance"].as<bool>(false)),
       min_distance_on_graph_(yaml_node["min_distance_on_graph"].as<unsigned int>(50)),
       num_matches_thr_(yaml_node["num_matches_thr"].as<unsigned int>(20)),
+      num_matches_thr2_(yaml_node["num_matches_thr2"].as<unsigned int>(20)),
       num_optimized_inliers_thr_(yaml_node["num_optimized_inliers_thr"].as<unsigned int>(20)),
       top_n_covisibilities_to_search_(yaml_node["top_n_covisibilities_to_search"].as<unsigned int>(0)) {
     spdlog::debug("CONSTRUCT: loop_detector");
@@ -347,6 +349,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
     // the Sim3 is estimated both in linear and non-linear ways
     // if the inlier after the estimation is lower than the threshold, discard tha candidate
 
+    match::robust robust_matcher(0.75, true);
     match::bow_tree bow_matcher(0.75, true);
     match::projection projection_matcher(0.75, true);
 
@@ -361,6 +364,16 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
 
         // check the threshold
         if (num_matches < num_matches_thr_) {
+            continue;
+        }
+
+        spdlog::debug("Checking if the loop candidate is appropriate: keyframe {} - keyframe {} (num_matches: {})", candidate->id_, cur_keyfrm_->id_, num_matches);
+
+        const auto num_matches2 = robust_matcher.match_keyframes(cur_keyfrm_, candidate, curr_match_lms_observed_in_cand, false);
+
+        spdlog::debug("num_matches2: {}", num_matches2);
+
+        if (num_matches2 < num_matches_thr2_) {
             continue;
         }
 
@@ -397,7 +410,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
             continue;
         }
 
-        spdlog::debug("found loop candidate via nonlinear Sim3 optimization: keyframe {} - keyframe {}", candidate->id_, cur_keyfrm_->id_);
+        spdlog::debug("found loop candidate via nonlinear Sim3 optimization: keyframe {} - keyframe {} (num_optimized_inliers: {})", candidate->id_, cur_keyfrm_->id_, num_optimized_inliers);
 
         selected_candidate = candidate;
         // convert the estimated Sim3 from "candidate -> current" to "world -> current"
