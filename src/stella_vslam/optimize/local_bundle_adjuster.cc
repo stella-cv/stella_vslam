@@ -210,7 +210,7 @@ void local_bundle_adjuster::optimize(data::map_database* map_db,
         }
     }
 
-    // Container of the landmark vertices
+    // Container of the reprojection edges for corners of markers
     internal::marker_vertex_container marker_vtx_container(vtx_id_offset, local_mkrs.size());
     std::vector<reproj_edge_wrapper> mkr_reproj_edge_wraps;
     mkr_reproj_edge_wraps.reserve(all_keyfrms.size() * local_mkrs.size());
