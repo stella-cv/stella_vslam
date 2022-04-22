@@ -17,7 +17,10 @@ loop_detector::loop_detector(data::bow_database* bow_db, data::bow_vocabulary* b
       loop_detector_is_enabled_(yaml_node["enabled"].as<bool>(true)),
       fix_scale_in_Sim3_estimation_(fix_scale_in_Sim3_estimation),
       num_final_matches_thr_(yaml_node["num_final_matches_threshold"].as<unsigned int>(40)),
-      min_continuity_(yaml_node["min_continuity"].as<unsigned int>(3)) {
+      min_continuity_(yaml_node["min_continuity"].as<unsigned int>(3)),
+      reject_by_graph_distance_(yaml_node["reject_by_graph_distance"].as<bool>(false)),
+      min_distance_on_graph_(yaml_node["min_distance_on_graph"].as<unsigned int>(50)),
+      top_n_covisibilities_to_search_(yaml_node["top_n_covisibilities_to_search"].as<unsigned int>(0)) {
     spdlog::debug("CONSTRUCT: loop_detector");
 }
 
@@ -59,7 +62,49 @@ bool loop_detector::detect_loop_candidates_impl() {
 
     // 1-2. inquiring to the BoW database about the similar keyframe whose score is lower than min_score
 
-    const auto init_loop_candidates = bow_db_->acquire_loop_candidates(cur_keyfrm_, min_score);
+    // Not searching near frames of query_keyframe
+    std::set<std::shared_ptr<data::keyframe>> keyfrms_to_reject;
+    if (!reject_by_graph_distance_) {
+        keyfrms_to_reject = cur_keyfrm_->graph_node_->get_connected_keyframes();
+        keyfrms_to_reject.insert(cur_keyfrm_);
+    }
+    else {
+        std::vector<std::pair<std::shared_ptr<data::keyframe>, int>> targets;
+        targets.emplace_back(cur_keyfrm_, 0);
+        keyfrms_to_reject.insert(cur_keyfrm_);
+        while (!targets.empty()) {
+            auto keyfrm_distance_pair = targets.back();
+            targets.pop_back();
+            auto& keyfrm = keyfrm_distance_pair.first;
+            auto& distance = keyfrm_distance_pair.second;
+            if (distance + 1 < min_distance_on_graph_) {
+                // search parent
+                const auto parent = keyfrm->graph_node_->get_spanning_parent();
+                if (parent && !static_cast<bool>(keyfrms_to_reject.count(parent))) {
+                    keyfrms_to_reject.insert(parent);
+                    targets.emplace_back(parent, distance + 1);
+                }
+                // search loop_edges
+                for (const auto& node : keyfrm->graph_node_->get_loop_edges()) {
+                    if (static_cast<bool>(keyfrms_to_reject.count(parent))) {
+                        continue;
+                    }
+                    keyfrms_to_reject.insert(node);
+                    targets.emplace_back(node, distance + 1);
+                }
+                // search children
+                for (const auto& child : keyfrm->graph_node_->get_spanning_children()) {
+                    if (static_cast<bool>(keyfrms_to_reject.count(child))) {
+                        continue;
+                    }
+                    keyfrms_to_reject.insert(child);
+                    targets.emplace_back(child, distance + 1);
+                }
+            }
+        }
+    }
+
+    const auto init_loop_candidates = bow_db_->acquire_loop_candidates(cur_keyfrm_, min_score, keyfrms_to_reject);
 
     // 1-3. if no candidates are found, cannot perform the loop correction
 
@@ -86,13 +131,27 @@ bool loop_detector::detect_loop_candidates_impl() {
         // check if the number of the detection is equal of greater than the threshold
         if (min_continuity_ <= continuity) {
             // adopt as the candidates
-            loop_candidates_to_validate_.push_back(candidate_keyfrm);
+            loop_candidates_to_validate_.insert(candidate_keyfrm);
         }
     }
 
     // 4. Update the members for the next call of this function
 
     cont_detected_keyfrm_sets_ = curr_cont_detected_keyfrm_sets;
+
+    // 5. Add top n covisibilities to the candidates
+
+    if (top_n_covisibilities_to_search_ > 0) {
+        auto candidates = loop_candidates_to_validate_;
+        for (auto& keyfrm : candidates) {
+            auto covisibilities = keyfrm->graph_node_->get_top_n_covisibilities(top_n_covisibilities_to_search_);
+            for (const auto& covisibility : covisibilities) {
+                if (!static_cast<bool>(keyfrms_to_reject.count(covisibility))) {
+                    loop_candidates_to_validate_.insert(covisibility);
+                }
+            }
+        }
+    }
 
     // return any candidate is found or not
     return !loop_candidates_to_validate_.empty();
@@ -278,7 +337,7 @@ keyframe_sets loop_detector::find_continuously_detected_keyframe_sets(const keyf
     return curr_cont_detected_keyfrm_sets;
 }
 
-bool loop_detector::select_loop_candidate_via_Sim3(const std::vector<std::shared_ptr<data::keyframe>>& loop_candidates,
+bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std::shared_ptr<data::keyframe>>& loop_candidates,
                                                    std::shared_ptr<data::keyframe>& selected_candidate,
                                                    g2o::Sim3& g2o_Sim3_world_to_curr,
                                                    std::vector<std::shared_ptr<data::landmark>>& curr_match_lms_observed_in_cand) const {

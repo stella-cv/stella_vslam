@@ -23,9 +23,7 @@ public:
      * Constructor
      * @param bow_vocab
      */
-    explicit bow_database(bow_vocabulary* bow_vocab,
-                          bool reject_by_graph_distance = false,
-                          int min_distance_on_graph = 50);
+    explicit bow_database(bow_vocabulary* bow_vocab);
 
     /**
      * Destructor
@@ -53,9 +51,11 @@ public:
      * Acquire loop-closing candidates over the specified score
      * @param qry_keyfrm
      * @param min_score
+     * @param keyfrms_to_reject
      * @return
      */
-    std::vector<std::shared_ptr<keyframe>> acquire_loop_candidates(const std::shared_ptr<keyframe>& qry_keyfrm, const float min_score);
+    std::vector<std::shared_ptr<keyframe>> acquire_loop_candidates(const std::shared_ptr<keyframe>& qry_keyfrm, const float min_score,
+                                                                   const std::set<std::shared_ptr<keyframe>>& keyfrms_to_reject);
 
     /**
      * Acquire relocalization candidates
@@ -119,15 +119,6 @@ protected:
 
     //! BoW vocabulary
     bow_vocabulary* bow_vocab_;
-
-    //-----------------------------------------
-    // Parameters
-
-    //! If true, reject by distance on essential graph
-    int reject_by_graph_distance_;
-
-    //! Minimum distance to allow for loop candidates
-    int min_distance_on_graph_;
 
     //-----------------------------------------
     // temporary variables

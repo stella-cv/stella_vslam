@@ -107,7 +107,7 @@ private:
      * Select ONE candidate from the candidates via linear and nonlinear Sim3 validation
      */
     bool select_loop_candidate_via_Sim3(
-        const std::vector<std::shared_ptr<data::keyframe>>& loop_candidates,
+        const std::unordered_set<std::shared_ptr<data::keyframe>>& loop_candidates,
         std::shared_ptr<data::keyframe>& selected_candidate,
         g2o::Sim3& g2o_Sim3_world_to_curr,
         std::vector<std::shared_ptr<data::landmark>>& curr_match_lms_observed_in_cand) const;
@@ -133,6 +133,18 @@ private:
     const unsigned int min_continuity_;
 
     //-----------------------------------------
+    // Parameters
+
+    //! If true, reject by distance on essential graph
+    int reject_by_graph_distance_;
+
+    //! Minimum distance to allow for loop candidates
+    int min_distance_on_graph_;
+
+    //! Top n covisibilities to search (0 means disabled)
+    unsigned int top_n_covisibilities_to_search_;
+
+    //-----------------------------------------
     // variables for loop detection and correction
 
     //! current keyframe
@@ -143,7 +155,7 @@ private:
     //! previously detected keyframe sets as loop candidate
     keyframe_sets cont_detected_keyfrm_sets_;
     //! loop candidate for validation
-    std::vector<std::shared_ptr<data::keyframe>> loop_candidates_to_validate_;
+    std::unordered_set<std::shared_ptr<data::keyframe>> loop_candidates_to_validate_;
 
     //! matches between the keypoint indices of the current keyframe and the landmarks observed in the candidate
     std::vector<std::shared_ptr<data::landmark>> curr_match_lms_observed_in_cand_;
