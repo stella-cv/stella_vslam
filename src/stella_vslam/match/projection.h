@@ -39,6 +39,14 @@ public:
     //! current frameとすでに対応が取れているものは，already_matched_lmsに指定して再投影しないようにする
     unsigned int match_frame_and_keyframe(data::frame& curr_frm, const std::shared_ptr<data::keyframe>& keyfrm, const std::set<std::shared_ptr<data::landmark>>& already_matched_lms,
                                           const float margin, const unsigned int hamm_dist_thr) const;
+    unsigned int match_frame_and_keyframe(const Mat44_t& cam_pose_cw,
+                                          const camera::base* camera,
+                                          const data::frame_observation& frm_obs,
+                                          const feature::orb_params* orb_params,
+                                          std::vector<std::shared_ptr<data::landmark>>& frm_landmarks,
+                                          const std::shared_ptr<data::keyframe>& keyfrm,
+                                          const std::set<std::shared_ptr<data::landmark>>& already_matched_lms,
+                                          const float margin, const unsigned int hamm_dist_thr) const;
 
     //! 3次元点をSim3で座標変換したのちkeyframeに再投影し，matched_lms_in_keyfrmに対応情報を記録する
     //! matched_lms_in_keyfrmにすでに対応情報が記録されている場合は，探索の対象外とする

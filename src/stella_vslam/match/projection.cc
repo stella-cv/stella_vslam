@@ -1,4 +1,5 @@
 #include "stella_vslam/camera/base.h"
+#include "stella_vslam/data/common.h"
 #include "stella_vslam/data/frame.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
@@ -212,12 +213,23 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
 
 unsigned int projection::match_frame_and_keyframe(data::frame& curr_frm, const std::shared_ptr<data::keyframe>& keyfrm, const std::set<std::shared_ptr<data::landmark>>& already_matched_lms,
                                                   const float margin, const unsigned int hamm_dist_thr) const {
+    return match_frame_and_keyframe(curr_frm.cam_pose_cw_, curr_frm.camera_, curr_frm.frm_obs_, curr_frm.orb_params_, curr_frm.landmarks_, keyfrm, already_matched_lms, margin, hamm_dist_thr);
+}
+
+unsigned int projection::match_frame_and_keyframe(const Mat44_t& cam_pose_cw,
+                                                  const camera::base* camera,
+                                                  const data::frame_observation& frm_obs,
+                                                  const feature::orb_params* orb_params,
+                                                  std::vector<std::shared_ptr<data::landmark>>& frm_landmarks,
+                                                  const std::shared_ptr<data::keyframe>& keyfrm,
+                                                  const std::set<std::shared_ptr<data::landmark>>& already_matched_lms,
+                                                  const float margin, const unsigned int hamm_dist_thr) const {
     unsigned int num_matches = 0;
 
     angle_checker<int> angle_checker;
 
-    const Mat33_t rot_cw = curr_frm.cam_pose_cw_.block<3, 3>(0, 0);
-    const Vec3_t trans_cw = curr_frm.cam_pose_cw_.block<3, 1>(0, 3);
+    const Mat33_t rot_cw = cam_pose_cw.block<3, 3>(0, 0);
+    const Vec3_t trans_cw = cam_pose_cw.block<3, 1>(0, 3);
     const Vec3_t cam_center = -rot_cw.transpose() * trans_cw;
 
     const auto landmarks = keyfrm->get_landmarks();
@@ -243,7 +255,7 @@ unsigned int projection::match_frame_and_keyframe(data::frame& curr_frm, const s
         // Reproject and compute visibility
         Vec2_t reproj;
         float x_right;
-        const bool in_image = curr_frm.camera_->reproject_to_image(rot_cw, trans_cw, pos_w, reproj, x_right);
+        const bool in_image = camera->reproject_to_image(rot_cw, trans_cw, pos_w, reproj, x_right);
 
         // Ignore if it is reprojected outside the image
         if (!in_image) {
@@ -261,11 +273,11 @@ unsigned int projection::match_frame_and_keyframe(data::frame& curr_frm, const s
         }
 
         // Acquire keypoints in the cell where the reprojected 3D points exist
-        const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, curr_frm.orb_params_->num_levels_, curr_frm.orb_params_->log_scale_factor_);
+        const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, orb_params->num_levels_, orb_params->log_scale_factor_);
 
-        const auto indices = curr_frm.get_keypoints_in_cell(reproj(0), reproj(1),
-                                                            margin * curr_frm.orb_params_->scale_factors_.at(pred_scale_level),
-                                                            pred_scale_level - 1, pred_scale_level + 1);
+        const auto indices = data::get_keypoints_in_cell(camera, frm_obs, reproj(0), reproj(1),
+                                                         margin * orb_params->scale_factors_.at(pred_scale_level),
+                                                         pred_scale_level - 1, pred_scale_level + 1);
 
         if (indices.empty()) {
             continue;
@@ -277,11 +289,11 @@ unsigned int projection::match_frame_and_keyframe(data::frame& curr_frm, const s
         int best_idx = -1;
 
         for (unsigned long curr_idx : indices) {
-            if (curr_frm.landmarks_.at(curr_idx)) {
+            if (frm_landmarks.at(curr_idx)) {
                 continue;
             }
 
-            const auto& desc = curr_frm.frm_obs_.descriptors_.row(curr_idx);
+            const auto& desc = frm_obs.descriptors_.row(curr_idx);
 
             const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
 
@@ -296,12 +308,12 @@ unsigned int projection::match_frame_and_keyframe(data::frame& curr_frm, const s
         }
 
         // The matching is valid
-        curr_frm.landmarks_.at(best_idx) = lm;
+        frm_landmarks.at(best_idx) = lm;
         num_matches++;
 
         if (check_orientation_) {
             const auto delta_angle
-                = keyfrm->frm_obs_.undist_keypts_.at(idx).angle - curr_frm.frm_obs_.undist_keypts_.at(best_idx).angle;
+                = keyfrm->frm_obs_.undist_keypts_.at(idx).angle - frm_obs.undist_keypts_.at(best_idx).angle;
             angle_checker.append_delta_angle(delta_angle, best_idx);
         }
     }
@@ -309,7 +321,7 @@ unsigned int projection::match_frame_and_keyframe(data::frame& curr_frm, const s
     if (check_orientation_) {
         const auto invalid_matches = angle_checker.get_invalid_matches();
         for (const auto invalid_idx : invalid_matches) {
-            curr_frm.landmarks_.at(invalid_idx) = nullptr;
+            frm_landmarks.at(invalid_idx) = nullptr;
             --num_matches;
         }
     }
