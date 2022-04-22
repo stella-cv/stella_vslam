@@ -20,6 +20,8 @@ loop_detector::loop_detector(data::bow_database* bow_db, data::bow_vocabulary* b
       min_continuity_(yaml_node["min_continuity"].as<unsigned int>(3)),
       reject_by_graph_distance_(yaml_node["reject_by_graph_distance"].as<bool>(false)),
       min_distance_on_graph_(yaml_node["min_distance_on_graph"].as<unsigned int>(50)),
+      num_matches_thr_(yaml_node["num_matches_thr"].as<unsigned int>(20)),
+      num_optimized_inliers_thr_(yaml_node["num_optimized_inliers_thr"].as<unsigned int>(20)),
       top_n_covisibilities_to_search_(yaml_node["top_n_covisibilities_to_search"].as<unsigned int>(0)) {
     spdlog::debug("CONSTRUCT: loop_detector");
 }
@@ -358,7 +360,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
         const auto num_matches = bow_matcher.match_keyframes(cur_keyfrm_, candidate, curr_match_lms_observed_in_cand);
 
         // check the threshold
-        if (num_matches < 20) {
+        if (num_matches < num_matches_thr_) {
             continue;
         }
 
@@ -391,7 +393,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
                                                                          g2o_sim3_cand_to_curr, 10);
 
         // check the threshold
-        if (num_optimized_inliers < 20) {
+        if (num_optimized_inliers < num_optimized_inliers_thr_) {
             continue;
         }
 
