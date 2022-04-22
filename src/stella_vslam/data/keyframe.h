@@ -175,7 +175,8 @@ public:
     /**
      * Get the keypoint indices in the cell which reference point is located
      */
-    std::vector<unsigned int> get_keypoints_in_cell(const float ref_x, const float ref_y, const float margin) const;
+    std::vector<unsigned int> get_keypoints_in_cell(const float ref_x, const float ref_y, const float margin,
+                                                    const int min_level = -1, const int max_level = -1) const;
 
     /**
      * Triangulate the keypoint using the disparity

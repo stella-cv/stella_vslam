@@ -95,7 +95,7 @@ bool frame::can_observe(const std::shared_ptr<landmark>& lm, const float ray_cos
 }
 
 std::vector<unsigned int> frame::get_keypoints_in_cell(const float ref_x, const float ref_y, const float margin, const int min_level, const int max_level) const {
-    return data::get_keypoints_in_cell(camera_, frm_obs_.undist_keypts_, frm_obs_.keypt_indices_in_cells_, ref_x, ref_y, margin, min_level, max_level);
+    return data::get_keypoints_in_cell(camera_, frm_obs_, ref_x, ref_y, margin, min_level, max_level);
 }
 
 Vec3_t frame::triangulate_stereo(const unsigned int idx) const {

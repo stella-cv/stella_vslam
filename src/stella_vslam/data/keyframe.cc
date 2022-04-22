@@ -256,8 +256,9 @@ std::shared_ptr<landmark>& keyframe::get_landmark(const unsigned int idx) {
     return landmarks_.at(idx);
 }
 
-std::vector<unsigned int> keyframe::get_keypoints_in_cell(const float ref_x, const float ref_y, const float margin) const {
-    return data::get_keypoints_in_cell(camera_, frm_obs_.undist_keypts_, frm_obs_.keypt_indices_in_cells_, ref_x, ref_y, margin);
+std::vector<unsigned int> keyframe::get_keypoints_in_cell(const float ref_x, const float ref_y, const float margin,
+                                                          const int min_level, const int max_level) const {
+    return data::get_keypoints_in_cell(camera_, frm_obs_, ref_x, ref_y, margin, min_level, max_level);
 }
 
 Vec3_t keyframe::triangulate_stereo(const unsigned int idx) const {
