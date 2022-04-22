@@ -86,7 +86,7 @@ bool loop_detector::detect_loop_candidates_impl() {
                 }
                 // search loop_edges
                 for (const auto& node : keyfrm->graph_node_->get_loop_edges()) {
-                    if (static_cast<bool>(keyfrms_to_reject.count(parent))) {
+                    if (static_cast<bool>(keyfrms_to_reject.count(node))) {
                         continue;
                     }
                     keyfrms_to_reject.insert(node);
