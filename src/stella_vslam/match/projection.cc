@@ -1,6 +1,7 @@
 #include "stella_vslam/camera/base.h"
 #include "stella_vslam/data/common.h"
 #include "stella_vslam/data/frame.h"
+#include "stella_vslam/data/frame_observation.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
 #include "stella_vslam/match/projection.h"
