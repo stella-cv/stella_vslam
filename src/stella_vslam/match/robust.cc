@@ -1,5 +1,6 @@
 #include "stella_vslam/camera/base.h"
 #include "stella_vslam/data/frame.h"
+#include "stella_vslam/data/frame_observation.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
 #include "stella_vslam/match/robust.h"
@@ -176,6 +177,54 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
     return num_matches;
 }
 
+unsigned int robust::match_keyframes(const std::shared_ptr<data::keyframe>& keyfrm1, const std::shared_ptr<data::keyframe>& keyfrm2,
+                                     std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm,
+                                     bool validate_with_essential_solver) const {
+    // Initialization
+    const auto num_frm_keypts = keyfrm1->frm_obs_.num_keypts_;
+    const auto keyfrm_lms = keyfrm2->get_landmarks();
+    unsigned int num_inlier_matches = 0;
+    matched_lms_in_frm = std::vector<std::shared_ptr<data::landmark>>(num_frm_keypts, nullptr);
+
+    // Compute brute-force match
+    std::vector<std::pair<int, int>> matches;
+    brute_force_match(keyfrm1->frm_obs_, keyfrm2, matches);
+
+    // Extract only inliers with eight-point RANSAC
+    if (validate_with_essential_solver) {
+        solve::essential_solver solver(keyfrm1->frm_obs_.bearings_, keyfrm2->frm_obs_.bearings_, matches);
+        solver.find_via_ransac(50, false);
+        if (!solver.solution_is_valid()) {
+            return 0;
+        }
+        const auto is_inlier_matches = solver.get_inlier_matches();
+
+        // Save the information
+        for (unsigned int i = 0; i < matches.size(); ++i) {
+            if (!is_inlier_matches.at(i)) {
+                continue;
+            }
+            const auto frm_idx = matches.at(i).first;
+            const auto keyfrm_idx = matches.at(i).second;
+
+            matched_lms_in_frm.at(frm_idx) = keyfrm_lms.at(keyfrm_idx);
+            ++num_inlier_matches;
+        }
+    }
+    else {
+        // Save the information
+        for (unsigned int i = 0; i < matches.size(); ++i) {
+            const auto frm_idx = matches.at(i).first;
+            const auto keyfrm_idx = matches.at(i).second;
+
+            matched_lms_in_frm.at(frm_idx) = keyfrm_lms.at(keyfrm_idx);
+            ++num_inlier_matches;
+        }
+    }
+
+    return num_inlier_matches;
+}
+
 unsigned int robust::match_frame_and_keyframe(data::frame& frm, const std::shared_ptr<data::keyframe>& keyfrm,
                                               std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm) const {
     // Initialization
@@ -186,7 +235,7 @@ unsigned int robust::match_frame_and_keyframe(data::frame& frm, const std::share
 
     // Compute brute-force match
     std::vector<std::pair<int, int>> matches;
-    brute_force_match(frm, keyfrm, matches);
+    brute_force_match(frm.frm_obs_, keyfrm, matches);
 
     // Extract only inliers with eight-point RANSAC
     solve::essential_solver solver(frm.frm_obs_.bearings_, keyfrm->frm_obs_.bearings_, matches);
@@ -211,19 +260,19 @@ unsigned int robust::match_frame_and_keyframe(data::frame& frm, const std::share
     return num_inlier_matches;
 }
 
-unsigned int robust::brute_force_match(data::frame& frm, const std::shared_ptr<data::keyframe>& keyfrm, std::vector<std::pair<int, int>>& matches) const {
+unsigned int robust::brute_force_match(const data::frame_observation& frm_obs, const std::shared_ptr<data::keyframe>& keyfrm, std::vector<std::pair<int, int>>& matches) const {
     unsigned int num_matches = 0;
 
     angle_checker<int> angle_checker;
 
     // 1. Acquire the frame and keyframe information
 
-    const auto num_keypts_1 = frm.frm_obs_.num_keypts_;
+    const auto num_keypts_1 = frm_obs.num_keypts_;
     const auto num_keypts_2 = keyfrm->frm_obs_.num_keypts_;
-    const auto keypts_1 = frm.frm_obs_.undist_keypts_;
+    const auto keypts_1 = frm_obs.undist_keypts_;
     const auto keypts_2 = keyfrm->frm_obs_.undist_keypts_;
     const auto lms_2 = keyfrm->get_landmarks();
-    const auto& descs_1 = frm.frm_obs_.descriptors_;
+    const auto& descs_1 = frm_obs.descriptors_;
     const auto& descs_2 = keyfrm->frm_obs_.descriptors_;
 
     // 2. Acquire ORB descriptors in the keyframe which are the first and second closest to the descriptors in the frame

@@ -11,6 +11,8 @@
 namespace stella_vslam {
 namespace data {
 
+class frame_observation;
+
 nlohmann::json convert_rotation_to_json(const Mat33_t& rot_cw);
 
 Mat33_t convert_json_to_rotation(const nlohmann::json& json_rot_cw);
@@ -37,7 +39,7 @@ cv::Mat convert_json_to_descriptors(const nlohmann::json& json_descriptors);
  * @param undist_keypts
  * @param keypt_indices_in_cells
  */
-void assign_keypoints_to_grid(camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts,
+void assign_keypoints_to_grid(const camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts,
                               std::vector<std::vector<std::vector<unsigned int>>>& keypt_indices_in_cells);
 
 /**
@@ -46,7 +48,7 @@ void assign_keypoints_to_grid(camera::base* camera, const std::vector<cv::KeyPoi
  * @param undist_keypts
  * @return
  */
-auto assign_keypoints_to_grid(camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts)
+auto assign_keypoints_to_grid(const camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts)
     -> std::vector<std::vector<std::vector<unsigned int>>>;
 
 /**
@@ -57,7 +59,7 @@ auto assign_keypoints_to_grid(camera::base* camera, const std::vector<cv::KeyPoi
  * @param cell_idx_y
  * @return
  */
-inline bool get_cell_indices(camera::base* camera, const cv::KeyPoint& keypt, int& cell_idx_x, int& cell_idx_y) {
+inline bool get_cell_indices(const camera::base* camera, const cv::KeyPoint& keypt, int& cell_idx_x, int& cell_idx_y) {
     cell_idx_x = cvFloor((keypt.pt.x - camera->img_bounds_.min_x_) * camera->inv_cell_width_);
     cell_idx_y = cvFloor((keypt.pt.y - camera->img_bounds_.min_y_) * camera->inv_cell_height_);
     return (0 <= cell_idx_x && cell_idx_x < static_cast<int>(camera->num_grid_cols_)
@@ -76,8 +78,11 @@ inline bool get_cell_indices(camera::base* camera, const cv::KeyPoint& keypt, in
  * @param max_level
  * @return
  */
-std::vector<unsigned int> get_keypoints_in_cell(camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts,
+std::vector<unsigned int> get_keypoints_in_cell(const camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts,
                                                 const std::vector<std::vector<std::vector<unsigned int>>>& keypt_indices_in_cells,
+                                                const float ref_x, const float ref_y, const float margin,
+                                                const int min_level = -1, const int max_level = -1);
+std::vector<unsigned int> get_keypoints_in_cell(const camera::base* camera, const frame_observation& frm_obs,
                                                 const float ref_x, const float ref_y, const float margin,
                                                 const int min_level = -1, const int max_level = -1);
 

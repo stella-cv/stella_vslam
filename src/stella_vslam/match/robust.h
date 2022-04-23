@@ -10,6 +10,7 @@ namespace stella_vslam {
 
 namespace data {
 class frame;
+class frame_observation;
 class keyframe;
 class landmark;
 } // namespace data
@@ -26,10 +27,14 @@ public:
     unsigned int match_for_triangulation(const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2, const Mat33_t& E_12,
                                          std::vector<std::pair<unsigned int, unsigned int>>& matched_idx_pairs) const;
 
+    unsigned int match_keyframes(const std::shared_ptr<data::keyframe>& keyfrm1, const std::shared_ptr<data::keyframe>& keyfrm2,
+                                 std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm,
+                                 bool validate_with_essential_solver = true) const;
+
     unsigned int match_frame_and_keyframe(data::frame& frm, const std::shared_ptr<data::keyframe>& keyfrm,
                                           std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm) const;
 
-    unsigned int brute_force_match(data::frame& frm, const std::shared_ptr<data::keyframe>& keyfrm, std::vector<std::pair<int, int>>& matches) const;
+    unsigned int brute_force_match(const data::frame_observation& frm_obs, const std::shared_ptr<data::keyframe>& keyfrm, std::vector<std::pair<int, int>>& matches) const;
 
 private:
     bool check_epipolar_constraint(const Vec3_t& bearing_1, const Vec3_t& bearing_2,

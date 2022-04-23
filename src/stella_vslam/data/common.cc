@@ -1,4 +1,5 @@
 #include "stella_vslam/data/common.h"
+#include "stella_vslam/data/frame_observation.h"
 
 #include <nlohmann/json.hpp>
 
@@ -94,7 +95,7 @@ cv::Mat convert_json_to_descriptors(const nlohmann::json& json_descriptors) {
     return descriptors;
 }
 
-void assign_keypoints_to_grid(camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts,
+void assign_keypoints_to_grid(const camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts,
                               std::vector<std::vector<std::vector<unsigned int>>>& keypt_indices_in_cells) {
     // Pre-allocate memory
     const unsigned int num_keypts = undist_keypts.size();
@@ -117,14 +118,20 @@ void assign_keypoints_to_grid(camera::base* camera, const std::vector<cv::KeyPoi
     }
 }
 
-auto assign_keypoints_to_grid(camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts)
+auto assign_keypoints_to_grid(const camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts)
     -> std::vector<std::vector<std::vector<unsigned int>>> {
     std::vector<std::vector<std::vector<unsigned int>>> keypt_indices_in_cells;
     assign_keypoints_to_grid(camera, undist_keypts, keypt_indices_in_cells);
     return keypt_indices_in_cells;
 }
 
-std::vector<unsigned int> get_keypoints_in_cell(camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts,
+std::vector<unsigned int> get_keypoints_in_cell(const camera::base* camera, const data::frame_observation& frm_obs,
+                                                const float ref_x, const float ref_y, const float margin,
+                                                const int min_level, const int max_level) {
+    return get_keypoints_in_cell(camera, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_, ref_x, ref_y, margin, min_level, max_level);
+}
+
+std::vector<unsigned int> get_keypoints_in_cell(const camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts,
                                                 const std::vector<std::vector<std::vector<unsigned int>>>& keypt_indices_in_cells,
                                                 const float ref_x, const float ref_y, const float margin,
                                                 const int min_level, const int max_level) {

@@ -11,6 +11,7 @@ namespace stella_vslam {
 
 namespace data {
 class frame;
+class frame_observation;
 class keyframe;
 class landmark;
 } // namespace data
@@ -38,6 +39,14 @@ public:
     //! keyfarmeで観測している3次元点をcurrent frameに再投影し，frame.landmarks_に対応情報を記録する
     //! current frameとすでに対応が取れているものは，already_matched_lmsに指定して再投影しないようにする
     unsigned int match_frame_and_keyframe(data::frame& curr_frm, const std::shared_ptr<data::keyframe>& keyfrm, const std::set<std::shared_ptr<data::landmark>>& already_matched_lms,
+                                          const float margin, const unsigned int hamm_dist_thr) const;
+    unsigned int match_frame_and_keyframe(const Mat44_t& cam_pose_cw,
+                                          const camera::base* camera,
+                                          const data::frame_observation& frm_obs,
+                                          const feature::orb_params* orb_params,
+                                          std::vector<std::shared_ptr<data::landmark>>& frm_landmarks,
+                                          const std::shared_ptr<data::keyframe>& keyfrm,
+                                          const std::set<std::shared_ptr<data::landmark>>& already_matched_lms,
                                           const float margin, const unsigned int hamm_dist_thr) const;
 
     //! 3次元点をSim3で座標変換したのちkeyframeに再投影し，matched_lms_in_keyfrmに対応情報を記録する

@@ -7,6 +7,7 @@ namespace stella_vslam {
 
 namespace data {
 class frame;
+class frame_observation;
 class keyframe;
 } // namespace data
 
