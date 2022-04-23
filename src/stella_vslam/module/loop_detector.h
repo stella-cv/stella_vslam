@@ -144,8 +144,13 @@ private:
     //! Minimum distance to allow for loop candidates
     int min_distance_on_graph_ = 50;
 
+    //! Minimum number of matches to allow for loop candidates
     unsigned int num_matches_thr_ = 20;
-    unsigned int num_matches_thr2_ = 20;
+
+    //! Minimum number of matches to allow for loop candidates after brute force matching. (0 means disabled)
+    unsigned int num_matches_thr_brute_force_ = 0;
+
+    //! Minimum number of matches to allow for loop candidates after optimization by transform_optimizer
     unsigned int num_optimized_inliers_thr_ = 20;
 
     //! Top n covisibilities to search (0 means disabled)

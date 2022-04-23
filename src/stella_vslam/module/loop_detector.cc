@@ -23,7 +23,7 @@ loop_detector::loop_detector(data::bow_database* bow_db, data::bow_vocabulary* b
       reject_by_graph_distance_(yaml_node["reject_by_graph_distance"].as<bool>(false)),
       min_distance_on_graph_(yaml_node["min_distance_on_graph"].as<unsigned int>(50)),
       num_matches_thr_(yaml_node["num_matches_thr"].as<unsigned int>(20)),
-      num_matches_thr2_(yaml_node["num_matches_thr2"].as<unsigned int>(20)),
+      num_matches_thr_brute_force_(yaml_node["num_matches_thr_robust_matcher"].as<unsigned int>(0)),
       num_optimized_inliers_thr_(yaml_node["num_optimized_inliers_thr"].as<unsigned int>(20)),
       top_n_covisibilities_to_search_(yaml_node["top_n_covisibilities_to_search"].as<unsigned int>(0)) {
     spdlog::debug("CONSTRUCT: loop_detector");
@@ -370,12 +370,15 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
 
         spdlog::debug("Checking if the loop candidate is appropriate: keyframe {} - keyframe {} (num_matches: {})", candidate->id_, cur_keyfrm_->id_, num_matches);
 
-        const auto num_matches2 = robust_matcher.match_keyframes(cur_keyfrm_, candidate, curr_match_lms_observed_in_cand, false);
+        if (num_matches_thr_brute_force_ > 0) {
+            // Look for more correspondence over more time
+            const auto num_matches_brute_force = robust_matcher.match_keyframes(cur_keyfrm_, candidate, curr_match_lms_observed_in_cand, false);
 
-        spdlog::debug("num_matches2: {}", num_matches2);
+            spdlog::debug("num_matches_brute_force: {}", num_matches_brute_force);
 
-        if (num_matches2 < num_matches_thr2_) {
-            continue;
+            if (num_matches_brute_force < num_matches_thr_brute_force_) {
+                continue;
+            }
         }
 
         std::vector<unsigned int> valid_indices;
@@ -537,7 +540,6 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
             // = cos(0.5deg)
             constexpr float cos_parallax_thr = 0.99996192306;
             const bool parallax_is_small = cos_parallax_thr < cos_parallax;
-            // spdlog::debug("{} (scale={})", cos_parallax, norm_pos_1_in_curr / norm_pos_1_in_cand);
             if (!parallax_is_small) {
                 continue;
             }
