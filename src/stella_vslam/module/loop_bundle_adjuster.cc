@@ -19,11 +19,6 @@ void loop_bundle_adjuster::set_mapping_module(mapping_module* mapper) {
     mapper_ = mapper;
 }
 
-void loop_bundle_adjuster::count_loop_BA_execution() {
-    std::lock_guard<std::mutex> lock(mtx_thread_);
-    ++num_exec_loop_BA_;
-}
-
 void loop_bundle_adjuster::abort() {
     std::lock_guard<std::mutex> lock(mtx_thread_);
     abort_loop_BA_ = true;
@@ -42,7 +37,6 @@ void loop_bundle_adjuster::optimize() {
         std::lock_guard<std::mutex> lock(mtx_thread_);
         loop_BA_is_running_ = true;
         abort_loop_BA_ = false;
-        num_exec_loop_BA = num_exec_loop_BA_;
     }
 
     std::unordered_set<unsigned int> optimized_keyfrm_ids;
@@ -50,16 +44,15 @@ void loop_bundle_adjuster::optimize() {
     eigen_alloc_unord_map<unsigned int, Vec3_t> lm_to_pos_w_after_global_BA;
     eigen_alloc_unord_map<unsigned int, Mat44_t> keyfrm_to_pose_cw_after_global_BA;
     const auto global_BA = optimize::global_bundle_adjuster(map_db_, num_iter_, false);
-    global_BA.optimize(optimized_keyfrm_ids, optimized_landmark_ids,
-                       lm_to_pos_w_after_global_BA,
-                       keyfrm_to_pose_cw_after_global_BA, &abort_loop_BA_);
+    bool ok = global_BA.optimize(optimized_keyfrm_ids, optimized_landmark_ids,
+                                 lm_to_pos_w_after_global_BA,
+                                 keyfrm_to_pose_cw_after_global_BA, &abort_loop_BA_);
 
     {
         std::lock_guard<std::mutex> lock1(mtx_thread_);
 
-        // if count_loop_BA_execution() was called during the loop BA or the loop BA was aborted,
-        // cannot update the map
-        if (num_exec_loop_BA != num_exec_loop_BA_ || abort_loop_BA_) {
+        // if the loop BA was aborted, cannot update the map
+        if (!ok) {
             spdlog::info("abort loop bundle adjustment");
             loop_BA_is_running_ = false;
             abort_loop_BA_ = false;

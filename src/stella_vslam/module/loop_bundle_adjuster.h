@@ -29,11 +29,6 @@ public:
     void set_mapping_module(mapping_module* mapper);
 
     /**
-     * Count the number of loop BA execution
-     */
-    void count_loop_BA_execution();
-
-    /**
      * Abort loop BA externally
      */
     void abort();
@@ -63,9 +58,6 @@ private:
 
     //! mutex for access to pause procedure
     mutable std::mutex mtx_thread_;
-
-    //! number of times loop BA is performed
-    unsigned int num_exec_loop_BA_ = 0;
 
     //! flag to abort loop BA
     bool abort_loop_BA_ = false;

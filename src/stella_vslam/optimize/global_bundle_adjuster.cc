@@ -4,6 +4,7 @@
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/marker_model/base.h"
 #include "stella_vslam/optimize/global_bundle_adjuster.h"
+#include "stella_vslam/optimize/terminate_action.h"
 #include "stella_vslam/optimize/internal/landmark_vertex_container.h"
 #include "stella_vslam/optimize/internal/marker_vertex_container.h"
 #include "stella_vslam/optimize/internal/se3/shot_vertex_container.h"
@@ -18,7 +19,6 @@
 #include <g2o/solvers/eigen/linear_solver_eigen.h>
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
-#include <g2o/core/sparse_optimizer_terminate_action.h>
 
 namespace stella_vslam {
 namespace optimize {
@@ -233,7 +233,7 @@ void global_bundle_adjuster::optimize_for_initialization(bool* const force_stop_
     }
 }
 
-void global_bundle_adjuster::optimize(std::unordered_set<unsigned int>& optimized_keyfrm_ids,
+bool global_bundle_adjuster::optimize(std::unordered_set<unsigned int>& optimized_keyfrm_ids,
                                       std::unordered_set<unsigned int>& optimized_landmark_ids,
                                       eigen_alloc_unord_map<unsigned int, Vec3_t>& lm_to_pos_w_after_global_BA,
                                       eigen_alloc_unord_map<unsigned int, Mat44_t>& keyfrm_to_pose_cw_after_global_BA,
@@ -253,15 +253,15 @@ void global_bundle_adjuster::optimize(std::unordered_set<unsigned int>& optimize
     internal::marker_vertex_container marker_vtx_container(vtx_id_offset, markers.size());
 
     g2o::SparseOptimizer optimizer;
-    auto terminateAction = new g2o::SparseOptimizerTerminateAction;
+    auto terminateAction = new terminate_action;
     terminateAction->setGainThreshold(1e-3);
     optimizer.addPostIterationAction(terminateAction);
 
     optimize_impl(optimizer, keyfrms, lms, markers, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, marker_vtx_container,
                   num_iter_, use_huber_kernel_, force_stop_flag);
 
-    if (force_stop_flag && *force_stop_flag) {
-        return;
+    if (force_stop_flag && *force_stop_flag && !terminateAction->stopped_by_terminate_action_) {
+        return false;
     }
 
     // 6. Extract the result
@@ -296,6 +296,8 @@ void global_bundle_adjuster::optimize(std::unordered_set<unsigned int>& optimize
         lm_to_pos_w_after_global_BA[lm->id_] = pos_w;
         optimized_landmark_ids.insert(lm->id_);
     }
+
+    return true;
 }
 
 } // namespace optimize

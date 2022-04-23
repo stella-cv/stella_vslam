@@ -140,7 +140,6 @@ void global_optimization_module::correct_loop() {
     auto final_candidate_keyfrm = loop_detector_->get_selected_candidate_keyframe();
 
     spdlog::info("detect loop: keyframe {} - keyframe {}", final_candidate_keyfrm->id_, cur_keyfrm_->id_);
-    loop_bundle_adjuster_->count_loop_BA_execution();
 
     // 0. pre-processing
 
