@@ -86,6 +86,15 @@ std::vector<unsigned int> get_keypoints_in_cell(const camera::base* camera, cons
                                                 const float ref_x, const float ref_y, const float margin,
                                                 const int min_level = -1, const int max_level = -1);
 
+/**
+ * Triangulate the keypoint using the disparity
+ */
+Vec3_t triangulate_stereo(const camera::base* camera,
+                          const Mat33_t& rot_wc,
+                          const Vec3_t& trans_wc,
+                          const frame_observation& frm_obs,
+                          const unsigned int idx);
+
 } // namespace data
 } // namespace stella_vslam
 

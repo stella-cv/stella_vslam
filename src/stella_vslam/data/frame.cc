@@ -1,7 +1,3 @@
-#include "stella_vslam/camera/perspective.h"
-#include "stella_vslam/camera/fisheye.h"
-#include "stella_vslam/camera/equirectangular.h"
-#include "stella_vslam/camera/radial_division.h"
 #include "stella_vslam/data/common.h"
 #include "stella_vslam/data/frame.h"
 #include "stella_vslam/data/keyframe.h"
@@ -99,69 +95,7 @@ std::vector<unsigned int> frame::get_keypoints_in_cell(const float ref_x, const 
 }
 
 Vec3_t frame::triangulate_stereo(const unsigned int idx) const {
-    assert(camera_->setup_type_ != camera::setup_type_t::Monocular);
-
-    switch (camera_->model_type_) {
-        case camera::model_type_t::Perspective: {
-            auto camera = static_cast<camera::perspective*>(camera_);
-
-            const float depth = frm_obs_.depths_.empty() ? -1.0f : frm_obs_.depths_.at(idx);
-            if (0.0 < depth) {
-                const float x = frm_obs_.undist_keypts_.at(idx).pt.x;
-                const float y = frm_obs_.undist_keypts_.at(idx).pt.y;
-                const float unproj_x = (x - camera->cx_) * depth * camera->fx_inv_;
-                const float unproj_y = (y - camera->cy_) * depth * camera->fy_inv_;
-                const Vec3_t pos_c{unproj_x, unproj_y, depth};
-
-                // Convert from camera coordinates to world coordinates
-                return rot_wc_ * pos_c + cam_center_;
-            }
-            else {
-                return Vec3_t::Zero();
-            }
-        }
-        case camera::model_type_t::Fisheye: {
-            auto camera = static_cast<camera::fisheye*>(camera_);
-
-            const float depth = frm_obs_.depths_.empty() ? -1.0f : frm_obs_.depths_.at(idx);
-            if (0.0 < depth) {
-                const float x = frm_obs_.undist_keypts_.at(idx).pt.x;
-                const float y = frm_obs_.undist_keypts_.at(idx).pt.y;
-                const float unproj_x = (x - camera->cx_) * depth * camera->fx_inv_;
-                const float unproj_y = (y - camera->cy_) * depth * camera->fy_inv_;
-                const Vec3_t pos_c{unproj_x, unproj_y, depth};
-
-                // Convert from camera coordinates to world coordinates
-                return rot_wc_ * pos_c + cam_center_;
-            }
-            else {
-                return Vec3_t::Zero();
-            }
-        }
-        case camera::model_type_t::Equirectangular: {
-            throw std::runtime_error("Not implemented: Stereo or RGBD of equirectangular camera model");
-        }
-        case camera::model_type_t::RadialDivision: {
-            auto camera = static_cast<camera::radial_division*>(camera_);
-
-            const float depth = frm_obs_.depths_.empty() ? -1.0f : frm_obs_.depths_.at(idx);
-            if (0.0 < depth) {
-                const float x = frm_obs_.undist_keypts_.at(idx).pt.x;
-                const float y = frm_obs_.undist_keypts_.at(idx).pt.y;
-                const float unproj_x = (x - camera->cx_) * depth * camera->fx_inv_;
-                const float unproj_y = (y - camera->cy_) * depth * camera->fy_inv_;
-                const Vec3_t pos_c{unproj_x, unproj_y, depth};
-
-                // camera座標 -> world座標
-                return rot_wc_ * pos_c + cam_center_;
-            }
-            else {
-                return Vec3_t::Zero();
-            }
-        }
-    }
-
-    return Vec3_t::Zero();
+    return data::triangulate_stereo(camera_, rot_wc_, cam_center_, frm_obs_, idx);
 }
 
 } // namespace data
