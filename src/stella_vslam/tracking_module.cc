@@ -182,8 +182,8 @@ std::shared_ptr<Mat44_t> tracking_module::feed_frame(data::frame curr_frm) {
     std::shared_ptr<Mat44_t> cam_pose_wc = nullptr;
     // store the relative pose from the reference keyframe to the current frame
     // to update the camera pose at the beginning of the next tracking process
-    if (curr_frm_.cam_pose_cw_is_valid_) {
-        last_cam_pose_from_ref_keyfrm_ = curr_frm_.pose_cw_ * curr_frm_.ref_keyfrm_->get_pose_wc();
+    if (curr_frm_.pose_is_valid()) {
+        last_cam_pose_from_ref_keyfrm_ = curr_frm_.get_pose_cw() * curr_frm_.ref_keyfrm_->get_pose_wc();
         cam_pose_wc = std::allocate_shared<Mat44_t>(Eigen::aligned_allocator<Mat44_t>(), curr_frm_.get_pose_wc());
     }
 
@@ -319,7 +319,7 @@ bool tracking_module::relocalize_by_pose(const pose_request& request) {
         }
     }
     else {
-        curr_frm_.cam_pose_cw_is_valid_ = false;
+        curr_frm_.invalidate_pose();
     }
     finish_relocalize_by_pose_request();
     return succeeded;
@@ -342,12 +342,12 @@ std::vector<std::shared_ptr<data::keyframe>> tracking_module::get_close_keyframe
 }
 
 void tracking_module::update_motion_model() {
-    if (last_frm_.cam_pose_cw_is_valid_) {
+    if (last_frm_.pose_is_valid()) {
         Mat44_t last_frm_cam_pose_wc = Mat44_t::Identity();
         last_frm_cam_pose_wc.block<3, 3>(0, 0) = last_frm_.get_rot_wc();
         last_frm_cam_pose_wc.block<3, 1>(0, 3) = last_frm_.get_trans_wc();
         twist_is_valid_ = true;
-        twist_ = curr_frm_.pose_cw_ * last_frm_cam_pose_wc;
+        twist_ = curr_frm_.get_pose_cw() * last_frm_cam_pose_wc;
     }
     else {
         twist_is_valid_ = false;

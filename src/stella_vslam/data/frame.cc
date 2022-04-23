@@ -22,9 +22,13 @@ frame::frame(const double timestamp, camera::base* camera, feature::orb_params* 
       landmarks_(std::vector<std::shared_ptr<landmark>>(frm_obs_.num_keypts_, nullptr)) {}
 
 void frame::set_pose_cw(const Mat44_t& pose_cw) {
-    cam_pose_cw_is_valid_ = true;
+    pose_is_valid_ = true;
     pose_cw_ = pose_cw;
-    update_pose_params();
+
+    rot_cw_ = pose_cw_.block<3, 3>(0, 0);
+    rot_wc_ = rot_cw_.transpose();
+    trans_cw_ = pose_cw_.block<3, 1>(0, 3);
+    trans_wc_ = -rot_cw_.transpose() * trans_cw_;
 }
 
 void frame::set_pose_cw(const g2o::SE3Quat& pose_cw) {
@@ -40,13 +44,6 @@ Mat44_t frame::get_pose_wc() const {
     pose_wc.block<3, 3>(0, 0) = rot_wc_;
     pose_wc.block<3, 1>(0, 3) = trans_wc_;
     return pose_wc;
-}
-
-void frame::update_pose_params() {
-    rot_cw_ = pose_cw_.block<3, 3>(0, 0);
-    rot_wc_ = rot_cw_.transpose();
-    trans_cw_ = pose_cw_.block<3, 1>(0, 3);
-    trans_wc_ = -rot_cw_.transpose() * trans_cw_;
 }
 
 Vec3_t frame::get_trans_wc() const {

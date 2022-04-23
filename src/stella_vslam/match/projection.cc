@@ -95,13 +95,13 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
 
     angle_checker<int> angle_checker;
 
-    const Mat33_t rot_cw = curr_frm.pose_cw_.block<3, 3>(0, 0);
-    const Vec3_t trans_cw = curr_frm.pose_cw_.block<3, 1>(0, 3);
+    const Mat33_t rot_cw = curr_frm.get_rot_cw();
+    const Vec3_t trans_cw = curr_frm.get_trans_cw();
 
     const Vec3_t trans_wc = -rot_cw.transpose() * trans_cw;
 
-    const Mat33_t rot_lw = last_frm.pose_cw_.block<3, 3>(0, 0);
-    const Vec3_t trans_lw = last_frm.pose_cw_.block<3, 1>(0, 3);
+    const Mat33_t rot_lw = last_frm.get_rot_cw();
+    const Vec3_t trans_lw = last_frm.get_trans_cw();
 
     const Vec3_t trans_lc = rot_lw * trans_wc + trans_lw;
 
@@ -214,7 +214,7 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
 
 unsigned int projection::match_frame_and_keyframe(data::frame& curr_frm, const std::shared_ptr<data::keyframe>& keyfrm, const std::set<std::shared_ptr<data::landmark>>& already_matched_lms,
                                                   const float margin, const unsigned int hamm_dist_thr) const {
-    return match_frame_and_keyframe(curr_frm.pose_cw_, curr_frm.camera_, curr_frm.frm_obs_, curr_frm.orb_params_, curr_frm.landmarks_, keyfrm, already_matched_lms, margin, hamm_dist_thr);
+    return match_frame_and_keyframe(curr_frm.get_pose_cw(), curr_frm.camera_, curr_frm.frm_obs_, curr_frm.orb_params_, curr_frm.landmarks_, keyfrm, already_matched_lms, margin, hamm_dist_thr);
 }
 
 unsigned int projection::match_frame_and_keyframe(const Mat44_t& cam_pose_cw,

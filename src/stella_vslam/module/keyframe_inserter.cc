@@ -100,7 +100,6 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
         return nullptr;
     }
 
-    curr_frm.update_pose_params();
     auto keyfrm = data::keyframe::make_keyframe(curr_frm);
 
     for (const auto& id_mkr2d : keyfrm->markers_2d_) {

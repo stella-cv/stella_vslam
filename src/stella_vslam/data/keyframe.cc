@@ -22,7 +22,7 @@ keyframe::keyframe(const frame& frm)
       bow_vec_(frm.bow_vec_), bow_feat_vec_(frm.bow_feat_vec_),
       landmarks_(frm.landmarks_) {
     // set pose parameters (pose_wc_, trans_wc_) using frm.pose_cw_
-    set_pose_cw(frm.pose_cw_);
+    set_pose_cw(frm.get_pose_cw());
 }
 
 keyframe::keyframe(const unsigned int id, const unsigned int src_frm_id, const double timestamp,

@@ -82,11 +82,6 @@ public:
     Mat44_t get_pose_wc() const;
 
     /**
-     * Update rotation and translation using pose_cw_
-     */
-    void update_pose_params();
-
-    /**
      * Get camera center
      * @return
      */
@@ -97,6 +92,34 @@ public:
      * @return
      */
     Mat33_t get_rot_wc() const;
+
+    /**
+     * Get the translation of the camera pose
+     */
+    Vec3_t get_trans_cw() const {
+        return trans_cw_;
+    }
+
+    /**
+     * Get the rotation of the camera pose
+     */
+    Mat33_t get_rot_cw() const {
+        return rot_cw_;
+    }
+
+    /**
+     * Invalidate pose
+     */
+    void invalidate_pose() {
+        pose_is_valid_ = false;
+    }
+
+    /**
+     * Return true if pose is valid
+     */
+    bool pose_is_valid() const {
+        return pose_is_valid_;
+    }
 
     /**
      * Returns true if BoW has been computed.
@@ -165,14 +188,14 @@ public:
     //! landmarks, whose nullptr indicates no-association
     std::vector<std::shared_ptr<landmark>> landmarks_;
 
-    //! camera pose: world -> camera
-    bool cam_pose_cw_is_valid_ = false;
-    Mat44_t pose_cw_;
-
     //! reference keyframe for tracking
     std::shared_ptr<keyframe> ref_keyfrm_ = nullptr;
 
 private:
+    //! camera pose: world -> camera
+    bool pose_is_valid_ = false;
+    Mat44_t pose_cw_;
+
     //! Camera pose
     //! rotation: world -> camera
     Mat33_t rot_cw_;
