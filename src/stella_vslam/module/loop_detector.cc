@@ -109,7 +109,7 @@ bool loop_detector::detect_loop_candidates_impl() {
         }
     }
 
-    const auto init_loop_candidates = bow_db_->acquire_loop_candidates(cur_keyfrm_, min_score, keyfrms_to_reject);
+    const auto init_loop_candidates = bow_db_->acquire_keyframes(cur_keyfrm_->bow_vec_, min_score, keyfrms_to_reject);
 
     // 1-3. if no candidates are found, cannot perform the loop correction
 

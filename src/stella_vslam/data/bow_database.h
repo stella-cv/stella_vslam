@@ -48,21 +48,10 @@ public:
     void clear();
 
     /**
-     * Acquire loop-closing candidates over the specified score
-     * @param qry_keyfrm
-     * @param min_score
-     * @param keyfrms_to_reject
-     * @return
+     * Acquire keyframes over score
      */
-    std::vector<std::shared_ptr<keyframe>> acquire_loop_candidates(const std::shared_ptr<keyframe>& qry_keyfrm, const float min_score,
-                                                                   const std::set<std::shared_ptr<keyframe>>& keyfrms_to_reject);
-
-    /**
-     * Acquire relocalization candidates
-     * @param qry_frm
-     * @return
-     */
-    std::vector<std::shared_ptr<keyframe>> acquire_relocalization_candidates(frame* qry_frm);
+    std::vector<std::shared_ptr<keyframe>> acquire_keyframes(const bow_vector& bow_vec, const float min_score = 0.0f,
+                                                             const std::set<std::shared_ptr<keyframe>>& keyfrms_to_reject = {});
 
 protected:
     /**
@@ -73,22 +62,20 @@ protected:
     /**
      * Compute the number of shared words and set candidates (init_candidates_ and num_common_words_)
      * @tparam T
-     * @param qry_shot
+     * @param bow_vec
      * @param keyfrms_to_reject
      * @return whether candidates are found or not
      */
-    template<typename T>
-    bool set_candidates_sharing_words(const T qry_shot, const std::set<std::shared_ptr<keyframe>>& keyfrms_to_reject = {});
+    bool set_candidates_sharing_words(const bow_vector& bow_vec, const std::set<std::shared_ptr<keyframe>>& keyfrms_to_reject = {});
 
     /**
      * Compute scores (scores_) between the query and the each of keyframes contained in the database
      * @tparam T
-     * @param qry_shot
+     * @param bow_vec
      * @param min_num_common_words_thr
      * @return whether candidates are found or not
      */
-    template<typename T>
-    bool compute_scores(const T qry_shot, const unsigned int min_num_common_words_thr);
+    bool compute_scores(const bow_vector& bow_vec, const unsigned int min_num_common_words_thr);
 
     /**
      * Align scores and keyframes only which have greater scores than the minimum one
