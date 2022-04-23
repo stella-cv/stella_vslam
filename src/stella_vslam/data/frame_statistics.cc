@@ -6,8 +6,8 @@ namespace stella_vslam {
 namespace data {
 
 void frame_statistics::update_frame_statistics(const data::frame& frm, const bool is_lost) {
-    if (frm.cam_pose_cw_is_valid_) {
-        const Mat44_t rel_cam_pose_from_ref_keyfrm = frm.pose_cw_ * frm.ref_keyfrm_->get_pose_wc();
+    if (frm.pose_is_valid()) {
+        const Mat44_t rel_cam_pose_from_ref_keyfrm = frm.get_pose_cw() * frm.ref_keyfrm_->get_pose_wc();
 
         frm_ids_of_ref_keyfrms_[frm.ref_keyfrm_].push_back(frm.id_);
 

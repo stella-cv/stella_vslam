@@ -65,7 +65,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         }
     }
 
-    curr_frm.cam_pose_cw_is_valid_ = false;
+    curr_frm.invalidate_pose();
     return false;
 }
 
@@ -131,8 +131,7 @@ bool relocalizer::relocalize_by_pnp_solver(data::frame& curr_frm,
         return false;
     }
 
-    curr_frm.pose_cw_ = pnp_solver->get_best_cam_pose();
-    curr_frm.update_pose_params();
+    curr_frm.set_pose_cw(pnp_solver->get_best_cam_pose());
 
     // Get the inlier indices after EPnP+RANSAC
     inlier_indices = util::resample_by_indices(valid_indices, pnp_solver->get_inlier_flags());

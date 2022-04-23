@@ -93,7 +93,7 @@ inline shot_vertex_container::shot_vertex_container(const std::shared_ptr<unsign
 }
 
 inline shot_vertex* shot_vertex_container::create_vertex(data::frame* frm, const bool is_constant) {
-    return create_vertex(frm->id_, frm->pose_cw_, is_constant);
+    return create_vertex(frm->id_, frm->get_pose_cw(), is_constant);
 }
 
 inline shot_vertex* shot_vertex_container::create_vertex(const std::shared_ptr<data::keyframe>& keyfrm, const bool is_constant) {
