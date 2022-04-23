@@ -178,7 +178,7 @@ void global_optimization_module::correct_loop() {
         std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
         // camera pose of the current keyframe BEFORE loop correction
-        const Mat44_t cam_pose_wc_before_correction = cur_keyfrm_->get_cam_pose_inv();
+        const Mat44_t cam_pose_wc_before_correction = cur_keyfrm_->get_pose_wc();
 
         // compute Sim3s BEFORE loop correction
         Sim3s_nw_before_correction = get_Sim3s_before_loop_correction(curr_neighbors);
@@ -233,7 +233,7 @@ module::keyframe_Sim3_pairs_t global_optimization_module::get_Sim3s_before_loop_
 
     for (const auto& neighbor : neighbors) {
         // camera pose of `neighbor` BEFORE loop correction
-        const Mat44_t cam_pose_nw = neighbor->get_cam_pose();
+        const Mat44_t cam_pose_nw = neighbor->get_pose_cw();
         // create Sim3 from SE3
         const Mat33_t& rot_nw = cam_pose_nw.block<3, 3>(0, 0);
         const Vec3_t& trans_nw = cam_pose_nw.block<3, 1>(0, 3);
@@ -251,7 +251,7 @@ module::keyframe_Sim3_pairs_t global_optimization_module::get_Sim3s_after_loop_c
 
     for (auto neighbor : neighbors) {
         // camera pose of `neighbor` BEFORE loop correction
-        const Mat44_t cam_pose_nw_before_correction = neighbor->get_cam_pose();
+        const Mat44_t cam_pose_nw_before_correction = neighbor->get_pose_cw();
         // create the relative Sim3 from the current to `neighbor`
         const Mat44_t cam_pose_nc = cam_pose_nw_before_correction * cam_pose_wc_before_correction;
         const Mat33_t& rot_nc = cam_pose_nc.block<3, 3>(0, 0);
@@ -309,8 +309,8 @@ void global_optimization_module::correct_covisibility_keyframes(const module::ke
         const auto s_nw = Sim3_nw_after_correction.scale();
         const Mat33_t rot_nw = Sim3_nw_after_correction.rotation().toRotationMatrix();
         const Vec3_t trans_nw = Sim3_nw_after_correction.translation() / s_nw;
-        const Mat44_t cam_pose_nw = util::converter::to_eigen_cam_pose(rot_nw, trans_nw);
-        neighbor->set_cam_pose(cam_pose_nw);
+        const Mat44_t cam_pose_nw = util::converter::to_eigen_pose(rot_nw, trans_nw);
+        neighbor->set_pose_cw(cam_pose_nw);
 
         // update graph
         neighbor->graph_node_->update_connections();

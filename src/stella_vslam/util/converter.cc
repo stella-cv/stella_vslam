@@ -14,9 +14,9 @@ std::vector<cv::Mat> converter::to_desc_vec(const cv::Mat& desc) {
     return desc_vec;
 }
 
-g2o::SE3Quat converter::to_g2o_SE3(const Mat44_t& cam_pose) {
-    const Mat33_t rot = cam_pose.block<3, 3>(0, 0);
-    const Vec3_t trans = cam_pose.block<3, 1>(0, 3);
+g2o::SE3Quat converter::to_g2o_SE3(const Mat44_t& pose) {
+    const Mat33_t rot = pose.block<3, 3>(0, 0);
+    const Vec3_t trans = pose.block<3, 1>(0, 3);
     return g2o::SE3Quat{rot, trans};
 }
 
@@ -25,17 +25,17 @@ Mat44_t converter::to_eigen_mat(const g2o::SE3Quat& g2o_SE3) {
 }
 
 Mat44_t converter::to_eigen_mat(const g2o::Sim3& g2o_Sim3) {
-    Mat44_t cam_pose = Mat44_t::Identity();
-    cam_pose.block<3, 3>(0, 0) = g2o_Sim3.scale() * g2o_Sim3.rotation().toRotationMatrix();
-    cam_pose.block<3, 1>(0, 3) = g2o_Sim3.translation();
-    return cam_pose;
+    Mat44_t pose = Mat44_t::Identity();
+    pose.block<3, 3>(0, 0) = g2o_Sim3.scale() * g2o_Sim3.rotation().toRotationMatrix();
+    pose.block<3, 1>(0, 3) = g2o_Sim3.translation();
+    return pose;
 }
 
-Mat44_t converter::to_eigen_cam_pose(const Mat33_t& rot, const Vec3_t& trans) {
-    Mat44_t cam_pose = Mat44_t::Identity();
-    cam_pose.block<3, 3>(0, 0) = rot;
-    cam_pose.block<3, 1>(0, 3) = trans;
-    return cam_pose;
+Mat44_t converter::to_eigen_pose(const Mat33_t& rot, const Vec3_t& trans) {
+    Mat44_t pose = Mat44_t::Identity();
+    pose.block<3, 3>(0, 0) = rot;
+    pose.block<3, 1>(0, 3) = trans;
+    return pose;
 }
 
 Mat44_t converter::inverse_pose(const Mat44_t& pose_cw) {

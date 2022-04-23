@@ -19,7 +19,7 @@ bool frame_tracker::motion_based_track(data::frame& curr_frm, const data::frame&
     match::projection projection_matcher(0.9, true);
 
     // Set the initial pose by using the motion model
-    curr_frm.set_cam_pose(velocity * last_frm.cam_pose_cw_);
+    curr_frm.set_pose_cw(velocity * last_frm.pose_cw_);
 
     // Initialize the 2D-3D matches
     std::fill(curr_frm.landmarks_.begin(), curr_frm.landmarks_.end(), nullptr);
@@ -43,7 +43,7 @@ bool frame_tracker::motion_based_track(data::frame& curr_frm, const data::frame&
     g2o::SE3Quat optimized_pose;
     std::vector<bool> outlier_flags;
     pose_optimizer_.optimize(curr_frm, optimized_pose, outlier_flags);
-    curr_frm.set_cam_pose(optimized_pose);
+    curr_frm.set_pose_cw(optimized_pose);
 
     // Discard the outliers
     const auto num_valid_matches = discard_outliers(outlier_flags, curr_frm);
@@ -75,11 +75,11 @@ bool frame_tracker::bow_match_based_track(data::frame& curr_frm, const data::fra
 
     // Pose optimization
     // The initial value is the pose of the previous frame
-    curr_frm.set_cam_pose(last_frm.cam_pose_cw_);
+    curr_frm.set_pose_cw(last_frm.pose_cw_);
     g2o::SE3Quat optimized_pose;
     std::vector<bool> outlier_flags;
     pose_optimizer_.optimize(curr_frm, optimized_pose, outlier_flags);
-    curr_frm.set_cam_pose(optimized_pose);
+    curr_frm.set_pose_cw(optimized_pose);
 
     // Discard the outliers
     const auto num_valid_matches = discard_outliers(outlier_flags, curr_frm);
@@ -111,11 +111,11 @@ bool frame_tracker::robust_match_based_track(data::frame& curr_frm, const data::
 
     // Pose optimization
     // The initial value is the pose of the previous frame
-    curr_frm.set_cam_pose(last_frm.cam_pose_cw_);
+    curr_frm.set_pose_cw(last_frm.pose_cw_);
     g2o::SE3Quat optimized_pose;
     std::vector<bool> outlier_flags;
     pose_optimizer_.optimize(curr_frm, optimized_pose, outlier_flags);
-    curr_frm.set_cam_pose(optimized_pose);
+    curr_frm.set_pose_cw(optimized_pose);
 
     // Discard the outliers
     const auto num_valid_matches = discard_outliers(outlier_flags, curr_frm);

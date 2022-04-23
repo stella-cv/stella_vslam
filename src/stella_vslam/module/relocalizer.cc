@@ -131,7 +131,7 @@ bool relocalizer::relocalize_by_pnp_solver(data::frame& curr_frm,
         return false;
     }
 
-    curr_frm.cam_pose_cw_ = pnp_solver->get_best_cam_pose();
+    curr_frm.pose_cw_ = pnp_solver->get_best_cam_pose();
     curr_frm.update_pose_params();
 
     // Get the inlier indices after EPnP+RANSAC
@@ -146,7 +146,7 @@ bool relocalizer::optimize_pose(data::frame& curr_frm,
     // Pose optimization
     g2o::SE3Quat optimized_pose;
     auto num_valid_obs = pose_optimizer_.optimize(curr_frm, optimized_pose, outlier_flags);
-    curr_frm.set_cam_pose(optimized_pose);
+    curr_frm.set_pose_cw(optimized_pose);
 
     // Discard the candidate if the number of the inliers is less than the threshold
     if (num_valid_obs < min_num_bow_matches_ / 2) {
@@ -183,7 +183,7 @@ bool relocalizer::refine_pose(data::frame& curr_frm,
     g2o::SE3Quat optimized_pose1;
     std::vector<bool> outlier_flags1;
     auto num_valid_obs1 = pose_optimizer_.optimize(curr_frm, optimized_pose1, outlier_flags1);
-    curr_frm.set_cam_pose(optimized_pose1);
+    curr_frm.set_pose_cw(optimized_pose1);
 
     // Exclude the already-associated landmarks
     std::set<std::shared_ptr<data::landmark>> already_found_landmarks1;
@@ -206,7 +206,7 @@ bool relocalizer::refine_pose(data::frame& curr_frm,
     g2o::SE3Quat optimized_pose2;
     std::vector<bool> outlier_flags2;
     auto num_valid_obs2 = pose_optimizer_.optimize(curr_frm, optimized_pose2, outlier_flags2);
-    curr_frm.set_cam_pose(optimized_pose2);
+    curr_frm.set_pose_cw(optimized_pose2);
 
     // Discard if falling below the threshold
     if (num_valid_obs2 < min_num_valid_obs_) {

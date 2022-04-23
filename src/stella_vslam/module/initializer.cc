@@ -177,11 +177,11 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
         }
 
         // set the camera poses
-        init_frm_.set_cam_pose(Mat44_t::Identity());
+        init_frm_.set_pose_cw(Mat44_t::Identity());
         Mat44_t cam_pose_cw = Mat44_t::Identity();
         cam_pose_cw.block<3, 3>(0, 0) = initializer_->get_rotation_ref_to_cur();
         cam_pose_cw.block<3, 1>(0, 3) = initializer_->get_translation_ref_to_cur();
-        curr_frm.set_cam_pose(cam_pose_cw);
+        curr_frm.set_pose_cw(cam_pose_cw);
 
         // destruct the initializer
         initializer_.reset(nullptr);
@@ -247,7 +247,7 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
             auto marker = map_db_->get_marker(id_mkr2d.first);
             if (!marker) {
                 auto mkr2d = id_mkr2d.second;
-                eigen_alloc_vector<Vec3_t> corners_pos_w = mkr2d.compute_corners_pos_w(keyfrm->get_cam_pose_inv(), mkr2d.marker_model_->corners_pos_);
+                eigen_alloc_vector<Vec3_t> corners_pos_w = mkr2d.compute_corners_pos_w(keyfrm->get_pose_wc(), mkr2d.marker_model_->corners_pos_);
                 marker = std::make_shared<data::marker>(corners_pos_w, id_mkr2d.first, mkr2d.marker_model_);
                 // add the marker to the map DB
                 map_db_->add_marker(marker);
@@ -277,7 +277,7 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     }
 
     // update the current frame pose
-    curr_frm.set_cam_pose(curr_keyfrm->get_cam_pose());
+    curr_frm.set_pose_cw(curr_keyfrm->get_pose_cw());
 
     // set the origin keyframe
     map_db_->origin_keyfrm_ = init_keyfrm;
@@ -289,9 +289,9 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
 
 void initializer::scale_map(const std::shared_ptr<data::keyframe>& init_keyfrm, const std::shared_ptr<data::keyframe>& curr_keyfrm, const double scale) {
     // scaling keyframes
-    Mat44_t cam_pose_cw = curr_keyfrm->get_cam_pose();
+    Mat44_t cam_pose_cw = curr_keyfrm->get_pose_cw();
     cam_pose_cw.block<3, 1>(0, 3) *= scale;
-    curr_keyfrm->set_cam_pose(cam_pose_cw);
+    curr_keyfrm->set_pose_cw(cam_pose_cw);
 
     // scaling landmarks
     const auto landmarks = init_keyfrm->get_landmarks();
@@ -317,7 +317,7 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
     assert(state_ == initializer_state_t::Initializing);
 
     // create an initial keyframe
-    curr_frm.set_cam_pose(Mat44_t::Identity());
+    curr_frm.set_pose_cw(Mat44_t::Identity());
     auto curr_keyfrm = data::keyframe::make_keyframe(curr_frm);
 
     // compute BoW representation

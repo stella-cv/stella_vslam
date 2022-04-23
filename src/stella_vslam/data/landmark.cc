@@ -203,13 +203,13 @@ void landmark::update_mean_normal_and_obs_scale_variance() {
     unsigned int num_observations = 0;
     for (const auto& observation : observations) {
         auto keyfrm = observation.first.lock();
-        const Vec3_t cam_center = keyfrm->get_cam_center();
+        const Vec3_t cam_center = keyfrm->get_trans_wc();
         const Vec3_t normal = pos_w_ - cam_center;
         mean_normal = mean_normal + normal.normalized();
         ++num_observations;
     }
 
-    const Vec3_t cam_to_lm_vec = pos_w - ref_keyfrm->get_cam_center();
+    const Vec3_t cam_to_lm_vec = pos_w - ref_keyfrm->get_trans_wc();
     const auto dist = cam_to_lm_vec.norm();
     const auto scale_level = ref_keyfrm->frm_obs_.undist_keypts_.at(observations.at(ref_keyfrm)).octave;
     const auto scale_factor = ref_keyfrm->orb_params_->scale_factors_.at(scale_level);

@@ -209,7 +209,7 @@ void global_bundle_adjuster::optimize_for_initialization(bool* const force_stop_
         auto keyfrm_vtx = keyfrm_vtx_container.get_vertex(keyfrm);
         const auto cam_pose_cw = util::converter::to_eigen_mat(keyfrm_vtx->estimate());
 
-        keyfrm->set_cam_pose(cam_pose_cw);
+        keyfrm->set_pose_cw(cam_pose_cw);
     }
 
     for (unsigned int i = 0; i < lms.size(); ++i) {

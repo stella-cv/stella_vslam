@@ -85,7 +85,7 @@ void loop_bundle_adjuster::optimize() {
         keyfrms_to_check.push_back(map_db_->origin_keyfrm_);
         while (!keyfrms_to_check.empty()) {
             auto parent = keyfrms_to_check.front();
-            const Mat44_t cam_pose_wp = parent->get_cam_pose_inv();
+            const Mat44_t cam_pose_wp = parent->get_pose_wc();
 
             const auto children = parent->graph_node_->get_spanning_children();
             for (auto child : children) {
@@ -94,7 +94,7 @@ void loop_bundle_adjuster::optimize() {
                     // propagate the pose correction from the spanning parent
 
                     // parent->child
-                    const Mat44_t cam_pose_cp = child->get_cam_pose() * cam_pose_wp;
+                    const Mat44_t cam_pose_cp = child->get_pose_cw() * cam_pose_wp;
                     // world->child AFTER correction = parent->child * world->parent AFTER correction
                     keyfrm_to_pose_cw_after_global_BA[child->id_] = cam_pose_cp * keyfrm_to_pose_cw_after_global_BA.at(parent->id_);
                     // check as `child` has been corrected
@@ -106,9 +106,9 @@ void loop_bundle_adjuster::optimize() {
             }
 
             // temporally store the camera pose BEFORE correction (for correction of landmark positions)
-            keyfrm_to_cam_pose_cw_before_BA[parent->id_] = parent->get_cam_pose();
+            keyfrm_to_cam_pose_cw_before_BA[parent->id_] = parent->get_pose_cw();
             // update the camera pose
-            parent->set_cam_pose(keyfrm_to_pose_cw_after_global_BA.at(parent->id_));
+            parent->set_pose_cw(keyfrm_to_pose_cw_after_global_BA.at(parent->id_));
             // finish updating
             keyfrms_to_check.pop_front();
         }
@@ -141,7 +141,7 @@ void loop_bundle_adjuster::optimize() {
                 const Vec3_t pos_c = rot_cw_before_BA * lm->get_pos_in_world() + trans_cw_before_BA;
 
                 // convert the position to the world-reference using the camera pose AFTER the correction
-                const Mat44_t cam_pose_wc = ref_keyfrm->get_cam_pose_inv();
+                const Mat44_t cam_pose_wc = ref_keyfrm->get_pose_wc();
                 const Mat33_t rot_wc = cam_pose_wc.block<3, 3>(0, 0);
                 const Vec3_t trans_wc = cam_pose_wc.block<3, 1>(0, 3);
                 lm->set_pos_in_world(rot_wc * pos_c + trans_wc);

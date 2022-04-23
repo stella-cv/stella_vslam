@@ -24,9 +24,9 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
 
     // Project the center of keyframe 1 to keyframe 2
     // to acquire the epipole coordinates of the candidate keyframe
-    const Vec3_t cam_center_1 = keyfrm_1->get_cam_center();
-    const Mat33_t rot_2w = keyfrm_2->get_rotation();
-    const Vec3_t trans_2w = keyfrm_2->get_translation();
+    const Vec3_t cam_center_1 = keyfrm_1->get_trans_wc();
+    const Mat33_t rot_2w = keyfrm_2->get_rot_cw();
+    const Vec3_t trans_2w = keyfrm_2->get_trans_cw();
     Vec3_t epiplane_in_keyfrm_2;
     const bool valid_epiplane = keyfrm_2->camera_->reproject_to_bearing(rot_2w, trans_2w, cam_center_1, epiplane_in_keyfrm_2);
 

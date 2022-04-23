@@ -7,7 +7,7 @@ namespace data {
 
 void frame_statistics::update_frame_statistics(const data::frame& frm, const bool is_lost) {
     if (frm.cam_pose_cw_is_valid_) {
-        const Mat44_t rel_cam_pose_from_ref_keyfrm = frm.cam_pose_cw_ * frm.ref_keyfrm_->get_cam_pose_inv();
+        const Mat44_t rel_cam_pose_from_ref_keyfrm = frm.pose_cw_ * frm.ref_keyfrm_->get_pose_wc();
 
         frm_ids_of_ref_keyfrms_[frm.ref_keyfrm_].push_back(frm.id_);
 
@@ -44,14 +44,14 @@ void frame_statistics::replace_reference_keyframe(const std::shared_ptr<data::ke
         assert(*ref_keyfrms_.at(frm_id) == *old_keyfrm);
 
         // Get pose and relative pose of the old keyframe
-        const Mat44_t old_ref_cam_pose_cw = old_keyfrm->get_cam_pose();
+        const Mat44_t old_ref_cam_pose_cw = old_keyfrm->get_pose_cw();
         const Mat44_t old_rel_cam_pose_cr = rel_cam_poses_from_ref_keyfrms_.at(frm_id);
 
         // Replace pointer of the keyframe to new_keyfrm
         ref_keyfrms_.at(frm_id) = new_keyfrm;
 
         // Update relative pose
-        const Mat44_t new_ref_cam_pose_cw = new_keyfrm->get_cam_pose();
+        const Mat44_t new_ref_cam_pose_cw = new_keyfrm->get_pose_cw();
         const Mat44_t new_rel_cam_pose_cr = old_rel_cam_pose_cr * old_ref_cam_pose_cw * new_ref_cam_pose_cw.inverse();
         rel_cam_poses_from_ref_keyfrms_.at(frm_id) = new_rel_cam_pose_cr;
     }

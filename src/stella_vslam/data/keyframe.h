@@ -54,7 +54,7 @@ public:
      * (NOTE: some variables must be recomputed after the construction. See the definition.)
      */
     keyframe(const unsigned int id, const unsigned int src_frm_id,
-             const double timestamp, const Mat44_t& cam_pose_cw, camera::base* camera,
+             const double timestamp, const Mat44_t& pose_cw, camera::base* camera,
              const feature::orb_params* orb_params, const frame_observation& frm_obs,
              const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec);
     virtual ~keyframe();
@@ -63,7 +63,7 @@ public:
     static std::shared_ptr<keyframe> make_keyframe(const frame& frm);
     static std::shared_ptr<keyframe> make_keyframe(
         const unsigned int id, const unsigned int src_frm_id,
-        const double timestamp, const Mat44_t& cam_pose_cw, camera::base* camera,
+        const double timestamp, const Mat44_t& pose_cw, camera::base* camera,
         const feature::orb_params* orb_params, const frame_observation& frm_obs,
         const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec);
 
@@ -86,37 +86,37 @@ public:
     /**
      * Set camera pose
      */
-    void set_cam_pose(const Mat44_t& cam_pose_cw);
+    void set_pose_cw(const Mat44_t& pose_cw);
 
     /**
      * Set camera pose
      */
-    void set_cam_pose(const g2o::SE3Quat& cam_pose_cw);
+    void set_pose_cw(const g2o::SE3Quat& pose_cw);
 
     /**
      * Get the camera pose
      */
-    Mat44_t get_cam_pose() const;
+    Mat44_t get_pose_cw() const;
 
     /**
      * Get the inverse of the camera pose
      */
-    Mat44_t get_cam_pose_inv() const;
+    Mat44_t get_pose_wc() const;
 
     /**
      * Get the camera center
      */
-    Vec3_t get_cam_center() const;
+    Vec3_t get_trans_wc() const;
 
     /**
      * Get the rotation of the camera pose
      */
-    Mat33_t get_rotation() const;
+    Mat33_t get_rot_cw() const;
 
     /**
      * Get the translation of the camera pose
      */
-    Vec3_t get_translation() const;
+    Vec3_t get_trans_cw() const;
 
     //-----------------------------------------
     // features and observations
@@ -283,11 +283,11 @@ private:
     //! need mutex for access to poses
     mutable std::mutex mtx_pose_;
     //! camera pose from the world to the current
-    Mat44_t cam_pose_cw_;
+    Mat44_t pose_cw_;
     //! camera pose from the current to the world
-    Mat44_t cam_pose_wc_;
+    Mat44_t pose_wc_;
     //! camera center
-    Vec3_t cam_center_;
+    Vec3_t trans_wc_;
 
     //-----------------------------------------
     // observations

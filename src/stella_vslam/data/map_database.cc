@@ -106,8 +106,8 @@ std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes_2d(cons
     Mat33_t M = pose.block<3, 3>(0, 0);
     Vec3_t Mt = pose.block<3, 1>(0, 3);
     for (const auto& id_keyframe : keyframes_) {
-        Mat33_t N = id_keyframe.second->get_cam_pose().block<3, 3>(0, 0);
-        Vec3_t Nt = id_keyframe.second->get_cam_pose().block<3, 1>(0, 3);
+        Mat33_t N = id_keyframe.second->get_pose_cw().block<3, 3>(0, 0);
+        Vec3_t Nt = id_keyframe.second->get_pose_cw().block<3, 1>(0, 3);
         // Angle between two cameras related to given pose and selected keyframe
         const double cos_angle = ((M * N.transpose()).trace() - 1) / 2;
         // Distance between given pose and selected keyframe
@@ -134,8 +134,8 @@ std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes(const M
     Mat33_t M = pose.block<3, 3>(0, 0);
     Vec3_t Mt = pose.block<3, 1>(0, 3);
     for (const auto& id_keyframe : keyframes_) {
-        Mat33_t N = id_keyframe.second->get_cam_pose().block<3, 3>(0, 0);
-        Vec3_t Nt = id_keyframe.second->get_cam_pose().block<3, 1>(0, 3);
+        Mat33_t N = id_keyframe.second->get_pose_cw().block<3, 3>(0, 0);
+        Vec3_t Nt = id_keyframe.second->get_pose_cw().block<3, 1>(0, 3);
         // Angle between two cameras related to given pose and selected keyframe
         const double cos_angle = ((M * N.transpose()).trace() - 1) / 2;
         // Distance between given pose and selected keyframe
@@ -304,7 +304,7 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     // Pose information
     const Mat33_t rot_cw = convert_json_to_rotation(json_keyfrm.at("rot_cw"));
     const Vec3_t trans_cw = convert_json_to_translation(json_keyfrm.at("trans_cw"));
-    const auto cam_pose_cw = util::converter::to_eigen_cam_pose(rot_cw, trans_cw);
+    const auto pose_cw = util::converter::to_eigen_pose(rot_cw, trans_cw);
 
     // Keypoints information
     const auto num_keypts = json_keyfrm.at("n_keypts").get<unsigned int>();
@@ -336,7 +336,7 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     // Compute BoW
     data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
     auto keyfrm = data::keyframe::make_keyframe(
-        id, src_frm_id, timestamp, cam_pose_cw, camera, orb_params,
+        id, src_frm_id, timestamp, pose_cw, camera, orb_params,
         frm_obs, bow_vec, bow_feat_vec);
 
     // Append to map database
@@ -521,9 +521,9 @@ bool map_database::load_keyframes_from_db(sqlite3* db,
         std::string orb_params_name(p, p + sqlite3_column_bytes(stmt, column_id));
         const auto orb_params = orb_params_db->get_orb_params(orb_params_name);
         column_id++;
-        Mat44_t cam_pose_cw;
+        Mat44_t pose_cw;
         p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
-        std::memcpy(cam_pose_cw.data(), p, sqlite3_column_bytes(stmt, column_id));
+        std::memcpy(pose_cw.data(), p, sqlite3_column_bytes(stmt, column_id));
         column_id++;
         unsigned int num_keypts = sqlite3_column_int64(stmt, column_id);
         column_id++;
@@ -558,7 +558,7 @@ bool map_database::load_keyframes_from_db(sqlite3* db,
         // Compute BoW
         data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
         auto keyfrm = data::keyframe::make_keyframe(
-            id, src_frm_id, timestamp, cam_pose_cw, camera, orb_params,
+            id, src_frm_id, timestamp, pose_cw, camera, orb_params,
             frm_obs, bow_vec, bow_feat_vec);
 
         // Append to map database
@@ -774,7 +774,7 @@ bool map_database::save_keyframes_to_db(sqlite3* db) const {
             ret = sqlite3_bind_blob(stmt, column_id++, orb_params_name.c_str(), orb_params_name.size(), SQLITE_TRANSIENT);
         }
         if (ret == SQLITE_OK) {
-            const Mat44_t pose_cw = keyfrm->get_cam_pose();
+            const Mat44_t pose_cw = keyfrm->get_pose_cw();
             ret = sqlite3_bind_blob(stmt, column_id++, pose_cw.data(), pose_cw.rows() * pose_cw.cols() * sizeof(decltype(pose_cw)::Scalar), SQLITE_TRANSIENT);
         }
         size_t num_keypts = 0;

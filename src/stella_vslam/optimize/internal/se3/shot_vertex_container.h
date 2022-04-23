@@ -35,7 +35,7 @@ public:
     shot_vertex* create_vertex(const std::shared_ptr<data::keyframe>& keyfrm, const bool is_constant);
 
     //! Create and return the g2o vertex created from shot ID and camera pose
-    shot_vertex* create_vertex(const unsigned int id, const Mat44_t& cam_pose_cw, const bool is_constant);
+    shot_vertex* create_vertex(const unsigned int id, const Mat44_t& pose_cw, const bool is_constant);
 
     //! Get vertex corresponding with the specified frame
     shot_vertex* get_vertex(data::frame* frm) const;
@@ -93,20 +93,20 @@ inline shot_vertex_container::shot_vertex_container(const std::shared_ptr<unsign
 }
 
 inline shot_vertex* shot_vertex_container::create_vertex(data::frame* frm, const bool is_constant) {
-    return create_vertex(frm->id_, frm->cam_pose_cw_, is_constant);
+    return create_vertex(frm->id_, frm->pose_cw_, is_constant);
 }
 
 inline shot_vertex* shot_vertex_container::create_vertex(const std::shared_ptr<data::keyframe>& keyfrm, const bool is_constant) {
-    return create_vertex(keyfrm->id_, keyfrm->get_cam_pose(), is_constant);
+    return create_vertex(keyfrm->id_, keyfrm->get_pose_cw(), is_constant);
 }
 
-inline shot_vertex* shot_vertex_container::create_vertex(const unsigned int id, const Mat44_t& cam_pose_cw, const bool is_constant) {
+inline shot_vertex* shot_vertex_container::create_vertex(const unsigned int id, const Mat44_t& pose_cw, const bool is_constant) {
     // vertexを作成
     const auto vtx_id = *offset_;
     (*offset_)++;
     auto vtx = new shot_vertex();
     vtx->setId(vtx_id);
-    vtx->setEstimate(util::converter::to_g2o_SE3(cam_pose_cw));
+    vtx->setEstimate(util::converter::to_g2o_SE3(pose_cw));
     vtx->setFixed(is_constant);
     // databaseに登録
     id_container_[vtx_id] = id;

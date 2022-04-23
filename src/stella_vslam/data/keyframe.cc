@@ -21,12 +21,12 @@ keyframe::keyframe(const frame& frm)
       frm_obs_(frm.frm_obs_), markers_2d_(frm.markers_2d_),
       bow_vec_(frm.bow_vec_), bow_feat_vec_(frm.bow_feat_vec_),
       landmarks_(frm.landmarks_) {
-    // set pose parameters (cam_pose_wc_, cam_center_) using frm.cam_pose_cw_
-    set_cam_pose(frm.cam_pose_cw_);
+    // set pose parameters (pose_wc_, trans_wc_) using frm.pose_cw_
+    set_pose_cw(frm.pose_cw_);
 }
 
 keyframe::keyframe(const unsigned int id, const unsigned int src_frm_id, const double timestamp,
-                   const Mat44_t& cam_pose_cw, camera::base* camera,
+                   const Mat44_t& pose_cw, camera::base* camera,
                    const feature::orb_params* orb_params, const frame_observation& frm_obs,
                    const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec)
     : id_(id), src_frm_id_(src_frm_id),
@@ -34,8 +34,8 @@ keyframe::keyframe(const unsigned int id, const unsigned int src_frm_id, const d
       orb_params_(orb_params), frm_obs_(frm_obs),
       bow_vec_(bow_vec), bow_feat_vec_(bow_feat_vec),
       landmarks_(std::vector<std::shared_ptr<landmark>>(frm_obs_.num_keypts_, nullptr)) {
-    // set pose parameters (cam_pose_wc_, cam_center_) using cam_pose_cw_
-    set_cam_pose(cam_pose_cw);
+    // set pose parameters (pose_wc_, trans_wc_) using pose_cw_
+    set_pose_cw(pose_cw);
 
     // The following process needs to take place:
     //   should set the pointers of landmarks_ using add_landmark()
@@ -56,13 +56,13 @@ std::shared_ptr<keyframe> keyframe::make_keyframe(const frame& frm) {
 
 std::shared_ptr<keyframe> keyframe::make_keyframe(
     const unsigned int id, const unsigned int src_frm_id, const double timestamp,
-    const Mat44_t& cam_pose_cw, camera::base* camera,
+    const Mat44_t& pose_cw, camera::base* camera,
     const feature::orb_params* orb_params, const frame_observation& frm_obs,
     const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec) {
     auto ptr = std::allocate_shared<keyframe>(
         Eigen::aligned_allocator<keyframe>(),
         id, src_frm_id, timestamp,
-        cam_pose_cw, camera, orb_params,
+        pose_cw, camera, orb_params,
         frm_obs, bow_vec, bow_feat_vec);
     // covisibility graph node (connections is not assigned yet)
     ptr->graph_node_ = stella_vslam::make_unique<graph_node>(ptr, false);
@@ -101,8 +101,8 @@ nlohmann::json keyframe::to_json() const {
             {"cam", camera_->name_},
             {"orb_params", orb_params_->name_},
             // camera pose
-            {"rot_cw", convert_rotation_to_json(cam_pose_cw_.block<3, 3>(0, 0))},
-            {"trans_cw", convert_translation_to_json(cam_pose_cw_.block<3, 1>(0, 3))},
+            {"rot_cw", convert_rotation_to_json(pose_cw_.block<3, 3>(0, 0))},
+            {"trans_cw", convert_translation_to_json(pose_cw_.block<3, 1>(0, 3))},
             // features and observations
             {"n_keypts", frm_obs_.num_keypts_},
             {"undist_keypts", convert_undistorted_to_json(frm_obs_.undist_keypts_)},
@@ -116,47 +116,47 @@ nlohmann::json keyframe::to_json() const {
             {"loop_edges", loop_edge_ids}};
 }
 
-void keyframe::set_cam_pose(const Mat44_t& cam_pose_cw) {
+void keyframe::set_pose_cw(const Mat44_t& pose_cw) {
     std::lock_guard<std::mutex> lock(mtx_pose_);
-    cam_pose_cw_ = cam_pose_cw;
+    pose_cw_ = pose_cw;
 
-    const Mat33_t rot_cw = cam_pose_cw_.block<3, 3>(0, 0);
-    const Vec3_t trans_cw = cam_pose_cw_.block<3, 1>(0, 3);
+    const Mat33_t rot_cw = pose_cw_.block<3, 3>(0, 0);
+    const Vec3_t trans_cw = pose_cw_.block<3, 1>(0, 3);
     const Mat33_t rot_wc = rot_cw.transpose();
-    cam_center_ = -rot_wc * trans_cw;
+    trans_wc_ = -rot_wc * trans_cw;
 
-    cam_pose_wc_ = Mat44_t::Identity();
-    cam_pose_wc_.block<3, 3>(0, 0) = rot_wc;
-    cam_pose_wc_.block<3, 1>(0, 3) = cam_center_;
+    pose_wc_ = Mat44_t::Identity();
+    pose_wc_.block<3, 3>(0, 0) = rot_wc;
+    pose_wc_.block<3, 1>(0, 3) = trans_wc_;
 }
 
-void keyframe::set_cam_pose(const g2o::SE3Quat& cam_pose_cw) {
-    set_cam_pose(util::converter::to_eigen_mat(cam_pose_cw));
+void keyframe::set_pose_cw(const g2o::SE3Quat& pose_cw) {
+    set_pose_cw(util::converter::to_eigen_mat(pose_cw));
 }
 
-Mat44_t keyframe::get_cam_pose() const {
+Mat44_t keyframe::get_pose_cw() const {
     std::lock_guard<std::mutex> lock(mtx_pose_);
-    return cam_pose_cw_;
+    return pose_cw_;
 }
 
-Mat44_t keyframe::get_cam_pose_inv() const {
+Mat44_t keyframe::get_pose_wc() const {
     std::lock_guard<std::mutex> lock(mtx_pose_);
-    return cam_pose_wc_;
+    return pose_wc_;
 }
 
-Vec3_t keyframe::get_cam_center() const {
+Vec3_t keyframe::get_trans_wc() const {
     std::lock_guard<std::mutex> lock(mtx_pose_);
-    return cam_center_;
+    return trans_wc_;
 }
 
-Mat33_t keyframe::get_rotation() const {
+Mat33_t keyframe::get_rot_cw() const {
     std::lock_guard<std::mutex> lock(mtx_pose_);
-    return cam_pose_cw_.block<3, 3>(0, 0);
+    return pose_cw_.block<3, 3>(0, 0);
 }
 
-Vec3_t keyframe::get_translation() const {
+Vec3_t keyframe::get_trans_cw() const {
     std::lock_guard<std::mutex> lock(mtx_pose_);
-    return cam_pose_cw_.block<3, 1>(0, 3);
+    return pose_cw_.block<3, 1>(0, 3);
 }
 
 bool keyframe::bow_is_available() const {
@@ -258,28 +258,28 @@ std::vector<unsigned int> keyframe::get_keypoints_in_cell(const float ref_x, con
 }
 
 Vec3_t keyframe::triangulate_stereo(const unsigned int idx) const {
-    Mat44_t cam_pose_wc;
+    Mat44_t pose_wc;
     {
         std::lock_guard<std::mutex> lock(mtx_pose_);
-        cam_pose_wc = cam_pose_wc_;
+        pose_wc = pose_wc_;
     }
-    return data::triangulate_stereo(camera_, cam_pose_wc.block<3, 3>(0, 0), cam_pose_wc.block<3, 1>(0, 3), frm_obs_, idx);
+    return data::triangulate_stereo(camera_, pose_wc.block<3, 3>(0, 0), pose_wc.block<3, 1>(0, 3), frm_obs_, idx);
 }
 
 float keyframe::compute_median_depth(const bool abs) const {
     std::vector<std::shared_ptr<landmark>> landmarks;
-    Mat44_t cam_pose_cw;
+    Mat44_t pose_cw;
     {
         std::lock_guard<std::mutex> lock1(mtx_observations_);
         std::lock_guard<std::mutex> lock2(mtx_pose_);
         landmarks = landmarks_;
-        cam_pose_cw = cam_pose_cw_;
+        pose_cw = pose_cw_;
     }
 
     std::vector<float> depths;
     depths.reserve(frm_obs_.num_keypts_);
-    const Vec3_t rot_cw_z_row = cam_pose_cw.block<1, 3>(2, 0);
-    const float trans_cw_z = cam_pose_cw(2, 3);
+    const Vec3_t rot_cw_z_row = pose_cw.block<1, 3>(2, 0);
+    const float trans_cw_z = pose_cw(2, 3);
 
     for (const auto& lm : landmarks) {
         if (!lm) {

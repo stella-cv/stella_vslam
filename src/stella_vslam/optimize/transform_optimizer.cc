@@ -38,10 +38,10 @@ unsigned int transform_optimizer::optimize(const std::shared_ptr<data::keyframe>
     Sim3_12_vtx->setEstimate(g2o_Sim3_12);
     Sim3_12_vtx->setFixed(false);
     Sim3_12_vtx->fix_scale_ = fix_scale_;
-    Sim3_12_vtx->rot_1w_ = keyfrm_1->get_rotation();
-    Sim3_12_vtx->trans_1w_ = keyfrm_1->get_translation();
-    Sim3_12_vtx->rot_2w_ = keyfrm_2->get_rotation();
-    Sim3_12_vtx->trans_2w_ = keyfrm_2->get_translation();
+    Sim3_12_vtx->rot_1w_ = keyfrm_1->get_rot_cw();
+    Sim3_12_vtx->trans_1w_ = keyfrm_1->get_trans_cw();
+    Sim3_12_vtx->rot_2w_ = keyfrm_2->get_rot_cw();
+    Sim3_12_vtx->trans_2w_ = keyfrm_2->get_trans_cw();
     optimizer.addVertex(Sim3_12_vtx);
 
     // 3. Add landmarks and constraints

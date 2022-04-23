@@ -533,7 +533,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
             const Vec3_t pos_w_lm_cand = lm_cand->get_pos_in_world();
             const Vec3_t pos_w_lm_curr = lm_curr->get_pos_in_world();
             const Vec3_t pos_1_in_cand = rot_1w_in_cand * pos_w_lm_cand + trans_1w_in_cand;
-            const Vec3_t pos_1_in_curr = cur_keyfrm_->get_rotation() * pos_w_lm_curr + cur_keyfrm_->get_translation();
+            const Vec3_t pos_1_in_curr = cur_keyfrm_->get_rot_cw() * pos_w_lm_curr + cur_keyfrm_->get_trans_cw();
             const float norm_pos_1_in_cand = pos_1_in_cand.norm();
             const float norm_pos_1_in_curr = pos_1_in_curr.norm();
             const float cos_parallax = pos_1_in_cand.dot(pos_1_in_curr) / (norm_pos_1_in_cand * norm_pos_1_in_curr);
@@ -549,8 +549,8 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
             spdlog::debug("not enough scale references {}", scales.size());
             continue;
         }
-        const Mat33_t rot_12 = rot_1w_in_cand * candidate->get_rotation().transpose();
-        const Vec3_t trans_12 = -rot_12 * candidate->get_translation() + trans_1w_in_cand;
+        const Mat33_t rot_12 = rot_1w_in_cand * candidate->get_rot_cw().transpose();
+        const Vec3_t trans_12 = -rot_12 * candidate->get_trans_cw() + trans_1w_in_cand;
         std::sort(scales.begin(), scales.end());
         const float scale_12 = scales[(scales.size() - 1) / 2];
 
@@ -573,7 +573,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
         selected_candidate = candidate;
         // convert the estimated Sim3 from "candidate -> current" to "world -> current"
         // this Sim3 indicates the correct camera pose oof the current keyframe after loop correction
-        g2o_Sim3_world_to_curr = g2o_sim3_12 * g2o::Sim3(candidate->get_rotation(), candidate->get_translation(), 1.0);
+        g2o_Sim3_world_to_curr = g2o_sim3_12 * g2o::Sim3(candidate->get_rot_cw(), candidate->get_trans_cw(), 1.0);
 
         return true;
     }

@@ -24,13 +24,13 @@ pose_optimizer::pose_optimizer(const unsigned int num_trials, const unsigned int
     : num_trials_(num_trials), num_each_iter_(num_each_iter) {}
 
 unsigned int pose_optimizer::optimize(const data::frame& frm, g2o::SE3Quat& optimized_pose, std::vector<bool>& outlier_flags) const {
-    auto num_valid_obs = optimize(frm.cam_pose_cw_, frm.frm_obs_, frm.orb_params_, frm.camera_,
+    auto num_valid_obs = optimize(frm.pose_cw_, frm.frm_obs_, frm.orb_params_, frm.camera_,
                                   frm.landmarks_, optimized_pose, outlier_flags);
     return num_valid_obs;
 }
 
 unsigned int pose_optimizer::optimize(const data::keyframe* keyfrm, g2o::SE3Quat& optimized_pose, std::vector<bool>& outlier_flags) const {
-    auto num_valid_obs = optimize(keyfrm->get_cam_pose(), keyfrm->frm_obs_, keyfrm->orb_params_, keyfrm->camera_,
+    auto num_valid_obs = optimize(keyfrm->get_pose_cw(), keyfrm->frm_obs_, keyfrm->orb_params_, keyfrm->camera_,
                                   keyfrm->get_landmarks(), optimized_pose, outlier_flags);
     return num_valid_obs;
 }

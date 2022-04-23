@@ -21,39 +21,39 @@ frame::frame(const double timestamp, camera::base* camera, feature::orb_params* 
       // Initialize association with 3D points
       landmarks_(std::vector<std::shared_ptr<landmark>>(frm_obs_.num_keypts_, nullptr)) {}
 
-void frame::set_cam_pose(const Mat44_t& cam_pose_cw) {
+void frame::set_pose_cw(const Mat44_t& pose_cw) {
     cam_pose_cw_is_valid_ = true;
-    cam_pose_cw_ = cam_pose_cw;
+    pose_cw_ = pose_cw;
     update_pose_params();
 }
 
-void frame::set_cam_pose(const g2o::SE3Quat& cam_pose_cw) {
-    set_cam_pose(util::converter::to_eigen_mat(cam_pose_cw));
+void frame::set_pose_cw(const g2o::SE3Quat& pose_cw) {
+    set_pose_cw(util::converter::to_eigen_mat(pose_cw));
 }
 
-Mat44_t frame::get_cam_pose() const {
-    return cam_pose_cw_;
+Mat44_t frame::get_pose_cw() const {
+    return pose_cw_;
 }
 
-Mat44_t frame::get_cam_pose_inv() const {
-    Mat44_t cam_pose_wc = Mat44_t::Identity();
-    cam_pose_wc.block<3, 3>(0, 0) = rot_wc_;
-    cam_pose_wc.block<3, 1>(0, 3) = cam_center_;
-    return cam_pose_wc;
+Mat44_t frame::get_pose_wc() const {
+    Mat44_t pose_wc = Mat44_t::Identity();
+    pose_wc.block<3, 3>(0, 0) = rot_wc_;
+    pose_wc.block<3, 1>(0, 3) = trans_wc_;
+    return pose_wc;
 }
 
 void frame::update_pose_params() {
-    rot_cw_ = cam_pose_cw_.block<3, 3>(0, 0);
+    rot_cw_ = pose_cw_.block<3, 3>(0, 0);
     rot_wc_ = rot_cw_.transpose();
-    trans_cw_ = cam_pose_cw_.block<3, 1>(0, 3);
-    cam_center_ = -rot_cw_.transpose() * trans_cw_;
+    trans_cw_ = pose_cw_.block<3, 1>(0, 3);
+    trans_wc_ = -rot_cw_.transpose() * trans_cw_;
 }
 
-Vec3_t frame::get_cam_center() const {
-    return cam_center_;
+Vec3_t frame::get_trans_wc() const {
+    return trans_wc_;
 }
 
-Mat33_t frame::get_rotation_inv() const {
+Mat33_t frame::get_rot_wc() const {
     return rot_wc_;
 }
 
@@ -74,7 +74,7 @@ bool frame::can_observe(const std::shared_ptr<landmark>& lm, const float ray_cos
         return false;
     }
 
-    const Vec3_t cam_to_lm_vec = pos_w - cam_center_;
+    const Vec3_t cam_to_lm_vec = pos_w - trans_wc_;
     const auto cam_to_lm_dist = cam_to_lm_vec.norm();
     if (!lm->is_inside_in_orb_scale(cam_to_lm_dist)) {
         return false;
@@ -95,7 +95,7 @@ std::vector<unsigned int> frame::get_keypoints_in_cell(const float ref_x, const 
 }
 
 Vec3_t frame::triangulate_stereo(const unsigned int idx) const {
-    return data::triangulate_stereo(camera_, rot_wc_, cam_center_, frm_obs_, idx);
+    return data::triangulate_stereo(camera_, rot_wc_, trans_wc_, frm_obs_, idx);
 }
 
 } // namespace data

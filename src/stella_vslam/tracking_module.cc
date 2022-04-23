@@ -183,8 +183,8 @@ std::shared_ptr<Mat44_t> tracking_module::feed_frame(data::frame curr_frm) {
     // store the relative pose from the reference keyframe to the current frame
     // to update the camera pose at the beginning of the next tracking process
     if (curr_frm_.cam_pose_cw_is_valid_) {
-        last_cam_pose_from_ref_keyfrm_ = curr_frm_.cam_pose_cw_ * curr_frm_.ref_keyfrm_->get_cam_pose_inv();
-        cam_pose_wc = std::allocate_shared<Mat44_t>(Eigen::aligned_allocator<Mat44_t>(), curr_frm_.get_cam_pose_inv());
+        last_cam_pose_from_ref_keyfrm_ = curr_frm_.pose_cw_ * curr_frm_.ref_keyfrm_->get_pose_wc();
+        cam_pose_wc = std::allocate_shared<Mat44_t>(Eigen::aligned_allocator<Mat44_t>(), curr_frm_.get_pose_wc());
     }
 
     // update last frame
@@ -304,7 +304,7 @@ bool tracking_module::track_current_frame() {
 
 bool tracking_module::relocalize_by_pose(const pose_request& request) {
     bool succeeded = false;
-    curr_frm_.set_cam_pose(request.pose_);
+    curr_frm_.set_pose_cw(request.pose_);
 
     if (!curr_frm_.bow_is_available()) {
         curr_frm_.compute_bow(bow_vocab_);
@@ -344,10 +344,10 @@ std::vector<std::shared_ptr<data::keyframe>> tracking_module::get_close_keyframe
 void tracking_module::update_motion_model() {
     if (last_frm_.cam_pose_cw_is_valid_) {
         Mat44_t last_frm_cam_pose_wc = Mat44_t::Identity();
-        last_frm_cam_pose_wc.block<3, 3>(0, 0) = last_frm_.get_rotation_inv();
-        last_frm_cam_pose_wc.block<3, 1>(0, 3) = last_frm_.get_cam_center();
+        last_frm_cam_pose_wc.block<3, 3>(0, 0) = last_frm_.get_rot_wc();
+        last_frm_cam_pose_wc.block<3, 1>(0, 3) = last_frm_.get_trans_wc();
         twist_is_valid_ = true;
-        twist_ = curr_frm_.cam_pose_cw_ * last_frm_cam_pose_wc;
+        twist_ = curr_frm_.pose_cw_ * last_frm_cam_pose_wc;
     }
     else {
         twist_is_valid_ = false;
@@ -374,7 +374,7 @@ void tracking_module::update_last_frame() {
     if (!last_ref_keyfrm) {
         return;
     }
-    last_frm_.set_cam_pose(last_cam_pose_from_ref_keyfrm_ * last_ref_keyfrm->get_cam_pose());
+    last_frm_.set_pose_cw(last_cam_pose_from_ref_keyfrm_ * last_ref_keyfrm->get_pose_cw());
 }
 
 bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tracked_lms,
@@ -387,7 +387,7 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
     g2o::SE3Quat optimized_pose;
     std::vector<bool> outlier_flags;
     pose_optimizer_.optimize(curr_frm_, optimized_pose, outlier_flags);
-    curr_frm_.set_cam_pose(optimized_pose);
+    curr_frm_.set_pose_cw(optimized_pose);
 
     // Reject outliers
     for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.num_keypts_; ++idx) {

@@ -72,7 +72,7 @@ bool keyframe_inserter::new_keyframe_is_needed(data::map_database* map_db,
     }
     bool max_distance_traveled = false;
     if (max_distance_ > 0.0) {
-        max_distance_traveled = last_inserted_keyfrm && (last_inserted_keyfrm->get_cam_center() - curr_frm.get_cam_center()).norm() > max_distance_;
+        max_distance_traveled = last_inserted_keyfrm && (last_inserted_keyfrm->get_trans_wc() - curr_frm.get_trans_wc()).norm() > max_distance_;
     }
     // New keyframe is needed if the field-of-view of the current frame is changed a lot
     const bool view_changed = num_reliable_lms < num_reliable_lms_ref * lms_ratio_thr_view_changed_;
@@ -108,7 +108,7 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
         if (!marker) {
             // Create new marker
             auto mkr2d = id_mkr2d.second;
-            eigen_alloc_vector<Vec3_t> corners_pos_w = mkr2d.compute_corners_pos_w(keyfrm->get_cam_pose_inv(), mkr2d.marker_model_->corners_pos_);
+            eigen_alloc_vector<Vec3_t> corners_pos_w = mkr2d.compute_corners_pos_w(keyfrm->get_pose_wc(), mkr2d.marker_model_->corners_pos_);
             marker = std::make_shared<data::marker>(corners_pos_w, id_mkr2d.first, mkr2d.marker_model_);
             // add the marker to the map DB
             map_db->add_marker(marker);

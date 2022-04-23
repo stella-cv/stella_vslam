@@ -127,9 +127,9 @@ unsigned int fuse::replace_duplication(data::map_database* map_db,
                                        const std::shared_ptr<data::keyframe>& keyfrm, const T& landmarks_to_check, const float margin) {
     unsigned int num_fused = 0;
 
-    const Mat33_t rot_cw = keyfrm->get_rotation();
-    const Vec3_t trans_cw = keyfrm->get_translation();
-    const Vec3_t cam_center = keyfrm->get_cam_center();
+    const Mat33_t rot_cw = keyfrm->get_rot_cw();
+    const Vec3_t trans_cw = keyfrm->get_trans_cw();
+    const Vec3_t cam_center = keyfrm->get_trans_wc();
 
     for (const auto& lm : landmarks_to_check) {
         if (!lm) {

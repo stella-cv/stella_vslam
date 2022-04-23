@@ -74,7 +74,7 @@ void trajectory_io::save_frame_trajectory(const std::string& path, const std::st
         }
 
         auto ref_keyfrm = rk_itr->second;
-        const Mat44_t cam_pose_rw = ref_keyfrm->get_cam_pose();
+        const Mat44_t cam_pose_rw = ref_keyfrm->get_pose_cw();
         const Mat44_t rel_cam_pose_cr = rc_itr->second;
 
         const Mat44_t cam_pose_cw = rel_cam_pose_cr * cam_pose_rw;
@@ -138,7 +138,7 @@ void trajectory_io::save_keyframe_trajectory(const std::string& path, const std:
                  format, (*keyfrms.begin())->id_, (*keyfrms.rbegin())->id_, keyfrms.size());
 
     for (const auto& keyfrm : keyfrms) {
-        const Mat44_t cam_pose_wc = keyfrm->get_cam_pose_inv();
+        const Mat44_t cam_pose_wc = keyfrm->get_pose_wc();
         const auto timestamp = keyfrm->timestamp_;
 
         if (format == "KITTI") {

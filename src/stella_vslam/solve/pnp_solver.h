@@ -42,7 +42,7 @@ public:
 
     //! Get the most reliable camera pose (as the world reference)
     Mat44_t get_best_cam_pose() const {
-        return util::converter::to_eigen_cam_pose(best_rot_cw_, best_trans_cw_);
+        return util::converter::to_eigen_pose(best_rot_cw_, best_trans_cw_);
     }
 
     //! Get the inlier flags estimated via RANSAC

@@ -212,7 +212,7 @@ void viewer::draw_keyframes() {
             if (!keyfrm || keyfrm->will_be_erased()) {
                 continue;
             }
-            draw_camera(keyfrm->get_cam_pose_inv(), w);
+            draw_camera(keyfrm->get_pose_wc(), w);
         }
     }
 
@@ -232,7 +232,7 @@ void viewer::draw_keyframes() {
                 continue;
             }
 
-            const stella_vslam::Vec3_t cam_center_1 = keyfrm->get_cam_center();
+            const stella_vslam::Vec3_t cam_center_1 = keyfrm->get_trans_wc();
 
             // covisibility graph
             const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_weight(100);
@@ -244,7 +244,7 @@ void viewer::draw_keyframes() {
                     if (covisibility->id_ < keyfrm->id_) {
                         continue;
                     }
-                    const stella_vslam::Vec3_t cam_center_2 = covisibility->get_cam_center();
+                    const stella_vslam::Vec3_t cam_center_2 = covisibility->get_trans_wc();
                     draw_edge(cam_center_1, cam_center_2);
                 }
             }
@@ -252,7 +252,7 @@ void viewer::draw_keyframes() {
             // spanning tree
             auto spanning_parent = keyfrm->graph_node_->get_spanning_parent();
             if (spanning_parent) {
-                const stella_vslam::Vec3_t cam_center_2 = spanning_parent->get_cam_center();
+                const stella_vslam::Vec3_t cam_center_2 = spanning_parent->get_trans_wc();
                 draw_edge(cam_center_1, cam_center_2);
             }
 
@@ -265,7 +265,7 @@ void viewer::draw_keyframes() {
                 if (loop_edge->id_ < keyfrm->id_) {
                     continue;
                 }
-                const stella_vslam::Vec3_t cam_center_2 = loop_edge->get_cam_center();
+                const stella_vslam::Vec3_t cam_center_2 = loop_edge->get_trans_wc();
                 draw_edge(cam_center_1, cam_center_2);
             }
         }

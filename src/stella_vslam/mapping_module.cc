@@ -238,7 +238,7 @@ void mapping_module::create_new_landmarks() {
     match::robust robust_matcher(0.0, false);
 
     // camera center of the current keyframe
-    const Vec3_t cur_cam_center = cur_keyfrm_->get_cam_center();
+    const Vec3_t cur_cam_center = cur_keyfrm_->get_trans_wc();
 
     for (unsigned int i = 0; i < cur_covisibilities.size(); ++i) {
         // if any keyframe is queued, abort the triangulation
@@ -250,7 +250,7 @@ void mapping_module::create_new_landmarks() {
         auto ngh_keyfrm = cur_covisibilities.at(i);
 
         // camera center of the neighbor keyframe
-        const Vec3_t ngh_cam_center = ngh_keyfrm->get_cam_center();
+        const Vec3_t ngh_cam_center = ngh_keyfrm->get_trans_wc();
 
         // compute the baseline between the current and neighbor keyframes
         const Vec3_t baseline_vec = ngh_cam_center - cur_cam_center;
@@ -274,8 +274,8 @@ void mapping_module::create_new_landmarks() {
 
         // (cur bearing) * E_ngh_to_cur * (ngh bearing) = 0
         // const Mat33_t E_ngh_to_cur = solve::essential_solver::create_E_21(ngh_keyfrm, cur_keyfrm_);
-        const Mat33_t E_ngh_to_cur = solve::essential_solver::create_E_21(ngh_keyfrm->get_rotation(), ngh_keyfrm->get_translation(),
-                                                                          cur_keyfrm_->get_rotation(), cur_keyfrm_->get_translation());
+        const Mat33_t E_ngh_to_cur = solve::essential_solver::create_E_21(ngh_keyfrm->get_rot_cw(), ngh_keyfrm->get_trans_cw(),
+                                                                          cur_keyfrm_->get_rot_cw(), cur_keyfrm_->get_trans_cw());
 
         // vector of matches (idx in the current, idx in the neighbor)
         std::vector<std::pair<unsigned int, unsigned int>> matches;

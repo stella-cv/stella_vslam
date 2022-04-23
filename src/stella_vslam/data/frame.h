@@ -61,28 +61,28 @@ public:
 
     /**
      * Set camera pose and refresh rotation and translation
-     * @param cam_pose_cw
+     * @param pose_cw
      */
-    void set_cam_pose(const Mat44_t& cam_pose_cw);
+    void set_pose_cw(const Mat44_t& pose_cw);
 
     /**
      * Set camera pose and refresh rotation and translation
-     * @param cam_pose_cw
+     * @param pose_cw
      */
-    void set_cam_pose(const g2o::SE3Quat& cam_pose_cw);
+    void set_pose_cw(const g2o::SE3Quat& pose_cw);
 
     /**
      * Get camera pose
      */
-    Mat44_t get_cam_pose() const;
+    Mat44_t get_pose_cw() const;
 
     /**
      * Get the inverse of the camera pose
      */
-    Mat44_t get_cam_pose_inv() const;
+    Mat44_t get_pose_wc() const;
 
     /**
-     * Update rotation and translation using cam_pose_cw_
+     * Update rotation and translation using pose_cw_
      */
     void update_pose_params();
 
@@ -90,13 +90,13 @@ public:
      * Get camera center
      * @return
      */
-    Vec3_t get_cam_center() const;
+    Vec3_t get_trans_wc() const;
 
     /**
      * Get inverse of rotation
      * @return
      */
-    Mat33_t get_rotation_inv() const;
+    Mat33_t get_rot_wc() const;
 
     /**
      * Returns true if BoW has been computed.
@@ -167,7 +167,7 @@ public:
 
     //! camera pose: world -> camera
     bool cam_pose_cw_is_valid_ = false;
-    Mat44_t cam_pose_cw_;
+    Mat44_t pose_cw_;
 
     //! reference keyframe for tracking
     std::shared_ptr<keyframe> ref_keyfrm_ = nullptr;
@@ -181,7 +181,7 @@ private:
     //! rotation: camera -> world
     Mat33_t rot_wc_;
     //! translation: camera -> world
-    Vec3_t cam_center_;
+    Vec3_t trans_wc_;
 };
 
 } // namespace data

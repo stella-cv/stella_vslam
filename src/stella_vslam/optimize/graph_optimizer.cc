@@ -67,8 +67,8 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
         }
         else {
             // Transform an unmodified pose to Sim3, and set it for a vertex
-            const Mat33_t rot_cw = keyfrm->get_rotation();
-            const Vec3_t trans_cw = keyfrm->get_translation();
+            const Mat33_t rot_cw = keyfrm->get_rot_cw();
+            const Vec3_t trans_cw = keyfrm->get_trans_cw();
             const g2o::Sim3 Sim3_cw(rot_cw, trans_cw, 1.0);
 
             Sim3s_cw[id] = Sim3_cw;
@@ -255,8 +255,8 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             const Mat33_t rot_cw = corrected_Sim3_cw.rotation().toRotationMatrix();
             const Vec3_t trans_cw = corrected_Sim3_cw.translation() / s;
 
-            const Mat44_t cam_pose_cw = util::converter::to_eigen_cam_pose(rot_cw, trans_cw);
-            keyfrm->set_cam_pose(cam_pose_cw);
+            const Mat44_t cam_pose_cw = util::converter::to_eigen_pose(rot_cw, trans_cw);
+            keyfrm->set_pose_cw(cam_pose_cw);
 
             corrected_Sim3s_wc[id] = corrected_Sim3_cw.inverse();
         }

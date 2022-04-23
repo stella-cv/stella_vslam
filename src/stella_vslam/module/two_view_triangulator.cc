@@ -8,10 +8,10 @@ namespace module {
 two_view_triangulator::two_view_triangulator(const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2,
                                              const float rays_parallax_deg_thr)
     : keyfrm_1_(keyfrm_1), keyfrm_2_(keyfrm_2),
-      rot_1w_(keyfrm_1->get_rotation()), rot_w1_(rot_1w_.transpose()), trans_1w_(keyfrm_1->get_translation()),
-      cam_pose_1w_(keyfrm_1->get_cam_pose()), cam_center_1_(keyfrm_1->get_cam_center()), camera_1_(keyfrm_1->camera_),
-      rot_2w_(keyfrm_2->get_rotation()), rot_w2_(rot_2w_.transpose()), trans_2w_(keyfrm_2->get_translation()),
-      cam_pose_2w_(keyfrm_2->get_cam_pose()), cam_center_2_(keyfrm_2->get_cam_center()), camera_2_(keyfrm_2->camera_),
+      rot_1w_(keyfrm_1->get_rot_cw()), rot_w1_(rot_1w_.transpose()), trans_1w_(keyfrm_1->get_trans_cw()),
+      cam_pose_1w_(keyfrm_1->get_pose_cw()), cam_center_1_(keyfrm_1->get_trans_wc()), camera_1_(keyfrm_1->camera_),
+      rot_2w_(keyfrm_2->get_rot_cw()), rot_w2_(rot_2w_.transpose()), trans_2w_(keyfrm_2->get_trans_cw()),
+      cam_pose_2w_(keyfrm_2->get_pose_cw()), cam_center_2_(keyfrm_2->get_trans_wc()), camera_2_(keyfrm_2->camera_),
       ratio_factor_(2.0f * std::max(keyfrm_1->orb_params_->scale_factor_, keyfrm_2->orb_params_->scale_factor_)),
       cos_rays_parallax_thr_(std::cos(rays_parallax_deg_thr * M_PI / 180.0)) {}
 
