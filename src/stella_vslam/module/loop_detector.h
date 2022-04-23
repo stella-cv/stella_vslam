@@ -4,6 +4,7 @@
 #include "stella_vslam/data/bow_vocabulary.h"
 #include "stella_vslam/module/type.h"
 #include "stella_vslam/optimize/transform_optimizer.h"
+#include "stella_vslam/optimize/pose_optimizer.h"
 
 #include <atomic>
 #include <memory>
@@ -11,6 +12,7 @@
 namespace stella_vslam {
 
 namespace data {
+class frame_observation;
 class keyframe;
 class bow_database;
 } // namespace data
@@ -119,6 +121,8 @@ private:
 
     //! transform optimizer
     const optimize::transform_optimizer transform_optimizer_;
+
+    const optimize::pose_optimizer pose_optimizer_;
 
     //! flag which indicates the loop detector is enabled or not
     std::atomic<bool> loop_detector_is_enabled_{true};
