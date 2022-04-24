@@ -32,7 +32,6 @@ bool loop_bundle_adjuster::is_running() const {
 void loop_bundle_adjuster::optimize() {
     spdlog::info("start loop bundle adjustment");
 
-    unsigned int num_exec_loop_BA = 0;
     {
         std::lock_guard<std::mutex> lock(mtx_thread_);
         loop_BA_is_running_ = true;
