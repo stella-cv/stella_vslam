@@ -14,7 +14,7 @@ pnp_solver::pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings, const s
     : num_matches_(valid_bearings.size()), valid_bearings_(valid_bearings),
       valid_landmarks_(valid_landmarks), min_num_inliers_(min_num_inliers),
       random_engine_(util::create_random_engine(use_fixed_seed)) {
-    spdlog::debug("CONSTRUCT: solve::pnp_solver");
+    spdlog::trace("CONSTRUCT: solve::pnp_solver");
 
     max_cos_errors_.clear();
     max_cos_errors_.resize(num_matches_);
@@ -33,7 +33,7 @@ pnp_solver::pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings, const s
 }
 
 pnp_solver::~pnp_solver() {
-    spdlog::debug("DESTRUCT: solve::pnp_solver");
+    spdlog::trace("DESTRUCT: solve::pnp_solver");
 }
 
 void pnp_solver::find_via_ransac(const unsigned int max_num_iter, const bool recompute) {
