@@ -16,10 +16,12 @@ class local_bundle_adjuster {
 public:
     /**
      * Constructor
+     * @param yaml_node
      * @param num_first_iter
      * @param num_second_iter
      */
-    explicit local_bundle_adjuster(const unsigned int num_first_iter = 5,
+    explicit local_bundle_adjuster(const YAML::Node& yaml_node,
+                                   const unsigned int num_first_iter = 5,
                                    const unsigned int num_second_iter = 10);
 
     /**
@@ -40,6 +42,8 @@ private:
     const unsigned int num_first_iter_;
     //! number of iterations of second optimization
     const unsigned int num_second_iter_;
+    //!
+    const unsigned int use_additional_keyframes_for_monocular_ = false;
 };
 
 } // namespace optimize

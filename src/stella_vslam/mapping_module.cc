@@ -19,7 +19,7 @@ namespace stella_vslam {
 mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* map_db, data::bow_database* bow_db, data::bow_vocabulary* bow_vocab)
     : local_map_cleaner_(new module::local_map_cleaner(yaml_node, map_db, bow_db)),
       map_db_(map_db), bow_db_(bow_db), bow_vocab_(bow_vocab),
-      local_bundle_adjuster_(new optimize::local_bundle_adjuster()) {
+      local_bundle_adjuster_(new optimize::local_bundle_adjuster(yaml_node)) {
     spdlog::debug("CONSTRUCT: mapping_module");
     spdlog::debug("load mapping parameters");
 
