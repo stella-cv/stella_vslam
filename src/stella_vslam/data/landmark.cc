@@ -200,37 +200,34 @@ void landmark::update_mean_normal_and_obs_scale_variance() {
     }
 
     Vec3_t mean_normal = Vec3_t::Zero();
-    unsigned int num_observations = 0;
     for (const auto& observation : observations) {
         auto keyfrm = observation.first.lock();
-        const Vec3_t cam_center = keyfrm->get_trans_wc();
-        const Vec3_t normal = pos_w_ - cam_center;
+        const Vec3_t normal = pos_w_ - keyfrm->get_trans_wc();
         mean_normal = mean_normal + normal.normalized();
-        ++num_observations;
     }
 
-    const Vec3_t cam_to_lm_vec = pos_w - ref_keyfrm->get_trans_wc();
-    const auto dist = cam_to_lm_vec.norm();
+    const Vec3_t vec_ref_keyfrm_to_lm = pos_w - ref_keyfrm->get_trans_wc();
+    const auto dist_ref_keyfrm_to_lm = vec_ref_keyfrm_to_lm.norm();
     const auto scale_level = ref_keyfrm->frm_obs_.undist_keypts_.at(observations.at(ref_keyfrm)).octave;
     const auto scale_factor = ref_keyfrm->orb_params_->scale_factors_.at(scale_level);
     const auto num_scale_levels = ref_keyfrm->orb_params_->num_levels_;
 
     {
         std::lock_guard<std::mutex> lock3(mtx_position_);
-        max_valid_dist_ = dist * scale_factor;
-        min_valid_dist_ = max_valid_dist_ / ref_keyfrm->orb_params_->scale_factors_.at(num_scale_levels - 1);
+        max_valid_dist_ = dist_ref_keyfrm_to_lm * scale_factor;
+        min_valid_dist_ = max_valid_dist_ * ref_keyfrm->orb_params_->inv_scale_factors_.at(num_scale_levels - 1);
         mean_normal_ = mean_normal.normalized();
     }
 }
 
 float landmark::get_min_valid_distance() const {
     std::lock_guard<std::mutex> lock(mtx_position_);
-    return 0.7 * min_valid_dist_;
+    return min_valid_dist_;
 }
 
 float landmark::get_max_valid_distance() const {
     std::lock_guard<std::mutex> lock(mtx_position_);
-    return 1.3 * max_valid_dist_;
+    return max_valid_dist_;
 }
 
 unsigned int landmark::predict_scale_level(const float cam_to_lm_dist, float num_scale_levels, float log_scale_factor) const {
@@ -256,7 +253,6 @@ void landmark::prepare_for_erasing(map_database* map_db) {
     observations_t observations;
     {
         std::lock_guard<std::mutex> lock1(mtx_observations_);
-        std::lock_guard<std::mutex> lock2(mtx_position_);
         observations = observations_;
         observations_.clear();
         will_be_erased_ = true;
@@ -270,8 +266,6 @@ void landmark::prepare_for_erasing(map_database* map_db) {
 }
 
 bool landmark::will_be_erased() {
-    std::lock_guard<std::mutex> lock1(mtx_observations_);
-    std::lock_guard<std::mutex> lock2(mtx_position_);
     return will_be_erased_;
 }
 
@@ -280,14 +274,19 @@ void landmark::replace(std::shared_ptr<landmark> lm, data::map_database* map_db)
         return;
     }
 
-    unsigned int num_observable, num_observed;
+    // 1. Erase this
     observations_t observations;
     {
         std::lock_guard<std::mutex> lock1(mtx_observations_);
-        std::lock_guard<std::mutex> lock2(mtx_position_);
         observations = observations_;
-        observations_.clear();
-        will_be_erased_ = true;
+    }
+
+    prepare_for_erasing(map_db);
+
+    // 2. Connect lm
+    unsigned int num_observable, num_observed;
+    {
+        std::lock_guard<std::mutex> lock1(mtx_observations_);
         num_observable = num_observable_;
         num_observed = num_observed_;
         replaced_ = lm;
@@ -295,26 +294,17 @@ void landmark::replace(std::shared_ptr<landmark> lm, data::map_database* map_db)
 
     for (const auto& keyfrm_and_idx : observations) {
         const auto keyfrm = keyfrm_and_idx.first.lock();
-
-        if (!lm->is_observed_in_keyframe(keyfrm)) {
-            keyfrm->replace_landmark(lm, keyfrm_and_idx.second);
-            lm->add_observation(keyfrm, keyfrm_and_idx.second);
-        }
-        else {
-            keyfrm->erase_landmark_with_index(keyfrm_and_idx.second);
-        }
+        keyfrm->add_landmark(lm, keyfrm_and_idx.second);
+        lm->add_observation(keyfrm, keyfrm_and_idx.second);
     }
 
     lm->increase_num_observed(num_observed);
     lm->increase_num_observable(num_observable);
     lm->compute_descriptor();
-
-    map_db->erase_landmark(this->id_);
 }
 
 std::shared_ptr<landmark> landmark::get_replaced() const {
     std::lock_guard<std::mutex> lock1(mtx_observations_);
-    std::lock_guard<std::mutex> lock2(mtx_position_);
     return replaced_;
 }
 

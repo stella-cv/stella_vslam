@@ -266,8 +266,10 @@ unsigned int projection::match_frame_and_keyframe(const Mat44_t& cam_pose_cw,
         // Check if it's within ORB scale levels
         const Vec3_t cam_to_lm_vec = pos_w - cam_center;
         const auto cam_to_lm_dist = cam_to_lm_vec.norm();
-        const auto max_cam_to_lm_dist = lm->get_max_valid_distance();
-        const auto min_cam_to_lm_dist = lm->get_min_valid_distance();
+        constexpr auto margin_far = 1.3;
+        constexpr auto margin_near = 1.0 / margin_far;
+        const auto max_cam_to_lm_dist = margin_far * lm->get_max_valid_distance();
+        const auto min_cam_to_lm_dist = margin_near * lm->get_min_valid_distance();
 
         if (cam_to_lm_dist < min_cam_to_lm_dist || max_cam_to_lm_dist < cam_to_lm_dist) {
             continue;
@@ -368,8 +370,10 @@ unsigned int projection::match_by_Sim3_transform(const std::shared_ptr<data::key
         // Check if it's within ORB scale levels
         const Vec3_t cam_to_lm_vec = pos_w - cam_center;
         const auto cam_to_lm_dist = cam_to_lm_vec.norm();
-        const auto max_cam_to_lm_dist = lm->get_max_valid_distance();
-        const auto min_cam_to_lm_dist = lm->get_min_valid_distance();
+        constexpr auto margin_far = 1.3;
+        constexpr auto margin_near = 1.0 / margin_far;
+        const auto max_cam_to_lm_dist = margin_far * lm->get_max_valid_distance();
+        const auto min_cam_to_lm_dist = margin_near * lm->get_min_valid_distance();
 
         if (cam_to_lm_dist < min_cam_to_lm_dist || max_cam_to_lm_dist < cam_to_lm_dist) {
             continue;
@@ -504,8 +508,10 @@ unsigned int projection::match_keyframes_mutually(const std::shared_ptr<data::ke
 
             // Check if it's within ORB scale levels
             const auto cam_to_lm_dist = pos_2.norm();
-            const auto max_cam_to_lm_dist = lm->get_max_valid_distance();
-            const auto min_cam_to_lm_dist = lm->get_min_valid_distance();
+            constexpr auto margin_far = 1.3;
+            constexpr auto margin_near = 1.0 / margin_far;
+            const auto max_cam_to_lm_dist = margin_far * lm->get_max_valid_distance();
+            const auto min_cam_to_lm_dist = margin_near * lm->get_min_valid_distance();
 
             if (cam_to_lm_dist < min_cam_to_lm_dist || max_cam_to_lm_dist < cam_to_lm_dist) {
                 continue;
@@ -586,8 +592,10 @@ unsigned int projection::match_keyframes_mutually(const std::shared_ptr<data::ke
 
             // Check if it's within ORB scale levels
             const auto cam_to_lm_dist = pos_1.norm();
-            const auto max_cam_to_lm_dist = lm->get_max_valid_distance();
-            const auto min_cam_to_lm_dist = lm->get_min_valid_distance();
+            constexpr auto margin_far = 1.3;
+            constexpr auto margin_near = 1.0 / margin_far;
+            const auto max_cam_to_lm_dist = margin_far * lm->get_max_valid_distance();
+            const auto min_cam_to_lm_dist = margin_near * lm->get_min_valid_distance();
 
             if (cam_to_lm_dist < min_cam_to_lm_dist || max_cam_to_lm_dist < cam_to_lm_dist) {
                 continue;

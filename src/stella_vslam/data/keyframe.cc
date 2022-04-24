@@ -185,11 +185,6 @@ void keyframe::erase_landmark(const std::shared_ptr<landmark>& lm) {
     }
 }
 
-void keyframe::replace_landmark(std::shared_ptr<landmark>& lm, const unsigned int idx) {
-    std::lock_guard<std::mutex> lock(mtx_observations_);
-    landmarks_.at(idx) = lm;
-}
-
 std::vector<std::shared_ptr<landmark>> keyframe::get_landmarks() const {
     std::lock_guard<std::mutex> lock(mtx_observations_);
     return landmarks_;
