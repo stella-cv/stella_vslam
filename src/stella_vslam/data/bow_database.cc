@@ -52,86 +52,51 @@ void bow_database::clear() {
     std::lock_guard<std::mutex> lock(mtx_);
     spdlog::info("clear BoW database");
     keyfrms_in_node_.clear();
-    init_candidates_.clear();
-    num_common_words_.clear();
-    scores_.clear();
-    score_keyfrm_pairs_.clear();
-    total_score_keyfrm_pairs_.clear();
 }
 
 std::vector<std::shared_ptr<keyframe>> bow_database::acquire_keyframes(const bow_vector& bow_vec, const float min_score,
                                                                        const std::set<std::shared_ptr<keyframe>>& keyfrms_to_reject) {
-    std::lock_guard<std::mutex> lock(tmp_mtx_);
-
-    initialize();
-
     // Step 1.
     // Count up the number of nodes, words which are shared with query_keyframe, for all the keyframes in DoW database
 
-    // If there are no candidates, done
-    if (!set_candidates_sharing_words(bow_vec, keyfrms_to_reject)) {
+    const auto num_common_words = compute_num_common_words(bow_vec, keyfrms_to_reject);
+    if (num_common_words.empty()) {
         return std::vector<std::shared_ptr<keyframe>>();
     }
 
-    // Set min_num_common_words as 80 percentile of max_num_common_words
+    // Set min_num_common_words_thr as 80 percentile of max_num_common_words
     // for the following selection of candidate keyframes.
     // (Delete frames from candidates if it has less shared words than 80% of the max_num_common_words)
     unsigned int max_num_common_words = 0;
-    for (const auto& candidate : init_candidates_) {
-        if (max_num_common_words < num_common_words_.at(candidate)) {
-            max_num_common_words = num_common_words_.at(candidate);
+    for (const auto& keyfrm_num_common_words_pair : num_common_words) {
+        if (max_num_common_words < keyfrm_num_common_words_pair.second) {
+            max_num_common_words = keyfrm_num_common_words_pair.second;
         }
     }
-    const auto min_num_common_words = static_cast<unsigned int>(0.8f * max_num_common_words);
+    const auto min_num_common_words_thr = static_cast<unsigned int>(0.8f * max_num_common_words);
 
     // Step 2.
-    // Collect keyframe candidates which have more shared words than min_num_common_words
+    // Collect keyframe candidates which have more shared words than min_num_common_words_thr
     // by calculating similarity score between each candidate and the query keyframe.
 
-    // If there are no candidates, done
-    if (!compute_scores(bow_vec, min_num_common_words)) {
+    float best_score = min_score;
+    const auto scores = compute_scores(num_common_words, bow_vec, min_num_common_words_thr, min_score, best_score);
+    if (scores.empty()) {
         return std::vector<std::shared_ptr<keyframe>>();
     }
 
-    // If there are no candidates, done
-    if (!align_scores_and_keyframes(min_num_common_words, min_score)) {
-        return std::vector<std::shared_ptr<keyframe>>();
-    }
-
-    // Step 3.
-    // Calculate sum of the similarity scores for each of score_keyfrm_pairs and the near frames
-    // Candidate will be the frame which has the highest similarity score among the near frames
-
-    const auto best_total_score = align_total_scores_and_keyframes(min_num_common_words, min_score);
-
-    // Step 4.
-    // Final candidates have larger total score than 75 percentile
-    const float min_total_score = 0.75f * best_total_score;
     std::unordered_set<std::shared_ptr<keyframe>> final_candidates;
-
-    for (const auto& total_score_keyfrm : total_score_keyfrm_pairs_) {
-        const auto total_score = total_score_keyfrm.first;
-        const auto keyfrm = total_score_keyfrm.second;
-
-        if (min_total_score < total_score) {
-            final_candidates.insert(keyfrm);
-        }
+    for (const auto& keyfrm_score : scores) {
+        const auto keyfrm = keyfrm_score.first;
+        final_candidates.insert(keyfrm);
     }
-
     return std::vector<std::shared_ptr<keyframe>>(final_candidates.begin(), final_candidates.end());
 }
 
-void bow_database::initialize() {
-    init_candidates_.clear();
-    num_common_words_.clear();
-    scores_.clear();
-    score_keyfrm_pairs_.clear();
-    total_score_keyfrm_pairs_.clear();
-}
-
-bool bow_database::set_candidates_sharing_words(const bow_vector& bow_vec, const std::set<std::shared_ptr<keyframe>>& keyfrms_to_reject) {
-    init_candidates_.clear();
-    num_common_words_.clear();
+std::unordered_map<std::shared_ptr<keyframe>, unsigned int>
+bow_database::compute_num_common_words(const bow_vector& bow_vec,
+                                       const std::set<std::shared_ptr<keyframe>>& keyfrms_to_reject) const {
+    std::unordered_map<std::shared_ptr<keyframe>, unsigned int> num_common_words;
 
     std::lock_guard<std::mutex> lock(mtx_);
 
@@ -146,98 +111,53 @@ bool bow_database::set_candidates_sharing_words(const bow_vector& bow_vec, const
         const auto& keyfrms_in_node = keyfrms_in_node_.at(node_id_and_weight.first);
         // For each keyframe, increase shared word number one by one
         for (const auto& keyfrm_in_node : keyfrms_in_node) {
-            // Initialize if not in num_common_words
-            if (!static_cast<bool>(num_common_words_.count(keyfrm_in_node))) {
-                num_common_words_[keyfrm_in_node] = 0;
-                // If far enough from the query keyframe, store it as the initial loop candidates
-                if (!static_cast<bool>(keyfrms_to_reject.count(keyfrm_in_node))) {
-                    init_candidates_.insert(keyfrm_in_node);
+            // If far enough from the query keyframe, store it as the initial loop candidates
+            if (!static_cast<bool>(keyfrms_to_reject.count(keyfrm_in_node))) {
+                // Initialize if not in num_common_words
+                if (!static_cast<bool>(num_common_words.count(keyfrm_in_node))) {
+                    num_common_words[keyfrm_in_node] = 0;
                 }
+                // Count up the number of words
+                ++num_common_words.at(keyfrm_in_node);
             }
-            // Count up the number of words
-            ++num_common_words_.at(keyfrm_in_node);
         }
     }
 
-    return !init_candidates_.empty();
+    return num_common_words;
 }
 
-bool bow_database::compute_scores(const bow_vector& bow_vec, const unsigned int min_num_common_words_thr) {
-    scores_.clear();
+std::unordered_map<std::shared_ptr<keyframe>, float>
+bow_database::compute_scores(const std::unordered_map<std::shared_ptr<keyframe>, unsigned int>& num_common_words,
+                             const bow_vector& bow_vec,
+                             const unsigned int min_num_common_words_thr,
+                             const float min_score,
+                             float& best_score) const {
+    std::unordered_map<std::shared_ptr<keyframe>, float> scores;
 
-    for (const auto& candidate : init_candidates_) {
-        if (min_num_common_words_thr < num_common_words_.at(candidate)) {
+    best_score = min_score;
+
+    for (const auto& keyfrm_num_common_words_pair : num_common_words) {
+        const auto& keyfrm = keyfrm_num_common_words_pair.first;
+        if (min_num_common_words_thr < keyfrm_num_common_words_pair.second) {
             // Calculate similarity score with query keyframe
             // for the keyframes which have more shared words than minimum common words
 #ifdef USE_DBOW2
-            const float score = bow_vocab_->score(bow_vec, candidate->bow_vec_);
+            const float score = bow_vocab_->score(bow_vec, keyfrm->bow_vec_);
 #else
-            const float score = fbow::BoWVector::score(bow_vec, candidate->bow_vec_);
+            const float score = fbow::BoWVector::score(bow_vec, keyfrm->bow_vec_);
 #endif
+            if (min_score > score) {
+                continue;
+            }
+            if (best_score < score) {
+                best_score = score;
+            }
             // Store score
-            scores_[candidate] = score;
+            scores[keyfrm] = score;
         }
     }
 
-    return !scores_.empty();
-}
-
-bool bow_database::align_scores_and_keyframes(const unsigned int min_num_common_words_thr, const float min_score) {
-    score_keyfrm_pairs_.clear();
-
-    // If larger than the minimum score, store to score_keyfrm_pairs
-    for (const auto& candidate : init_candidates_) {
-        if (min_num_common_words_thr < num_common_words_.at(candidate)) {
-            const float score = scores_.at(candidate);
-            if (min_score <= score) {
-                score_keyfrm_pairs_.emplace_back(std::make_pair(score, candidate));
-            }
-        }
-    }
-
-    return !score_keyfrm_pairs_.empty();
-}
-
-float bow_database::align_total_scores_and_keyframes(const unsigned int min_num_common_words_thr, const float min_score) {
-    total_score_keyfrm_pairs_.clear();
-
-    float best_total_score = min_score;
-
-    for (const auto& score_keyframe : score_keyfrm_pairs_) {
-        const auto score = score_keyframe.first;
-        const auto keyfrm = score_keyframe.second;
-
-        // Get near frames of keyframe
-        const auto top_n_covisibilities = keyfrm->graph_node_->get_top_n_covisibilities(10);
-        // Calculate the sum of scores for the near frames
-        // Initialize with score since keyframe is not included in covisibility_keyframes
-        float total_score = score;
-
-        // Find a keyframe which has best similarity score with query keyframe from the near frames
-        float best_score = score;
-        auto best_keyframe = keyfrm;
-
-        for (const auto& covisibility : top_n_covisibilities) {
-            // Loop for which is included in the initial loop candidates and satisfies the minimum shared word number
-            if (static_cast<bool>(init_candidates_.count(covisibility))
-                && min_num_common_words_thr < num_common_words_.at(covisibility)) {
-                // score has already been computed
-                total_score += scores_.at(covisibility);
-                if (best_score < scores_.at(covisibility)) {
-                    best_score = scores_.at(covisibility);
-                    best_keyframe = covisibility;
-                }
-            }
-        }
-
-        total_score_keyfrm_pairs_.emplace_back(std::make_pair(total_score, best_keyframe));
-
-        if (best_total_score < total_score) {
-            best_total_score = total_score;
-        }
-    }
-
-    return best_total_score;
+    return scores;
 }
 
 } // namespace data
