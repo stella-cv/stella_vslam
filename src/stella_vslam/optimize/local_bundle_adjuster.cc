@@ -36,6 +36,7 @@ void local_bundle_adjuster::optimize(data::map_database* map_db,
 
     // Correct the local keyframes of the current keyframe
     std::unordered_map<unsigned int, std::shared_ptr<data::keyframe>> local_keyfrms;
+    bool has_scale = false;
 
     local_keyfrms[curr_keyfrm->id_] = curr_keyfrm;
     const auto curr_covisibilities = curr_keyfrm->graph_node_->get_covisibilities();
@@ -46,8 +47,14 @@ void local_bundle_adjuster::optimize(data::map_database* map_db,
         if (local_keyfrm->will_be_erased()) {
             continue;
         }
+        if (local_keyfrm->id_ == 0) {
+            continue;
+        }
 
         local_keyfrms[local_keyfrm->id_] = local_keyfrm;
+        if (local_keyfrm->camera_->setup_type_ != camera::setup_type_t::Monocular) {
+            has_scale = true;
+        }
     }
 
     // Correct landmarks seen in local keyframes
@@ -119,6 +126,17 @@ void local_bundle_adjuster::optimize(data::map_database* map_db,
         }
     }
 
+    auto additional_keyfrms_size = 2 - fixed_keyfrms.size();
+    if (!has_scale && fixed_keyfrms.size() < 2 && local_keyfrms.size() > additional_keyfrms_size) {
+        for (unsigned int i = 0; i < additional_keyfrms_size; ++i) {
+            auto itr = local_keyfrms.begin();
+            auto keyfrm_id = itr->first;
+            auto keyfrm = itr->second;
+            local_keyfrms.erase(keyfrm_id);
+            fixed_keyfrms[keyfrm_id] = keyfrm;
+        }
+    }
+
     // 2. Construct an optimizer
 
     std::unique_ptr<g2o::BlockSolverBase> block_solver;
@@ -146,7 +164,7 @@ void local_bundle_adjuster::optimize(data::map_database* map_db,
         const auto& local_keyfrm = id_local_keyfrm_pair.second;
 
         all_keyfrms.emplace(id_local_keyfrm_pair);
-        auto keyfrm_vtx = keyfrm_vtx_container.create_vertex(local_keyfrm, local_keyfrm->id_ == 0);
+        auto keyfrm_vtx = keyfrm_vtx_container.create_vertex(local_keyfrm, false);
         optimizer.addVertex(keyfrm_vtx);
     }
 
