@@ -25,7 +25,8 @@ loop_detector::loop_detector(data::bow_database* bow_db, data::bow_vocabulary* b
       num_matches_thr_(yaml_node["num_matches_thr"].as<unsigned int>(20)),
       num_matches_thr_brute_force_(yaml_node["num_matches_thr_robust_matcher"].as<unsigned int>(0)),
       num_optimized_inliers_thr_(yaml_node["num_optimized_inliers_thr"].as<unsigned int>(20)),
-      top_n_covisibilities_to_search_(yaml_node["top_n_covisibilities_to_search"].as<unsigned int>(0)) {
+      top_n_covisibilities_to_search_(yaml_node["top_n_covisibilities_to_search"].as<unsigned int>(0)),
+      use_fixed_seed_(yaml_node["use_fixed_seed"].as<bool>(false)) {
     spdlog::debug("CONSTRUCT: loop_detector");
 }
 
@@ -404,7 +405,8 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
         }
         // Setup PnP solver
         auto pnp_solver = std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(valid_bearings, valid_keypts, valid_landmarks,
-                                                                                   cur_keyfrm_->orb_params_->scale_factors_));
+                                                                                   cur_keyfrm_->orb_params_->scale_factors_,
+                                                                                   use_fixed_seed_));
 
         pnp_solver->find_via_ransac(30);
         if (!pnp_solver->solution_is_valid()) {

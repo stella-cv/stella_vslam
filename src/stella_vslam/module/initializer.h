@@ -50,6 +50,9 @@ public:
     //! Get the initial frame stamp which succeeded in initialization
     double get_initial_frame_timestamp() const;
 
+    //! Get whether to use a fixed seed for RANSAC
+    bool get_use_fixed_seed() const;
+
     //! Initialize with the current frame
     bool initialize(const camera::setup_type_t setup_type,
                     data::bow_vocabulary* bow_vocab, data::frame& curr_frm);

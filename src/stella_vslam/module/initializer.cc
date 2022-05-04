@@ -51,6 +51,10 @@ double initializer::get_initial_frame_timestamp() const {
     return init_frm_stamp_;
 }
 
+bool initializer::get_use_fixed_seed() const {
+    return use_fixed_seed_;
+}
+
 bool initializer::initialize(const camera::setup_type_t setup_type,
                              data::bow_vocabulary* bow_vocab, data::frame& curr_frm) {
     switch (setup_type) {

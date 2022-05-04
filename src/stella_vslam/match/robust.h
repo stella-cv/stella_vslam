@@ -29,10 +29,11 @@ public:
 
     unsigned int match_keyframes(const std::shared_ptr<data::keyframe>& keyfrm1, const std::shared_ptr<data::keyframe>& keyfrm2,
                                  std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm,
-                                 bool validate_with_essential_solver = true) const;
+                                 bool validate_with_essential_solver = true, bool use_fixed_seed = false) const;
 
     unsigned int match_frame_and_keyframe(data::frame& frm, const std::shared_ptr<data::keyframe>& keyfrm,
-                                          std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm) const;
+                                          std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm,
+                                          bool use_fixed_seed = false) const;
 
     unsigned int brute_force_match(const data::frame_observation& frm_obs, const std::shared_ptr<data::keyframe>& keyfrm, std::vector<std::pair<int, int>>& matches) const;
 
