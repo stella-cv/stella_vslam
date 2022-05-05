@@ -50,7 +50,7 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, data::map_d
       use_robust_matcher_for_relocalization_request_(get_use_robust_matcher_for_relocalization_request(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
       map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
-      frame_tracker_(camera_, 10),
+      frame_tracker_(camera_, 10, initializer_.get_use_fixed_seed()),
       relocalizer_(util::yaml_optional_ref(cfg->yaml_node_, "Relocalizer")),
       pose_optimizer_(),
       keyfrm_inserter_(util::yaml_optional_ref(cfg->yaml_node_, "KeyframeInserter")) {
@@ -161,6 +161,15 @@ std::shared_ptr<Mat44_t> tracking_module::feed_frame(data::frame curr_frm) {
         bool relocalization_is_needed = tracking_state_ == tracker_state_t::Lost;
         succeeded = track(relocalization_is_needed);
     }
+
+#ifdef DETERMINISTIC
+    // make sure the mapper has processed any new keyframes before doing anything else
+    std::unique_lock<std::mutex> mapping_lock(mapper_->mtx_processing_);
+    mapper_->processing_cv_.wait(
+        mapping_lock, [this]{ return mapper_->is_idle() && !mapper_->keyframe_is_queued(); }
+    );
+    mapping_lock.unlock();
+#endif
 
     // state transition
     if (succeeded) {

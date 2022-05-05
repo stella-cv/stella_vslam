@@ -12,11 +12,12 @@ namespace module {
 
 relocalizer::relocalizer(const double bow_match_lowe_ratio, const double proj_match_lowe_ratio,
                          const double robust_match_lowe_ratio,
-                         const unsigned int min_num_bow_matches, const unsigned int min_num_valid_obs)
+                         const unsigned int min_num_bow_matches, const unsigned int min_num_valid_obs,
+                         const bool use_fixed_seed)
     : min_num_bow_matches_(min_num_bow_matches), min_num_valid_obs_(min_num_valid_obs),
       bow_matcher_(bow_match_lowe_ratio, true), proj_matcher_(proj_match_lowe_ratio, true),
       robust_matcher_(robust_match_lowe_ratio, false),
-      pose_optimizer_() {
+      pose_optimizer_(), use_fixed_seed_(use_fixed_seed) {
     spdlog::debug("CONSTRUCT: module::relocalizer");
 }
 
@@ -25,7 +26,8 @@ relocalizer::relocalizer(const YAML::Node& yaml_node)
                   yaml_node["proj_match_lowe_ratio"].as<double>(0.9),
                   yaml_node["robust_match_lowe_ratio"].as<double>(0.8),
                   yaml_node["min_num_bow_matches"].as<unsigned int>(20),
-                  yaml_node["min_num_valid_obs"].as<unsigned int>(50)) {
+                  yaml_node["min_num_valid_obs"].as<unsigned int>(50),
+                  yaml_node["use_fixed_seed"].as<bool>(false)) {
 }
 
 relocalizer::~relocalizer() {
@@ -254,7 +256,7 @@ std::unique_ptr<solve::pnp_solver> relocalizer::setup_pnp_solver(const std::vect
         valid_landmarks.at(i) = valid_assoc_lms.at(i)->get_pos_in_world();
     }
     // Setup PnP solver
-    return std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(valid_bearings, valid_keypts, valid_landmarks, scale_factors));
+    return std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(valid_bearings, valid_keypts, valid_landmarks, scale_factors, use_fixed_seed_));
 }
 
 } // namespace module

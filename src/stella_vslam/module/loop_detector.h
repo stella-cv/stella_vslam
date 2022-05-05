@@ -181,6 +181,9 @@ private:
 
     //! the keyframe ID when the previouls loop correction was performed
     unsigned int prev_loop_correct_keyfrm_id_ = 0;
+
+    //! Use fixed random seed for RANSAC if true
+    const bool use_fixed_seed_;
 };
 
 } // namespace module

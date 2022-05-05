@@ -12,8 +12,8 @@
 namespace stella_vslam {
 namespace module {
 
-frame_tracker::frame_tracker(camera::base* camera, const unsigned int num_matches_thr)
-    : camera_(camera), num_matches_thr_(num_matches_thr), pose_optimizer_() {}
+frame_tracker::frame_tracker(camera::base* camera, const unsigned int num_matches_thr, bool use_fixed_seed)
+    : camera_(camera), num_matches_thr_(num_matches_thr), use_fixed_seed_(use_fixed_seed), pose_optimizer_() {}
 
 bool frame_tracker::motion_based_track(data::frame& curr_frm, const data::frame& last_frm, const Mat44_t& velocity) const {
     match::projection projection_matcher(0.9, true);
@@ -99,7 +99,7 @@ bool frame_tracker::robust_match_based_track(data::frame& curr_frm, const data::
     // Search 2D-2D matches between the ref keyframes and the current frame
     // to acquire 2D-3D matches between the frame keypoints and 3D points observed in the ref keyframe
     std::vector<std::shared_ptr<data::landmark>> matched_lms_in_curr;
-    auto num_matches = robust_matcher.match_frame_and_keyframe(curr_frm, ref_keyfrm, matched_lms_in_curr);
+    auto num_matches = robust_matcher.match_frame_and_keyframe(curr_frm, ref_keyfrm, matched_lms_in_curr, use_fixed_seed_);
 
     if (num_matches < num_matches_thr_) {
         spdlog::debug("robust match based tracking failed: {} matches < {}", num_matches, num_matches_thr_);

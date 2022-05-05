@@ -23,7 +23,8 @@ public:
     //! Constructor
     explicit relocalizer(const double bow_match_lowe_ratio = 0.75, const double proj_match_lowe_ratio = 0.9,
                          const double robust_match_lowe_ratio = 0.8,
-                         const unsigned int min_num_bow_matches = 20, const unsigned int min_num_valid_obs = 50);
+                         const unsigned int min_num_bow_matches = 20, const unsigned int min_num_valid_obs = 50,
+                         const bool use_fixed_seed = false);
 
     explicit relocalizer(const YAML::Node& yaml_node);
 
@@ -67,6 +68,8 @@ private:
     const unsigned int min_num_bow_matches_;
     //! minimum threshold of the number of valid (= inlier after pose optimization) matches
     const unsigned int min_num_valid_obs_;
+    //! Use fixed random seed for RANSAC if true
+    const bool use_fixed_seed_;
 
     //! BoW matcher
     const match::bow_tree bow_matcher_;

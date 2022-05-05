@@ -24,7 +24,12 @@ class landmark {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
+#ifdef DETERMINISTIC
+    //! Data structure for sorting keyframes by ID for consistent results in local map cleaning/BA
+    using observations_t = std::map<std::weak_ptr<keyframe>, unsigned int, id_less_than_weak<keyframe>>;
+#else
     using observations_t = std::map<std::weak_ptr<keyframe>, unsigned int, std::owner_less<std::weak_ptr<keyframe>>>;
+#endif
 
     //! constructor
     landmark(const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm);

@@ -179,7 +179,7 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
 
 unsigned int robust::match_keyframes(const std::shared_ptr<data::keyframe>& keyfrm1, const std::shared_ptr<data::keyframe>& keyfrm2,
                                      std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm,
-                                     bool validate_with_essential_solver) const {
+                                     bool validate_with_essential_solver, bool use_fixed_seed ) const {
     // Initialization
     const auto num_frm_keypts = keyfrm1->frm_obs_.num_keypts_;
     const auto keyfrm_lms = keyfrm2->get_landmarks();
@@ -192,7 +192,7 @@ unsigned int robust::match_keyframes(const std::shared_ptr<data::keyframe>& keyf
 
     // Extract only inliers with eight-point RANSAC
     if (validate_with_essential_solver) {
-        solve::essential_solver solver(keyfrm1->frm_obs_.bearings_, keyfrm2->frm_obs_.bearings_, matches);
+        solve::essential_solver solver(keyfrm1->frm_obs_.bearings_, keyfrm2->frm_obs_.bearings_, matches, use_fixed_seed);
         solver.find_via_ransac(50, false);
         if (!solver.solution_is_valid()) {
             return 0;
@@ -226,7 +226,8 @@ unsigned int robust::match_keyframes(const std::shared_ptr<data::keyframe>& keyf
 }
 
 unsigned int robust::match_frame_and_keyframe(data::frame& frm, const std::shared_ptr<data::keyframe>& keyfrm,
-                                              std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm) const {
+                                              std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm,
+                                              bool use_fixed_seed) const {
     // Initialization
     const auto num_frm_keypts = frm.frm_obs_.num_keypts_;
     const auto keyfrm_lms = keyfrm->get_landmarks();
@@ -238,7 +239,7 @@ unsigned int robust::match_frame_and_keyframe(data::frame& frm, const std::share
     brute_force_match(frm.frm_obs_, keyfrm, matches);
 
     // Extract only inliers with eight-point RANSAC
-    solve::essential_solver solver(frm.frm_obs_.bearings_, keyfrm->frm_obs_.bearings_, matches);
+    solve::essential_solver solver(frm.frm_obs_.bearings_, keyfrm->frm_obs_.bearings_, matches, use_fixed_seed);
     solver.find_via_ransac(50, false);
     if (!solver.solution_is_valid()) {
         return 0;
