@@ -2,6 +2,16 @@
 #include "stella_vslam/data/graph_node.h"
 #include "stella_vslam/data/landmark.h"
 
+#ifdef DETERMINISTIC
+namespace {
+    struct {
+        bool operator()(const std::pair<unsigned int, std::shared_ptr<stella_vslam::data::keyframe>>& a, const std::pair<unsigned int, std::shared_ptr<stella_vslam::data::keyframe>>& b) {
+            return a.first < b.first || ( a.first == b.first && a.second != nullptr && (b.second == nullptr || a.second->id_ < b.second->id_) );
+        }
+    } cmp_weight_keyfrm_pairs;
+}
+#endif
+
 namespace stella_vslam {
 namespace data {
 
@@ -57,7 +67,12 @@ void graph_node::erase_all_connections() {
 void graph_node::update_connections() {
     const auto landmarks = owner_keyfrm_.lock()->get_landmarks();
 
+#ifdef DETERMINISTIC
+    std::map<std::weak_ptr<keyframe>, unsigned int, id_less_than_weak<keyframe>> keyfrm_weights;
+#else
     std::map<std::weak_ptr<keyframe>, unsigned int, std::owner_less<std::weak_ptr<keyframe>>> keyfrm_weights;
+#endif
+
     for (const auto& lm : landmarks) {
         if (!lm) {
             continue;
@@ -93,6 +108,8 @@ void graph_node::update_connections() {
         auto keyfrm = keyfrm_weight.first.lock();
         const auto weight = keyfrm_weight.second;
 
+        // NB in DETERMINISTIC mode, will select the nearest_covisibility with greatest id_ if
+        // weights are the same due to ordering of keyfrm_weights
         if (max_weight <= weight) {
             max_weight = weight;
             nearest_covisibility = keyfrm;
@@ -114,8 +131,14 @@ void graph_node::update_connections() {
         covisibility->graph_node_->add_connection(owner_keyfrm_.lock(), weight);
     }
 
+#ifdef DETERMINISTIC
+    // sort with weights and keyframe IDs for consistency; IDs are also in reverse order
+    // to match selection of nearest_covisibility.
+    std::sort(weight_covisibility_pairs.rbegin(), weight_covisibility_pairs.rend(), cmp_weight_keyfrm_pairs);
+#else
     // sort with weights
     std::sort(weight_covisibility_pairs.rbegin(), weight_covisibility_pairs.rend());
+#endif
 
     decltype(ordered_covisibilities_) ordered_covisibilities;
     ordered_covisibilities.reserve(weight_covisibility_pairs.size());
@@ -129,7 +152,12 @@ void graph_node::update_connections() {
     {
         std::lock_guard<std::mutex> lock(mtx_);
 
+#ifdef DETERMINISTIC
+        connected_keyfrms_and_weights_ = std::map<std::weak_ptr<keyframe>, unsigned int, id_less_than_weak<keyframe>>(keyfrm_weights.begin(), keyfrm_weights.end());
+#else
         connected_keyfrms_and_weights_ = std::map<std::weak_ptr<keyframe>, unsigned int, std::owner_less<std::weak_ptr<keyframe>>>(keyfrm_weights.begin(), keyfrm_weights.end());
+#endif
+
         ordered_covisibilities_ = ordered_covisibilities;
         ordered_weights_ = ordered_weights;
 
@@ -156,8 +184,13 @@ void graph_node::update_covisibility_orders_impl() {
         weight_keyfrm_pairs.emplace_back(std::make_pair(keyfrm_and_weight.second, keyfrm_and_weight.first.lock()));
     }
 
+#ifdef DETERMINISTIC
+    // sort with weights and keyframe IDs for consistency
+    std::sort(weight_keyfrm_pairs.rbegin(), weight_keyfrm_pairs.rend(), cmp_weight_keyfrm_pairs);
+#else
     // sort with weights
     std::sort(weight_keyfrm_pairs.rbegin(), weight_keyfrm_pairs.rend());
+#endif
 
     ordered_covisibilities_.clear();
     ordered_covisibilities_.reserve(weight_keyfrm_pairs.size());
