@@ -68,8 +68,6 @@ private:
     const unsigned int min_num_bow_matches_;
     //! minimum threshold of the number of valid (= inlier after pose optimization) matches
     const unsigned int min_num_valid_obs_;
-    //! Use fixed random seed for RANSAC if true
-    const bool use_fixed_seed_;
 
     //! BoW matcher
     const match::bow_tree bow_matcher_;
@@ -79,6 +77,9 @@ private:
     const match::robust robust_matcher_;
     //! pose optimizer
     const optimize::pose_optimizer pose_optimizer_;
+
+    //! Use fixed random seed for RANSAC if true
+    const bool use_fixed_seed_;
 };
 
 } // namespace module
