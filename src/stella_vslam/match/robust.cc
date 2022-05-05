@@ -179,7 +179,7 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
 
 unsigned int robust::match_keyframes(const std::shared_ptr<data::keyframe>& keyfrm1, const std::shared_ptr<data::keyframe>& keyfrm2,
                                      std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm,
-                                     bool validate_with_essential_solver, bool use_fixed_seed ) const {
+                                     bool validate_with_essential_solver, bool use_fixed_seed) const {
     // Initialization
     const auto num_frm_keypts = keyfrm1->frm_obs_.num_keypts_;
     const auto keyfrm_lms = keyfrm2->get_landmarks();

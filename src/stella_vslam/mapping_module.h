@@ -142,7 +142,7 @@ private:
     //! Get the first and second order covisibilities of current keyframe
 #ifdef DETERMINISTIC
     id_ordered_set<data::keyframe> get_second_order_covisibilities(const unsigned int first_order_thr,
-                                                                    const unsigned int second_order_thr);
+                                                                   const unsigned int second_order_thr);
 #else
     std::unordered_set<std::shared_ptr<data::keyframe>> get_second_order_covisibilities(const unsigned int first_order_thr,
                                                                                         const unsigned int second_order_thr);

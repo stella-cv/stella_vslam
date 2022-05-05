@@ -4,12 +4,12 @@
 
 #ifdef DETERMINISTIC
 namespace {
-    struct {
-        bool operator()(const std::pair<unsigned int, std::shared_ptr<stella_vslam::data::keyframe>>& a, const std::pair<unsigned int, std::shared_ptr<stella_vslam::data::keyframe>>& b) {
-            return a.first < b.first || ( a.first == b.first && a.second != nullptr && (b.second == nullptr || a.second->id_ < b.second->id_) );
-        }
-    } cmp_weight_keyfrm_pairs;
-}
+struct {
+    bool operator()(const std::pair<unsigned int, std::shared_ptr<stella_vslam::data::keyframe>>& a, const std::pair<unsigned int, std::shared_ptr<stella_vslam::data::keyframe>>& b) {
+        return a.first < b.first || (a.first == b.first && a.second != nullptr && (b.second == nullptr || a.second->id_ < b.second->id_));
+    }
+} cmp_weight_keyfrm_pairs;
+} // namespace
 #endif
 
 namespace stella_vslam {

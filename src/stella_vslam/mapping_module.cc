@@ -368,14 +368,14 @@ void mapping_module::update_new_keyframe() {
 
 #ifdef DETERMINISTIC
 id_ordered_set<data::keyframe> mapping_module::get_second_order_covisibilities(const unsigned int first_order_thr,
-                                                                                const unsigned int second_order_thr) {
+                                                                               const unsigned int second_order_thr) {
 #else
 std::unordered_set<std::shared_ptr<data::keyframe>> mapping_module::get_second_order_covisibilities(const unsigned int first_order_thr,
                                                                                                     const unsigned int second_order_thr) {
 #endif
     const auto cur_covisibilities = cur_keyfrm_->graph_node_->get_top_n_covisibilities(first_order_thr);
 
-#ifdef DETERMINISTIC                                                                                                                                                                                                                                                                                                
+#ifdef DETERMINISTIC
     id_ordered_set<data::keyframe> fuse_tgt_keyfrms;
 #else
     std::unordered_set<std::shared_ptr<data::keyframe>> fuse_tgt_keyfrms;
@@ -435,12 +435,12 @@ void mapping_module::fuse_landmark_duplication(const std::unordered_set<std::sha
         // - additional matches
         // - duplication of matches
         // then, add matches and solve duplication
-    #ifdef DETERMINISTIC
+#ifdef DETERMINISTIC
         id_ordered_set<data::landmark> candidate_landmarks_to_fuse;
-    #else
+#else
         std::unordered_set<std::shared_ptr<data::landmark>> candidate_landmarks_to_fuse;
         candidate_landmarks_to_fuse.reserve(fuse_tgt_keyfrms.size() * cur_keyfrm_->frm_obs_.num_keypts_);
-    #endif
+#endif
 
         for (const auto& fuse_tgt_keyfrm : fuse_tgt_keyfrms) {
             const auto fuse_tgt_landmarks = fuse_tgt_keyfrm->get_landmarks();

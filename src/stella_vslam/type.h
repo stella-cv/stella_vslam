@@ -117,23 +117,23 @@ inline Vec2_t operator-(const cv::Point_<T>& v1, const Vec2_t& v2) {
 #ifdef DETERMINISTIC
 // Comparators to allow ordering of classes with id_ member (keyframes, landmarks) to be ordered by ID.
 // Assume that null pointers have an ID of infinity, i.e. nullptr > any valid pointer.
-template <class T>
+template<class T>
 struct id_less_than_shared {
     bool operator()(const std::shared_ptr<T> a, const std::shared_ptr<T> b) const {
         return a != nullptr && (b == nullptr || a->id_ < b->id_);
     }
 };
 
-template <class T>
+template<class T>
 struct id_less_than_weak {
     bool operator()(const std::weak_ptr<T> a, const std::weak_ptr<T> b) const {
         return !a.expired() && (b.expired() || a.lock()->id_ < b.lock()->id_);
     }
 };
 
-template <class T>
+template<class T>
 using id_ordered_set = std::set<std::shared_ptr<T>, id_less_than_shared<T>>;
-#endif  // DETERMINISTIC
+#endif // DETERMINISTIC
 
 } // namespace stella_vslam
 
