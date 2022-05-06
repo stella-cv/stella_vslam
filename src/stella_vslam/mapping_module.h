@@ -140,21 +140,11 @@ private:
     void update_new_keyframe();
 
     //! Get the first and second order covisibilities of current keyframe
-#ifdef DETERMINISTIC
-    id_ordered_set<data::keyframe> get_second_order_covisibilities(const unsigned int first_order_thr,
-                                                                   const unsigned int second_order_thr);
-#else
-    std::unordered_set<std::shared_ptr<data::keyframe>> get_second_order_covisibilities(const unsigned int first_order_thr,
-                                                                                        const unsigned int second_order_thr);
-
-#endif
+    nondeterministic::unordered_set<std::shared_ptr<data::keyframe>> get_second_order_covisibilities(const unsigned int first_order_thr,
+                                                                                                     const unsigned int second_order_thr);
 
     //! Fuse duplicated landmarks between current keyframe and covisibility keyframes
-#ifdef DETERMINISTIC
-    void fuse_landmark_duplication(const id_ordered_set<data::keyframe>& fuse_tgt_keyfrms);
-#else
-    void fuse_landmark_duplication(const std::unordered_set<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms);
-#endif
+    void fuse_landmark_duplication(const nondeterministic::unordered_set<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms);
 
     //! Check if pause is requested and not prevented
     bool pause_is_requested_and_not_prevented() const;

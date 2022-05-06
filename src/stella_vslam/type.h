@@ -114,26 +114,45 @@ inline Vec2_t operator-(const cv::Point_<T>& v1, const Vec2_t& v2) {
     return v1 + (-v2);
 }
 
-#ifdef DETERMINISTIC
 // Comparators to allow ordering of classes with id_ member (keyframes, landmarks) to be ordered by ID.
 // Assume that null pointers have an ID of infinity, i.e. nullptr > any valid pointer.
 template<class T>
-struct id_less_than_shared {
-    bool operator()(const std::shared_ptr<T> a, const std::shared_ptr<T> b) const {
+struct id_less;
+
+template<class T>
+struct id_less<std::shared_ptr<T>> {
+    bool operator()(const std::shared_ptr<T>& a, const std::shared_ptr<T>& b) const {
         return a != nullptr && (b == nullptr || a->id_ < b->id_);
     }
 };
 
 template<class T>
-struct id_less_than_weak {
-    bool operator()(const std::weak_ptr<T> a, const std::weak_ptr<T> b) const {
+struct id_less<std::weak_ptr<T>> {
+    bool operator()(const std::weak_ptr<T>& a, const std::weak_ptr<T>& b) const {
         return !a.expired() && (b.expired() || a.lock()->id_ < b.lock()->id_);
     }
 };
 
 template<class T>
-using id_ordered_set = std::set<std::shared_ptr<T>, id_less_than_shared<T>>;
-#endif // DETERMINISTIC
+using id_ordered_set = std::set<T, id_less<T>>;
+
+template<class T, class U>
+using id_ordered_map = std::map<T, U, id_less<T>>;
+
+namespace nondeterministic {
+#ifdef DETERMINISTIC
+// For deterministic behavior, use set and map ordered by id.
+template<class T>
+using unordered_set = std::set<T, id_less<T>>;
+template<class T, class U>
+using unordered_map = std::map<T, U, id_less<T>>;
+#else
+template<class T>
+using unordered_set = std::unordered_set<T>;
+template<class T, class U>
+using unordered_map = std::unordered_map<T, U>;
+#endif
+} // namespace nondeterministic
 
 } // namespace stella_vslam
 

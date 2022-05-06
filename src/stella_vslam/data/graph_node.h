@@ -157,11 +157,7 @@ private:
     std::weak_ptr<keyframe> const owner_keyfrm_;
 
     //! all connected keyframes and their weights
-#ifdef DETERMINISTIC
-    std::map<std::weak_ptr<keyframe>, unsigned int, id_less_than_weak<keyframe>> connected_keyfrms_and_weights_;
-#else
-    std::map<std::weak_ptr<keyframe>, unsigned int, std::owner_less<std::weak_ptr<keyframe>>> connected_keyfrms_and_weights_;
-#endif
+    id_ordered_map<std::weak_ptr<keyframe>, unsigned int> connected_keyfrms_and_weights_;
 
     //! minimum threshold for covisibility graph connection
     static constexpr unsigned int weight_thr_ = 15;
@@ -173,20 +169,12 @@ private:
     //! parent of spanning tree
     std::weak_ptr<keyframe> spanning_parent_;
     //! children of spanning tree
-#ifdef DETERMINISTIC
-    std::set<std::weak_ptr<keyframe>, id_less_than_weak<keyframe>> spanning_children_;
-#else
-    std::set<std::weak_ptr<keyframe>, std::owner_less<std::weak_ptr<keyframe>>> spanning_children_;
-#endif
+    id_ordered_set<std::weak_ptr<keyframe>> spanning_children_;
     //! flag which indicates spanning tree is not set yet or not
     bool spanning_parent_is_not_set_;
 
     //! loop edges
-#ifdef DETERMINISTIC
-    std::set<std::weak_ptr<keyframe>, id_less_than_weak<keyframe>> loop_edges_;
-#else
-    std::set<std::weak_ptr<keyframe>, std::owner_less<std::weak_ptr<keyframe>>> loop_edges_;
-#endif
+    id_ordered_set<std::weak_ptr<keyframe>> loop_edges_;
 
     //! need mutex for access to connections
     mutable std::mutex mtx_;
