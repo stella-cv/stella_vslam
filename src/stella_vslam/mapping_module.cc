@@ -9,9 +9,6 @@
 #include "stella_vslam/module/two_view_triangulator.h"
 #include "stella_vslam/solve/essential_solver.h"
 
-#ifndef DETERMINISTIC
-#include <unordered_set>
-#endif
 #include <thread>
 
 #include <spdlog/spdlog.h>
@@ -366,21 +363,11 @@ void mapping_module::update_new_keyframe() {
     cur_keyfrm_->graph_node_->update_connections();
 }
 
-#ifdef DETERMINISTIC
-id_ordered_set<data::keyframe> mapping_module::get_second_order_covisibilities(const unsigned int first_order_thr,
-                                                                               const unsigned int second_order_thr) {
-#else
-std::unordered_set<std::shared_ptr<data::keyframe>> mapping_module::get_second_order_covisibilities(const unsigned int first_order_thr,
-                                                                                                    const unsigned int second_order_thr) {
-#endif
+id_ordered_set<std::shared_ptr<data::keyframe>> mapping_module::get_second_order_covisibilities(const unsigned int first_order_thr,
+                                                                                                const unsigned int second_order_thr) {
     const auto cur_covisibilities = cur_keyfrm_->graph_node_->get_top_n_covisibilities(first_order_thr);
 
-#ifdef DETERMINISTIC
-    id_ordered_set<data::keyframe> fuse_tgt_keyfrms;
-#else
-    std::unordered_set<std::shared_ptr<data::keyframe>> fuse_tgt_keyfrms;
-    fuse_tgt_keyfrms.reserve(cur_covisibilities.size() * 2);
-#endif
+    id_ordered_set<std::shared_ptr<data::keyframe>> fuse_tgt_keyfrms;
 
     for (const auto& first_order_covis : cur_covisibilities) {
         if (first_order_covis->will_be_erased()) {
@@ -412,11 +399,7 @@ std::unordered_set<std::shared_ptr<data::keyframe>> mapping_module::get_second_o
     return fuse_tgt_keyfrms;
 }
 
-#ifdef DETERMINISTIC
-void mapping_module::fuse_landmark_duplication(const id_ordered_set<data::keyframe>& fuse_tgt_keyfrms) {
-#else
-void mapping_module::fuse_landmark_duplication(const std::unordered_set<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms) {
-#endif
+void mapping_module::fuse_landmark_duplication(const id_ordered_set<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms) {
     match::fuse matcher;
 
     {
@@ -435,12 +418,7 @@ void mapping_module::fuse_landmark_duplication(const std::unordered_set<std::sha
         // - additional matches
         // - duplication of matches
         // then, add matches and solve duplication
-#ifdef DETERMINISTIC
-        id_ordered_set<data::landmark> candidate_landmarks_to_fuse;
-#else
-        std::unordered_set<std::shared_ptr<data::landmark>> candidate_landmarks_to_fuse;
-        candidate_landmarks_to_fuse.reserve(fuse_tgt_keyfrms.size() * cur_keyfrm_->frm_obs_.num_keypts_);
-#endif
+        id_ordered_set<std::shared_ptr<data::landmark>> candidate_landmarks_to_fuse;
 
         for (const auto& fuse_tgt_keyfrm : fuse_tgt_keyfrms) {
             const auto fuse_tgt_landmarks = fuse_tgt_keyfrm->get_landmarks();
