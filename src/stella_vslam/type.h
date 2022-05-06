@@ -139,6 +139,21 @@ using id_ordered_set = std::set<T, id_less<T>>;
 template<class T, class U>
 using id_ordered_map = std::map<T, U, id_less<T>>;
 
+namespace nondeterministic {
+#ifdef DETERMINISTIC
+// For deterministic behavior, use set and map ordered by id.
+template<class T>
+using unordered_set = std::set<T, id_less<T>>;
+template<class T, class U>
+using unordered_map = std::map<T, U, id_less<T>>;
+#else
+template<class T>
+using unordered_set = std::unordered_set<T>;
+template<class T, class U>
+using unordered_map = std::unordered_map<T, U>;
+#endif
+} // namespace nondeterministic
+
 } // namespace stella_vslam
 
 #endif // STELLA_VSLAM_TYPE_H

@@ -15,8 +15,7 @@ namespace module {
 
 class local_map_updater {
 public:
-    //! Data structure for sorting keyframes by ID for consistent results in find_local_keyframes()
-    using keyframe_weights_t = std::map<std::shared_ptr<data::keyframe>, unsigned int, id_less<std::shared_ptr<data::keyframe>>>;
+    using keyframe_weights_t = nondeterministic::unordered_map<std::shared_ptr<data::keyframe>, unsigned int>;
 
     //! Constructor
     explicit local_map_updater(const data::frame& curr_frm, const unsigned int max_num_local_keyfrms);

@@ -271,6 +271,7 @@ unsigned int fuse::replace_duplication(data::map_database* map_db,
 
 template unsigned int fuse::replace_duplication(data::map_database*, const std::shared_ptr<data::keyframe>&, const std::vector<std::shared_ptr<data::landmark>>&, const float);
 template unsigned int fuse::replace_duplication(data::map_database*, const std::shared_ptr<data::keyframe>&, const id_ordered_set<std::shared_ptr<data::landmark>>&, const float);
+template unsigned int fuse::replace_duplication(data::map_database*, const std::shared_ptr<data::keyframe>&, const std::unordered_set<std::shared_ptr<data::landmark>>&, const float);
 
 } // namespace match
 } // namespace stella_vslam
