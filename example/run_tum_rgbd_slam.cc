@@ -272,7 +272,7 @@ int main(int argc, char* argv[]) {
     auto frame_skip = op.add<popl::Value<unsigned int>>("", "frame-skip", "interval of frame skip", 1);
     auto no_sleep = op.add<popl::Switch>("", "no-sleep", "not wait for next frame in real time");
     auto auto_term = op.add<popl::Switch>("", "auto-term", "automatically terminate the viewer");
-    auto debug_mode = op.add<popl::Switch>("", "debug", "debug mode");
+    auto log_level = op.add<popl::Value<std::string>>("", "log-level", "log level", "info");
     auto eval_log = op.add<popl::Switch>("", "eval-log", "store trajectory and tracking times for evaluation");
     auto map_db_path = op.add<popl::Value<std::string>>("p", "map-db", "store a map database at this path after SLAM", "");
     try {
@@ -299,12 +299,7 @@ int main(int argc, char* argv[]) {
 
     // setup logger
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] %^[%L] %v%$");
-    if (debug_mode->is_set()) {
-        spdlog::set_level(spdlog::level::debug);
-    }
-    else {
-        spdlog::set_level(spdlog::level::info);
-    }
+    spdlog::set_level(spdlog::level::from_str(log_level->value()));
 
     // load configuration
     std::shared_ptr<stella_vslam::config> cfg;

@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) {
     auto scale = op.add<popl::Value<float>>("s", "scale", "scaling ratio of images", 1.0);
     auto map_db_path = op.add<popl::Value<std::string>>("p", "map-db", "path to a prebuilt map database");
     auto mapping = op.add<popl::Switch>("", "mapping", "perform mapping as well as localization");
-    auto debug_mode = op.add<popl::Switch>("", "debug", "debug mode");
+    auto log_level = op.add<popl::Value<std::string>>("", "log-level", "log level", "info");
     try {
         op.parse(argc, argv);
     }
@@ -167,12 +167,7 @@ int main(int argc, char* argv[]) {
 
     // setup logger
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] %^[%L] %v%$");
-    if (debug_mode->is_set()) {
-        spdlog::set_level(spdlog::level::debug);
-    }
-    else {
-        spdlog::set_level(spdlog::level::info);
-    }
+    spdlog::set_level(spdlog::level::from_str(log_level->value()));
 
     // load configuration
     std::shared_ptr<stella_vslam::config> cfg;
