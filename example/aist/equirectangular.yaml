@@ -46,10 +46,11 @@ Mapping:
   baseline_dist_thr_ratio: 0.02
   redundant_obs_ratio_thr: 0.95
 
-#========================#
-# BowDatabase Parameters #
-#========================#
+#=========================#
+# LoopDetector Parameters #
+#=========================#
 
-BowDatabase:
+LoopDetector:
+  enabled: true
   reject_by_graph_distance: true
-  loop_min_distance_on_graph: 50
+  min_distance_on_graph: 50
