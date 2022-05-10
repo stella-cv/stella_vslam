@@ -21,6 +21,8 @@
 #include <g2o/solvers/eigen/linear_solver_eigen.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
 
+#include <spdlog/spdlog.h>
+
 namespace stella_vslam {
 namespace optimize {
 
@@ -200,12 +202,16 @@ void local_bundle_adjuster::optimize(data::map_database* map_db,
 
     for (const auto& id_local_lm_pair : local_lms) {
         const auto local_lm = id_local_lm_pair.second;
+        const auto observations = local_lm->get_observations();
+        if (observations.empty()) {
+            spdlog::warn("empty observation");
+            continue;
+        }
 
         // Convert the landmark to the g2o vertex, then set to the optimizer
         auto lm_vtx = lm_vtx_container.create_vertex(local_lm, false);
         optimizer.addVertex(lm_vtx);
 
-        const auto observations = local_lm->get_observations();
         for (const auto& obs : observations) {
             const auto keyfrm = obs.first.lock();
             auto idx = obs.second;
@@ -213,6 +219,9 @@ void local_bundle_adjuster::optimize(data::map_database* map_db,
                 continue;
             }
             if (keyfrm->will_be_erased()) {
+                continue;
+            }
+            if (!keyfrm_vtx_container.contain(keyfrm)) {
                 continue;
             }
 
@@ -351,6 +360,10 @@ void local_bundle_adjuster::optimize(data::map_database* map_db,
             const auto& lm = outlier_obs.second;
             keyfrm->erase_landmark(lm);
             lm->erase_observation(map_db, keyfrm);
+            if (!lm->will_be_erased()) {
+                lm->compute_descriptor();
+                lm->update_mean_normal_and_obs_scale_variance();
+            }
         }
 
         for (const auto& id_local_keyfrm_pair : local_keyfrms) {
@@ -362,6 +375,9 @@ void local_bundle_adjuster::optimize(data::map_database* map_db,
 
         for (const auto& id_local_lm_pair : local_lms) {
             const auto& local_lm = id_local_lm_pair.second;
+            if (local_lm->will_be_erased()) {
+                continue;
+            }
 
             auto lm_vtx = lm_vtx_container.get_vertex(local_lm);
             local_lm->set_pos_in_world(lm_vtx->estimate());

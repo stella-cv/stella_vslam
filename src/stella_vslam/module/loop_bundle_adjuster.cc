@@ -63,16 +63,13 @@ void loop_bundle_adjuster::optimize() {
 
         // stop mapping module
         auto future_pause = mapper_->async_pause();
-        while (future_pause.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout) {
-            while (mapper_->is_terminated()) {
-                break;
-            }
-        }
+        spdlog::debug("loop_bundle_adjuster::optimize: wait for mapper_->async_pause");
+        future_pause.get();
 
         std::lock_guard<std::mutex> lock2(data::map_database::mtx_database_);
 
+        spdlog::debug("update the camera pose along the spanning tree from the origin");
         eigen_alloc_unord_map<unsigned int, Mat44_t> keyfrm_to_cam_pose_cw_before_BA;
-        // update the camera pose along the spanning tree from the origin
         std::list<std::shared_ptr<data::keyframe>> keyfrms_to_check;
         keyfrms_to_check.push_back(map_db_->origin_keyfrm_);
         while (!keyfrms_to_check.empty()) {
@@ -105,7 +102,7 @@ void loop_bundle_adjuster::optimize() {
             keyfrms_to_check.pop_front();
         }
 
-        // update the positions of the landmarks
+        spdlog::debug("update the positions of the landmarks");
         const auto landmarks = map_db_->get_all_landmarks();
         for (const auto& lm : landmarks) {
             if (lm->will_be_erased()) {
@@ -138,6 +135,7 @@ void loop_bundle_adjuster::optimize() {
                 const Vec3_t trans_wc = cam_pose_wc.block<3, 1>(0, 3);
                 lm->set_pos_in_world(rot_wc * pos_c + trans_wc);
             }
+            lm->update_mean_normal_and_obs_scale_variance();
         }
 
         mapper_->resume();

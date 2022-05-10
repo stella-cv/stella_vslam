@@ -17,7 +17,7 @@ public:
     /**
      * Constructor
      */
-    explicit graph_node(std::shared_ptr<keyframe>& keyfrm, const bool spanning_parent_is_not_set = true);
+    explicit graph_node(std::shared_ptr<keyframe>& keyfrm);
 
     /**
      * Destructor

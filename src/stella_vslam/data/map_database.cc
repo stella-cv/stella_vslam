@@ -286,8 +286,12 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
         assert(landmarks_.count(id));
         const auto& lm = landmarks_.at(id);
 
-        lm->update_mean_normal_and_obs_scale_variance();
-        lm->compute_descriptor();
+        if (!lm->has_valid_prediction_parameters()) {
+            lm->update_mean_normal_and_obs_scale_variance();
+        }
+        if (!lm->has_representative_descriptor()) {
+            lm->compute_descriptor();
+        }
     }
 }
 
@@ -399,9 +403,7 @@ void map_database::register_association(const unsigned int keyfrm_id, const nloh
             continue;
         }
 
-        const auto& lm = landmarks_.at(lm_id);
-        keyfrm->add_landmark(lm, idx);
-        lm->add_observation(keyfrm, idx);
+        landmarks_.at(lm_id)->connect_to_keyframe(keyfrm, idx);
     }
 }
 
@@ -432,7 +434,6 @@ void map_database::to_json(nlohmann::json& json_keyfrms, nlohmann::json& json_la
         assert(lm);
         assert(id == lm->id_);
         assert(!lm->will_be_erased());
-        lm->update_mean_normal_and_obs_scale_variance();
         assert(!landmarks.count(std::to_string(id)));
         landmarks[std::to_string(id)] = lm->to_json();
     }
@@ -487,8 +488,12 @@ bool map_database::from_db(sqlite3* db,
     for (const auto& id_landmark : landmarks_) {
         const auto lm = id_landmark.second;
 
-        lm->update_mean_normal_and_obs_scale_variance();
-        lm->compute_descriptor();
+        if (!lm->has_valid_prediction_parameters()) {
+            lm->update_mean_normal_and_obs_scale_variance();
+        }
+        if (!lm->has_representative_descriptor()) {
+            lm->compute_descriptor();
+        }
     }
     return ok;
 }
@@ -666,9 +671,7 @@ bool map_database::load_associations_from_db(sqlite3* db) {
                 continue;
             }
 
-            const auto& lm = landmarks_.at(lm_id);
-            keyfrm->add_landmark(lm, idx);
-            lm->add_observation(keyfrm, idx);
+            landmarks_.at(lm_id)->connect_to_keyframe(keyfrm, idx);
         }
     }
     sqlite3_finalize(stmt);
@@ -800,7 +803,7 @@ bool map_database::save_keyframes_to_db(sqlite3* db) const {
             assert(descriptors.dims == 2);
             assert(descriptors.channels() == 1);
             assert(descriptors.cols == 32);
-            assert(descriptors.rows == num_keypts);
+            assert(descriptors.rows > 0 && static_cast<size_t>(descriptors.rows) == num_keypts);
             assert(descriptors.elemSize() == 1);
             ret = sqlite3_bind_blob(stmt, column_id++, descriptors.data, descriptors.total() * descriptors.elemSize(), SQLITE_TRANSIENT);
         }

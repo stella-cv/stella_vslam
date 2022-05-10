@@ -147,6 +147,11 @@ public:
     void erase_landmark(const std::shared_ptr<landmark>& lm);
 
     /**
+     * Update all of the landmarks
+     */
+    void update_landmarks();
+
+    /**
      * Get all of the landmarks
      * (NOTE: including nullptr)
      */

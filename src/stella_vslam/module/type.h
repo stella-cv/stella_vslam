@@ -6,6 +6,11 @@
 #include <memory>
 
 namespace stella_vslam {
+
+namespace data {
+class keyframe;
+}
+
 namespace module {
 
 // 相互参照を避けるためにここでtypedefしておく

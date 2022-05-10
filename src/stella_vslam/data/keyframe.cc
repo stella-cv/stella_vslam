@@ -10,6 +10,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <spdlog/spdlog.h>
+
 namespace stella_vslam {
 namespace data {
 
@@ -20,7 +22,7 @@ keyframe::keyframe(const frame& frm)
       camera_(frm.camera_), orb_params_(frm.orb_params_),
       frm_obs_(frm.frm_obs_), markers_2d_(frm.markers_2d_),
       bow_vec_(frm.bow_vec_), bow_feat_vec_(frm.bow_feat_vec_),
-      landmarks_(frm.landmarks_) {
+      landmarks_(frm.get_landmarks()) {
     // set pose parameters (pose_wc_, trans_wc_) using frm.pose_cw_
     set_pose_cw(frm.get_pose_cw());
 }
@@ -45,12 +47,14 @@ keyframe::keyframe(const unsigned int id, const unsigned int src_frm_id, const d
     //   should set loop_edges_ using graph_node->add_loop_edge()
 }
 
-keyframe::~keyframe() {}
+keyframe::~keyframe() {
+    SPDLOG_TRACE("keyframe::~keyframe: {}", id_);
+}
 
 std::shared_ptr<keyframe> keyframe::make_keyframe(const frame& frm) {
     auto ptr = std::allocate_shared<keyframe>(Eigen::aligned_allocator<keyframe>(), frm);
     // covisibility graph node (connections is not assigned yet)
-    ptr->graph_node_ = stella_vslam::make_unique<graph_node>(ptr, true);
+    ptr->graph_node_ = stella_vslam::make_unique<graph_node>(ptr);
     return ptr;
 }
 
@@ -65,7 +69,7 @@ std::shared_ptr<keyframe> keyframe::make_keyframe(
         pose_cw, camera, orb_params,
         frm_obs, bow_vec, bow_feat_vec);
     // covisibility graph node (connections is not assigned yet)
-    ptr->graph_node_ = stella_vslam::make_unique<graph_node>(ptr, false);
+    ptr->graph_node_ = stella_vslam::make_unique<graph_node>(ptr);
     return ptr;
 }
 
@@ -182,6 +186,25 @@ void keyframe::erase_landmark(const std::shared_ptr<landmark>& lm) {
     int idx = lm->get_index_in_keyframe(shared_from_this());
     if (0 <= idx) {
         landmarks_.at(static_cast<unsigned int>(idx)) = nullptr;
+    }
+}
+
+void keyframe::update_landmarks() {
+    std::lock_guard<std::mutex> lock(mtx_observations_);
+    for (unsigned int idx = 0; idx < landmarks_.size(); ++idx) {
+        auto lm = landmarks_.at(idx);
+        if (!lm) {
+            continue;
+        }
+        if (lm->will_be_erased()) {
+            continue;
+        }
+
+        // update connection
+        lm->add_observation(shared_from_this(), idx);
+        // update geometry
+        lm->update_mean_normal_and_obs_scale_variance();
+        lm->compute_descriptor();
     }
 }
 
@@ -332,6 +355,7 @@ void keyframe::prepare_for_erasing(map_database* map_db, bow_database* bow_db) {
 
     // 1. raise the flag which indicates it has been erased
 
+    SPDLOG_TRACE("keyframe::prepare_for_erasing {}", id_);
     will_be_erased_ = true;
 
     // 2. remove associations between keypoints and landmarks
@@ -342,7 +366,14 @@ void keyframe::prepare_for_erasing(map_database* map_db, bow_database* bow_db) {
             if (!lm) {
                 continue;
             }
+            if (lm->will_be_erased()) {
+                continue;
+            }
             lm->erase_observation(map_db, shared_from_this());
+            if (!lm->will_be_erased()) {
+                lm->compute_descriptor();
+                lm->update_mean_normal_and_obs_scale_variance();
+            }
         }
     }
 

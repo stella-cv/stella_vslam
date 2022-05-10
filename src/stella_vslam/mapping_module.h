@@ -83,12 +83,6 @@ public:
     //! Check if the mapping module is paused or not
     bool is_paused() const;
 
-    //! If it is not paused, prevent it from being paused
-    bool prevent_pause_if_not_paused();
-
-    //! Stop preventing it from pausing
-    void stop_prevent_pause();
-
     //! Resume the mapping module
     void resume();
 
@@ -130,7 +124,7 @@ private:
     void store_new_keyframe();
 
     //! Create new landmarks using neighbor keyframes
-    void create_new_landmarks();
+    void create_new_landmarks(std::atomic<bool>& abort_create_new_landmarks);
 
     //! Triangulate landmarks between the keyframes 1 and 2
     void triangulate_with_two_keyframes(const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2,
@@ -144,10 +138,8 @@ private:
                                                                                                      const unsigned int second_order_thr);
 
     //! Fuse duplicated landmarks between current keyframe and covisibility keyframes
-    void fuse_landmark_duplication(const nondeterministic::unordered_set<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms);
-
-    //! Check if pause is requested and not prevented
-    bool pause_is_requested_and_not_prevented() const;
+    void fuse_landmark_duplication(const nondeterministic::unordered_set<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms,
+                                   nondeterministic::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>& replaced_lms);
 
     //! Set is_idle (True when no keyframes are being processed.)
     void set_is_idle(const bool is_idle);
@@ -186,8 +178,6 @@ private:
     bool pause_is_requested_ = false;
     //! flag which indicates whether the main loop is paused or not
     bool is_paused_ = false;
-    //! flag to force the mapping module to be run
-    bool prevent_pause_ = false;
 
     //-----------------------------------------
     // management for terminate process

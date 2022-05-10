@@ -87,6 +87,53 @@ bool frame::can_observe(const std::shared_ptr<landmark>& lm, const float ray_cos
     return true;
 }
 
+bool frame::has_landmark(const std::shared_ptr<landmark>& lm) const {
+    return static_cast<bool>(landmarks_idx_map_.count(lm));
+}
+
+void frame::add_landmark(const std::shared_ptr<landmark>& lm, const unsigned int idx) {
+    SPDLOG_TRACE("frame::add_landmark {} {} {}", id_, lm->id_, idx);
+    assert(!has_landmark(lm));
+    landmarks_.at(idx) = lm;
+    landmarks_idx_map_[lm] = idx;
+}
+
+std::shared_ptr<landmark> frame::get_landmark(const unsigned int idx) const {
+    return landmarks_.at(idx);
+}
+
+void frame::erase_landmark_with_index(const unsigned int idx) {
+    assert(landmarks_.at(idx));
+    landmarks_idx_map_.erase(landmarks_.at(idx));
+    landmarks_.at(idx) = nullptr;
+}
+
+void frame::erase_landmark(const std::shared_ptr<landmark>& lm) {
+    assert(has_landmark(lm));
+    auto idx = landmarks_idx_map_[lm];
+    landmarks_idx_map_.erase(lm);
+    landmarks_.at(idx) = nullptr;
+}
+
+std::vector<std::shared_ptr<landmark>> frame::get_landmarks() const {
+    return landmarks_;
+}
+
+void frame::erase_landmarks() {
+    std::fill(landmarks_.begin(), landmarks_.end(), nullptr);
+    landmarks_idx_map_.clear();
+}
+
+void frame::set_landmarks(const std::vector<std::shared_ptr<landmark>>& landmarks) {
+    erase_landmarks();
+    for (unsigned int idx = 0; idx < landmarks.size(); ++idx) {
+        const auto& lm = landmarks.at(idx);
+        if (lm) {
+            add_landmark(lm, idx);
+        }
+    }
+}
+
 std::vector<unsigned int> frame::get_keypoints_in_cell(const float ref_x, const float ref_y, const float margin, const int min_level, const int max_level) const {
     return data::get_keypoints_in_cell(camera_, frm_obs_, ref_x, ref_y, margin, min_level, max_level);
 }

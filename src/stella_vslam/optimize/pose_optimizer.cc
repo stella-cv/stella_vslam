@@ -24,7 +24,7 @@ pose_optimizer::pose_optimizer(const unsigned int num_trials, const unsigned int
 
 unsigned int pose_optimizer::optimize(const data::frame& frm, g2o::SE3Quat& optimized_pose, std::vector<bool>& outlier_flags) const {
     auto num_valid_obs = optimize(frm.get_pose_cw(), frm.frm_obs_, frm.orb_params_, frm.camera_,
-                                  frm.landmarks_, optimized_pose, outlier_flags);
+                                  frm.get_landmarks(), optimized_pose, outlier_flags);
     return num_valid_obs;
 }
 

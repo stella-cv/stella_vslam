@@ -129,6 +129,18 @@ if(USE_ARUCO)
     target_compile_definitions(${PROJECT_NAME} PUBLIC USE_ARUCO)
 endif()
 
+# Trace level log
+set (ENABLE_TRACE_LEVEL_LOG OFF CACHE BOOL "Enable trace level log")
+if (ENABLE_TRACE_LEVEL_LOG)
+    # Remove SPDLOG_TRACE macro at compile time by switching SPDLOG_ACTIVE_LEVEL.
+    # NOTE: SPDLOG_ACTIVE_LEVEL has no effect on `spdlog::debug(...)`, `spdlog::trace(...)`, etc.
+    target_compile_definitions(${PROJECT_NAME} PUBLIC SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
+    message(STATUS "trace level log: ENABLED")
+else()
+    target_compile_definitions(${PROJECT_NAME} PUBLIC SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG)
+    message(STATUS "trace level log: DISABLED")
+endif()
+
 # Determinism
 set (DETERMINISTIC OFF CACHE BOOL "Use deterministic code")
 if (DETERMINISTIC)

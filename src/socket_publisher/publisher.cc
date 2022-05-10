@@ -48,7 +48,7 @@ void publisher::run() {
             std::this_thread::sleep_for(std::chrono::microseconds(sleep_us));
         }
 
-        if (check_and_execute_pause()) {
+        if (pause_if_requested()) {
             while (is_paused()) {
                 std::this_thread::sleep_for(std::chrono::microseconds(5000));
             }
@@ -115,7 +115,7 @@ void publisher::terminate() {
     is_terminated_ = true;
 }
 
-bool publisher::check_and_execute_pause() {
+bool publisher::pause_if_requested() {
     std::lock_guard<std::mutex> lock1(mtx_pause_);
     std::lock_guard<std::mutex> lock2(mtx_terminate_);
 

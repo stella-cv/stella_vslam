@@ -18,23 +18,23 @@ namespace match {
 
 class fuse final : public base {
 public:
-    explicit fuse(const float lowe_ratio = 0.6)
-        : base(lowe_ratio, true) {}
+    explicit fuse(float lowe_ratio, bool check_orientation, bool do_reprojection_matching)
+        : base(lowe_ratio, check_orientation), do_reprojection_matching_(do_reprojection_matching) {}
 
     ~fuse() final = default;
 
     //! 3次元点(landmarks_to_check)をkeyframeに再投影し，keyframeで観測している3次元点と重複しているものを探す
-    //! 重複しているものは同じindexでduplicated_lms_in_keyfrmに記録される
-    //! replace_duplication()とは異なり，関数内でreplaceはしない
-    //! NOTE: landmarks_to_check.size() == duplicated_lms_in_keyfrm.size()
-    unsigned int detect_duplication(const std::shared_ptr<data::keyframe>& keyfrm, const Mat44_t& Sim3_cw, const std::vector<std::shared_ptr<data::landmark>>& landmarks_to_check,
-                                    const float margin, std::vector<std::shared_ptr<data::landmark>>& duplicated_lms_in_keyfrm);
-
-    //! 3次元点(landmarks_to_check)をkeyframeに再投影し，keyframeで観測している3次元点と重複しているものを探す
-    //! 重複しているものはより信頼できる3次元点を選択してreplaceする
-    //! detect_duplication()とは異なり，関数内でreplaceを行う
     template<typename T>
-    unsigned int replace_duplication(data::map_database* map_db, const std::shared_ptr<data::keyframe>& keyfrm, const T& landmarks_to_check, const float margin = 3.0);
+    unsigned int detect_duplication(const std::shared_ptr<data::keyframe>& keyfrm,
+                                    const Mat33_t& rot_cw,
+                                    const Vec3_t& trans_cw,
+                                    const T& landmarks_to_check,
+                                    const float margin,
+                                    std::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>& duplicated_lms_in_keyfrm,
+                                    std::unordered_map<unsigned int, std::shared_ptr<data::landmark>>& new_connections) const;
+
+protected:
+    bool do_reprojection_matching_ = false;
 };
 
 } // namespace match

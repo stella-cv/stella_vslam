@@ -102,7 +102,12 @@ unsigned int frame_publisher::draw_tracked_points(cv::Mat& img, const std::vecto
     return num_tracked;
 }
 
-void frame_publisher::update(tracking_module* tracker, std::vector<cv::KeyPoint>& keypts, const cv::Mat& img, double elapsed_ms) {
+void frame_publisher::update(const std::vector<std::shared_ptr<data::landmark>>& curr_lms,
+                             bool mapping_is_enabled,
+                             tracker_state_t tracking_state,
+                             std::vector<cv::KeyPoint>& keypts,
+                             const cv::Mat& img,
+                             double elapsed_ms) {
     std::lock_guard<std::mutex> lock(mtx_);
 
     img.copyTo(img_);
@@ -110,15 +115,15 @@ void frame_publisher::update(tracking_module* tracker, std::vector<cv::KeyPoint>
     const auto num_curr_keypts = keypts.size();
     curr_keypts_ = keypts;
     elapsed_ms_ = elapsed_ms;
-    mapping_is_enabled_ = tracker->get_mapping_module_status();
-    tracking_state_ = tracker->tracking_state_;
+    mapping_is_enabled_ = mapping_is_enabled;
+    tracking_state_ = tracking_state;
 
     is_tracked_ = std::vector<bool>(num_curr_keypts, false);
 
     switch (tracking_state_) {
         case tracker_state_t::Tracking: {
             for (unsigned int i = 0; i < num_curr_keypts; ++i) {
-                const auto& lm = tracker->curr_frm_.landmarks_.at(i);
+                const auto& lm = curr_lms.at(i);
                 if (!lm) {
                     continue;
                 }

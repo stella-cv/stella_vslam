@@ -12,6 +12,7 @@
 #include <vector>
 #include <atomic>
 #include <memory>
+#include <unordered_set>
 
 #include <Eigen/Core>
 
@@ -137,6 +138,22 @@ public:
     bool can_observe(const std::shared_ptr<landmark>& lm, const float ray_cos_thr,
                      Vec2_t& reproj, float& x_right, unsigned int& pred_scale_level) const;
 
+    bool has_landmark(const std::shared_ptr<landmark>& lm) const;
+
+    void add_landmark(const std::shared_ptr<landmark>&, const unsigned int idx);
+
+    std::shared_ptr<landmark> get_landmark(const unsigned int idx) const;
+
+    void erase_landmark_with_index(const unsigned int idx);
+
+    void erase_landmark(const std::shared_ptr<landmark>& lm);
+
+    std::vector<std::shared_ptr<landmark>> get_landmarks() const;
+
+    void erase_landmarks();
+
+    void set_landmarks(const std::vector<std::shared_ptr<landmark>>& landmarks);
+
     /**
      * Get keypoint indices in the cell which reference point is located
      * @param ref_x
@@ -180,13 +197,14 @@ public:
     bow_vector bow_vec_;
     bow_feature_vector bow_feat_vec_;
 
-    //! landmarks, whose nullptr indicates no-association
-    std::vector<std::shared_ptr<landmark>> landmarks_;
-
     //! reference keyframe for tracking
     std::shared_ptr<keyframe> ref_keyfrm_ = nullptr;
 
 private:
+    //! landmarks, whose nullptr indicates no-association
+    std::vector<std::shared_ptr<landmark>> landmarks_;
+    std::unordered_map<std::shared_ptr<landmark>, unsigned int> landmarks_idx_map_;
+
     //! camera pose: world -> camera
     bool pose_is_valid_ = false;
     Mat44_t pose_cw_;

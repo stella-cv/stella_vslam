@@ -274,8 +274,6 @@ void system::enable_mapping_module() {
     }
     // resume the mapping module
     mapper_->resume();
-    // inform to the tracking module
-    tracker_->set_mapping_module_status(true);
 }
 
 void system::disable_mapping_module() {
@@ -287,8 +285,6 @@ void system::disable_mapping_module() {
     auto future_pause = mapper_->async_pause();
     // wait until it stops
     future_pause.get();
-    // inform to the tracking module
-    tracker_->set_mapping_module_status(false);
 }
 
 bool system::mapping_module_is_enabled() const {
@@ -488,7 +484,12 @@ std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Ma
     const auto end = std::chrono::system_clock::now();
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    frame_publisher_->update(tracker_, keypts_, img, elapsed_ms);
+    frame_publisher_->update(tracker_->curr_frm_.get_landmarks(),
+                             mapper_->is_paused(),
+                             tracker_->tracking_state_,
+                             keypts_,
+                             img,
+                             elapsed_ms);
     if (tracker_->tracking_state_ == tracker_state_t::Tracking && cam_pose_wc) {
         map_publisher_->set_current_cam_pose(util::converter::inverse_pose(*cam_pose_wc));
     }

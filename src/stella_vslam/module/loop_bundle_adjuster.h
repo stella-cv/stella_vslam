@@ -1,6 +1,8 @@
 #ifndef STELLA_VSLAM_MODULE_LOOP_BUNDLE_ADJUSTER_H
 #define STELLA_VSLAM_MODULE_LOOP_BUNDLE_ADJUSTER_H
 
+#include <mutex>
+
 namespace stella_vslam {
 
 class mapping_module;

@@ -56,7 +56,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
         const auto& candidate_keyfrm = reloc_candidates.at(i);
         if (candidate_keyfrm->will_be_erased()) {
             spdlog::debug("keyframe will be erased. candidate keyframe id is {}", candidate_keyfrm->id_);
-            return false;
+            continue;
         }
 
         bool ok = reloc_by_candidate(curr_frm, candidate_keyfrm, use_robust_matcher);
@@ -82,10 +82,10 @@ bool relocalizer::reloc_by_candidate(data::frame& curr_frm,
     }
 
     // Set 2D-3D matches for the pose optimization
-    curr_frm.landmarks_ = std::vector<std::shared_ptr<data::landmark>>(curr_frm.frm_obs_.num_keypts_, nullptr);
+    curr_frm.erase_landmarks();
     for (const auto idx : inlier_indices) {
         // Set only the valid 3D points to the current frame
-        curr_frm.landmarks_.at(idx) = matched_landmarks.at(idx);
+        curr_frm.add_landmark(matched_landmarks.at(idx), idx);
     }
 
     std::vector<bool> outlier_flags;
@@ -160,7 +160,7 @@ bool relocalizer::optimize_pose(data::frame& curr_frm,
         if (!outlier_flags.at(idx)) {
             continue;
         }
-        curr_frm.landmarks_.at(idx) = nullptr;
+        curr_frm.erase_landmark_with_index(idx);
     }
 
     return true;
@@ -189,10 +189,11 @@ bool relocalizer::refine_pose(data::frame& curr_frm,
     // Exclude the already-associated landmarks
     std::set<std::shared_ptr<data::landmark>> already_found_landmarks1;
     for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
-        if (!curr_frm.landmarks_.at(idx)) {
+        const auto& lm = curr_frm.get_landmark(idx);
+        if (!lm) {
             continue;
         }
-        already_found_landmarks1.insert(curr_frm.landmarks_.at(idx));
+        already_found_landmarks1.insert(lm);
     }
     // Apply projection match again, then set the 2D-3D matches
     auto num_additional = proj_matcher_.match_frame_and_keyframe(curr_frm, candidate_keyfrm, already_found_landmarks1, 3, 64);
@@ -220,7 +221,7 @@ bool relocalizer::refine_pose(data::frame& curr_frm,
         if (!outlier_flags2.at(idx)) {
             continue;
         }
-        curr_frm.landmarks_.at(idx) = nullptr;
+        curr_frm.erase_landmark_with_index(idx);
     }
 
     return true;

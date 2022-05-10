@@ -38,7 +38,12 @@ public:
      * Update tracking information
      * NOTE: should be accessed from system thread
      */
-    void update(tracking_module* tracker, std::vector<cv::KeyPoint>& keypts, const cv::Mat& img, double elapsed_ms);
+    void update(const std::vector<std::shared_ptr<data::landmark>>& curr_lms,
+                bool mapping_is_enabled,
+                tracker_state_t tracking_state,
+                std::vector<cv::KeyPoint>& keypts,
+                const cv::Mat& img,
+                double elapsed_ms);
 
     /**
      * Get the current image with tracking information
