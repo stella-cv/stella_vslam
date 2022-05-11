@@ -94,13 +94,8 @@ bool keyframe_inserter::new_keyframe_is_needed(data::map_database* map_db,
 
 std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map_database* map_db,
                                                                        data::frame& curr_frm) {
-    // Do not pause mapping_module to let this keyframe process
-    if (!mapper_->prevent_pause_if_not_paused()) {
-        // If it is already paused, exit
-        return nullptr;
-    }
-
     auto keyfrm = data::keyframe::make_keyframe(curr_frm);
+    keyfrm->update_landmarks();
 
     for (const auto& id_mkr2d : keyfrm->markers_2d_) {
         auto marker = map_db->get_marker(id_mkr2d.first);
@@ -158,7 +153,7 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
 
         // Stereo-triangulation cannot be performed if the 3D point has been already associated to the keypoint index
         {
-            const auto& lm = curr_frm.landmarks_.at(idx);
+            const auto& lm = curr_frm.get_landmark(idx);
             if (lm) {
                 assert(lm->has_observation());
                 continue;
@@ -169,9 +164,8 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
         const Vec3_t pos_w = curr_frm.triangulate_stereo(idx);
         auto lm = std::make_shared<data::landmark>(pos_w, keyfrm);
 
-        lm->add_observation(keyfrm, idx);
-        keyfrm->add_landmark(lm, idx);
-        curr_frm.landmarks_.at(idx) = lm;
+        lm->connect_to_keyframe(keyfrm, idx);
+        curr_frm.add_landmark(lm, idx);
 
         lm->compute_descriptor();
         lm->update_mean_normal_and_obs_scale_variance();
@@ -186,7 +180,6 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
 
 void keyframe_inserter::queue_keyframe(const std::shared_ptr<data::keyframe>& keyfrm) {
     mapper_->queue_keyframe(keyfrm);
-    mapper_->stop_prevent_pause();
 }
 
 } // namespace module

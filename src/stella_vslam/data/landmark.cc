@@ -6,6 +6,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <spdlog/spdlog.h>
+
 namespace stella_vslam {
 namespace data {
 
@@ -21,9 +23,15 @@ landmark::landmark(const unsigned int id, const unsigned int first_keyfrm_id,
     : id_(id), first_keyfrm_id_(first_keyfrm_id), pos_w_(pos_w), ref_keyfrm_(ref_keyfrm),
       num_observable_(num_visible), num_observed_(num_found) {}
 
+landmark::~landmark() {
+    SPDLOG_TRACE("landmark::~landmark: {}", id_);
+}
+
 void landmark::set_pos_in_world(const Vec3_t& pos_w) {
     std::lock_guard<std::mutex> lock(mtx_position_);
+    SPDLOG_TRACE("landmark::set_pos_in_world {}", id_);
     pos_w_ = pos_w;
+    has_valid_prediction_parameters_ = false;
 }
 
 Vec3_t landmark::get_pos_in_world() const {
@@ -33,6 +41,7 @@ Vec3_t landmark::get_pos_in_world() const {
 
 Vec3_t landmark::get_obs_mean_normal() const {
     std::lock_guard<std::mutex> lock(mtx_position_);
+    assert(has_valid_prediction_parameters_);
     return mean_normal_;
 }
 
@@ -43,10 +52,13 @@ std::shared_ptr<keyframe> landmark::get_ref_keyframe() const {
 
 void landmark::add_observation(const std::shared_ptr<keyframe>& keyfrm, unsigned int idx) {
     std::lock_guard<std::mutex> lock(mtx_observations_);
-    if (observations_.count(keyfrm)) {
-        return;
-    }
+    SPDLOG_TRACE("landmark::add_observation {} {} {}", id_, keyfrm->id_, idx);
+    assert(!static_cast<bool>(observations_.count(keyfrm)));
     observations_[keyfrm] = idx;
+    assert(static_cast<bool>(observations_.count(keyfrm)));
+
+    has_valid_prediction_parameters_ = false;
+    has_representative_descriptor_ = false;
 
     if (!keyfrm->frm_obs_.stereo_x_right_.empty() && 0 <= keyfrm->frm_obs_.stereo_x_right_.at(idx)) {
         num_observations_ += 2;
@@ -60,25 +72,29 @@ void landmark::erase_observation(map_database* map_db, const std::shared_ptr<key
     bool discard = false;
     {
         std::lock_guard<std::mutex> lock(mtx_observations_);
+        SPDLOG_TRACE("landmark::erase_observation {} {}", id_, keyfrm->id_);
 
-        if (observations_.count(keyfrm)) {
-            int idx = observations_.at(keyfrm);
-            if (!keyfrm->frm_obs_.stereo_x_right_.empty() && 0 <= keyfrm->frm_obs_.stereo_x_right_.at(idx)) {
-                num_observations_ -= 2;
-            }
-            else {
-                num_observations_ -= 1;
-            }
-
-            observations_.erase(keyfrm);
-
-            if (observations_.empty()) {
-                discard = true;
-            }
-            else if (ref_keyfrm_.lock() == keyfrm) {
-                ref_keyfrm_ = observations_.begin()->first.lock();
-            }
+        assert(observations_.count(keyfrm));
+        int idx = observations_.at(keyfrm);
+        if (!keyfrm->frm_obs_.stereo_x_right_.empty() && 0 <= keyfrm->frm_obs_.stereo_x_right_.at(idx)) {
+            num_observations_ -= 2;
         }
+        else {
+            num_observations_ -= 1;
+        }
+
+        observations_.erase(keyfrm);
+
+        has_valid_prediction_parameters_ = false;
+        has_representative_descriptor_ = false;
+
+        if (observations_.empty()) {
+            discard = true;
+        }
+        else if (ref_keyfrm_.lock()->id_ == keyfrm->id_) {
+            ref_keyfrm_ = observations_.begin()->first.lock();
+        }
+        assert(discard || observations_.count(ref_keyfrm_));
     }
 
     if (discard) {
@@ -116,8 +132,14 @@ bool landmark::is_observed_in_keyframe(const std::shared_ptr<keyframe>& keyfrm) 
     return static_cast<bool>(observations_.count(keyfrm));
 }
 
+bool landmark::has_representative_descriptor() const {
+    std::lock_guard<std::mutex> lock(mtx_observations_);
+    return has_representative_descriptor_;
+}
+
 cv::Mat landmark::get_descriptor() const {
     std::lock_guard<std::mutex> lock(mtx_observations_);
+    assert(has_representative_descriptor_);
     return descriptor_.clone();
 }
 
@@ -125,15 +147,12 @@ void landmark::compute_descriptor() {
     observations_t observations;
     {
         std::lock_guard<std::mutex> lock1(mtx_observations_);
-        if (will_be_erased_) {
-            return;
-        }
+        assert(!has_representative_descriptor_);
+        assert(!will_be_erased_);
+        assert(!observations_.empty());
         observations = observations_;
     }
-
-    if (observations.empty()) {
-        return;
-    }
+    SPDLOG_TRACE("landmark::compute_descriptor {}", id_);
 
     // Append features of corresponding points
     std::vector<cv::Mat> descriptors;
@@ -177,56 +196,87 @@ void landmark::compute_descriptor() {
     {
         std::lock_guard<std::mutex> lock(mtx_observations_);
         descriptor_ = descriptors.at(best_idx).clone();
+        has_representative_descriptor_ = true;
     }
 }
 
-void landmark::update_mean_normal_and_obs_scale_variance() {
-    observations_t observations;
-    std::shared_ptr<keyframe> ref_keyfrm = nullptr;
-    Vec3_t pos_w;
-    {
-        std::lock_guard<std::mutex> lock1(mtx_observations_);
-        std::lock_guard<std::mutex> lock2(mtx_position_);
-        if (will_be_erased_) {
-            return;
-        }
-        observations = observations_;
-        ref_keyfrm = ref_keyfrm_.lock();
-        pos_w = pos_w_;
-    }
-
-    if (observations.empty()) {
-        return;
-    }
-
-    Vec3_t mean_normal = Vec3_t::Zero();
+void landmark::compute_mean_normal(const observations_t& observations,
+                                   const Vec3_t& pos_w,
+                                   Vec3_t& mean_normal) const {
+    mean_normal = Vec3_t::Zero();
     for (const auto& observation : observations) {
         auto keyfrm = observation.first.lock();
-        const Vec3_t normal = pos_w_ - keyfrm->get_trans_wc();
+        const Vec3_t normal = pos_w - keyfrm->get_trans_wc();
         mean_normal = mean_normal + normal.normalized();
     }
+    mean_normal = mean_normal.normalized();
+}
 
+void landmark::compute_orb_scale_variance(const observations_t& observations,
+                                          const std::shared_ptr<keyframe>& ref_keyfrm,
+                                          const Vec3_t& pos_w,
+                                          float& max_valid_dist,
+                                          float& min_valid_dist) const {
     const Vec3_t vec_ref_keyfrm_to_lm = pos_w - ref_keyfrm->get_trans_wc();
     const auto dist_ref_keyfrm_to_lm = vec_ref_keyfrm_to_lm.norm();
-    const auto scale_level = ref_keyfrm->frm_obs_.undist_keypts_.at(observations.at(ref_keyfrm)).octave;
+    assert(!observations.empty());
+    const auto idx = observations.at(ref_keyfrm);
+    const auto scale_level = ref_keyfrm->frm_obs_.undist_keypts_.at(idx).octave;
     const auto scale_factor = ref_keyfrm->orb_params_->scale_factors_.at(scale_level);
     const auto num_scale_levels = ref_keyfrm->orb_params_->num_levels_;
 
+    max_valid_dist = dist_ref_keyfrm_to_lm * scale_factor;
+    min_valid_dist = max_valid_dist_ * ref_keyfrm->orb_params_->inv_scale_factors_.at(num_scale_levels - 1);
+}
+
+void landmark::update_mean_normal_and_obs_scale_variance() {
+    SPDLOG_TRACE("landmark::update_mean_normal_and_obs_scale_variance {}", id_);
+    observations_t observations;
+    std::shared_ptr<keyframe> ref_keyfrm = nullptr;
+    {
+        std::lock_guard<std::mutex> lock1(mtx_observations_);
+        assert(!has_valid_prediction_parameters_);
+        assert(!observations_.empty());
+        assert(observations_.count(ref_keyfrm_));
+        observations = observations_;
+        ref_keyfrm = ref_keyfrm_.lock();
+    }
+    Vec3_t pos_w;
+    {
+        std::lock_guard<std::mutex> lock2(mtx_position_);
+        pos_w = pos_w_;
+    }
+
+    Vec3_t mean_normal;
+    compute_mean_normal(observations, pos_w, mean_normal);
+
+    float max_valid_dist;
+    float min_valid_dist;
+    compute_orb_scale_variance(observations, ref_keyfrm, pos_w, max_valid_dist, min_valid_dist);
+
     {
         std::lock_guard<std::mutex> lock3(mtx_position_);
-        max_valid_dist_ = dist_ref_keyfrm_to_lm * scale_factor;
-        min_valid_dist_ = max_valid_dist_ * ref_keyfrm->orb_params_->inv_scale_factors_.at(num_scale_levels - 1);
-        mean_normal_ = mean_normal.normalized();
+        max_valid_dist_ = max_valid_dist;
+        min_valid_dist_ = min_valid_dist;
+        mean_normal_ = mean_normal;
+        has_valid_prediction_parameters_ = true;
     }
+}
+
+bool landmark::has_valid_prediction_parameters() const {
+    std::lock_guard<std::mutex> lock(mtx_position_);
+    return has_valid_prediction_parameters_;
 }
 
 float landmark::get_min_valid_distance() const {
     std::lock_guard<std::mutex> lock(mtx_position_);
+    assert(has_valid_prediction_parameters_);
     return min_valid_dist_;
 }
 
 float landmark::get_max_valid_distance() const {
     std::lock_guard<std::mutex> lock(mtx_position_);
+    assert(has_valid_prediction_parameters_);
     return max_valid_dist_;
 }
 
@@ -250,6 +300,7 @@ unsigned int landmark::predict_scale_level(const float cam_to_lm_dist, float num
 }
 
 void landmark::prepare_for_erasing(map_database* map_db) {
+    SPDLOG_TRACE("landmark::prepare_for_erasing {}", id_);
     observations_t observations;
     {
         std::lock_guard<std::mutex> lock1(mtx_observations_);
@@ -262,15 +313,22 @@ void landmark::prepare_for_erasing(map_database* map_db) {
         keyfrm_and_idx.first.lock()->erase_landmark_with_index(keyfrm_and_idx.second);
     }
 
-    map_db->erase_landmark(this->id_);
+    map_db->erase_landmark(id_);
 }
 
 bool landmark::will_be_erased() {
     return will_be_erased_;
 }
 
+void landmark::connect_to_keyframe(const std::shared_ptr<keyframe>& keyfrm, unsigned int idx) {
+    assert(!observations_.count(keyfrm));
+    keyfrm->add_landmark(shared_from_this(), idx);
+    add_observation(keyfrm, idx);
+}
+
 void landmark::replace(std::shared_ptr<landmark> lm, data::map_database* map_db) {
-    if (lm->id_ == this->id_) {
+    SPDLOG_TRACE("landmark::replace {} {}", id_, lm->id_);
+    if (lm->id_ == id_) {
         return;
     }
 
@@ -283,29 +341,23 @@ void landmark::replace(std::shared_ptr<landmark> lm, data::map_database* map_db)
 
     prepare_for_erasing(map_db);
 
-    // 2. Connect lm
+    // 2. Merge lm with this
     unsigned int num_observable, num_observed;
     {
         std::lock_guard<std::mutex> lock1(mtx_observations_);
         num_observable = num_observable_;
         num_observed = num_observed_;
-        replaced_ = lm;
     }
 
     for (const auto& keyfrm_and_idx : observations) {
-        const auto keyfrm = keyfrm_and_idx.first.lock();
-        keyfrm->add_landmark(lm, keyfrm_and_idx.second);
-        lm->add_observation(keyfrm, keyfrm_and_idx.second);
+        const auto& keyfrm = keyfrm_and_idx.first.lock();
+        if (!lm->is_observed_in_keyframe(keyfrm)) {
+            lm->connect_to_keyframe(keyfrm, keyfrm_and_idx.second);
+        }
     }
 
     lm->increase_num_observed(num_observed);
     lm->increase_num_observable(num_observable);
-    lm->compute_descriptor();
-}
-
-std::shared_ptr<landmark> landmark::get_replaced() const {
-    std::lock_guard<std::mutex> lock1(mtx_observations_);
-    return replaced_;
 }
 
 void landmark::increase_num_observable(unsigned int num_observable) {

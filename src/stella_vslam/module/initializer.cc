@@ -220,10 +220,8 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
         auto lm = std::make_shared<data::landmark>(init_triangulated_pts.at(init_idx), curr_keyfrm);
 
         // set the assocications to the new keyframes
-        init_keyfrm->add_landmark(lm, init_idx);
-        curr_keyfrm->add_landmark(lm, curr_idx);
-        lm->add_observation(init_keyfrm, init_idx);
-        lm->add_observation(curr_keyfrm, curr_idx);
+        lm->connect_to_keyframe(init_keyfrm, init_idx);
+        lm->connect_to_keyframe(curr_keyfrm, curr_idx);
 
         // update the descriptor
         lm->compute_descriptor();
@@ -231,7 +229,7 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
         lm->update_mean_normal_and_obs_scale_variance();
 
         // set the 2D-3D assocications to the current frame
-        curr_frm.landmarks_.at(curr_idx) = lm;
+        curr_frm.add_landmark(lm, curr_idx);
 
         // add the landmark to the map DB
         map_db_->add_landmark(lm);
@@ -304,6 +302,7 @@ void initializer::scale_map(const std::shared_ptr<data::keyframe>& init_keyfrm, 
             continue;
         }
         lm->set_pos_in_world(lm->get_pos_in_world() * scale);
+        lm->update_mean_normal_and_obs_scale_variance();
     }
 }
 
@@ -346,8 +345,7 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
         auto lm = std::make_shared<data::landmark>(pos_w, curr_keyfrm);
 
         // set the associations to the new keyframe
-        lm->add_observation(curr_keyfrm, idx);
-        curr_keyfrm->add_landmark(lm, idx);
+        lm->connect_to_keyframe(curr_keyfrm, idx);
 
         // update the descriptor
         lm->compute_descriptor();
@@ -355,7 +353,7 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
         lm->update_mean_normal_and_obs_scale_variance();
 
         // set the 2D-3D associations to the current frame
-        curr_frm.landmarks_.at(idx) = lm;
+        curr_frm.add_landmark(lm, idx);
 
         // add the landmark to the map DB
         map_db_->add_landmark(lm);

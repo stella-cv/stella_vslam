@@ -70,16 +70,6 @@ void tracking_module::set_global_optimization_module(global_optimization_module*
     global_optimizer_ = global_optimizer;
 }
 
-void tracking_module::set_mapping_module_status(const bool mapping_is_enabled) {
-    std::lock_guard<std::mutex> lock(mtx_mapping_);
-    mapping_is_enabled_ = mapping_is_enabled;
-}
-
-bool tracking_module::get_mapping_module_status() const {
-    std::lock_guard<std::mutex> lock(mtx_mapping_);
-    return mapping_is_enabled_;
-}
-
 bool tracking_module::request_relocalize_by_pose(const Mat44_t& pose) {
     std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
     if (relocalize_by_pose_is_requested_) {
@@ -146,7 +136,7 @@ void tracking_module::reset() {
 
 std::shared_ptr<Mat44_t> tracking_module::feed_frame(data::frame curr_frm) {
     // check if pause is requested
-    check_and_execute_pause();
+    pause_if_requested();
     while (is_paused()) {
         std::this_thread::sleep_for(std::chrono::microseconds(5000));
     }
@@ -159,6 +149,7 @@ std::shared_ptr<Mat44_t> tracking_module::feed_frame(data::frame curr_frm) {
     }
     else {
         bool relocalization_is_needed = tracking_state_ == tracker_state_t::Lost;
+        SPDLOG_TRACE("tracking_module: start tracking");
         succeeded = track(relocalization_is_needed);
     }
 
@@ -180,7 +171,7 @@ std::shared_ptr<Mat44_t> tracking_module::feed_frame(data::frame curr_frm) {
         spdlog::info("tracking lost: frame {}", curr_frm_.id_);
         // if tracking is failed within 5.0 sec after initialization, reset the system
         constexpr float init_retry_thr = 5.0;
-        if (mapping_is_enabled_ && curr_frm_.timestamp_ - initializer_.get_initial_frame_timestamp() < init_retry_thr) {
+        if (!mapper_->is_paused() && curr_frm_.timestamp_ - initializer_.get_initial_frame_timestamp() < init_retry_thr) {
             spdlog::info("tracking lost within {} sec after initialization", init_retry_thr);
             reset();
             return nullptr;
@@ -196,19 +187,25 @@ std::shared_ptr<Mat44_t> tracking_module::feed_frame(data::frame curr_frm) {
     }
 
     // update last frame
-    last_frm_ = curr_frm_;
+    SPDLOG_TRACE("tracking_module: update last frame (curr_frm_={})", curr_frm_.id_);
+    {
+        std::lock_guard<std::mutex> lock(mtx_last_frm_);
+        last_frm_ = curr_frm_;
+    }
+    SPDLOG_TRACE("tracking_module: finish tracking");
 
     return cam_pose_wc;
 }
 
 bool tracking_module::track(bool relocalization_is_needed) {
     // LOCK the map database
-    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+    std::lock_guard<std::mutex> lock1(data::map_database::mtx_database_);
+    std::lock_guard<std::mutex> lock2(mtx_last_frm_);
+    std::lock_guard<std::mutex> lock3(mtx_stop_keyframe_insertion_);
 
-    // apply replace of landmarks observed in the last frame
-    apply_landmark_replace();
     // update the camera pose of the last frame
     // because the mapping module might optimize the camera pose of the last frame's reference keyframe
+    SPDLOG_TRACE("tracking_module: update the camera pose of the last frame (curr_frm_={})", curr_frm_.id_);
     update_last_frame();
 
     // set the reference keyframe of the current frame
@@ -220,14 +217,17 @@ bool tracking_module::track(bool relocalization_is_needed) {
         succeeded = relocalize_by_pose(get_relocalize_by_pose_request());
     }
     else if (!relocalization_is_needed) {
+        SPDLOG_TRACE("tracking_module: track_current_frame (curr_frm_={})", curr_frm_.id_);
         succeeded = track_current_frame();
     }
     else if (enable_auto_relocalization_) {
         // Compute the BoW representations to perform relocalization
+        SPDLOG_TRACE("tracking_module: Compute the BoW representations to perform relocalization (curr_frm_={})", curr_frm_.id_);
         if (!curr_frm_.bow_is_available()) {
             curr_frm_.compute_bow(bow_vocab_);
         }
         // try to relocalize
+        SPDLOG_TRACE("tracking_module: try to relocalize (curr_frm_={})", curr_frm_.id_);
         succeeded = relocalizer_.relocalize(bow_db_, curr_frm_);
         if (succeeded) {
             last_reloc_frm_id_ = curr_frm_.id_;
@@ -240,21 +240,26 @@ bool tracking_module::track(bool relocalization_is_needed) {
     unsigned int num_tracked_lms = 0;
     unsigned int num_reliable_lms = 0;
     if (succeeded) {
+        SPDLOG_TRACE("tracking_module: update_local_map (curr_frm_={})", curr_frm_.id_);
         update_local_map();
+        SPDLOG_TRACE("tracking_module: optimize_current_frame_with_local_map (curr_frm_={})", curr_frm_.id_);
         succeeded = optimize_current_frame_with_local_map(num_tracked_lms, num_reliable_lms, min_num_obs_thr);
     }
 
     // update the motion model
     if (succeeded) {
+        SPDLOG_TRACE("tracking_module: update_motion_model (curr_frm_={})", curr_frm_.id_);
         update_motion_model();
     }
 
     // check to insert the new keyframe derived from the current frame
-    if (succeeded && new_keyframe_is_needed(num_tracked_lms, num_reliable_lms, min_num_obs_thr)) {
+    if (succeeded && !is_stopped_keyframe_insertion_ && new_keyframe_is_needed(num_tracked_lms, num_reliable_lms, min_num_obs_thr)) {
+        SPDLOG_TRACE("tracking_module: insert_new_keyframe (curr_frm_={})", curr_frm_.id_);
         insert_new_keyframe();
     }
 
     // update the frame statistics
+    SPDLOG_TRACE("tracking_module: update_frame_statistics (curr_frm_={})", curr_frm_.id_);
     map_db_->update_frame_statistics(curr_frm_, !succeeded);
 
     return succeeded;
@@ -262,7 +267,8 @@ bool tracking_module::track(bool relocalization_is_needed) {
 
 bool tracking_module::initialize() {
     // LOCK the map database
-    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+    std::lock_guard<std::mutex> lock1(data::map_database::mtx_database_);
+    std::lock_guard<std::mutex> lock2(mtx_stop_keyframe_insertion_);
 
     // try to initialize with the current frame
     initializer_.initialize(camera_->setup_type_, bow_vocab_, curr_frm_);
@@ -279,6 +285,7 @@ bool tracking_module::initialize() {
     }
 
     // pass all of the keyframes to the mapping module
+    assert(!is_stopped_keyframe_insertion_);
     const auto keyfrms = map_db_->get_all_keyframes();
     for (const auto& keyfrm : keyfrms) {
         mapper_->queue_keyframe(keyfrm);
@@ -363,16 +370,26 @@ void tracking_module::update_motion_model() {
     }
 }
 
-void tracking_module::apply_landmark_replace() {
+void tracking_module::replace_landmarks_in_last_frm(nondeterministic::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>& replaced_lms) {
+    std::lock_guard<std::mutex> lock(mtx_last_frm_);
     for (unsigned int idx = 0; idx < last_frm_.frm_obs_.num_keypts_; ++idx) {
-        auto& lm = last_frm_.landmarks_.at(idx);
+        const auto& lm = last_frm_.get_landmark(idx);
+        if (!lm) {
+            continue;
+        }
+    }
+    for (unsigned int idx = 0; idx < last_frm_.frm_obs_.num_keypts_; ++idx) {
+        const auto& lm = last_frm_.get_landmark(idx);
         if (!lm) {
             continue;
         }
 
-        auto replaced_lm = lm->get_replaced();
-        if (replaced_lm) {
-            last_frm_.landmarks_.at(idx) = replaced_lm;
+        if (replaced_lms.count(lm)) {
+            auto replaced_lm = replaced_lms[lm];
+            if (last_frm_.has_landmark(replaced_lm)) {
+                last_frm_.erase_landmark(replaced_lm);
+            }
+            last_frm_.add_landmark(replaced_lm, idx);
         }
     }
 }
@@ -402,14 +419,14 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
         if (!outlier_flags.at(idx)) {
             continue;
         }
-        curr_frm_.landmarks_.at(idx) = nullptr;
+        curr_frm_.erase_landmark_with_index(idx);
     }
 
     // count up the number of tracked landmarks
     num_tracked_lms = 0;
     num_reliable_lms = 0;
     for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.num_keypts_; ++idx) {
-        const auto& lm = curr_frm_.landmarks_.at(idx);
+        const auto& lm = curr_frm_.get_landmark(idx);
         if (!lm) {
             continue;
         }
@@ -450,12 +467,12 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
 void tracking_module::update_local_map() {
     // clean landmark associations
     for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.num_keypts_; ++idx) {
-        const auto& lm = curr_frm_.landmarks_.at(idx);
+        const auto& lm = curr_frm_.get_landmark(idx);
         if (!lm) {
             continue;
         }
         if (lm->will_be_erased()) {
-            curr_frm_.landmarks_.at(idx) = nullptr;
+            curr_frm_.erase_landmark_with_index(idx);
             continue;
         }
     }
@@ -482,7 +499,7 @@ void tracking_module::update_local_map() {
 void tracking_module::search_local_landmarks() {
     // select the landmarks which can be reprojected from the ones observed in the current frame
     std::unordered_set<unsigned int> curr_landmark_ids;
-    for (const auto& lm : curr_frm_.landmarks_) {
+    for (const auto& lm : curr_frm_.get_landmarks()) {
         if (!lm) {
             continue;
         }
@@ -544,10 +561,6 @@ void tracking_module::search_local_landmarks() {
 bool tracking_module::new_keyframe_is_needed(unsigned int num_tracked_lms,
                                              unsigned int num_reliable_lms,
                                              const unsigned int min_num_obs_thr) const {
-    if (!mapping_is_enabled_) {
-        return false;
-    }
-
     // cannnot insert the new keyframe in a second after relocalization
     if (curr_frm_.timestamp_ < last_reloc_frm_timestamp_ + 1.0) {
         return false;
@@ -566,11 +579,38 @@ void tracking_module::insert_new_keyframe() {
     }
 }
 
+std::future<void> tracking_module::async_stop_keyframe_insertion() {
+    auto future_stop_keyframe_insertion = std::async(
+        std::launch::async,
+        [this]() {
+            std::lock_guard<std::mutex> lock(mtx_stop_keyframe_insertion_);
+            SPDLOG_TRACE("tracking_module: stop keyframe insertion");
+            is_stopped_keyframe_insertion_ = true;
+        });
+    return future_stop_keyframe_insertion;
+}
+
+std::future<void> tracking_module::async_start_keyframe_insertion() {
+    auto future_stop_keyframe_insertion = std::async(
+        std::launch::async,
+        [this]() {
+            std::lock_guard<std::mutex> lock(mtx_stop_keyframe_insertion_);
+            SPDLOG_TRACE("tracking_module: start keyframe insertion");
+            is_stopped_keyframe_insertion_ = false;
+        });
+    return future_stop_keyframe_insertion;
+}
+
 std::future<void> tracking_module::async_pause() {
-    std::lock_guard<std::mutex> lock1(mtx_pause_);
+    std::lock_guard<std::mutex> lock(mtx_pause_);
     pause_is_requested_ = true;
     promises_pause_.emplace_back();
-    return promises_pause_.back().get_future();
+    std::future<void> future_pause = promises_pause_.back().get_future();
+    if (is_paused_) {
+        promises_pause_.back().set_value();
+        promises_pause_.pop_back();
+    }
+    return future_pause;
 }
 
 bool tracking_module::pause_is_requested() const {
@@ -592,7 +632,7 @@ void tracking_module::resume() {
     spdlog::info("resume tracking module");
 }
 
-bool tracking_module::check_and_execute_pause() {
+bool tracking_module::pause_if_requested() {
     std::lock_guard<std::mutex> lock(mtx_pause_);
     if (pause_is_requested_) {
         is_paused_ = true;

@@ -1,5 +1,6 @@
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
+#include "stella_vslam/data/map_database.h"
 #include "stella_vslam/module/local_map_cleaner.h"
 
 namespace stella_vslam {
@@ -58,6 +59,7 @@ unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cu
             iter = fresh_landmarks_.erase(iter);
         }
         else if (lm_state == lm_state_t::Invalid) {
+            std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
             ++num_removed;
             lm->prepare_for_erasing(map_db_);
             iter = fresh_landmarks_.erase(iter);
@@ -99,6 +101,7 @@ unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr
         // Remove redundant connections
         unsigned int num_removed_connection = 0;
         if (desired_valid_obs_ > 0 && num_valid_obs > desired_valid_obs_) {
+            std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
             auto lms = covisibility->get_landmarks();
             for (unsigned int idx = 0; idx < lms.size(); ++idx) {
                 const auto& lm = lms.at(idx);
@@ -114,6 +117,9 @@ unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr
                     covisibility->erase_landmark_with_index(idx);
                     lm->erase_observation(map_db_, covisibility);
                     num_removed_connection++;
+                    if (!lm->will_be_erased() && !lm->has_representative_descriptor()) {
+                        lm->compute_descriptor();
+                    }
                     if (num_removed_connection >= num_valid_obs - desired_valid_obs_) {
                         break;
                     }
@@ -125,7 +131,25 @@ unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr
         // if the redundant observation ratio of `covisibility` is larger than the threshold, it will be removed
         if (redundant_obs_ratio_thr_ <= static_cast<float>(num_redundant_obs) / num_valid_obs) {
             ++num_removed;
-            covisibility->prepare_for_erasing(map_db_, bow_db_);
+            {
+                std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+                const auto cur_landmarks = covisibility->get_landmarks();
+                covisibility->prepare_for_erasing(map_db_, bow_db_);
+                for (const auto& lm : cur_landmarks) {
+                    if (!lm) {
+                        continue;
+                    }
+                    if (lm->will_be_erased()) {
+                        continue;
+                    }
+                    if (!lm->has_representative_descriptor()) {
+                        lm->compute_descriptor();
+                    }
+                    if (!lm->has_valid_prediction_parameters()) {
+                        lm->update_mean_normal_and_obs_scale_variance();
+                    }
+                }
+            }
         }
     }
 

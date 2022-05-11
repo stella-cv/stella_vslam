@@ -9,6 +9,8 @@
 #include <atomic>
 #include <memory>
 
+#include <yaml-cpp/yaml.h>
+
 namespace stella_vslam {
 
 namespace data {

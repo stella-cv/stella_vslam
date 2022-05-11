@@ -1,5 +1,6 @@
 #include "stella_vslam/type.h"
 #include "stella_vslam/mapping_module.h"
+#include "stella_vslam/tracking_module.h"
 #include "stella_vslam/global_optimization_module.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
@@ -63,27 +64,9 @@ void mapping_module::run() {
         // check if termination is requested
         if (terminate_is_requested()) {
             // terminate and break
+            SPDLOG_TRACE("mapping_module: terminate");
             terminate();
             break;
-        }
-
-        // check if pause is requested and not prevented
-        if (pause_is_requested_and_not_prevented()) {
-            set_is_idle(false);
-            // if any keyframe is queued, all of them must be processed before the pause
-            while (keyframe_is_queued()) {
-                // create and extend the map with the new keyframe
-                mapping_with_new_keyframe();
-                // send the new keyframe to the global optimization module
-                global_optimizer_->queue_keyframe(cur_keyfrm_);
-            }
-            set_is_idle(true);
-            // pause and wait
-            pause();
-            // check if termination or reset is requested during pause
-            while (is_paused() && !terminate_is_requested() && !reset_is_requested()) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(3));
-            }
         }
 
         // check if reset is requested
@@ -92,6 +75,25 @@ void mapping_module::run() {
             reset();
             set_is_idle(true);
             continue;
+        }
+
+        // check if pause is requested and not prevented
+        if (pause_is_requested()) {
+            SPDLOG_TRACE("mapping_module: tracker_->is_stopped_keyframe_insertion");
+            auto future_stop_keyframe_insertion = tracker_->async_stop_keyframe_insertion();
+            future_stop_keyframe_insertion.get();
+            if (!keyframe_is_queued()) {
+                set_is_idle(true);
+                pause();
+                SPDLOG_TRACE("mapping_module: waiting");
+                // check if termination or reset is requested during pause
+                while (is_paused() && !terminate_is_requested() && !reset_is_requested()) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(3));
+                }
+                auto future_start_keyframe_insertion = tracker_->async_start_keyframe_insertion();
+                future_start_keyframe_insertion.get();
+                SPDLOG_TRACE("mapping_module: resume");
+            }
         }
 
         // if the queue is empty, the following process is not needed
@@ -166,6 +168,8 @@ void mapping_module::mapping_with_new_keyframe() {
     std::lock_guard<std::mutex> tracking_lock(mtx_processing_);
 #endif
 
+    SPDLOG_TRACE("mapping_module: current keyframe is {}", cur_keyfrm_->id_);
+
     // store the new keyframe to the database
     store_new_keyframe();
 
@@ -173,11 +177,24 @@ void mapping_module::mapping_with_new_keyframe() {
     local_map_cleaner_->remove_redundant_landmarks(cur_keyfrm_->id_);
 
     // triangulate new landmarks between the current frame and each of the covisibilities
-    create_new_landmarks();
+    std::atomic<bool> abort_create_new_landmarks{false};
+    {
+        auto future_create_new_landmark = std::async(std::launch::async,
+                                                     [this, &abort_create_new_landmarks]() {
+                                                         create_new_landmarks(abort_create_new_landmarks);
+                                                     });
+        while (future_create_new_landmark.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout) {
+            if (keyframe_is_queued()) {
+                abort_create_new_landmarks = true;
+            }
+        }
+    }
 
     if (keyframe_is_queued()) {
         return;
     }
+
+    SPDLOG_TRACE("mapping_module: update_new_keyframe (current keyframe is {})", cur_keyfrm_->id_);
 
     // detect and resolve the duplication of the landmarks observed in the current frame
     update_new_keyframe();
@@ -185,6 +202,8 @@ void mapping_module::mapping_with_new_keyframe() {
     if (keyframe_is_queued() || pause_is_requested()) {
         return;
     }
+
+    SPDLOG_TRACE("mapping_module: local bundle adjustment (current keyframe is {})", cur_keyfrm_->id_);
 
     // local bundle adjustment
     abort_local_BA_ = false;
@@ -217,19 +236,8 @@ void mapping_module::store_new_keyframe() {
             continue;
         }
 
-        // if `lm` does not have the observation information from `cur_keyfrm_`,
-        // add the association between the keyframe and the landmark
-        if (lm->is_observed_in_keyframe(cur_keyfrm_)) {
-            // if `lm` is correctly observed, make it be checked by the local map cleaner
-            local_map_cleaner_->add_fresh_landmark(lm);
-            continue;
-        }
-
-        // update connection
-        lm->add_observation(cur_keyfrm_, idx);
-        // update geometry
-        lm->update_mean_normal_and_obs_scale_variance();
-        lm->compute_descriptor();
+        // if `lm` is correctly observed, make it be checked by the local map cleaner
+        local_map_cleaner_->add_fresh_landmark(lm);
     }
     cur_keyfrm_->graph_node_->update_connections();
 
@@ -237,7 +245,7 @@ void mapping_module::store_new_keyframe() {
     map_db_->add_keyframe(cur_keyfrm_);
 }
 
-void mapping_module::create_new_landmarks() {
+void mapping_module::create_new_landmarks(std::atomic<bool>& abort_create_new_landmarks) {
     // get the covisibilities of `cur_keyfrm_`
     // in order to triangulate landmarks between `cur_keyfrm_` and each of the covisibilities
     constexpr unsigned int num_covisibilities = 10;
@@ -252,7 +260,7 @@ void mapping_module::create_new_landmarks() {
 
     for (unsigned int i = 0; i < cur_covisibilities.size(); ++i) {
         // if any keyframe is queued, abort the triangulation
-        if (1 < i && keyframe_is_queued()) {
+        if (1 < i && abort_create_new_landmarks) {
             return;
         }
 
@@ -298,6 +306,7 @@ void mapping_module::create_new_landmarks() {
 
 void mapping_module::triangulate_with_two_keyframes(const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2,
                                                     const std::vector<std::pair<unsigned int, unsigned int>>& matches) {
+    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
     const module::two_view_triangulator triangulator(keyfrm_1, keyfrm_2, 1.0);
 
 #ifdef USE_OPENMP
@@ -318,11 +327,8 @@ void mapping_module::triangulate_with_two_keyframes(const std::shared_ptr<data::
         // create a landmark object
         auto lm = std::make_shared<data::landmark>(pos_w, keyfrm_1);
 
-        lm->add_observation(keyfrm_1, idx_1);
-        lm->add_observation(keyfrm_2, idx_2);
-
-        keyfrm_1->add_landmark(lm, idx_1);
-        keyfrm_2->add_landmark(lm, idx_2);
+        lm->connect_to_keyframe(keyfrm_1, idx_1);
+        lm->connect_to_keyframe(keyfrm_2, idx_2);
 
         lm->compute_descriptor();
         lm->update_mean_normal_and_obs_scale_variance();
@@ -339,12 +345,16 @@ void mapping_module::triangulate_with_two_keyframes(const std::shared_ptr<data::
 }
 
 void mapping_module::update_new_keyframe() {
+    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+
     // get the targets to check landmark fusion
     const unsigned int num_covisibilities = cur_keyfrm_->depth_is_available() ? 10 : 20;
     const auto fuse_tgt_keyfrms = get_second_order_covisibilities(num_covisibilities, 5);
 
     // resolve the duplication of landmarks between the current keyframe and the targets
-    fuse_landmark_duplication(fuse_tgt_keyfrms);
+    nondeterministic::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>> replaced_lms;
+    fuse_landmark_duplication(fuse_tgt_keyfrms, replaced_lms);
+    tracker_->replace_landmarks_in_last_frm(replaced_lms);
 
     // update the geometries
     const auto cur_landmarks = cur_keyfrm_->get_landmarks();
@@ -355,8 +365,14 @@ void mapping_module::update_new_keyframe() {
         if (lm->will_be_erased()) {
             continue;
         }
-        lm->compute_descriptor();
-        lm->update_mean_normal_and_obs_scale_variance();
+        if (!lm->has_representative_descriptor()) {
+            spdlog::warn("has not representative descriptor {}", lm->id_);
+            lm->compute_descriptor();
+        }
+        if (!lm->has_valid_prediction_parameters()) {
+            spdlog::warn("has not valid prediction parameters");
+            lm->update_mean_normal_and_obs_scale_variance();
+        }
     }
 
     // update the graph
@@ -399,8 +415,9 @@ nondeterministic::unordered_set<std::shared_ptr<data::keyframe>> mapping_module:
     return fuse_tgt_keyfrms;
 }
 
-void mapping_module::fuse_landmark_duplication(const nondeterministic::unordered_set<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms) {
-    match::fuse matcher;
+void mapping_module::fuse_landmark_duplication(const nondeterministic::unordered_set<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms,
+                                               nondeterministic::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>& replaced_lms) {
+    match::fuse fuse_matcher(0.6, true, true);
 
     {
         // reproject the landmarks observed in the current keyframe to each of the targets, and acquire
@@ -409,7 +426,46 @@ void mapping_module::fuse_landmark_duplication(const nondeterministic::unordered
         // then, add matches and solve duplication
         auto cur_landmarks = cur_keyfrm_->get_landmarks();
         for (const auto& fuse_tgt_keyfrm : fuse_tgt_keyfrms) {
-            matcher.replace_duplication(map_db_, fuse_tgt_keyfrm, cur_landmarks);
+            std::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>> duplicated_lms_in_keyfrm;
+            std::unordered_map<unsigned int, std::shared_ptr<data::landmark>> new_connections;
+            const Mat33_t rot_cw = fuse_tgt_keyfrm->get_rot_cw();
+            const Vec3_t trans_cw = fuse_tgt_keyfrm->get_trans_cw();
+            fuse_matcher.detect_duplication(fuse_tgt_keyfrm, rot_cw, trans_cw, cur_landmarks, 3.0, duplicated_lms_in_keyfrm, new_connections);
+
+            // There is association between the 3D point and the keyframe
+            // -> Duplication exists
+            for (const auto& lms_pair : duplicated_lms_in_keyfrm) {
+                auto lm_to_replace = lms_pair.first;
+                auto lm_in_keyfrm = lms_pair.second;
+                // Replace with more reliable 3D points (= more observable)
+                assert(!replaced_lms.count(lm_in_keyfrm));
+                assert(!replaced_lms.count(lm_to_replace));
+                if (lm_to_replace->num_observations() < lm_in_keyfrm->num_observations()) {
+                    std::swap(lm_to_replace, lm_in_keyfrm);
+                }
+                // Replace lm_in_keyfrm with lm_to_replace
+                if (lm_to_replace->id_ != lm_in_keyfrm->id_) {
+                    replaced_lms[lm_in_keyfrm] = lm_to_replace;
+                    lm_in_keyfrm->replace(lm_to_replace, map_db_);
+                    if (!lm_to_replace->has_representative_descriptor()) {
+                        lm_to_replace->compute_descriptor();
+                    }
+                    if (!lm_to_replace->has_valid_prediction_parameters()) {
+                        lm_to_replace->update_mean_normal_and_obs_scale_variance();
+                    }
+                }
+            }
+
+            for (const auto& best_idx_lm : new_connections) {
+                const auto& best_idx = best_idx_lm.first;
+                auto lm = best_idx_lm.second;
+                while (replaced_lms.count(lm)) {
+                    lm = replaced_lms[lm];
+                }
+                lm->connect_to_keyframe(fuse_tgt_keyfrm, best_idx);
+                lm->update_mean_normal_and_obs_scale_variance();
+                lm->compute_descriptor();
+            }
         }
     }
 
@@ -438,7 +494,46 @@ void mapping_module::fuse_landmark_duplication(const nondeterministic::unordered
             }
         }
 
-        matcher.replace_duplication(map_db_, cur_keyfrm_, candidate_landmarks_to_fuse);
+        std::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>> duplicated_lms_in_keyfrm;
+        std::unordered_map<unsigned int, std::shared_ptr<data::landmark>> new_connections;
+        const Mat33_t rot_cw = cur_keyfrm_->get_rot_cw();
+        const Vec3_t trans_cw = cur_keyfrm_->get_trans_cw();
+        fuse_matcher.detect_duplication(cur_keyfrm_, rot_cw, trans_cw, candidate_landmarks_to_fuse, 3.0, duplicated_lms_in_keyfrm, new_connections);
+
+        // There is association between the 3D point and the keyframe
+        // -> Duplication exists
+        for (const auto& lms_pair : duplicated_lms_in_keyfrm) {
+            auto lm_to_replace = lms_pair.first;
+            auto lm_in_keyfrm = lms_pair.second;
+            // Replace with more reliable 3D points (= more observable)
+            assert(!replaced_lms.count(lm_in_keyfrm));
+            assert(!replaced_lms.count(lm_to_replace));
+            if (lm_to_replace->num_observations() < lm_in_keyfrm->num_observations()) {
+                std::swap(lm_to_replace, lm_in_keyfrm);
+            }
+            // Replace lm_in_keyfrm with lm_to_replace
+            if (lm_to_replace->id_ != lm_in_keyfrm->id_) {
+                replaced_lms[lm_in_keyfrm] = lm_to_replace;
+                lm_in_keyfrm->replace(lm_to_replace, map_db_);
+                if (!lm_to_replace->has_representative_descriptor()) {
+                    lm_to_replace->compute_descriptor();
+                }
+                if (!lm_to_replace->has_valid_prediction_parameters()) {
+                    lm_to_replace->update_mean_normal_and_obs_scale_variance();
+                }
+            }
+        }
+
+        for (const auto& best_idx_lm : new_connections) {
+            const auto& best_idx = best_idx_lm.first;
+            auto lm = best_idx_lm.second;
+            while (replaced_lms.count(lm)) {
+                lm = replaced_lms[lm];
+            }
+            lm->connect_to_keyframe(cur_keyfrm_, best_idx);
+            lm->update_mean_normal_and_obs_scale_variance();
+            lm->compute_descriptor();
+        }
     }
 }
 
@@ -467,22 +562,24 @@ void mapping_module::reset() {
 }
 
 std::future<void> mapping_module::async_pause() {
-    std::lock_guard<std::mutex> lock1(mtx_pause_);
+    std::lock_guard<std::mutex> lock_pause(mtx_pause_);
     pause_is_requested_ = true;
-    std::lock_guard<std::mutex> lock2(mtx_keyfrm_queue_);
     abort_local_BA_ = true;
     promises_pause_.emplace_back();
-    return promises_pause_.back().get_future();
+    std::future<void> future_pause = promises_pause_.back().get_future();
+
+    std::lock_guard<std::mutex> lock_terminate(mtx_terminate_);
+    SPDLOG_TRACE("mapping_module::async_pause is_terminated_={} is_paused_={}", is_terminated_, is_paused_);
+    if (is_terminated_ || is_paused_) {
+        promises_pause_.back().set_value();
+        promises_pause_.pop_back();
+    }
+    return future_pause;
 }
 
 bool mapping_module::is_paused() const {
     std::lock_guard<std::mutex> lock(mtx_pause_);
     return is_paused_;
-}
-
-bool mapping_module::pause_is_requested_and_not_prevented() const {
-    std::lock_guard<std::mutex> lock(mtx_pause_);
-    return pause_is_requested_ && !prevent_pause_;
 }
 
 bool mapping_module::pause_is_requested() const {
@@ -498,19 +595,6 @@ void mapping_module::pause() {
         promise.set_value();
     }
     promises_pause_.clear();
-}
-
-bool mapping_module::prevent_pause_if_not_paused() {
-    std::lock_guard<std::mutex> lock(mtx_pause_);
-    if (!is_paused_) {
-        prevent_pause_ = true;
-    }
-    return prevent_pause_;
-}
-
-void mapping_module::stop_prevent_pause() {
-    std::lock_guard<std::mutex> lock(mtx_pause_);
-    prevent_pause_ = false;
 }
 
 void mapping_module::resume() {
@@ -548,15 +632,23 @@ bool mapping_module::terminate_is_requested() const {
 }
 
 void mapping_module::terminate() {
-    std::lock_guard<std::mutex> lock1(mtx_pause_);
-    std::lock_guard<std::mutex> lock2(mtx_terminate_);
-    is_paused_ = true;
-    is_terminated_ = true;
-    set_is_idle(true);
-    for (auto& promise : promises_terminate_) {
-        promise.set_value();
+    {
+        std::lock_guard<std::mutex> lock_pause(mtx_pause_);
+        is_paused_ = true;
+        for (auto& promise : promises_pause_) {
+            promise.set_value();
+        }
+        promises_pause_.clear();
     }
-    promises_terminate_.clear();
+    {
+        std::lock_guard<std::mutex> lock_terminate(mtx_terminate_);
+        is_terminated_ = true;
+        set_is_idle(true);
+        for (auto& promise : promises_terminate_) {
+            promise.set_value();
+        }
+        promises_terminate_.clear();
+    }
 }
 
 } // namespace stella_vslam

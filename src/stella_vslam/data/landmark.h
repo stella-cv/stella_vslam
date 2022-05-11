@@ -20,7 +20,7 @@ class keyframe;
 
 class map_database;
 
-class landmark {
+class landmark : public std::enable_shared_from_this<landmark> {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -34,6 +34,8 @@ public:
     landmark(const unsigned int id, const unsigned int first_keyfrm_id,
              const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm,
              const unsigned int num_visible, const unsigned int num_found);
+
+    virtual ~landmark();
 
     //! set world coordinates of this landmark
     void set_pos_in_world(const Vec3_t& pos_w);
@@ -69,6 +71,9 @@ public:
         return (min_dist <= cam_to_lm_dist && cam_to_lm_dist <= max_dist);
     }
 
+    //! true if the landmark has representative descriptor
+    bool has_representative_descriptor() const;
+
     //! get representative descriptor
     cv::Mat get_descriptor() const;
 
@@ -78,6 +83,8 @@ public:
     //! update observation mean normal and ORB scale variance
     void update_mean_normal_and_obs_scale_variance();
 
+    //! true if the landmark has valid prediction parameters
+    bool has_valid_prediction_parameters() const;
     //! get max valid distance between landmark and camera
     float get_min_valid_distance() const;
     //! get min valid distance between landmark and camera
@@ -91,10 +98,11 @@ public:
     //! whether this landmark will be erased shortly or not
     bool will_be_erased();
 
+    //! Make an interconnection by landmark::add_observation and keyframe::add_landmark
+    void connect_to_keyframe(const std::shared_ptr<keyframe>& keyfrm, unsigned int idx);
+
     //! replace this with specified landmark
     void replace(std::shared_ptr<landmark> lm, data::map_database* map_db);
-    //! get replace landmark
-    std::shared_ptr<landmark> get_replaced() const;
 
     void increase_num_observable(unsigned int num_observable = 1);
     void increase_num_observed(unsigned int num_observed = 1);
@@ -111,6 +119,16 @@ public:
     unsigned int first_keyfrm_id_ = 0;
     unsigned int num_observations_ = 0;
 
+protected:
+    void compute_mean_normal(const observations_t& observations,
+                             const Vec3_t& pos_w,
+                             Vec3_t& mean_normal) const;
+    void compute_orb_scale_variance(const observations_t& observations,
+                                    const std::shared_ptr<keyframe>& ref_keyfrm,
+                                    const Vec3_t& pos_w,
+                                    float& max_valid_dist,
+                                    float& min_valid_dist) const;
+
 private:
     //! world coordinates of this landmark
     Vec3_t pos_w_;
@@ -118,9 +136,8 @@ private:
     //! observations (keyframe and keypoint index)
     observations_t observations_;
 
-    //! Normalized average vector (unit vector) of keyframe->lm, for keyframes such that observe the 3D point.
-    Vec3_t mean_normal_ = Vec3_t::Zero();
-
+    //! true if the landmark has representative descriptor
+    std::atomic<bool> has_representative_descriptor_{false};
     //! representative descriptor
     cv::Mat descriptor_;
 
@@ -134,10 +151,11 @@ private:
     //! this landmark will be erased shortly or not
     std::atomic<bool> will_be_erased_{false};
 
-    //! replace this landmark with below
-    std::shared_ptr<landmark> replaced_ = nullptr;
-
-    // ORB scale variances
+    // parameters for prediction
+    //! true if the landmark has valid prediction parameters
+    std::atomic<bool> has_valid_prediction_parameters_{false};
+    //! Normalized average vector (unit vector) of keyframe->lm, for keyframes such that observe the 3D point.
+    Vec3_t mean_normal_ = Vec3_t::Zero();
     //! max valid distance between landmark and camera
     float min_valid_dist_ = 0;
     //! min valid distance between landmark and camera

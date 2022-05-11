@@ -22,7 +22,7 @@ bool frame_tracker::motion_based_track(data::frame& curr_frm, const data::frame&
     curr_frm.set_pose_cw(velocity * last_frm.get_pose_cw());
 
     // Initialize the 2D-3D matches
-    std::fill(curr_frm.landmarks_.begin(), curr_frm.landmarks_.end(), nullptr);
+    curr_frm.erase_landmarks();
 
     // Reproject the 3D points observed in the last frame and find 2D-3D matches
     const float margin = (camera_->setup_type_ != camera::setup_type_t::Stereo) ? 20 : 10;
@@ -30,7 +30,7 @@ bool frame_tracker::motion_based_track(data::frame& curr_frm, const data::frame&
 
     if (num_matches < num_matches_thr_) {
         // Increment the margin, and search again
-        std::fill(curr_frm.landmarks_.begin(), curr_frm.landmarks_.end(), nullptr);
+        curr_frm.erase_landmarks();
         num_matches = projection_matcher.match_current_and_last_frames(curr_frm, last_frm, 2 * margin);
     }
 
@@ -71,7 +71,7 @@ bool frame_tracker::bow_match_based_track(data::frame& curr_frm, const data::fra
     }
 
     // Update the 2D-3D matches
-    curr_frm.landmarks_ = matched_lms_in_curr;
+    curr_frm.set_landmarks(matched_lms_in_curr);
 
     // Pose optimization
     // The initial value is the pose of the previous frame
@@ -107,7 +107,7 @@ bool frame_tracker::robust_match_based_track(data::frame& curr_frm, const data::
     }
 
     // Update the 2D-3D matches
-    curr_frm.landmarks_ = matched_lms_in_curr;
+    curr_frm.set_landmarks(matched_lms_in_curr);
 
     // Pose optimization
     // The initial value is the pose of the previous frame
@@ -134,7 +134,7 @@ unsigned int frame_tracker::discard_outliers(const std::vector<bool>& outlier_fl
 
     for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
         if (outlier_flags.at(idx)) {
-            curr_frm.landmarks_.at(idx) = nullptr;
+            curr_frm.erase_landmark_with_index(idx);
         }
         else {
             ++num_valid_matches;

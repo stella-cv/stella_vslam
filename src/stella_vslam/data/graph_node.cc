@@ -13,8 +13,8 @@ struct {
 namespace stella_vslam {
 namespace data {
 
-graph_node::graph_node(std::shared_ptr<keyframe>& keyfrm, const bool spanning_parent_is_not_set)
-    : owner_keyfrm_(keyfrm), spanning_parent_is_not_set_(spanning_parent_is_not_set) {}
+graph_node::graph_node(std::shared_ptr<keyframe>& keyfrm)
+    : owner_keyfrm_(keyfrm), spanning_parent_is_not_set_(true) {}
 
 void graph_node::add_connection(const std::shared_ptr<keyframe>& keyfrm, const unsigned int weight) {
     std::lock_guard<std::mutex> lock(mtx_);
@@ -63,7 +63,8 @@ void graph_node::erase_all_connections() {
 }
 
 void graph_node::update_connections() {
-    const auto landmarks = owner_keyfrm_.lock()->get_landmarks();
+    const auto owner_keyfrm = owner_keyfrm_.lock();
+    const auto landmarks = owner_keyfrm->get_landmarks();
 
     id_ordered_map<std::weak_ptr<keyframe>, unsigned int> keyfrm_weights;
 
@@ -79,8 +80,12 @@ void graph_node::update_connections() {
 
         for (const auto& obs : observations) {
             auto keyfrm = obs.first;
+            auto locked_keyfrm = keyfrm.lock();
 
-            if (*keyfrm.lock() == *owner_keyfrm_.lock()) {
+            if (locked_keyfrm->graph_node_->spanning_parent_is_not_set_ && locked_keyfrm->id_ != 0) {
+                continue;
+            }
+            if (locked_keyfrm->id_ == owner_keyfrm->id_) {
                 continue;
             }
             // count up weight of `keyfrm`
@@ -121,7 +126,7 @@ void graph_node::update_connections() {
     for (const auto& weight_covisibility : weight_covisibility_pairs) {
         auto covisibility = weight_covisibility.second;
         const auto weight = weight_covisibility.first;
-        covisibility->graph_node_->add_connection(owner_keyfrm_.lock(), weight);
+        covisibility->graph_node_->add_connection(owner_keyfrm, weight);
     }
 
     // sort with weights and keyframe IDs for consistency; IDs are also in reverse order
@@ -145,11 +150,11 @@ void graph_node::update_connections() {
         ordered_covisibilities_ = ordered_covisibilities;
         ordered_weights_ = ordered_weights;
 
-        if (spanning_parent_is_not_set_ && owner_keyfrm_.lock()->id_ != 0) {
+        if (spanning_parent_is_not_set_ && owner_keyfrm->id_ != 0) {
             // set the parent of spanning tree
-            assert(*nearest_covisibility == *ordered_covisibilities.front().lock());
+            assert(nearest_covisibility->id_ == ordered_covisibilities.front().lock()->id_);
             spanning_parent_ = nearest_covisibility;
-            nearest_covisibility->graph_node_->add_spanning_child(owner_keyfrm_.lock());
+            nearest_covisibility->graph_node_->add_spanning_child(owner_keyfrm);
             spanning_parent_is_not_set_ = false;
         }
     }
@@ -263,7 +268,9 @@ unsigned int graph_node::get_weight(const std::shared_ptr<keyframe>& keyfrm) con
 
 void graph_node::set_spanning_parent(const std::shared_ptr<keyframe>& keyfrm) {
     std::lock_guard<std::mutex> lock(mtx_);
+    assert(spanning_parent_is_not_set_);
     spanning_parent_ = keyfrm;
+    spanning_parent_is_not_set_ = false;
 }
 
 std::shared_ptr<keyframe> graph_node::get_spanning_parent() const {
@@ -336,12 +343,11 @@ void graph_node::recover_spanning_connections() {
         }
     }
 
-    // if it should be fixed
-    if (!spanning_children_.empty()) {
-        // set my parent as the new parent
-        for (const auto& spanning_child : spanning_children_) {
-            spanning_child.lock()->graph_node_->change_spanning_parent(spanning_parent_.lock());
-        }
+    // set my parent as the new parent
+    for (const auto& spanning_child : spanning_children_) {
+        const auto child = spanning_child.lock();
+        const auto parent = spanning_parent_.lock();
+        child->graph_node_->change_spanning_parent(parent);
     }
 
     spanning_children_.clear();

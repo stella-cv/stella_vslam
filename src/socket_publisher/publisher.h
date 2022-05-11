@@ -47,7 +47,7 @@ private:
     void callback(const std::string& message);
 
     /* thread controls */
-    bool check_and_execute_pause();
+    bool pause_if_requested();
 
     bool terminate_is_requested();
     void terminate();

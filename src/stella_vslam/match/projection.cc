@@ -47,7 +47,8 @@ unsigned int projection::match_frame_and_landmarks(data::frame& frm,
         int best_idx = -1;
 
         for (const auto idx : indices_in_cell) {
-            if (frm.landmarks_.at(idx) && frm.landmarks_.at(idx)->has_observation()) {
+            const auto& lm = frm.get_landmark(idx);
+            if (lm && lm->has_observation()) {
                 continue;
             }
 
@@ -82,7 +83,7 @@ unsigned int projection::match_frame_and_landmarks(data::frame& frm,
             }
 
             // Add the matching information
-            frm.landmarks_.at(best_idx) = local_lm;
+            frm.add_landmark(local_lm, best_idx);
             ++num_matches;
         }
     }
@@ -118,8 +119,11 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
     // Reproject the 3D points associated to the keypoints of the last frame,
     // then acquire the 2D-3D matches
     for (unsigned int idx_last = 0; idx_last < last_frm.frm_obs_.num_keypts_; ++idx_last) {
-        auto& lm = last_frm.landmarks_.at(idx_last);
+        const auto& lm = last_frm.get_landmark(idx_last);
         if (!lm) {
+            continue;
+        }
+        if (lm->will_be_erased()) {
             continue;
         }
 
@@ -165,7 +169,8 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
         int best_idx = -1;
 
         for (const auto curr_idx : indices) {
-            if (curr_frm.landmarks_.at(curr_idx) && curr_frm.landmarks_[curr_idx]->has_observation()) {
+            const auto& curr_lm = curr_frm.get_landmark(curr_idx);
+            if (curr_lm && curr_lm->has_observation()) {
                 continue;
             }
 
@@ -191,7 +196,7 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
         }
 
         // The matching is valid
-        curr_frm.landmarks_.at(best_idx) = lm;
+        curr_frm.add_landmark(lm, best_idx);
         ++num_matches;
 
         if (check_orientation_) {
@@ -204,7 +209,7 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
     if (check_orientation_) {
         const auto invalid_matches = angle_checker.get_invalid_matches();
         for (const auto invalid_idx : invalid_matches) {
-            curr_frm.landmarks_.at(invalid_idx) = nullptr;
+            curr_frm.erase_landmark_with_index(invalid_idx);
             --num_matches;
         }
     }
@@ -214,7 +219,10 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
 
 unsigned int projection::match_frame_and_keyframe(data::frame& curr_frm, const std::shared_ptr<data::keyframe>& keyfrm, const std::set<std::shared_ptr<data::landmark>>& already_matched_lms,
                                                   const float margin, const unsigned int hamm_dist_thr) const {
-    return match_frame_and_keyframe(curr_frm.get_pose_cw(), curr_frm.camera_, curr_frm.frm_obs_, curr_frm.orb_params_, curr_frm.landmarks_, keyfrm, already_matched_lms, margin, hamm_dist_thr);
+    auto lms = curr_frm.get_landmarks();
+    auto num_matches = match_frame_and_keyframe(curr_frm.get_pose_cw(), curr_frm.camera_, curr_frm.frm_obs_, curr_frm.orb_params_, lms, keyfrm, already_matched_lms, margin, hamm_dist_thr);
+    curr_frm.set_landmarks(lms);
+    return num_matches;
 }
 
 unsigned int projection::match_frame_and_keyframe(const Mat44_t& cam_pose_cw,
