@@ -2,6 +2,7 @@
 #include "stella_vslam/data/landmark.h"
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/optimize/graph_optimizer.h"
+#include "stella_vslam/optimize/terminate_action.h"
 #include "stella_vslam/optimize/internal/sim3/shot_vertex.h"
 #include "stella_vslam/optimize/internal/sim3/graph_opt_edge.h"
 #include "stella_vslam/util/converter.h"
@@ -33,7 +34,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
     auto algorithm = new g2o::OptimizationAlgorithmLevenberg(std::move(block_solver));
 
     g2o::SparseOptimizer optimizer;
-    auto terminateAction = new g2o::SparseOptimizerTerminateAction;
+    auto terminateAction = new terminate_action;
     terminateAction->setGainThreshold(1e-3);
     optimizer.addPostIterationAction(terminateAction);
     optimizer.setAlgorithm(algorithm);
