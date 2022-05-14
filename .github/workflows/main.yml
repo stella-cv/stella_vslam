@@ -104,42 +104,45 @@ jobs:
           mv data.tum MH_01.tum
           evo_traj euroc --transform_right tf.json /datasets/EuRoC/MH_04/state_groundtruth_estimate0/data.csv --save_as_tum
           mv data.tum MH_04.tum
+      - name: Create artifact directory
+        run: |
+          mkdir -p artifact
       - name: SLAM test (monocular) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
           ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log --map-db MH_01_mono.msg
-          mv frame_trajectory.txt ../frame_trajectory_MH_01_mono_slam.txt
-          mv track_times.txt ../track_times_MH_01_mono_slam.txt
+          mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_mono_slam.txt
+          mv track_times.txt ../artifact/track_times_MH_01_mono_slam.txt
       - name: SLAM test (stereo) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
           ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log --map-db MH_01_stereo.msg
-          mv frame_trajectory.txt ../frame_trajectory_MH_01_stereo_slam.txt
-          mv track_times.txt ../track_times_MH_01_stereo_slam.txt
+          mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_stereo_slam.txt
+          mv track_times.txt ../artifact/track_times_MH_01_stereo_slam.txt
       - name: Localization test (monocular) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
           ./run_euroc_localization -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log --map-db MH_01_mono.msg
-          mv frame_trajectory.txt ../frame_trajectory_MH_01_mono_localization.txt
-          mv track_times.txt ../track_times_MH_01_mono_localization.txt
+          mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_mono_localization.txt
+          mv track_times.txt ../artifact/track_times_MH_01_mono_localization.txt
       - name: SLAM test (monocular) with EuRoC MAV dataset (MH_04)
         run: |
           cd build
           ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log --map-db MH_04_mono.msg
-          mv frame_trajectory.txt ../frame_trajectory_MH_04_mono_slam.txt
-          mv track_times.txt ../track_times_MH_04_mono_slam.txt
+          mv frame_trajectory.txt ../artifact/frame_trajectory_MH_04_mono_slam.txt
+          mv track_times.txt ../artifact/track_times_MH_04_mono_slam.txt
       - name: SLAM test (stereo) with EuRoC MAV dataset (MH_04)
         run: |
           cd build
           ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log --map-db MH_04_stereo.msg
-          mv frame_trajectory.txt ../frame_trajectory_MH_04_stereo_slam.txt
-          mv track_times.txt ../track_times_MH_04_stereo_slam.txt
+          mv frame_trajectory.txt ../artifact/frame_trajectory_MH_04_stereo_slam.txt
+          mv track_times.txt ../artifact/track_times_MH_04_stereo_slam.txt
       - name: Localization test (monocular) with EuRoC MAV dataset (MH_04)
         run: |
           cd build
           ./run_euroc_localization -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log --map-db MH_04_mono.msg
-          mv frame_trajectory.txt ../frame_trajectory_MH_04_mono_localization.txt
-          mv track_times.txt ../track_times_MH_04_mono_localization.txt
+          mv frame_trajectory.txt ../artifact/frame_trajectory_MH_04_mono_localization.txt
+          mv track_times.txt ../artifact/track_times_MH_04_mono_localization.txt
       - name: download openvslam_test_dataset
         run: |
           gdown "https://drive.google.com/uc?id=1bdkqaR99GKjg4orhqHxQkwqyi227tfCd" -q
@@ -152,20 +155,20 @@ jobs:
         run: |
           cd build
           ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/1/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log --map-db equirectangular_map.msg
-          mv frame_trajectory.txt ../frame_trajectory_equirectangular_1.txt
-          mv track_times.txt ../track_times_equirectangular_1.txt
+          mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_1.txt
+          mv track_times.txt ../artifact/track_times_equirectangular_1.txt
       - name: SLAM test with equirectangular dataset (2)
         run: |
           cd build
           ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/2/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log --map-db equirectangular_map.msg
-          mv frame_trajectory.txt ../frame_trajectory_equirectangular_2.txt
-          mv track_times.txt ../track_times_equirectangular_2.txt
+          mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_2.txt
+          mv track_times.txt ../artifact/track_times_equirectangular_2.txt
       - name: SLAM test with equirectangular dataset (3)
         run: |
           cd build
           ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/3/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log --map-db equirectangular_map.msg
-          mv frame_trajectory.txt ../frame_trajectory_equirectangular_3.txt
-          mv track_times.txt ../track_times_equirectangular_3.txt
+          mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_3.txt
+          mv track_times.txt ../artifact/track_times_equirectangular_3.txt
       - name: Evaluation
         if: github.event_name == 'pull_request'
         run: |
@@ -177,48 +180,48 @@ jobs:
             echo '|dataset|track_time<br>(mean)|track_time<br>(median)|track_time<br>(max)|RPE<br>(mean)|RPE<br>(median)|RPE<br>(max)|RPE<br>(rmse)|RPE<br>(sse)|RPE<br>(std)|'
             echo '|---|---|---|---|---|---|---|---|---|---|'
             echo -n '| EuRoC MH_01 (SLAM, perspective, mono)'
-            bash track_time_print_row.bash track_times_MH_01_mono_slam.txt
-            bash evo_rpe_print_row.bash tum MH_01.tum frame_trajectory_MH_01_mono_slam.txt -as
+            bash track_time_print_row.bash artifact/track_times_MH_01_mono_slam.txt
+            bash evo_rpe_print_row.bash tum MH_01.tum artifact/frame_trajectory_MH_01_mono_slam.txt -as
             echo '|'
             echo -n '| EuRoC MH_01 (SLAM, perspective, stereo)'
-            bash track_time_print_row.bash track_times_MH_01_stereo_slam.txt
-            bash evo_rpe_print_row.bash tum MH_01.tum frame_trajectory_MH_01_stereo_slam.txt -a
+            bash track_time_print_row.bash artifact/track_times_MH_01_stereo_slam.txt
+            bash evo_rpe_print_row.bash tum MH_01.tum artifact/frame_trajectory_MH_01_stereo_slam.txt -a
             echo '|'
             echo -n '| EuRoC MH_01 (Localization, perspective, mono)'
-            bash track_time_print_row.bash track_times_MH_01_mono_localization.txt
-            bash evo_rpe_print_row.bash tum MH_01.tum frame_trajectory_MH_01_mono_localization.txt -as
+            bash track_time_print_row.bash artifact/track_times_MH_01_mono_localization.txt
+            bash evo_rpe_print_row.bash tum MH_01.tum artifact/frame_trajectory_MH_01_mono_localization.txt -as
             echo '|'
             echo -n '| EuRoC MH_04 (SLAM, perspective, mono)'
-            bash track_time_print_row.bash track_times_MH_04_mono_slam.txt
-            bash evo_rpe_print_row.bash tum MH_04.tum frame_trajectory_MH_04_mono_slam.txt -as
+            bash track_time_print_row.bash artifact/track_times_MH_04_mono_slam.txt
+            bash evo_rpe_print_row.bash tum MH_04.tum artifact/frame_trajectory_MH_04_mono_slam.txt -as
             echo '|'
             echo -n '| EuRoC MH_04 (SLAM, perspective, stereo)'
-            bash track_time_print_row.bash track_times_MH_04_stereo_slam.txt
-            bash evo_rpe_print_row.bash tum MH_04.tum frame_trajectory_MH_04_stereo_slam.txt -a
+            bash track_time_print_row.bash artifact/track_times_MH_04_stereo_slam.txt
+            bash evo_rpe_print_row.bash tum MH_04.tum artifact/frame_trajectory_MH_04_stereo_slam.txt -a
             echo '|'
             echo -n '| EuRoC MH_04 (Localization, perspective, mono)'
-            bash track_time_print_row.bash track_times_MH_04_mono_localization.txt
-            bash evo_rpe_print_row.bash tum MH_04.tum frame_trajectory_MH_04_mono_localization.txt -as
+            bash track_time_print_row.bash artifact/track_times_MH_04_mono_localization.txt
+            bash evo_rpe_print_row.bash tum MH_04.tum artifact/frame_trajectory_MH_04_mono_localization.txt -as
             echo '|'
             echo -n '| openvslam_test_dataset 1 (SLAM, equirectangular, mono)'
-            bash track_time_print_row.bash track_times_equirectangular_1.txt
-            bash evo_rpe_print_row.bash tum openvslam_test_dataset/1/gt.tum frame_trajectory_equirectangular_1.txt -as
+            bash track_time_print_row.bash artifact/track_times_equirectangular_1.txt
+            bash evo_rpe_print_row.bash tum openvslam_test_dataset/1/gt.tum artifact/frame_trajectory_equirectangular_1.txt -as
             echo '|'
             echo -n '| openvslam_test_dataset 2 (SLAM, equirectangular, mono)'
-            bash track_time_print_row.bash track_times_equirectangular_2.txt
-            bash evo_rpe_print_row.bash tum openvslam_test_dataset/2/gt.tum frame_trajectory_equirectangular_2.txt -as
+            bash track_time_print_row.bash artifact/track_times_equirectangular_2.txt
+            bash evo_rpe_print_row.bash tum openvslam_test_dataset/2/gt.tum artifact/frame_trajectory_equirectangular_2.txt -as
             echo '|'
             echo -n '| openvslam_test_dataset 3 (SLAM, equirectangular, mono)'
-            bash track_time_print_row.bash track_times_equirectangular_3.txt
-            bash evo_rpe_print_row.bash tum openvslam_test_dataset/3/gt.tum frame_trajectory_equirectangular_3.txt -as
+            bash track_time_print_row.bash artifact/track_times_equirectangular_3.txt
+            bash evo_rpe_print_row.bash tum openvslam_test_dataset/3/gt.tum artifact/frame_trajectory_equirectangular_3.txt -as
             echo '|'
             echo '</details>'
           ) >> result.md
       - uses: actions/upload-artifact@v2
         if: github.event_name == 'pull_request'
         with:
-          name: result
-          path: result.md
+          name: artifact
+          path: artifact
 
   build_tutorial:
     runs-on: ubuntu-latest
