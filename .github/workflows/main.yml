@@ -215,7 +215,7 @@ jobs:
             bash evo_rpe_print_row.bash tum openvslam_test_dataset/3/gt.tum artifact/frame_trajectory_equirectangular_3.txt -as
             echo '|'
             echo '</details>'
-          ) >> result.md
+          ) >> artifact/result.md
       - uses: actions/upload-artifact@v2
         with:
           name: artifact
