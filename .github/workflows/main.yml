@@ -170,7 +170,6 @@ jobs:
           mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_3.txt
           mv track_times.txt ../artifact/track_times_equirectangular_3.txt
       - name: Evaluation
-        if: github.event_name == 'pull_request'
         run: |
           cp scripts/workflows/* .
           (
@@ -218,7 +217,6 @@ jobs:
             echo '</details>'
           ) >> result.md
       - uses: actions/upload-artifact@v2
-        if: github.event_name == 'pull_request'
         with:
           name: artifact
           path: artifact
