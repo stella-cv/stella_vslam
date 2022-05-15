@@ -4,6 +4,7 @@
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/marker_model/base.h"
 #include "stella_vslam/optimize/local_bundle_adjuster.h"
+#include "stella_vslam/optimize/terminate_action.h"
 #include "stella_vslam/optimize/internal/landmark_vertex_container.h"
 #include "stella_vslam/optimize/internal/marker_vertex_container.h"
 #include "stella_vslam/optimize/internal/se3/shot_vertex_container.h"
@@ -150,6 +151,9 @@ void local_bundle_adjuster::optimize(data::map_database* map_db,
     auto algorithm = new g2o::OptimizationAlgorithmLevenberg(std::move(block_solver));
 
     g2o::SparseOptimizer optimizer;
+    auto terminateAction = new terminate_action;
+    terminateAction->setGainThreshold(1e-3);
+    optimizer.addPostIterationAction(terminateAction);
     optimizer.setAlgorithm(algorithm);
 
     if (force_stop_flag) {
