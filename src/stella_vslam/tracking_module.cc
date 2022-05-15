@@ -601,14 +601,19 @@ std::future<void> tracking_module::async_start_keyframe_insertion() {
     return future_stop_keyframe_insertion;
 }
 
-std::future<void> tracking_module::async_pause() {
+std::shared_future<void> tracking_module::async_pause() {
     std::lock_guard<std::mutex> lock(mtx_pause_);
     pause_is_requested_ = true;
-    promises_pause_.emplace_back();
-    std::future<void> future_pause = promises_pause_.back().get_future();
+    if (!future_pause_.valid()) {
+        future_pause_ = promise_pause_.get_future().share();
+    }
+
+    std::shared_future<void> future_pause = future_pause_;
     if (is_paused_) {
-        promises_pause_.back().set_value();
-        promises_pause_.pop_back();
+        promise_pause_.set_value();
+        // Clear request
+        promise_pause_ = std::promise<void>();
+        future_pause_ = std::shared_future<void>();
     }
     return future_pause;
 }
@@ -637,10 +642,9 @@ bool tracking_module::pause_if_requested() {
     if (pause_is_requested_) {
         is_paused_ = true;
         spdlog::info("pause tracking module");
-        for (auto& promise : promises_pause_) {
-            promise.set_value();
-        }
-        promises_pause_.clear();
+        promise_pause_.set_value();
+        promise_pause_ = std::promise<void>();
+        future_pause_ = std::shared_future<void>();
         return true;
     }
     else {

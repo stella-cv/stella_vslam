@@ -94,7 +94,7 @@ public:
     // management for pause process
 
     //! Request to pause the tracking module
-    std::future<void> async_pause();
+    std::shared_future<void> async_pause();
 
     //! Check if the pause of the tracking module is requested or not
     bool pause_is_requested() const;
@@ -243,7 +243,10 @@ protected:
     mutable std::mutex mtx_pause_;
 
     //! promise for pause
-    std::vector<std::promise<void>> promises_pause_;
+    std::promise<void> promise_pause_;
+
+    //! future for pause
+    std::shared_future<void> future_pause_;
 
     //! Check the request frame and pause the tracking module
     bool pause_if_requested();
