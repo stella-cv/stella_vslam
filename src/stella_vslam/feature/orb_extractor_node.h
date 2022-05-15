@@ -18,6 +18,11 @@ public:
     //! Divide node to four child nodes
     std::array<orb_extractor_node, 4> divide_node();
 
+    //! Size of area
+    unsigned int size() const {
+        return (pt_end_.x - pt_begin_.x) * (pt_end_.y - pt_begin_.y);
+    }
+
     //! Keypoints which distributed into this node
     std::vector<cv::KeyPoint> keypts_;
 
@@ -26,9 +31,6 @@ public:
 
     //! A iterator pointing to self, used for removal on list
     std::list<orb_extractor_node>::iterator iter_;
-
-    //! A flag designating if this node is a leaf node
-    bool is_leaf_node_ = false;
 };
 
 } // namespace feature

@@ -140,14 +140,10 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
 
     orb_params_db_ = new data::orb_params_database(orb_params_);
 
-    const auto max_num_keypoints = preprocessing_params["max_num_keypoints"].as<unsigned int>(2000);
-    extractor_left_ = new feature::orb_extractor(orb_params_, max_num_keypoints, mask_rectangles);
-    if (camera_->setup_type_ == camera::setup_type_t::Monocular) {
-        const auto ini_max_num_keypoints = preprocessing_params["ini_max_num_keypoints"].as<unsigned int>(2 * extractor_left_->get_max_num_keypoints());
-        ini_extractor_left_ = new feature::orb_extractor(orb_params_, ini_max_num_keypoints, mask_rectangles);
-    }
+    const auto min_size = preprocessing_params["min_size"].as<unsigned int>(800);
+    extractor_left_ = new feature::orb_extractor(orb_params_, min_size, mask_rectangles);
     if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
-        extractor_right_ = new feature::orb_extractor(orb_params_, max_num_keypoints, mask_rectangles);
+        extractor_right_ = new feature::orb_extractor(orb_params_, min_size, mask_rectangles);
     }
 
     if (cfg->marker_model_) {
@@ -194,8 +190,6 @@ system::~system() {
     extractor_left_ = nullptr;
     delete extractor_right_;
     extractor_right_ = nullptr;
-    delete ini_extractor_left_;
-    ini_extractor_left_ = nullptr;
 
     delete marker_detector_;
     marker_detector_ = nullptr;
@@ -318,14 +312,11 @@ data::frame system::create_monocular_frame(const cv::Mat& img, const double time
     cv::Mat img_gray = img;
     util::convert_to_grayscale(img_gray, camera_->color_order_);
 
-    bool is_init = tracker_->tracking_state_ == tracker_state_t::Initializing;
-
     data::frame_observation frm_obs;
 
     // Extract ORB feature
-    auto extractor = is_init ? ini_extractor_left_ : extractor_left_;
     keypts_.clear();
-    extractor->extract(img_gray, mask, keypts_, frm_obs.descriptors_);
+    extractor_left_->extract(img_gray, mask, keypts_, frm_obs.descriptors_);
     frm_obs.num_keypts_ = keypts_.size();
     if (keypts_.empty()) {
         spdlog::warn("preprocess: cannot extract any keypoints");

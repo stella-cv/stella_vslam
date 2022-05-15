@@ -30,7 +30,7 @@ Camera:
 #=====================#
 
 Preprocessing:
-  max_num_keypoints: 2000
+  min_size: 800
 
 #================#
 # orb parameters #

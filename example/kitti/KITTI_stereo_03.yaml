@@ -33,8 +33,7 @@ Camera:
 #=====================#
 
 Preprocessing:
-  max_num_keypoints: 2000
-  ini_max_num_keypoints: 4000
+  min_size: 800
 
 #================#
 # ORB Parameters #
