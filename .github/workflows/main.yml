@@ -86,6 +86,12 @@ jobs:
       image: ghcr.io/ymd-stella/stella-cv/stella_vslam:cv-4.x
     steps:
       - uses: actions/checkout@v2
+      - name: Create artifact directory
+        run: |
+          mkdir -p artifact
+      - name: Save cpuinfo
+        run: |
+          cp /proc/cpuinfo artifact
       - name: cmake and make
         run: |
           mkdir build
@@ -104,9 +110,6 @@ jobs:
           mv data.tum MH_01.tum
           evo_traj euroc --transform_right tf.json /datasets/EuRoC/MH_04/state_groundtruth_estimate0/data.csv --save_as_tum
           mv data.tum MH_04.tum
-      - name: Create artifact directory
-        run: |
-          mkdir -p artifact
       - name: SLAM test (monocular) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
