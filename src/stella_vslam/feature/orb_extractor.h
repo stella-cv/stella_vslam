@@ -3,6 +3,7 @@
 
 #include "stella_vslam/feature/orb_params.h"
 #include "stella_vslam/feature/orb_extractor_node.h"
+#include "stella_vslam/feature/orb_impl.h"
 
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
@@ -92,11 +93,6 @@ private:
     //! Number of feature points to be extracted
     unsigned int max_num_keypts_;
 
-    //! BRIEF orientation
-    static constexpr unsigned int fast_patch_size_ = 31;
-    //! half size of FAST patch
-    static constexpr int fast_half_patch_size_ = fast_patch_size_ / 2;
-
     //! size of maximum ORB patch radius
     static constexpr unsigned int orb_patch_radius_ = 19;
 
@@ -106,8 +102,8 @@ private:
 
     //! Maximum number of keypoint of each level
     std::vector<unsigned int> num_keypts_per_level_;
-    //! Index limitation that used for calculating of keypoint orientation
-    std::vector<int> u_max_;
+
+    orb_impl orb_impl_;
 };
 
 } // namespace feature
