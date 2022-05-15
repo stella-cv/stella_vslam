@@ -26,9 +26,6 @@ public:
 
     //! A iterator pointing to self, used for removal on list
     std::list<orb_extractor_node>::iterator iter_;
-
-    //! A flag designating if this node is a leaf node
-    bool is_leaf_node_ = false;
 };
 
 } // namespace feature

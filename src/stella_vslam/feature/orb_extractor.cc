@@ -299,7 +299,7 @@ std::vector<cv::KeyPoint> orb_extractor::distribute_keypoints_via_tree(const std
 
         // Fork node and remove the old one from nodes
         while (iter != nodes.end()) {
-            if (iter->is_leaf_node_) {
+            if (iter->keypts_.size() == 1) {
                 iter++;
                 continue;
             }
@@ -433,8 +433,6 @@ std::list<orb_extractor_node> orb_extractor::initialize_nodes(const std::vector<
             iter = nodes.erase(iter);
             continue;
         }
-        // Set the leaf node flag if the node has only one keypoint
-        iter->is_leaf_node_ = (iter->keypts_.size() == 1);
         iter++;
     }
 
