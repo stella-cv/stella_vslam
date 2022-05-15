@@ -28,7 +28,7 @@ keyframe_inserter::keyframe_inserter(const YAML::Node& yaml_node)
                         yaml_node["min_interval"].as<double>(0.1),
                         yaml_node["max_distance"].as<double>(-1.0),
                         yaml_node["lms_ratio_thr_almost_all_lms_are_tracked"].as<double>(0.9),
-                        yaml_node["lms_ratio_thr_view_changed"].as<double>(0.8),
+                        yaml_node["lms_ratio_thr_view_changed"].as<double>(0.5),
                         yaml_node["enough_lms_thr"].as<unsigned int>(100)) {}
 
 void keyframe_inserter::set_mapping_module(mapping_module* mapper) {
@@ -85,6 +85,17 @@ bool keyframe_inserter::new_keyframe_is_needed(data::map_database* map_db,
     constexpr unsigned int num_tracked_lms_thr_unstable = 15;
     bool tracking_is_unstable = num_tracked_lms < num_tracked_lms_thr_unstable;
     bool almost_all_lms_are_tracked = num_reliable_lms > num_reliable_lms_ref * lms_ratio_thr_almost_all_lms_are_tracked_;
+    SPDLOG_TRACE("keyframe_inserter: num_reliable_lms_ref={}", num_reliable_lms_ref);
+    SPDLOG_TRACE("keyframe_inserter: num_reliable_lms={}", num_reliable_lms);
+    SPDLOG_TRACE("keyframe_inserter: max_interval_elapsed={}", max_interval_elapsed);
+    SPDLOG_TRACE("keyframe_inserter: max_distance_traveled={}", max_distance_traveled);
+    SPDLOG_TRACE("keyframe_inserter: view_changed={}", view_changed);
+    SPDLOG_TRACE("keyframe_inserter: not_enough_lms={}", not_enough_lms);
+    SPDLOG_TRACE("keyframe_inserter: enough_keyfrms={}", enough_keyfrms);
+    SPDLOG_TRACE("keyframe_inserter: min_interval_elapsed={}", min_interval_elapsed);
+    SPDLOG_TRACE("keyframe_inserter: tracking_is_unstable={}", tracking_is_unstable);
+    SPDLOG_TRACE("keyframe_inserter: almost_all_lms_are_tracked={}", almost_all_lms_are_tracked);
+    SPDLOG_TRACE("keyframe_inserter: mapper_is_skipping_localBA={}", mapper_is_skipping_localBA);
     return (max_interval_elapsed || max_distance_traveled || view_changed || not_enough_lms)
            && (!enough_keyfrms || min_interval_elapsed)
            && !tracking_is_unstable
