@@ -17,8 +17,11 @@ orb_extractor::orb_extractor(const orb_params* orb_params,
                              const unsigned int max_num_keypts,
                              const std::vector<std::vector<float>>& mask_rects)
     : orb_params_(orb_params), mask_rects_(mask_rects), max_num_keypts_(max_num_keypts) {
-    // initialize parameters
-    initialize();
+    // resize buffers according to the number of levels
+    image_pyramid_.resize(orb_params_->num_levels_);
+
+    // compute the desired number of keypoints per scale
+    num_keypts_per_level_ = compute_num_keypts_per_level(max_num_keypts_);
 }
 
 void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArray& in_image_mask,
@@ -105,25 +108,23 @@ unsigned int orb_extractor::get_max_num_keypoints() const {
 
 void orb_extractor::set_max_num_keypoints(const unsigned int max_num_keypts) {
     max_num_keypts_ = max_num_keypts;
-    initialize();
+    num_keypts_per_level_ = compute_num_keypts_per_level(max_num_keypts_);
 }
 
-void orb_extractor::initialize() {
-    // resize buffers according to the number of levels
-    image_pyramid_.resize(orb_params_->num_levels_);
-    num_keypts_per_level_.resize(orb_params_->num_levels_);
-
-    // compute the desired number of keypoints per scale
+std::vector<unsigned int> orb_extractor::compute_num_keypts_per_level(unsigned int num_keypts) {
+    std::vector<unsigned int> num_keypts_per_level;
+    num_keypts_per_level.resize(orb_params_->num_levels_);
     double desired_num_keypts_per_scale
-        = max_num_keypts_ * (1.0 - 1.0 / orb_params_->scale_factor_)
+        = num_keypts * (1.0 - 1.0 / orb_params_->scale_factor_)
           / (1.0 - std::pow(1.0 / orb_params_->scale_factor_, static_cast<double>(orb_params_->num_levels_)));
     unsigned int total_num_keypts = 0;
     for (unsigned int level = 0; level < orb_params_->num_levels_ - 1; ++level) {
-        num_keypts_per_level_.at(level) = std::round(desired_num_keypts_per_scale);
-        total_num_keypts += num_keypts_per_level_.at(level);
+        num_keypts_per_level.at(level) = std::round(desired_num_keypts_per_scale);
+        total_num_keypts += num_keypts_per_level.at(level);
         desired_num_keypts_per_scale *= 1.0 / orb_params_->scale_factor_;
     }
-    num_keypts_per_level_.at(orb_params_->num_levels_ - 1) = std::max(static_cast<int>(max_num_keypts_) - static_cast<int>(total_num_keypts), 0);
+    num_keypts_per_level.at(orb_params_->num_levels_ - 1) = std::max(static_cast<int>(num_keypts) - static_cast<int>(total_num_keypts), 0);
+    return num_keypts_per_level;
 }
 
 void orb_extractor::create_rectangle_mask(const unsigned int cols, const unsigned int rows) {

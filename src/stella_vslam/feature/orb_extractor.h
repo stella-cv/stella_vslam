@@ -44,8 +44,8 @@ public:
     std::vector<cv::Mat> image_pyramid_;
 
 private:
-    //! Initialize orb extractor
-    void initialize();
+    //! Compute the desired number of keypoints per scale
+    std::vector<unsigned int> compute_num_keypts_per_level(unsigned int num_keypts);
 
     //! Calculate scale factors and sigmas
     void calc_scale_factors();
