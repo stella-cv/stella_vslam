@@ -27,12 +27,6 @@ public:
     void extract(const cv::_InputArray& in_image, const cv::_InputArray& in_image_mask,
                  std::vector<cv::KeyPoint>& keypts, const cv::_OutputArray& out_descriptors);
 
-    //! Get the maximum number of keypoints
-    unsigned int get_max_num_keypoints() const;
-
-    //! Set the maximum number of keypoints
-    void set_max_num_keypoints(const unsigned int max_num_keypts);
-
     //! parameters for ORB extraction
     const orb_params* orb_params_;
 
@@ -44,9 +38,6 @@ public:
     std::vector<cv::Mat> image_pyramid_;
 
 private:
-    //! Compute the desired number of keypoints per scale
-    std::vector<unsigned int> compute_num_keypts_per_level(unsigned int num_keypts);
-
     //! Calculate scale factors and sigmas
     void calc_scale_factors();
 
@@ -61,12 +52,12 @@ private:
 
     //! Pick computed keypoints on the image uniformly
     std::vector<cv::KeyPoint> distribute_keypoints_via_tree(const std::vector<cv::KeyPoint>& keypts_to_distribute,
-                                                            const int min_x, const int max_x, const int min_y, const int max_y,
-                                                            const unsigned int num_keypts) const;
+                                                            int min_x, int max_x, int min_y, int max_y,
+                                                            float inv_scale_factor) const;
 
     //! Initialize nodes that used for keypoint distribution tree
     std::list<orb_extractor_node> initialize_nodes(const std::vector<cv::KeyPoint>& keypts_to_distribute,
-                                                   const int min_x, const int max_x, const int min_y, const int max_y) const;
+                                                   int min_x, int max_x, int min_y, int max_y) const;
 
     //! Assign child nodes to the all node list
     void assign_child_nodes(const std::array<orb_extractor_node, 4>& child_nodes, std::list<orb_extractor_node>& nodes,
@@ -90,8 +81,8 @@ private:
     //! Compute orb descriptor of a keypoint
     void compute_orb_descriptor(const cv::KeyPoint& keypt, const cv::Mat& image, uchar* desc) const;
 
-    //! Number of feature points to be extracted
-    unsigned int max_num_keypts_;
+    //! Size of node occupied by one feature point
+    unsigned int min_size_;
 
     //! size of maximum ORB patch radius
     static constexpr unsigned int orb_patch_radius_ = 19;
@@ -99,9 +90,6 @@ private:
     //! rectangle mask has been already initialized or not
     bool mask_is_initialized_ = false;
     cv::Mat rect_mask_;
-
-    //! Maximum number of keypoint of each level
-    std::vector<unsigned int> num_keypts_per_level_;
 
     orb_impl orb_impl_;
 };

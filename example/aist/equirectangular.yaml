@@ -20,7 +20,7 @@ Camera:
 #=====================#
 
 Preprocessing:
-  max_num_keypoints: 2000
+  min_size: 800
   mask_rectangles:
     - [0.0, 1.0, 0.0, 0.1]
     - [0.0, 1.0, 0.84, 1.0]
