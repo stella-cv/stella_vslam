@@ -2,6 +2,7 @@
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
 #include "stella_vslam/optimize/pose_optimizer.h"
+#include "stella_vslam/optimize/terminate_action.h"
 #include "stella_vslam/optimize/internal/se3/pose_opt_edge_wrapper.h"
 #include "stella_vslam/util/converter.h"
 
@@ -47,6 +48,9 @@ unsigned int pose_optimizer::optimize(const Mat44_t& cam_pose_cw, const data::fr
     auto algorithm = new g2o::OptimizationAlgorithmLevenberg(std::move(block_solver));
 
     g2o::SparseOptimizer optimizer;
+    auto terminateAction = new terminate_action;
+    terminateAction->setGainThreshold(1e-3);
+    optimizer.addPostIterationAction(terminateAction);
     optimizer.setAlgorithm(algorithm);
 
     unsigned int num_init_obs = 0;
