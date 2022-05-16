@@ -449,11 +449,13 @@ auto global_optimization_module::extract_new_connections(const std::vector<std::
     return new_connections;
 }
 
-std::future<void> global_optimization_module::async_reset() {
+std::shared_future<void> global_optimization_module::async_reset() {
     std::lock_guard<std::mutex> lock(mtx_reset_);
     reset_is_requested_ = true;
-    promises_reset_.emplace_back();
-    return promises_reset_.back().get_future();
+    if (!future_reset_.valid()) {
+        future_reset_ = promise_reset_.get_future().share();
+    }
+    return future_reset_;
 }
 
 bool global_optimization_module::reset_is_requested() const {
@@ -467,17 +469,18 @@ void global_optimization_module::reset() {
     keyfrms_queue_.clear();
     loop_detector_->set_loop_correct_keyframe_id(0);
     reset_is_requested_ = false;
-    for (auto& promise : promises_reset_) {
-        promise.set_value();
-    }
-    promises_reset_.clear();
+    promise_reset_.set_value();
+    promise_reset_ = std::promise<void>();
+    future_reset_ = std::shared_future<void>();
 }
 
-std::future<void> global_optimization_module::async_pause() {
+std::shared_future<void> global_optimization_module::async_pause() {
     std::lock_guard<std::mutex> lock1(mtx_pause_);
     pause_is_requested_ = true;
-    promises_pause_.emplace_back();
-    return promises_pause_.back().get_future();
+    if (!future_pause_.valid()) {
+        future_pause_ = promise_pause_.get_future().share();
+    }
+    return future_pause_;
 }
 
 bool global_optimization_module::pause_is_requested() const {
@@ -494,10 +497,9 @@ void global_optimization_module::pause() {
     std::lock_guard<std::mutex> lock(mtx_pause_);
     spdlog::info("pause global optimization module");
     is_paused_ = true;
-    for (auto& promise : promises_pause_) {
-        promise.set_value();
-    }
-    promises_pause_.clear();
+    promise_pause_.set_value();
+    promise_pause_ = std::promise<void>();
+    future_pause_ = std::shared_future<void>();
 }
 
 void global_optimization_module::resume() {
@@ -515,11 +517,13 @@ void global_optimization_module::resume() {
     spdlog::info("resume global optimization module");
 }
 
-std::future<void> global_optimization_module::async_terminate() {
+std::shared_future<void> global_optimization_module::async_terminate() {
     std::lock_guard<std::mutex> lock(mtx_terminate_);
     terminate_is_requested_ = true;
-    promises_terminate_.emplace_back();
-    return promises_terminate_.back().get_future();
+    if (!future_terminate_.valid()) {
+        future_terminate_ = promise_terminate_.get_future().share();
+    }
+    return future_terminate_;
 }
 
 bool global_optimization_module::is_terminated() const {
@@ -535,10 +539,9 @@ bool global_optimization_module::terminate_is_requested() const {
 void global_optimization_module::terminate() {
     std::lock_guard<std::mutex> lock(mtx_terminate_);
     is_terminated_ = true;
-    for (auto& promise : promises_terminate_) {
-        promise.set_value();
-    }
-    promises_terminate_.clear();
+    promise_terminate_.set_value();
+    promise_terminate_ = std::promise<void>();
+    future_terminate_ = std::shared_future<void>();
 }
 
 bool global_optimization_module::loop_BA_is_running() const {

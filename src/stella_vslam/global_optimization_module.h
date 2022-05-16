@@ -64,13 +64,13 @@ public:
     // management for reset process
 
     //! Request to reset the global optimization module
-    std::future<void> async_reset();
+    std::shared_future<void> async_reset();
 
     //-----------------------------------------
     // management for pause process
 
     //! Request to pause the global optimization module
-    std::future<void> async_pause();
+    std::shared_future<void> async_pause();
 
     //! Check if the global optimization module is requested to be paused or not
     bool pause_is_requested() const;
@@ -85,7 +85,7 @@ public:
     // management for terminate process
 
     //! Request to terminate the global optimization module
-    std::future<void> async_terminate();
+    std::shared_future<void> async_terminate();
 
     //! Check if the global optimization module is terminated or not
     bool is_terminated() const;
@@ -135,8 +135,11 @@ private:
     //! mutex for access to reset procedure
     mutable std::mutex mtx_reset_;
 
-    //! promises for reset
-    std::vector<std::promise<void>> promises_reset_;
+    //! promise for reset
+    std::promise<void> promise_reset_;
+
+    //! future for reset
+    std::shared_future<void> future_reset_;
 
     //! Check and execute reset
     bool reset_is_requested() const;
@@ -153,8 +156,11 @@ private:
     //! mutex for access to pause procedure
     mutable std::mutex mtx_pause_;
 
-    //! promises for pause
-    std::vector<std::promise<void>> promises_pause_;
+    //! promise for pause
+    std::promise<void> promise_pause_;
+
+    //! future for pause
+    std::shared_future<void> future_pause_;
 
     //! Pause the global optimizer
     void pause();
@@ -170,8 +176,11 @@ private:
     //! mutex for access to terminate procedure
     mutable std::mutex mtx_terminate_;
 
-    //! promises for terminate
-    std::vector<std::promise<void>> promises_terminate_;
+    //! promise for terminate
+    std::promise<void> promise_terminate_;
+
+    //! future for terminate
+    std::shared_future<void> future_terminate_;
 
     //! Check if termination is requested or not
     bool terminate_is_requested() const;

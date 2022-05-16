@@ -537,11 +537,13 @@ void mapping_module::fuse_landmark_duplication(const nondeterministic::unordered
     }
 }
 
-std::future<void> mapping_module::async_reset() {
+std::shared_future<void> mapping_module::async_reset() {
     std::lock_guard<std::mutex> lock(mtx_reset_);
     reset_is_requested_ = true;
-    promises_reset_.emplace_back();
-    return promises_reset_.back().get_future();
+    if (!future_reset_.valid()) {
+        future_reset_ = promise_reset_.get_future().share();
+    }
+    return future_reset_;
 }
 
 bool mapping_module::reset_is_requested() const {
@@ -555,24 +557,27 @@ void mapping_module::reset() {
     keyfrms_queue_.clear();
     local_map_cleaner_->reset();
     reset_is_requested_ = false;
-    for (auto& promise : promises_reset_) {
-        promise.set_value();
-    }
-    promises_reset_.clear();
+    promise_reset_.set_value();
+    promise_reset_ = std::promise<void>();
+    future_reset_ = std::shared_future<void>();
 }
 
-std::future<void> mapping_module::async_pause() {
+std::shared_future<void> mapping_module::async_pause() {
     std::lock_guard<std::mutex> lock_pause(mtx_pause_);
     pause_is_requested_ = true;
     abort_local_BA_ = true;
-    promises_pause_.emplace_back();
-    std::future<void> future_pause = promises_pause_.back().get_future();
+    if (!future_pause_.valid()) {
+        future_pause_ = promise_pause_.get_future().share();
+    }
 
     std::lock_guard<std::mutex> lock_terminate(mtx_terminate_);
     SPDLOG_TRACE("mapping_module::async_pause is_terminated_={} is_paused_={}", is_terminated_, is_paused_);
+    std::shared_future<void> future_pause = future_pause_;
     if (is_terminated_ || is_paused_) {
-        promises_pause_.back().set_value();
-        promises_pause_.pop_back();
+        promise_pause_.set_value();
+        // Clear request
+        promise_pause_ = std::promise<void>();
+        future_pause_ = std::shared_future<void>();
     }
     return future_pause;
 }
@@ -591,10 +596,9 @@ void mapping_module::pause() {
     std::lock_guard<std::mutex> lock(mtx_pause_);
     spdlog::info("pause mapping module");
     is_paused_ = true;
-    for (auto& promise : promises_pause_) {
-        promise.set_value();
-    }
-    promises_pause_.clear();
+    promise_pause_.set_value();
+    promise_pause_ = std::promise<void>();
+    future_pause_ = std::shared_future<void>();
 }
 
 void mapping_module::resume() {
@@ -614,11 +618,13 @@ void mapping_module::resume() {
     spdlog::info("resume mapping module");
 }
 
-std::future<void> mapping_module::async_terminate() {
+std::shared_future<void> mapping_module::async_terminate() {
     std::lock_guard<std::mutex> lock(mtx_terminate_);
     terminate_is_requested_ = true;
-    promises_terminate_.emplace_back();
-    return promises_terminate_.back().get_future();
+    if (!future_terminate_.valid()) {
+        future_terminate_ = promise_terminate_.get_future().share();
+    }
+    return future_terminate_;
 }
 
 bool mapping_module::is_terminated() const {
@@ -635,19 +641,17 @@ void mapping_module::terminate() {
     {
         std::lock_guard<std::mutex> lock_pause(mtx_pause_);
         is_paused_ = true;
-        for (auto& promise : promises_pause_) {
-            promise.set_value();
-        }
-        promises_pause_.clear();
+        promise_pause_.set_value();
+        promise_pause_ = std::promise<void>();
+        future_pause_ = std::shared_future<void>();
     }
     {
         std::lock_guard<std::mutex> lock_terminate(mtx_terminate_);
         is_terminated_ = true;
         set_is_idle(true);
-        for (auto& promise : promises_terminate_) {
-            promise.set_value();
-        }
-        promises_terminate_.clear();
+        promise_terminate_.set_value();
+        promise_terminate_ = std::promise<void>();
+        future_terminate_ = std::shared_future<void>();
     }
 }
 
