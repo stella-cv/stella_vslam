@@ -9,4 +9,4 @@ target_sources(${PROJECT_NAME}
 # Install headers
 file(GLOB HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 install(FILES ${HEADERS}
-        DESTINATION ${OPENVSLAM_INCLUDE_INSTALL_DIR}/marker)
+        DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/marker)
