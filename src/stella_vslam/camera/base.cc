@@ -147,11 +147,13 @@ void base::undistort_keypoints(const std::vector<cv::KeyPoint>& dist_keypts, std
 }
 
 void base::convert_points_to_bearings(const std::vector<cv::Point2f>& undist_pts, eigen_alloc_vector<Vec3_t>& bearings) const {
+    assert(bearings.size() == 0);
     std::transform(undist_pts.begin(), undist_pts.end(), std::back_inserter(bearings),
                    [this](const cv::Point2f& undist_pt) { return convert_point_to_bearing(undist_pt); });
 }
 
 void base::convert_keypoints_to_bearings(const std::vector<cv::KeyPoint>& undist_keypts, eigen_alloc_vector<Vec3_t>& bearings) const {
+    assert(bearings.size() == 0);
     std::transform(undist_keypts.begin(), undist_keypts.end(), std::back_inserter(bearings),
                    [this](const cv::KeyPoint& undist_keypt) { return convert_point_to_bearing(undist_keypt.pt); });
 }
