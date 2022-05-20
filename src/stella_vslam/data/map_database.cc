@@ -317,9 +317,9 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     const auto undist_keypts = convert_json_to_undistorted(json_undist_keypts);
     assert(undist_keypts.size() == num_keypts);
     // bearings
-    auto bearings = eigen_alloc_vector<Vec3_t>(num_keypts);
-    assert(bearings.size() == num_keypts);
+    auto bearings = eigen_alloc_vector<Vec3_t>();
     camera->convert_keypoints_to_bearings(undist_keypts, bearings);
+    assert(bearings.size() == num_keypts);
     // stereo_x_right
     const auto stereo_x_right = json_keyfrm.at("x_rights").get<std::vector<float>>();
     // depths
@@ -549,8 +549,9 @@ bool map_database::load_keyframes_from_db(sqlite3* db,
         std::memcpy(descriptors.data, p, sqlite3_column_bytes(stmt, column_id));
         column_id++;
 
-        auto bearings = eigen_alloc_vector<Vec3_t>(num_keypts);
+        auto bearings = eigen_alloc_vector<Vec3_t>();
         camera->convert_keypoints_to_bearings(undist_keypts, bearings);
+        assert(bearings.size() == num_keypts);
 
         // Construct a new object
         data::bow_vector bow_vec;
