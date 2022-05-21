@@ -1,6 +1,8 @@
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
+#include "stella_vslam/data/marker.h"
 #include "stella_vslam/data/map_database.h"
+#include "stella_vslam/marker_model/base.h"
 #include "stella_vslam/optimize/graph_optimizer.h"
 #include "stella_vslam/optimize/terminate_action.h"
 #include "stella_vslam/optimize/internal/sim3/shot_vertex.h"
@@ -258,6 +260,11 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
 
             const Mat44_t cam_pose_cw = util::converter::to_eigen_pose(rot_cw, trans_cw);
             keyfrm->set_pose_cw(cam_pose_cw);
+            for (const auto& mkr : keyfrm->get_markers()) {
+                const auto& mkr2d = keyfrm->markers_2d_[mkr->id_];
+                eigen_alloc_vector<Vec3_t> corners_pos_w = mkr2d.compute_corners_pos_w(keyfrm->get_pose_wc(), mkr2d.marker_model_->corners_pos_);
+                mkr->set_corner_pos(corners_pos_w);
+            }
 
             corrected_Sim3s_wc[id] = corrected_Sim3_cw.inverse();
         }

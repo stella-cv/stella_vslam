@@ -294,6 +294,11 @@ void initializer::scale_map(const std::shared_ptr<data::keyframe>& init_keyfrm, 
     Mat44_t cam_pose_cw = curr_keyfrm->get_pose_cw();
     cam_pose_cw.block<3, 1>(0, 3) *= scale;
     curr_keyfrm->set_pose_cw(cam_pose_cw);
+    for (const auto& mkr : curr_keyfrm->get_markers()) {
+        const auto& mkr2d = curr_keyfrm->markers_2d_[mkr->id_];
+        eigen_alloc_vector<Vec3_t> corners_pos_w = mkr2d.compute_corners_pos_w(curr_keyfrm->get_pose_wc(), mkr2d.marker_model_->corners_pos_);
+        mkr->set_corner_pos(corners_pos_w);
+    }
 
     // scaling landmarks
     const auto landmarks = init_keyfrm->get_landmarks();

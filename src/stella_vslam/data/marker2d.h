@@ -17,6 +17,7 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     //! constructor
+    marker2d() = default;
     marker2d(const std::vector<cv::Point2f>& undist_corners, const eigen_alloc_vector<Vec3_t>& bearings,
              const Mat33_t& rot_cm, const Vec3_t& trans_cm, unsigned int id, const std::shared_ptr<marker_model::base>& marker_model);
 
