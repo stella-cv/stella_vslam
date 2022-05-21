@@ -109,7 +109,7 @@ nlohmann::json keyframe::to_json() const {
             {"trans_cw", convert_translation_to_json(pose_cw_.block<3, 1>(0, 3))},
             // features and observations
             {"n_keypts", frm_obs_.num_keypts_},
-            {"undist_keypts", convert_undistorted_to_json(frm_obs_.undist_keypts_)},
+            {"undist_keypts", convert_keypoints_to_json(frm_obs_.undist_keypts_)},
             {"x_rights", frm_obs_.stereo_x_right_},
             {"depths", frm_obs_.depths_},
             {"descs", convert_descriptors_to_json(frm_obs_.descriptors_)},
