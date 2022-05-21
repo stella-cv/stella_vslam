@@ -1,7 +1,9 @@
 #include "stella_vslam/mapping_module.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
+#include "stella_vslam/data/marker.h"
 #include "stella_vslam/data/map_database.h"
+#include "stella_vslam/marker_model/base.h"
 #include "stella_vslam/module/loop_bundle_adjuster.h"
 #include "stella_vslam/optimize/global_bundle_adjuster.h"
 
@@ -98,6 +100,12 @@ void loop_bundle_adjuster::optimize() {
             keyfrm_to_cam_pose_cw_before_BA[parent->id_] = parent->get_pose_cw();
             // update the camera pose
             parent->set_pose_cw(keyfrm_to_pose_cw_after_global_BA.at(parent->id_));
+            for (const auto& mkr : parent->get_markers()) {
+                const auto& mkr2d = parent->markers_2d_[mkr->id_];
+                eigen_alloc_vector<Vec3_t> corners_pos_w = mkr2d.compute_corners_pos_w(parent->get_pose_wc(), mkr2d.marker_model_->corners_pos_);
+                mkr->set_corner_pos(corners_pos_w);
+            }
+
             // finish updating
             keyfrms_to_check.pop_front();
         }
