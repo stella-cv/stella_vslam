@@ -25,10 +25,6 @@ nlohmann::json convert_keypoints_to_json(const std::vector<cv::KeyPoint>& keypts
 
 std::vector<cv::KeyPoint> convert_json_to_keypoints(const nlohmann::json& json_keypts);
 
-nlohmann::json convert_undistorted_to_json(const std::vector<cv::KeyPoint>& undist_keypts);
-
-std::vector<cv::KeyPoint> convert_json_to_undistorted(const nlohmann::json& json_undist_keypts, const std::vector<cv::KeyPoint>& keypts = {});
-
 nlohmann::json convert_descriptors_to_json(const cv::Mat& descriptors);
 
 cv::Mat convert_json_to_descriptors(const nlohmann::json& json_descriptors);

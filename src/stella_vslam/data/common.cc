@@ -54,25 +54,6 @@ std::vector<cv::KeyPoint> convert_json_to_keypoints(const nlohmann::json& json_k
     return keypts;
 }
 
-nlohmann::json convert_undistorted_to_json(const std::vector<cv::KeyPoint>& undist_keypts) {
-    std::vector<nlohmann::json> json_undist_keypts(undist_keypts.size());
-    for (unsigned int idx = 0; idx < undist_keypts.size(); ++idx) {
-        json_undist_keypts.at(idx) = {undist_keypts.at(idx).pt.x, undist_keypts.at(idx).pt.y};
-    }
-    return json_undist_keypts;
-}
-
-std::vector<cv::KeyPoint> convert_json_to_undistorted(const nlohmann::json& json_undist_keypts, const std::vector<cv::KeyPoint>& keypts) {
-    auto undist_keypts = (keypts.empty() ? std::vector<cv::KeyPoint>(json_undist_keypts.size()) : keypts);
-    assert(undist_keypts.size() == json_undist_keypts.size());
-    for (unsigned int idx = 0; idx < json_undist_keypts.size(); ++idx) {
-        const auto& json_undist_keypt = json_undist_keypts.at(idx);
-        undist_keypts.at(idx).pt.x = json_undist_keypt.at(0).get<float>();
-        undist_keypts.at(idx).pt.y = json_undist_keypt.at(1).get<float>();
-    }
-    return undist_keypts;
-}
-
 nlohmann::json convert_descriptors_to_json(const cv::Mat& descriptors) {
     std::vector<nlohmann::json> json_descriptors(descriptors.rows);
     for (int idx = 0; idx < descriptors.rows; ++idx) {

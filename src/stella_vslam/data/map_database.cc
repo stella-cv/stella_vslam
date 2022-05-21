@@ -314,7 +314,7 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     const auto num_keypts = json_keyfrm.at("n_keypts").get<unsigned int>();
     // undist_keypts
     const auto json_undist_keypts = json_keyfrm.at("undist_keypts");
-    const auto undist_keypts = convert_json_to_undistorted(json_undist_keypts);
+    const auto undist_keypts = convert_json_to_keypoints(json_undist_keypts);
     assert(undist_keypts.size() == num_keypts);
     // bearings
     auto bearings = eigen_alloc_vector<Vec3_t>();
