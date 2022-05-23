@@ -33,7 +33,7 @@
 
 void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
                    const std::string& vocab_file_path, const std::string& sequence_dir_path,
-                   const unsigned int frame_skip, const bool no_sleep, const bool auto_term,
+                   const unsigned int frame_skip, const bool no_sleep, const bool wait_loop_ba, const bool auto_term,
                    const bool eval_log, const std::string& map_db_path) {
     const kitti_sequence sequence(sequence_dir_path);
     const auto frames = sequence.get_frames();
@@ -59,6 +59,13 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
     // run the SLAM in another thread
     std::thread thread([&]() {
         for (unsigned int i = 0; i < frames.size(); ++i) {
+            // wait until the loop BA is finished
+            if (wait_loop_ba) {
+                while (SLAM.loop_BA_is_running() || !SLAM.mapping_module_is_enabled()) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                }
+            }
+
             const auto& frame = frames.at(i);
             const auto img = cv::imread(frame.left_img_path_, cv::IMREAD_UNCHANGED);
 
@@ -146,7 +153,7 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
 
 void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
                      const std::string& vocab_file_path, const std::string& sequence_dir_path,
-                     const unsigned int frame_skip, const bool no_sleep, const bool auto_term,
+                     const unsigned int frame_skip, const bool no_sleep, const bool wait_loop_ba, const bool auto_term,
                      const bool eval_log, const std::string& map_db_path) {
     const kitti_sequence sequence(sequence_dir_path);
     const auto frames = sequence.get_frames();
@@ -172,6 +179,13 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
     // run the SLAM in another thread
     std::thread thread([&]() {
         for (unsigned int i = 0; i < frames.size(); ++i) {
+            // wait until the loop BA is finished
+            if (wait_loop_ba) {
+                while (SLAM.loop_BA_is_running() || !SLAM.mapping_module_is_enabled()) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                }
+            }
+
             const auto& frame = frames.at(i);
             const auto left_img = cv::imread(frame.left_img_path_, cv::IMREAD_UNCHANGED);
             const auto right_img = cv::imread(frame.right_img_path_, cv::IMREAD_UNCHANGED);
@@ -271,6 +285,7 @@ int main(int argc, char* argv[]) {
     auto config_file_path = op.add<popl::Value<std::string>>("c", "config", "config file path");
     auto frame_skip = op.add<popl::Value<unsigned int>>("", "frame-skip", "interval of frame skip", 1);
     auto no_sleep = op.add<popl::Switch>("", "no-sleep", "not wait for next frame in real time");
+    auto wait_loop_ba = op.add<popl::Switch>("", "wait-loop-ba", "wait until the loop BA is finished");
     auto auto_term = op.add<popl::Switch>("", "auto-term", "automatically terminate the viewer");
     auto log_level = op.add<popl::Value<std::string>>("", "log-level", "log level", "info");
     auto eval_log = op.add<popl::Switch>("", "eval-log", "store trajectory and tracking times for evaluation");
@@ -318,12 +333,12 @@ int main(int argc, char* argv[]) {
     // run tracking
     if (cfg->camera_->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
         mono_tracking(cfg, vocab_file_path->value(), data_dir_path->value(),
-                      frame_skip->value(), no_sleep->is_set(), auto_term->is_set(),
+                      frame_skip->value(), no_sleep->is_set(), wait_loop_ba->is_set(), auto_term->is_set(),
                       eval_log->is_set(), map_db_path->value());
     }
     else if (cfg->camera_->setup_type_ == stella_vslam::camera::setup_type_t::Stereo) {
         stereo_tracking(cfg, vocab_file_path->value(), data_dir_path->value(),
-                        frame_skip->value(), no_sleep->is_set(), auto_term->is_set(),
+                        frame_skip->value(), no_sleep->is_set(), wait_loop_ba->is_set(), auto_term->is_set(),
                         eval_log->is_set(), map_db_path->value());
     }
     else {
