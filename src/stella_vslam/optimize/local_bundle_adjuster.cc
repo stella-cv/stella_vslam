@@ -375,11 +375,6 @@ void local_bundle_adjuster::optimize(data::map_database* map_db,
 
             auto keyfrm_vtx = keyfrm_vtx_container.get_vertex(local_keyfrm);
             local_keyfrm->set_pose_cw(keyfrm_vtx->estimate());
-            for (const auto& mkr : local_keyfrm->get_markers()) {
-                const auto& mkr2d = local_keyfrm->markers_2d_[mkr->id_];
-                eigen_alloc_vector<Vec3_t> corners_pos_w = mkr2d.compute_corners_pos_w(local_keyfrm->get_pose_wc(), mkr2d.marker_model_->corners_pos_);
-                mkr->set_corner_pos(corners_pos_w);
-            }
         }
 
         for (const auto& id_local_lm_pair : local_lms) {
