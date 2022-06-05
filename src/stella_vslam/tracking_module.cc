@@ -377,12 +377,6 @@ void tracking_module::replace_landmarks_in_last_frm(nondeterministic::unordered_
         if (!lm) {
             continue;
         }
-    }
-    for (unsigned int idx = 0; idx < last_frm_.frm_obs_.num_keypts_; ++idx) {
-        const auto& lm = last_frm_.get_landmark(idx);
-        if (!lm) {
-            continue;
-        }
 
         if (replaced_lms.count(lm)) {
             auto replaced_lm = replaced_lms[lm];
