@@ -117,8 +117,13 @@ unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr
                     covisibility->erase_landmark_with_index(idx);
                     lm->erase_observation(map_db_, covisibility);
                     num_removed_connection++;
-                    if (!lm->will_be_erased() && !lm->has_representative_descriptor()) {
-                        lm->compute_descriptor();
+                    if (!lm->will_be_erased()) {
+                        if (!lm->has_representative_descriptor()) {
+                            lm->compute_descriptor();
+                        }
+                        if (!lm->has_valid_prediction_parameters()) {
+                            lm->update_mean_normal_and_obs_scale_variance();
+                        }
                     }
                     if (num_removed_connection >= num_valid_obs - desired_valid_obs_) {
                         break;
