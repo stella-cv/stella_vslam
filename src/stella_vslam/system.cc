@@ -64,6 +64,7 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     message_stream << "and you are welcome to redistribute it under certain conditions." << std::endl;
     message_stream << "See the LICENSE file." << std::endl;
     message_stream << std::endl;
+    message_stream << "MOVVO FORK" << std::endl;
 
     // show configuration
     message_stream << *cfg_ << std::endl;
