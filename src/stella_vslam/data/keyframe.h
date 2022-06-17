@@ -200,6 +200,7 @@ public:
 
     /**
      * Get all of the markers
+     * (NOTE: including nullptr)
      */
     std::vector<std::shared_ptr<marker>> get_markers() const;
 

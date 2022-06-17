@@ -210,11 +210,6 @@ void global_bundle_adjuster::optimize_for_initialization(bool* const force_stop_
         const auto cam_pose_cw = util::converter::to_eigen_mat(keyfrm_vtx->estimate());
 
         keyfrm->set_pose_cw(cam_pose_cw);
-        for (const auto& mkr : keyfrm->get_markers()) {
-            const auto& mkr2d = keyfrm->markers_2d_[mkr->id_];
-            eigen_alloc_vector<Vec3_t> corners_pos_w = mkr2d.compute_corners_pos_w(keyfrm->get_pose_wc(), mkr2d.marker_model_->corners_pos_);
-            mkr->set_corner_pos(corners_pos_w);
-        }
     }
 
     for (unsigned int i = 0; i < lms.size(); ++i) {

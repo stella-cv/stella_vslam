@@ -3,9 +3,7 @@
 #include "stella_vslam/tracking_module.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
-#include "stella_vslam/data/marker.h"
 #include "stella_vslam/data/map_database.h"
-#include "stella_vslam/marker_model/base.h"
 #include "stella_vslam/match/fuse.h"
 #include "stella_vslam/util/converter.h"
 #include "stella_vslam/util/yaml.h"
@@ -326,11 +324,6 @@ void global_optimization_module::correct_covisibility_keyframes(const module::ke
         const Vec3_t trans_nw = Sim3_nw_after_correction.translation() / s_nw;
         const Mat44_t cam_pose_nw = util::converter::to_eigen_pose(rot_nw, trans_nw);
         neighbor->set_pose_cw(cam_pose_nw);
-        for (const auto& mkr : neighbor->get_markers()) {
-            const auto& mkr2d = neighbor->markers_2d_[mkr->id_];
-            eigen_alloc_vector<Vec3_t> corners_pos_w = mkr2d.compute_corners_pos_w(neighbor->get_pose_wc(), mkr2d.marker_model_->corners_pos_);
-            mkr->set_corner_pos(corners_pos_w);
-        }
 
         // update graph
         neighbor->graph_node_->update_connections();

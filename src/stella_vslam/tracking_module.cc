@@ -16,38 +16,15 @@
 
 #include <spdlog/spdlog.h>
 
-namespace {
-using namespace stella_vslam;
-
-double get_reloc_distance_threshold(const YAML::Node& yaml_node) {
-    spdlog::debug("load maximum distance threshold where close keyframes could be found");
-    return yaml_node["reloc_distance_threshold"].as<double>(0.2);
-}
-
-double get_reloc_angle_threshold(const YAML::Node& yaml_node) {
-    spdlog::debug("load maximum angle threshold between given pose and close keyframes");
-    return yaml_node["reloc_angle_threshold"].as<double>(0.45);
-}
-
-double get_enable_auto_relocalization(const YAML::Node& yaml_node) {
-    return yaml_node["enable_auto_relocalization"].as<bool>(true);
-}
-
-double get_use_robust_matcher_for_relocalization_request(const YAML::Node& yaml_node) {
-    return yaml_node["use_robust_matcher_for_relocalization_request"].as<bool>(false);
-}
-
-} // unnamed namespace
-
 namespace stella_vslam {
 
 tracking_module::tracking_module(const std::shared_ptr<config>& cfg, data::map_database* map_db,
                                  data::bow_vocabulary* bow_vocab, data::bow_database* bow_db)
     : camera_(cfg->camera_),
-      reloc_distance_threshold_(get_reloc_distance_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
-      reloc_angle_threshold_(get_reloc_angle_threshold(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
-      enable_auto_relocalization_(get_enable_auto_relocalization(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
-      use_robust_matcher_for_relocalization_request_(get_use_robust_matcher_for_relocalization_request(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
+      reloc_distance_threshold_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["reloc_distance_threshold"].as<double>(0.2)),
+      reloc_angle_threshold_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["reloc_angle_threshold"].as<double>(0.45)),
+      enable_auto_relocalization_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["enable_auto_relocalization"].as<bool>(true)),
+      use_robust_matcher_for_relocalization_request_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["use_robust_matcher_for_relocalization_request"].as<bool>(false)),
       map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
       frame_tracker_(camera_, 10, initializer_.get_use_fixed_seed()),
@@ -372,12 +349,6 @@ void tracking_module::update_motion_model() {
 
 void tracking_module::replace_landmarks_in_last_frm(nondeterministic::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>& replaced_lms) {
     std::lock_guard<std::mutex> lock(mtx_last_frm_);
-    for (unsigned int idx = 0; idx < last_frm_.frm_obs_.num_keypts_; ++idx) {
-        const auto& lm = last_frm_.get_landmark(idx);
-        if (!lm) {
-            continue;
-        }
-    }
     for (unsigned int idx = 0; idx < last_frm_.frm_obs_.num_keypts_; ++idx) {
         const auto& lm = last_frm_.get_landmark(idx);
         if (!lm) {
