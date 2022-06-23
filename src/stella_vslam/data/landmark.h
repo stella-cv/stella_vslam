@@ -65,9 +65,9 @@ public:
     bool is_observed_in_keyframe(const std::shared_ptr<keyframe>& keyfrm) const;
 
     //! check the distance between landmark and camera is in ORB scale variance
-    inline bool is_inside_in_orb_scale(const float cam_to_lm_dist) const {
-        const float max_dist = this->get_max_valid_distance();
-        const float min_dist = this->get_min_valid_distance();
+    inline bool is_inside_in_orb_scale(const float cam_to_lm_dist, const float margin_far, const float margin_near) const {
+        const float max_dist = margin_far * get_max_valid_distance();
+        const float min_dist = margin_near * get_min_valid_distance();
         return (min_dist <= cam_to_lm_dist && cam_to_lm_dist <= max_dist);
     }
 
