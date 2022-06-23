@@ -26,7 +26,7 @@ cv::Mat frame_publisher::draw_frame() {
     tracker_state_t tracking_state;
     std::vector<cv::KeyPoint> curr_keypts;
     bool mapping_is_enabled;
-    std::vector<bool> is_tracked;
+    std::vector<std::shared_ptr<data::landmark>> curr_lms;
 
     // copy to avoid memory access conflict
     {
@@ -41,7 +41,7 @@ cv::Mat frame_publisher::draw_frame() {
 
         mapping_is_enabled = mapping_is_enabled_;
 
-        is_tracked = is_tracked_;
+        curr_lms = curr_lms_;
     }
 
     // resize image
@@ -59,7 +59,7 @@ cv::Mat frame_publisher::draw_frame() {
     unsigned int num_tracked = 0;
     switch (tracking_state) {
         case tracker_state_t::Tracking: {
-            num_tracked = draw_tracked_points(img, curr_keypts, is_tracked, mapping_is_enabled, mag);
+            num_tracked = draw_tracked_points(img, curr_keypts, curr_lms, mapping_is_enabled, mag);
             break;
         }
         default: {
@@ -73,14 +73,19 @@ cv::Mat frame_publisher::draw_frame() {
 }
 
 unsigned int frame_publisher::draw_tracked_points(cv::Mat& img, const std::vector<cv::KeyPoint>& curr_keypts,
-                                                  const std::vector<bool>& is_tracked, const bool mapping_is_enabled,
+                                                  const std::vector<std::shared_ptr<data::landmark>>& curr_lms,
+                                                  const bool mapping_is_enabled,
                                                   const float mag) const {
     constexpr float radius = 5;
 
     unsigned int num_tracked = 0;
 
     for (unsigned int i = 0; i < curr_keypts.size(); ++i) {
-        if (!is_tracked.at(i)) {
+        const auto& lm = curr_lms.at(i);
+        if (!lm) {
+            continue;
+        }
+        if (lm->will_be_erased()) {
             continue;
         }
 
@@ -88,11 +93,9 @@ unsigned int frame_publisher::draw_tracked_points(cv::Mat& img, const std::vecto
         const cv::Point2f pt_end{curr_keypts.at(i).pt.x * mag + radius, curr_keypts.at(i).pt.y * mag + radius};
 
         if (mapping_is_enabled) {
-            cv::rectangle(img, pt_begin, pt_end, mapping_color_);
             cv::circle(img, curr_keypts.at(i).pt * mag, 2, mapping_color_, -1);
         }
         else {
-            cv::rectangle(img, pt_begin, pt_end, localization_color_);
             cv::circle(img, curr_keypts.at(i).pt * mag, 2, localization_color_, -1);
         }
 
@@ -112,32 +115,11 @@ void frame_publisher::update(const std::vector<std::shared_ptr<data::landmark>>&
 
     img.copyTo(img_);
 
-    const auto num_curr_keypts = keypts.size();
     curr_keypts_ = keypts;
     elapsed_ms_ = elapsed_ms;
     mapping_is_enabled_ = mapping_is_enabled;
     tracking_state_ = tracking_state;
-
-    is_tracked_ = std::vector<bool>(num_curr_keypts, false);
-
-    switch (tracking_state_) {
-        case tracker_state_t::Tracking: {
-            for (unsigned int i = 0; i < num_curr_keypts; ++i) {
-                const auto& lm = curr_lms.at(i);
-                if (!lm) {
-                    continue;
-                }
-
-                if (0 < lm->num_observations()) {
-                    is_tracked_.at(i) = true;
-                }
-            }
-            break;
-        }
-        default: {
-            break;
-        }
-    }
+    curr_lms_ = curr_lms;
 }
 
 } // namespace publish
