@@ -236,7 +236,14 @@ std::vector<std::shared_ptr<keyframe>> graph_node::get_covisibilities_over_weigh
 
     auto itr = std::upper_bound(ordered_weights_.begin(), ordered_weights_.end(), weight, std::greater<unsigned int>());
     if (itr == ordered_weights_.end()) {
-        return std::vector<std::shared_ptr<keyframe>>();
+        std::vector<std::shared_ptr<keyframe>> covisibilities;
+        for (const auto& covisibility : ordered_covisibilities_) {
+            if (covisibility.expired()) {
+                continue;
+            }
+            covisibilities.push_back(covisibility.lock());
+        }
+        return covisibilities;
     }
     else {
         const auto upper_bound_idx = static_cast<unsigned int>(itr - ordered_weights_.begin());
