@@ -476,7 +476,7 @@ std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Ma
     double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     frame_publisher_->update(tracker_->curr_frm_.get_landmarks(),
-                             mapper_->is_paused(),
+                             !mapper_->is_paused(),
                              tracker_->tracking_state_,
                              keypts_,
                              img,
