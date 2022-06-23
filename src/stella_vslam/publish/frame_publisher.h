@@ -53,7 +53,8 @@ public:
 
 protected:
     unsigned int draw_tracked_points(cv::Mat& img, const std::vector<cv::KeyPoint>& curr_keypts,
-                                     const std::vector<bool>& is_tracked, const bool mapping_is_enabled,
+                                     const std::vector<std::shared_ptr<data::landmark>>& curr_lms,
+                                     const bool mapping_is_enabled,
                                      const float mag = 1.0) const;
 
     // colors (BGR)
@@ -85,8 +86,7 @@ protected:
     //! mapping module status
     bool mapping_is_enabled_;
 
-    //! tracking flag for each current keypoint
-    std::vector<bool> is_tracked_;
+    std::vector<std::shared_ptr<data::landmark>> curr_lms_;
 };
 
 } // namespace publish
