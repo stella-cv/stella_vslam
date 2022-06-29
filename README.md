@@ -72,11 +72,15 @@ Please contact us via [GitHub Discussions](https://github.com/stella-cv/stella_v
 
 ## Currently working on
 
-- IMU integration
-- Python bindings
-- Implementation of extra camera models
 - Refactoring
+- Algorithm changes and parameter additions to improve performance
+- Add tests
+- Marker integration
+- Implementation of extra camera models
+- Python bindings
+- IMU integration
 
+The higher up the list, the higher the priority.
 Feedbacks, feature requests, and contribution are welcome!
 
 ## License
