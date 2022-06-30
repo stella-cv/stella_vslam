@@ -524,6 +524,10 @@ void system::resume_tracker() {
     tracker_->resume();
 }
 
+uint8_t system::get_tracking_state() {
+    return (uint8_t)    tracker_->tracking_state_;
+}
+
 void system::request_reset() {
     std::lock_guard<std::mutex> lock(mtx_reset_);
     reset_is_requested_ = true;
