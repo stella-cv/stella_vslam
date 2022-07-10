@@ -536,14 +536,21 @@ bool map_database::load_keyframes_from_db(sqlite3* db,
         p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
         std::memcpy(undist_keypts.data(), p, sqlite3_column_bytes(stmt, column_id));
         column_id++;
-        std::vector<float> stereo_x_right(num_keypts);
-        p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
-        std::memcpy(stereo_x_right.data(), p, sqlite3_column_bytes(stmt, column_id));
-        column_id++;
-        std::vector<float> depths(num_keypts);
-        p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
-        std::memcpy(depths.data(), p, sqlite3_column_bytes(stmt, column_id));
-        column_id++;
+        std::vector<float> stereo_x_right;
+        std::vector<float> depths;
+        if (camera->setup_type_ != stella_vslam::camera::setup_type_t::Monocular) {
+            stereo_x_right.resize(num_keypts);
+            p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
+            std::memcpy(stereo_x_right.data(), p, sqlite3_column_bytes(stmt, column_id));
+            column_id++;
+            depths.resize(num_keypts);
+            p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
+            std::memcpy(depths.data(), p, sqlite3_column_bytes(stmt, column_id));
+            column_id++;
+        }
+        else {
+            column_id += 2;
+        }
         cv::Mat descriptors(num_keypts, 32, CV_8U);
         p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
         std::memcpy(descriptors.data, p, sqlite3_column_bytes(stmt, column_id));
