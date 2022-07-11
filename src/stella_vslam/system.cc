@@ -548,6 +548,10 @@ bool system::terminate_is_requested() const {
     return terminate_is_requested_;
 }
 
+void system::reset_tracker() {
+    tracker_->reset();
+}
+
 void system::check_reset_request() {
     std::lock_guard<std::mutex> lock(mtx_reset_);
     if (reset_is_requested_) {

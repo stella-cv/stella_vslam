@@ -161,6 +161,9 @@ public:
     //-----------------------------------------
     // management for reset
 
+    //! Reset the tracking module
+    void reset_tracker();
+
     //! Request to reset the system
     void request_reset();
 
