@@ -54,6 +54,12 @@ public:
     void erase_keyframe(const std::shared_ptr<keyframe>& keyfrm);
 
     /**
+     * Get keyframe from the database
+     * @param id
+     */
+    std::shared_ptr<keyframe> get_keyframe(unsigned int id) const;
+
+    /**
      * Add landmark to the database
      * @param lm
      */
@@ -61,9 +67,15 @@ public:
 
     /**
      * Erase landmark from the database
-     * @param lm
+     * @param id
      */
     void erase_landmark(unsigned int id);
+
+    /**
+     * Get landmark from the database
+     * @param id
+     */
+    std::shared_ptr<landmark> get_landmark(unsigned int id) const;
 
     /**
      * Add marker to the database
