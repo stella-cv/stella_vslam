@@ -85,6 +85,9 @@ private:
     //! Desired number of observations per landmark
     unsigned int num_obs_keyfrms_thr_ = 10;
 
+    //! Top n covisibilities to search (0 means disabled)
+    unsigned int top_n_covisibilities_to_search_;
+
     //! origin keyframe ID
     unsigned int origin_keyfrm_id_ = 0;
 

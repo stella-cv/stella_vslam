@@ -13,7 +13,8 @@ local_map_cleaner::local_map_cleaner(const YAML::Node& yaml_node, data::map_data
       num_obs_thr_(yaml_node["num_obs_thr"].as<unsigned int>(2)),
       num_reliable_keyfrms_(yaml_node["num_reliable_keyfrms"].as<unsigned int>(2)),
       desired_valid_obs_(yaml_node["desired_valid_obs"].as<unsigned int>(0)),
-      num_obs_keyfrms_thr_(yaml_node["num_obs_keyfrms_thr"].as<unsigned int>(10)) {}
+      num_obs_keyfrms_thr_(yaml_node["num_obs_keyfrms_thr"].as<unsigned int>(10)),
+      top_n_covisibilities_to_search_(yaml_node["top_n_covisibilities_to_search"].as<unsigned int>(30)) {}
 
 void local_map_cleaner::reset() {
     fresh_landmarks_.clear();
@@ -68,7 +69,7 @@ unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cu
 }
 
 unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr<data::keyframe>& cur_keyfrm) const {
-    if (redundant_obs_ratio_thr_ < 0.0) {
+    if (redundant_obs_ratio_thr_ < 0.0 || top_n_covisibilities_to_search_ <= 0) {
         return 0;
     }
 
@@ -79,7 +80,7 @@ unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr
     // the corresponding keyframe will be erased
     unsigned int num_removed = 0;
     // check redundancy for each of the covisibilities
-    const auto cur_covisibilities = cur_keyfrm->graph_node_->get_top_n_covisibilities(30);
+    const auto cur_covisibilities = cur_keyfrm->graph_node_->get_top_n_covisibilities(top_n_covisibilities_to_search_);
     for (const auto& covisibility : cur_covisibilities) {
         // cannot remove the origin
         if (covisibility->id_ == origin_keyfrm_id_) {
