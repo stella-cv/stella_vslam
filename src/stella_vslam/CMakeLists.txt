@@ -6,6 +6,9 @@ set(spdlog_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/spdlog/include)
 # json
 set(json_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/json/include)
 
+# tinycolormap
+set(tinycolormap_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/tinycolormap/include)
+
 # sqlite3
 find_package(SQLite3 REQUIRED)
 
@@ -156,6 +159,7 @@ endif()
 target_include_directories(${PROJECT_NAME}
                            PUBLIC
                            "$<BUILD_INTERFACE:${json_INCLUDE_DIR}>"
+                           "$<BUILD_INTERFACE:${tinycolormap_INCLUDE_DIR}>"
                            "$<BUILD_INTERFACE:${spdlog_INCLUDE_DIR}>"
                            "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>"
                            "$<INSTALL_INTERFACE:include/stella_vslam/3rd/json/include>"
@@ -207,6 +211,8 @@ install(FILES ${HEADERS}
 # Install 3rd party headers
 install(FILES ${json_INCLUDE_DIR}/nlohmann/json.hpp ${json_INCLUDE_DIR}/nlohmann/json_fwd.hpp
         DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/json/include/nlohmann)
+install(DIRECTORY ${tinycolormap_INCLUDE_DIR}
+        DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/tinycolormap)
 install(DIRECTORY ${spdlog_INCLUDE_DIR}
         DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/spdlog)
 

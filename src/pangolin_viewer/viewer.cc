@@ -9,6 +9,7 @@
 #include "stella_vslam/util/yaml.h"
 
 #include <opencv2/highgui.hpp>
+#include <tinycolormap.hpp>
 
 namespace pangolin_viewer {
 
@@ -127,7 +128,7 @@ void viewer::create_menu_panel() {
     menu_grid_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Grid", false, true));
     menu_show_keyfrms_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Keyframes", true, true));
     menu_show_lms_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Landmarks", true, true));
-    menu_show_local_map_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Local Map", true, true));
+    menu_show_local_map_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Local Map", false, true));
     menu_show_graph_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Graph", true, true));
     menu_mapping_mode_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Mapping", mapping_mode_, true));
     menu_loop_detection_mode_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Loop Detection", loop_detection_mode_, true));
@@ -301,6 +302,12 @@ void viewer::draw_landmarks() {
             continue;
         }
         const stella_vslam::Vec3_t pos_w = lm->get_pos_in_world();
+        if (!*menu_show_local_map_) {
+            const double score = lm->get_observed_ratio();
+            const tinycolormap::Color score_color = tinycolormap::GetColor(score, tinycolormap::ColormapType::Turbo);
+            std::array<float, 3> lm_color{static_cast<float>(score_color.r()), static_cast<float>(score_color.g()), static_cast<float>(score_color.b())};
+            glColor3fv(lm_color.data());
+        }
         glVertex3fv(pos_w.cast<float>().eval().data());
     }
 
