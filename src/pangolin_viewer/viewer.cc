@@ -235,7 +235,7 @@ void viewer::draw_keyframes() {
             const stella_vslam::Vec3_t cam_center_1 = keyfrm->get_trans_wc();
 
             // covisibility graph
-            const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_weight(100);
+            const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(100);
             if (!covisibilities.empty()) {
                 for (const auto covisibility : covisibilities) {
                     if (!covisibility || covisibility->will_be_erased()) {
