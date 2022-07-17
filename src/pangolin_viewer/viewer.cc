@@ -129,7 +129,7 @@ void viewer::create_menu_panel() {
     menu_show_keyfrms_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Keyframes", true, true));
     menu_show_lms_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Landmarks", true, true));
     menu_show_local_map_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Local Map", false, true));
-    menu_show_graph_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Graph", true, true));
+    menu_show_graph_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show covisibility graph", true, true));
     menu_mapping_mode_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Mapping", mapping_mode_, true));
     menu_loop_detection_mode_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Loop Detection", loop_detection_mode_, true));
     menu_pause_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Pause", false, true));
@@ -217,17 +217,16 @@ void viewer::draw_keyframes() {
         }
     }
 
+    glLineWidth(graph_line_width_);
+
+    const auto draw_edge = [](const stella_vslam::Vec3_t& cam_center_1, const stella_vslam::Vec3_t& cam_center_2) {
+        glVertex3fv(cam_center_1.cast<float>().eval().data());
+        glVertex3fv(cam_center_2.cast<float>().eval().data());
+    };
+
     if (*menu_show_graph_) {
-        glLineWidth(graph_line_width_);
         glColor4fv(cs_.graph_line_.data());
-
-        const auto draw_edge = [](const stella_vslam::Vec3_t& cam_center_1, const stella_vslam::Vec3_t& cam_center_2) {
-            glVertex3fv(cam_center_1.cast<float>().eval().data());
-            glVertex3fv(cam_center_2.cast<float>().eval().data());
-        };
-
         glBegin(GL_LINES);
-
         for (const auto keyfrm : keyfrms) {
             if (!keyfrm || keyfrm->will_be_erased()) {
                 continue;
@@ -249,30 +248,51 @@ void viewer::draw_keyframes() {
                     draw_edge(cam_center_1, cam_center_2);
                 }
             }
-
-            // spanning tree
-            auto spanning_parent = keyfrm->graph_node_->get_spanning_parent();
-            if (spanning_parent) {
-                const stella_vslam::Vec3_t cam_center_2 = spanning_parent->get_trans_wc();
-                draw_edge(cam_center_1, cam_center_2);
-            }
-
-            // loop edges
-            const auto loop_edges = keyfrm->graph_node_->get_loop_edges();
-            for (const auto loop_edge : loop_edges) {
-                if (!loop_edge) {
-                    continue;
-                }
-                if (loop_edge->id_ < keyfrm->id_) {
-                    continue;
-                }
-                const stella_vslam::Vec3_t cam_center_2 = loop_edge->get_trans_wc();
-                draw_edge(cam_center_1, cam_center_2);
-            }
         }
-
         glEnd();
     }
+
+    glColor4fv(cs_.graph_line_spanning_tree_.data());
+    glBegin(GL_LINES);
+    for (const auto keyfrm : keyfrms) {
+        if (!keyfrm || keyfrm->will_be_erased()) {
+            continue;
+        }
+
+        const stella_vslam::Vec3_t cam_center_1 = keyfrm->get_trans_wc();
+
+        // spanning tree
+        auto spanning_parent = keyfrm->graph_node_->get_spanning_parent();
+        if (spanning_parent) {
+            const stella_vslam::Vec3_t cam_center_2 = spanning_parent->get_trans_wc();
+            draw_edge(cam_center_1, cam_center_2);
+        }
+    }
+    glEnd();
+
+    glColor4fv(cs_.graph_line_loop_edge_.data());
+    glBegin(GL_LINES);
+    for (const auto keyfrm : keyfrms) {
+        if (!keyfrm || keyfrm->will_be_erased()) {
+            continue;
+        }
+
+        const stella_vslam::Vec3_t cam_center_1 = keyfrm->get_trans_wc();
+
+        // loop edges
+        const auto loop_edges = keyfrm->graph_node_->get_loop_edges();
+        for (const auto loop_edge : loop_edges) {
+            if (!loop_edge) {
+                continue;
+            }
+            if (loop_edge->id_ < keyfrm->id_) {
+                continue;
+            }
+            const stella_vslam::Vec3_t cam_center_2 = loop_edge->get_trans_wc();
+            draw_edge(cam_center_1, cam_center_2);
+        }
+    }
+    glEnd();
 }
 
 void viewer::draw_landmarks() {
