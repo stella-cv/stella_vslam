@@ -11,6 +11,20 @@
 #include <opencv2/highgui.hpp>
 #include <tinycolormap.hpp>
 
+namespace {
+int parse_int(const std::string& msg) {
+    int ret = -1;
+    try {
+        ret = stoi(msg);
+    }
+    catch (std::invalid_argument& e) {
+    }
+    catch (std::out_of_range& e) {
+    }
+    return ret;
+}
+} // namespace
+
 namespace pangolin_viewer {
 
 viewer::viewer(const YAML::Node& yaml_node, stella_vslam::system* system,
@@ -135,6 +149,7 @@ void viewer::create_menu_panel() {
     menu_pause_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Pause", false, true));
     menu_reset_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Reset", false, false));
     menu_terminate_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Terminate", false, false));
+    menu_kf_id_ = std::unique_ptr<pangolin::Var<std::string>>(new pangolin::Var<std::string>("menu.Keyframe ID", "0"));
     menu_frm_size_ = std::unique_ptr<pangolin::Var<float>>(new pangolin::Var<float>("menu.Frame Size", 1.0, 1e-1, 1e1, true));
     menu_lm_size_ = std::unique_ptr<pangolin::Var<float>>(new pangolin::Var<float>("menu.Landmark Size", 1.0, 1e-1, 1e1, true));
 }
@@ -205,13 +220,18 @@ void viewer::draw_keyframes() {
 
     std::vector<std::shared_ptr<stella_vslam::data::keyframe>> keyfrms;
     map_publisher_->get_keyframes(keyfrms);
-
+    int keyframe_id = parse_int(*menu_kf_id_);
     if (*menu_show_keyfrms_) {
         glLineWidth(keyfrm_line_width_);
-        glColor3fv(cs_.kf_line_.data());
         for (const auto keyfrm : keyfrms) {
             if (!keyfrm || keyfrm->will_be_erased()) {
                 continue;
+            }
+            if (keyframe_id != -1 && keyfrm->id_ == static_cast<unsigned int>(keyframe_id)) {
+                glColor3fv(cs_.kf_line2_.data());
+            }
+            else {
+                glColor3fv(cs_.kf_line_.data());
             }
             draw_camera(keyfrm->get_pose_wc(), w);
         }
