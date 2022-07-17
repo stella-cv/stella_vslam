@@ -272,6 +272,12 @@ private:
 
     //! If the size of the queue exceeds this threshold, skip the localBA
     const unsigned int queue_threshold_ = 2;
+
+    //! if true, enable interruption of landmark generation
+    const bool enable_interruption_of_landmark_generation_ = true;
+
+    //! if true, enable interruption before local BA
+    const bool enable_interruption_before_local_BA_ = true;
 };
 
 } // namespace stella_vslam
