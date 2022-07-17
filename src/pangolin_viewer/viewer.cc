@@ -42,6 +42,7 @@ viewer::viewer(const YAML::Node& yaml_node, stella_vslam::system* system,
       point_size_(yaml_node["point_size"].as<unsigned int>(2)),
       camera_size_(yaml_node["camera_size"].as<float>(0.15)),
       camera_line_width_(yaml_node["camera_line_width"].as<unsigned int>(2)),
+      menu_width_(yaml_node["menu_width"].as<unsigned int>(230)),
       cs_(yaml_node["color_scheme"].as<std::string>("black")),
       mapping_mode_(system->mapping_module_is_enabled()),
       loop_detection_mode_(system->loop_detector_is_enabled()) {}
@@ -137,7 +138,7 @@ void viewer::run() {
 }
 
 void viewer::create_menu_panel() {
-    pangolin::CreatePanel("menu").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(175));
+    pangolin::CreatePanel("menu").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(230));
     menu_follow_camera_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Follow Camera", true, true));
     menu_grid_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Grid", false, true));
     menu_show_keyfrms_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Keyframes", true, true));
