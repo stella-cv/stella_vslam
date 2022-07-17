@@ -1,6 +1,7 @@
 #ifndef STELLA_VSLAM_DATA_GRAPH_NODE_H
 #define STELLA_VSLAM_DATA_GRAPH_NODE_H
 
+#include <atomic>
 #include <mutex>
 #include <vector>
 #include <map>
