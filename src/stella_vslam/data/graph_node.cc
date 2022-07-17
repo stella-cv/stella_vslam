@@ -14,7 +14,7 @@ namespace stella_vslam {
 namespace data {
 
 graph_node::graph_node(std::shared_ptr<keyframe>& keyfrm)
-    : owner_keyfrm_(keyfrm), spanning_parent_is_not_set_(true) {}
+    : owner_keyfrm_(keyfrm), has_spanning_parent_(false) {}
 
 void graph_node::add_connection(const std::shared_ptr<keyframe>& keyfrm, const unsigned int weight) {
     std::lock_guard<std::mutex> lock(mtx_);
@@ -82,7 +82,7 @@ void graph_node::update_connections() {
             auto keyfrm = obs.first;
             auto locked_keyfrm = keyfrm.lock();
 
-            if (locked_keyfrm->graph_node_->spanning_parent_is_not_set_ && locked_keyfrm->id_ != 0) {
+            if (!locked_keyfrm->graph_node_->has_spanning_parent_ && locked_keyfrm->id_ != 0) {
                 continue;
             }
             if (locked_keyfrm->id_ == owner_keyfrm->id_) {
@@ -150,12 +150,12 @@ void graph_node::update_connections() {
         ordered_covisibilities_ = ordered_covisibilities;
         ordered_weights_ = ordered_weights;
 
-        if (spanning_parent_is_not_set_ && owner_keyfrm->id_ != 0) {
+        if (!has_spanning_parent_ && owner_keyfrm->id_ != 0) {
             // set the parent of spanning tree
             assert(nearest_covisibility->id_ == ordered_covisibilities.front().lock()->id_);
             spanning_parent_ = nearest_covisibility;
             nearest_covisibility->graph_node_->add_spanning_child(owner_keyfrm);
-            spanning_parent_is_not_set_ = false;
+            has_spanning_parent_ = true;
         }
     }
 }
@@ -275,9 +275,13 @@ unsigned int graph_node::get_weight(const std::shared_ptr<keyframe>& keyfrm) con
 
 void graph_node::set_spanning_parent(const std::shared_ptr<keyframe>& keyfrm) {
     std::lock_guard<std::mutex> lock(mtx_);
-    assert(spanning_parent_is_not_set_);
+    assert(!has_spanning_parent_);
     spanning_parent_ = keyfrm;
-    spanning_parent_is_not_set_ = false;
+    has_spanning_parent_ = true;
+}
+
+bool graph_node::has_spanning_parent() const {
+    return has_spanning_parent_;
 }
 
 std::shared_ptr<keyframe> graph_node::get_spanning_parent() const {

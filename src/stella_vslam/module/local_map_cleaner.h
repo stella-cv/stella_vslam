@@ -28,13 +28,6 @@ public:
     ~local_map_cleaner() = default;
 
     /**
-     * Set the origin keyframe ID
-     */
-    void set_origin_keyframe_id(const unsigned int id) {
-        origin_keyfrm_id_ = id;
-    }
-
-    /**
      * Add fresh landmark to check their redundancy
      */
     void add_fresh_landmark(std::shared_ptr<data::landmark>& lm) {
@@ -87,9 +80,6 @@ private:
 
     //! Top n covisibilities to search (0 means disabled)
     unsigned int top_n_covisibilities_to_search_;
-
-    //! origin keyframe ID
-    unsigned int origin_keyfrm_id_ = 0;
 
     //! fresh landmarks to check their redundancy
     std::list<std::shared_ptr<data::landmark>> fresh_landmarks_;

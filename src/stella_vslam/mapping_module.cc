@@ -160,9 +160,6 @@ void mapping_module::mapping_with_new_keyframe() {
         keyfrms_queue_.pop_front();
     }
 
-    // set the origin keyframe
-    local_map_cleaner_->set_origin_keyframe_id(map_db_->origin_keyfrm_->id_);
-
 #ifdef DETERMINISTIC
     // prevent the tracker running on unprocessed data
     std::lock_guard<std::mutex> tracking_lock(mtx_processing_);

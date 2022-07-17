@@ -83,7 +83,7 @@ unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr
     const auto cur_covisibilities = cur_keyfrm->graph_node_->get_top_n_covisibilities(top_n_covisibilities_to_search_);
     for (const auto& covisibility : cur_covisibilities) {
         // cannot remove the origin
-        if (covisibility->id_ == origin_keyfrm_id_) {
+        if (!covisibility->graph_node_->has_spanning_parent()) {
             continue;
         }
         // cannot remove the recent keyframe(s)

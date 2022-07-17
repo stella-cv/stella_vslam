@@ -88,6 +88,11 @@ public:
     void set_spanning_parent(const std::shared_ptr<keyframe>& keyfrm);
 
     /**
+     * Whether this node has the parent or not
+     */
+    bool has_spanning_parent() const;
+
+    /**
      * Get the parent of spanning tree
      */
     std::shared_ptr<keyframe> get_spanning_parent() const;
@@ -171,7 +176,7 @@ private:
     //! children of spanning tree
     id_ordered_set<std::weak_ptr<keyframe>> spanning_children_;
     //! flag which indicates spanning tree is not set yet or not
-    bool spanning_parent_is_not_set_;
+    std::atomic<bool> has_spanning_parent_;
 
     //! loop edges
     id_ordered_set<std::weak_ptr<keyframe>> loop_edges_;
