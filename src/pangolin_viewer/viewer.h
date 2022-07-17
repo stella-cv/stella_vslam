@@ -162,6 +162,7 @@ private:
     std::unique_ptr<pangolin::Var<bool>> menu_pause_;
     std::unique_ptr<pangolin::Var<bool>> menu_reset_;
     std::unique_ptr<pangolin::Var<bool>> menu_terminate_;
+    std::unique_ptr<pangolin::Var<int>> menu_min_shared_lms_;
     std::unique_ptr<pangolin::Var<std::string>> menu_kf_id_;
     std::unique_ptr<pangolin::Var<float>> menu_frm_size_;
     std::unique_ptr<pangolin::Var<float>> menu_lm_size_;

@@ -149,6 +149,7 @@ void viewer::create_menu_panel() {
     menu_pause_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Pause", false, true));
     menu_reset_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Reset", false, false));
     menu_terminate_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Terminate", false, false));
+    menu_min_shared_lms_ = std::unique_ptr<pangolin::Var<int>>(new pangolin::Var<int>("menu.Min shared landmarks", 100, 1, 500));
     menu_kf_id_ = std::unique_ptr<pangolin::Var<std::string>>(new pangolin::Var<std::string>("menu.Keyframe ID", "0"));
     menu_frm_size_ = std::unique_ptr<pangolin::Var<float>>(new pangolin::Var<float>("menu.Frame Size", 1.0, 1e-1, 1e1, true));
     menu_lm_size_ = std::unique_ptr<pangolin::Var<float>>(new pangolin::Var<float>("menu.Landmark Size", 1.0, 1e-1, 1e1, true));
@@ -255,7 +256,7 @@ void viewer::draw_keyframes() {
             const stella_vslam::Vec3_t cam_center_1 = keyfrm->get_trans_wc();
 
             // covisibility graph
-            const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(100);
+            const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(*menu_min_shared_lms_);
             if (!covisibilities.empty()) {
                 for (const auto covisibility : covisibilities) {
                     if (!covisibility || covisibility->will_be_erased()) {
