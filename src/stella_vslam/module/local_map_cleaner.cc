@@ -20,6 +20,7 @@ void local_map_cleaner::reset() {
 }
 
 unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cur_keyfrm_id) {
+    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
     // states of observed landmarks
     enum class lm_state_t { Valid,
                             Invalid,
@@ -42,12 +43,6 @@ unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cu
             // remove `lm` from the buffer and the database
             lm_state = lm_state_t::Invalid;
         }
-        else if (num_reliable_keyfrms_ + lm->first_keyfrm_id_ <= cur_keyfrm_id
-                 && lm->num_observations() <= num_obs_thr_) {
-            // if the number of the observers of `lm` is small after some keyframes were inserted
-            // remove `lm` from the buffer and the database
-            lm_state = lm_state_t::Invalid;
-        }
         else if (num_reliable_keyfrms_ + lm->first_keyfrm_id_ < cur_keyfrm_id) {
             // if the number of the observers of `lm` is sufficient after some keyframes were inserted
             // remove `lm` from the buffer
@@ -59,7 +54,6 @@ unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cu
             iter = fresh_landmarks_.erase(iter);
         }
         else if (lm_state == lm_state_t::Invalid) {
-            std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
             ++num_removed;
             lm->prepare_for_erasing(map_db_);
             iter = fresh_landmarks_.erase(iter);
