@@ -67,16 +67,7 @@ private:
     double observed_ratio_thr_ = 0.3;
 
     //!
-    unsigned int num_obs_thr_ = 2;
-
-    //!
     unsigned int num_reliable_keyfrms_ = 2;
-
-    //! Desired number of valid observations per keyframe (If 0, redundant connection removal is disabled.)
-    unsigned int desired_valid_obs_ = 0;
-
-    //! Desired number of observations per landmark
-    unsigned int num_obs_keyfrms_thr_ = 10;
 
     //! Top n covisibilities to search (0 means disabled)
     unsigned int top_n_covisibilities_to_search_;

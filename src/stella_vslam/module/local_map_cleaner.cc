@@ -10,10 +10,7 @@ local_map_cleaner::local_map_cleaner(const YAML::Node& yaml_node, data::map_data
     : map_db_(map_db), bow_db_(bow_db),
       redundant_obs_ratio_thr_(yaml_node["redundant_obs_ratio_thr"].as<double>(0.9)),
       observed_ratio_thr_(yaml_node["observed_ratio_thr"].as<double>(0.3)),
-      num_obs_thr_(yaml_node["num_obs_thr"].as<unsigned int>(2)),
       num_reliable_keyfrms_(yaml_node["num_reliable_keyfrms"].as<unsigned int>(2)),
-      desired_valid_obs_(yaml_node["desired_valid_obs"].as<unsigned int>(0)),
-      num_obs_keyfrms_thr_(yaml_node["num_obs_keyfrms_thr"].as<unsigned int>(10)),
       top_n_covisibilities_to_search_(yaml_node["top_n_covisibilities_to_search"].as<unsigned int>(30)) {}
 
 void local_map_cleaner::reset() {
