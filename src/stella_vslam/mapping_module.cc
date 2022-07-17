@@ -19,7 +19,9 @@ namespace stella_vslam {
 mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* map_db, data::bow_database* bow_db, data::bow_vocabulary* bow_vocab)
     : local_map_cleaner_(new module::local_map_cleaner(yaml_node, map_db, bow_db)),
       map_db_(map_db), bow_db_(bow_db), bow_vocab_(bow_vocab),
-      local_bundle_adjuster_(new optimize::local_bundle_adjuster(yaml_node)) {
+      local_bundle_adjuster_(new optimize::local_bundle_adjuster(yaml_node)),
+      enable_interruption_of_landmark_generation_(yaml_node["enable_interruption_of_landmark_generation"].as<bool>(true)),
+      enable_interruption_before_local_BA_(yaml_node["enable_interruption_before_local_BA"].as<bool>(true)) {
     spdlog::debug("CONSTRUCT: mapping_module");
     spdlog::debug("load mapping parameters");
 
@@ -175,7 +177,10 @@ void mapping_module::mapping_with_new_keyframe() {
 
     // triangulate new landmarks between the current frame and each of the covisibilities
     std::atomic<bool> abort_create_new_landmarks{false};
-    {
+    if (!enable_interruption_of_landmark_generation_) {
+        create_new_landmarks(abort_create_new_landmarks);
+    }
+    else {
         auto future_create_new_landmark = std::async(std::launch::async,
                                                      [this, &abort_create_new_landmarks]() {
                                                          create_new_landmarks(abort_create_new_landmarks);
@@ -187,16 +192,12 @@ void mapping_module::mapping_with_new_keyframe() {
         }
     }
 
-    if (keyframe_is_queued()) {
-        return;
-    }
-
     SPDLOG_TRACE("mapping_module: update_new_keyframe (current keyframe is {})", cur_keyfrm_->id_);
 
     // detect and resolve the duplication of the landmarks observed in the current frame
     update_new_keyframe();
 
-    if (keyframe_is_queued() || pause_is_requested()) {
+    if (enable_interruption_before_local_BA_ && (keyframe_is_queued() || pause_is_requested())) {
         return;
     }
 
