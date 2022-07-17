@@ -229,7 +229,7 @@ void viewer::draw_keyframes() {
                 continue;
             }
             if (keyframe_id != -1 && keyfrm->id_ == static_cast<unsigned int>(keyframe_id)) {
-                glColor3fv(cs_.kf_line2_.data());
+                glColor3fv(cs_.kf_line_selected_.data());
             }
             else {
                 glColor3fv(cs_.kf_line_.data());
