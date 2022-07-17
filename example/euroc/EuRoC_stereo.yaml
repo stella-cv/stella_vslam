@@ -77,7 +77,6 @@ Feature:
 Mapping:
   baseline_dist_thr: 0.11007784219
   redundant_obs_ratio_thr: 0.9
-  num_obs_thr: 3
 
 #========================#
 # Initializer Parameters #

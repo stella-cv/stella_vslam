@@ -160,9 +160,6 @@ void mapping_module::mapping_with_new_keyframe() {
         keyfrms_queue_.pop_front();
     }
 
-    // set the origin keyframe
-    local_map_cleaner_->set_origin_keyframe_id(map_db_->origin_keyfrm_->id_);
-
 #ifdef DETERMINISTIC
     // prevent the tracker running on unprocessed data
     std::lock_guard<std::mutex> tracking_lock(mtx_processing_);
@@ -173,8 +170,8 @@ void mapping_module::mapping_with_new_keyframe() {
     // store the new keyframe to the database
     store_new_keyframe();
 
-    // remove redundant landmarks
-    local_map_cleaner_->remove_redundant_landmarks(cur_keyfrm_->id_);
+    // remove invalid landmarks
+    local_map_cleaner_->remove_invalid_landmarks(cur_keyfrm_->id_);
 
     // triangulate new landmarks between the current frame and each of the covisibilities
     std::atomic<bool> abort_create_new_landmarks{false};

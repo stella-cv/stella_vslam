@@ -28,13 +28,6 @@ public:
     ~local_map_cleaner() = default;
 
     /**
-     * Set the origin keyframe ID
-     */
-    void set_origin_keyframe_id(const unsigned int id) {
-        origin_keyfrm_id_ = id;
-    }
-
-    /**
      * Add fresh landmark to check their redundancy
      */
     void add_fresh_landmark(std::shared_ptr<data::landmark>& lm) {
@@ -49,7 +42,7 @@ public:
     /**
      * Remove redundant landmarks
      */
-    unsigned int remove_redundant_landmarks(const unsigned int cur_keyfrm_id);
+    unsigned int remove_invalid_landmarks(const unsigned int cur_keyfrm_id);
 
     /**
      * Remove redundant keyframes
@@ -74,19 +67,10 @@ private:
     double observed_ratio_thr_ = 0.3;
 
     //!
-    unsigned int num_obs_thr_ = 2;
-
-    //!
     unsigned int num_reliable_keyfrms_ = 2;
 
-    //! Desired number of valid observations per keyframe (If 0, redundant connection removal is disabled.)
-    unsigned int desired_valid_obs_ = 0;
-
-    //! Desired number of observations per landmark
-    unsigned int num_obs_keyfrms_thr_ = 10;
-
-    //! origin keyframe ID
-    unsigned int origin_keyfrm_id_ = 0;
+    //! Top n covisibilities to search (0 means disabled)
+    unsigned int top_n_covisibilities_to_search_;
 
     //! fresh landmarks to check their redundancy
     std::list<std::shared_ptr<data::landmark>> fresh_landmarks_;

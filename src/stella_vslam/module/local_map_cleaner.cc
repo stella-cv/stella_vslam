@@ -10,16 +10,15 @@ local_map_cleaner::local_map_cleaner(const YAML::Node& yaml_node, data::map_data
     : map_db_(map_db), bow_db_(bow_db),
       redundant_obs_ratio_thr_(yaml_node["redundant_obs_ratio_thr"].as<double>(0.9)),
       observed_ratio_thr_(yaml_node["observed_ratio_thr"].as<double>(0.3)),
-      num_obs_thr_(yaml_node["num_obs_thr"].as<unsigned int>(2)),
       num_reliable_keyfrms_(yaml_node["num_reliable_keyfrms"].as<unsigned int>(2)),
-      desired_valid_obs_(yaml_node["desired_valid_obs"].as<unsigned int>(0)),
-      num_obs_keyfrms_thr_(yaml_node["num_obs_keyfrms_thr"].as<unsigned int>(10)) {}
+      top_n_covisibilities_to_search_(yaml_node["top_n_covisibilities_to_search"].as<unsigned int>(30)) {}
 
 void local_map_cleaner::reset() {
     fresh_landmarks_.clear();
 }
 
-unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cur_keyfrm_id) {
+unsigned int local_map_cleaner::remove_invalid_landmarks(const unsigned int cur_keyfrm_id) {
+    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
     // states of observed landmarks
     enum class lm_state_t { Valid,
                             Invalid,
@@ -42,12 +41,6 @@ unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cu
             // remove `lm` from the buffer and the database
             lm_state = lm_state_t::Invalid;
         }
-        else if (num_reliable_keyfrms_ + lm->first_keyfrm_id_ <= cur_keyfrm_id
-                 && lm->num_observations() <= num_obs_thr_) {
-            // if the number of the observers of `lm` is small after some keyframes were inserted
-            // remove `lm` from the buffer and the database
-            lm_state = lm_state_t::Invalid;
-        }
         else if (num_reliable_keyfrms_ + lm->first_keyfrm_id_ < cur_keyfrm_id) {
             // if the number of the observers of `lm` is sufficient after some keyframes were inserted
             // remove `lm` from the buffer
@@ -59,7 +52,6 @@ unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cu
             iter = fresh_landmarks_.erase(iter);
         }
         else if (lm_state == lm_state_t::Invalid) {
-            std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
             ++num_removed;
             lm->prepare_for_erasing(map_db_);
             iter = fresh_landmarks_.erase(iter);
@@ -74,16 +66,21 @@ unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cu
 }
 
 unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr<data::keyframe>& cur_keyfrm) const {
+    if (redundant_obs_ratio_thr_ < 0.0 || top_n_covisibilities_to_search_ <= 0) {
+        return 0;
+    }
+
+    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
     // window size not to remove
     constexpr unsigned int window_size_not_to_remove = 2;
     // if the redundancy ratio of observations is larger than this threshold,
     // the corresponding keyframe will be erased
     unsigned int num_removed = 0;
     // check redundancy for each of the covisibilities
-    const auto cur_covisibilities = cur_keyfrm->graph_node_->get_covisibilities();
+    const auto cur_covisibilities = cur_keyfrm->graph_node_->get_top_n_covisibilities(top_n_covisibilities_to_search_);
     for (const auto& covisibility : cur_covisibilities) {
         // cannot remove the origin
-        if (covisibility->id_ == origin_keyfrm_id_) {
+        if (!covisibility->graph_node_->has_spanning_parent()) {
             continue;
         }
         // cannot remove the recent keyframe(s)
@@ -98,61 +95,23 @@ unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr
         unsigned int num_valid_obs = 0;
         count_redundant_observations(covisibility, num_valid_obs, num_redundant_obs);
 
-        // Remove redundant connections
-        unsigned int num_removed_connection = 0;
-        if (desired_valid_obs_ > 0 && num_valid_obs > desired_valid_obs_) {
-            std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
-            auto lms = covisibility->get_landmarks();
-            for (unsigned int idx = 0; idx < lms.size(); ++idx) {
-                const auto& lm = lms.at(idx);
+        // if the redundant observation ratio of `covisibility` is larger than the threshold, it will be removed
+        if (redundant_obs_ratio_thr_ <= static_cast<float>(num_redundant_obs) / num_valid_obs) {
+            ++num_removed;
+            const auto cur_landmarks = covisibility->get_landmarks();
+            covisibility->prepare_for_erasing(map_db_, bow_db_);
+            for (const auto& lm : cur_landmarks) {
                 if (!lm) {
                     continue;
                 }
                 if (lm->will_be_erased()) {
                     continue;
                 }
-
-                const auto num_obs_keyfrms = lm->num_observations();
-                if (num_obs_keyfrms > num_obs_keyfrms_thr_) {
-                    covisibility->erase_landmark_with_index(idx);
-                    lm->erase_observation(map_db_, covisibility);
-                    num_removed_connection++;
-                    if (!lm->will_be_erased()) {
-                        if (!lm->has_representative_descriptor()) {
-                            lm->compute_descriptor();
-                        }
-                        if (!lm->has_valid_prediction_parameters()) {
-                            lm->update_mean_normal_and_obs_scale_variance();
-                        }
-                    }
-                    if (num_removed_connection >= num_valid_obs - desired_valid_obs_) {
-                        break;
-                    }
+                if (!lm->has_representative_descriptor()) {
+                    lm->compute_descriptor();
                 }
-            }
-            covisibility->graph_node_->update_connections();
-        }
-
-        // if the redundant observation ratio of `covisibility` is larger than the threshold, it will be removed
-        if (redundant_obs_ratio_thr_ <= static_cast<float>(num_redundant_obs) / num_valid_obs) {
-            ++num_removed;
-            {
-                std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
-                const auto cur_landmarks = covisibility->get_landmarks();
-                covisibility->prepare_for_erasing(map_db_, bow_db_);
-                for (const auto& lm : cur_landmarks) {
-                    if (!lm) {
-                        continue;
-                    }
-                    if (lm->will_be_erased()) {
-                        continue;
-                    }
-                    if (!lm->has_representative_descriptor()) {
-                        lm->compute_descriptor();
-                    }
-                    if (!lm->has_valid_prediction_parameters()) {
-                        lm->update_mean_normal_and_obs_scale_variance();
-                    }
+                if (!lm->has_valid_prediction_parameters()) {
+                    lm->update_mean_normal_and_obs_scale_variance();
                 }
             }
         }
