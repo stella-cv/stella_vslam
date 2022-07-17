@@ -1,3 +1,6 @@
 [submodule "3rd/FBoW"]
 	path = 3rd/FBoW
 	url = https://github.com/stella-cv/FBoW.git
+[submodule "3rd/tinycolormap"]
+	path = 3rd/tinycolormap
+	url = https://github.com/yuki-koyama/tinycolormap.git

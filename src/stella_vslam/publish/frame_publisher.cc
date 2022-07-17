@@ -6,6 +6,7 @@
 
 #include <spdlog/spdlog.h>
 #include <opencv2/imgproc.hpp>
+#include <tinycolormap.hpp>
 
 namespace stella_vslam {
 namespace publish {
@@ -92,8 +93,11 @@ unsigned int frame_publisher::draw_tracked_points(cv::Mat& img, const std::vecto
         const cv::Point2f pt_begin{curr_keypts.at(i).pt.x * mag - radius, curr_keypts.at(i).pt.y * mag - radius};
         const cv::Point2f pt_end{curr_keypts.at(i).pt.x * mag + radius, curr_keypts.at(i).pt.y * mag + radius};
 
+        double score = lm->get_observed_ratio();
+        const tinycolormap::Color color = tinycolormap::GetColor(score, tinycolormap::ColormapType::Turbo);
         if (mapping_is_enabled) {
-            cv::circle(img, curr_keypts.at(i).pt * mag, 2, mapping_color_, -1);
+            const cv::Scalar mapping_color{color.b() * 255, color.g() * 255, color.r() * 255};
+            cv::circle(img, curr_keypts.at(i).pt * mag, 2, mapping_color, -1);
         }
         else {
             cv::circle(img, curr_keypts.at(i).pt * mag, 2, localization_color_, -1);
