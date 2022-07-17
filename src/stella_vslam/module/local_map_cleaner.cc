@@ -20,7 +20,7 @@ void local_map_cleaner::reset() {
     fresh_landmarks_.clear();
 }
 
-unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cur_keyfrm_id) {
+unsigned int local_map_cleaner::remove_invalid_landmarks(const unsigned int cur_keyfrm_id) {
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
     // states of observed landmarks
     enum class lm_state_t { Valid,

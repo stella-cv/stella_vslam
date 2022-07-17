@@ -173,8 +173,8 @@ void mapping_module::mapping_with_new_keyframe() {
     // store the new keyframe to the database
     store_new_keyframe();
 
-    // remove redundant landmarks
-    local_map_cleaner_->remove_redundant_landmarks(cur_keyfrm_->id_);
+    // remove invalid landmarks
+    local_map_cleaner_->remove_invalid_landmarks(cur_keyfrm_->id_);
 
     // triangulate new landmarks between the current frame and each of the covisibilities
     std::atomic<bool> abort_create_new_landmarks{false};
