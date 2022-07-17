@@ -49,7 +49,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
     // Save the added vertices
     std::unordered_map<unsigned int, internal::sim3::shot_vertex*> vertices;
 
-    constexpr int min_weight = 100;
+    constexpr int min_num_shared_lms = 100;
 
     for (auto keyfrm : all_keyfrms) {
         if (keyfrm->will_be_erased()) {
@@ -108,7 +108,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             inserted_edge_pairs.insert(std::make_pair(std::min(id1, id2), std::max(id1, id2)));
         };
 
-    // Add loop edges only over the weight threshold
+    // Add loop edges only over the number of shared landmarks threshold
     for (const auto& loop_connection : loop_connections) {
         auto keyfrm = loop_connection.first;
         const auto& connected_keyfrms = loop_connection.second;
@@ -121,9 +121,9 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             const auto id2 = connected_keyfrm->id_;
 
             // Except the current vs loop edges,
-            // Add the loop edges only over the weight threshold
+            // Add the loop edges only over the minimum number of shared landmarks threshold
             if (!(id1 == curr_keyfrm->id_ && id2 == loop_keyfrm->id_)
-                && keyfrm->graph_node_->get_weight(connected_keyfrm) < min_weight) {
+                && keyfrm->graph_node_->get_num_shared_landmarks(connected_keyfrm) < min_num_shared_lms) {
                 continue;
             }
 
@@ -167,7 +167,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             insert_edge(id1, id2, Sim3_21);
         }
 
-        // Add all the loop edges with any weight
+        // Add all the loop edges with any number of shared landmarks
         const auto loop_edges = keyfrm->graph_node_->get_loop_edges();
         for (auto connected_keyfrm : loop_edges) {
             const auto id2 = connected_keyfrm->id_;
@@ -189,8 +189,8 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             insert_edge(id1, id2, Sim3_21);
         }
 
-        // Add the covisibility information over the weight threshold
-        const auto connected_keyfrms = keyfrm->graph_node_->get_covisibilities_over_weight(min_weight);
+        // Add the covisibility information over the minimum number of shared landmarks threshold
+        const auto connected_keyfrms = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(min_num_shared_lms);
         for (auto connected_keyfrm : connected_keyfrms) {
             // null check
             if (!connected_keyfrm || !parent_node) {

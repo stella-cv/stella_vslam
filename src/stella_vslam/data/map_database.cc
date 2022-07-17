@@ -19,7 +19,8 @@ namespace data {
 
 std::mutex map_database::mtx_database_;
 
-map_database::map_database() {
+map_database::map_database(unsigned int min_num_shared_lms)
+    : min_num_shared_lms_(min_num_shared_lms) {
     spdlog::debug("CONSTRUCT: data::map_database");
 }
 
@@ -198,6 +199,10 @@ unsigned int map_database::get_num_landmarks() const {
     return landmarks_.size();
 }
 
+unsigned int map_database::get_min_num_shared_lms() const {
+    return min_num_shared_lms_;
+}
+
 void map_database::clear() {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
@@ -283,7 +288,7 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
         assert(keyframes_.count(id));
         auto keyfrm = keyframes_.at(id);
 
-        keyfrm->graph_node_->update_connections();
+        keyfrm->graph_node_->update_connections(min_num_shared_lms_);
         keyfrm->graph_node_->update_covisibility_orders();
     }
 
@@ -429,7 +434,7 @@ void map_database::to_json(nlohmann::json& json_keyfrms, nlohmann::json& json_la
         assert(keyfrm);
         assert(id == keyfrm->id_);
         assert(!keyfrm->will_be_erased());
-        keyfrm->graph_node_->update_connections();
+        keyfrm->graph_node_->update_connections(min_num_shared_lms_);
         assert(!keyfrms.count(std::to_string(id)));
         keyfrms[std::to_string(id)] = keyfrm->to_json();
     }
@@ -490,7 +495,7 @@ bool map_database::from_db(sqlite3* db,
     for (const auto& id_keyfrm : keyframes_) {
         const auto keyfrm = id_keyfrm.second;
 
-        keyfrm->graph_node_->update_connections();
+        keyfrm->graph_node_->update_connections(min_num_shared_lms_);
         keyfrm->graph_node_->update_covisibility_orders();
     }
 
@@ -702,7 +707,7 @@ bool map_database::to_db(sqlite3* db) const {
         const auto keyfrm = id_keyfrm.second;
         assert(keyfrm);
         assert(!keyfrm->will_be_erased());
-        keyfrm->graph_node_->update_connections();
+        keyfrm->graph_node_->update_connections(min_num_shared_lms_);
     }
 
     int ret = SQLITE_ERROR;

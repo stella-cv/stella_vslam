@@ -141,7 +141,7 @@ std::string data_serializer::serialize_as_protobuf(const std::vector<std::shared
         const unsigned int keyfrm_id = keyfrm->id_;
 
         // covisibility graph
-        const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_weight(100);
+        const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(100);
         if (!covisibilities.empty()) {
             for (const auto covisibility : covisibilities) {
                 if (!covisibility || covisibility->will_be_erased()) {

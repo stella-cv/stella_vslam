@@ -94,9 +94,11 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     }
 #endif
 
+    const auto system_params = util::yaml_optional_ref(cfg->yaml_node_, "System");
+
     // database
     cam_db_ = new data::camera_database(camera_);
-    map_db_ = new data::map_database();
+    map_db_ = new data::map_database(system_params["min_num_shared_lms"].as<unsigned int>(15));
     bow_db_ = new data::bow_database(bow_vocab_);
 
     // frame and map publisher
@@ -104,7 +106,7 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     map_publisher_ = std::shared_ptr<publish::map_publisher>(new publish::map_publisher(cfg_, map_db_));
 
     // map I/O
-    auto map_format = util::yaml_optional_ref(cfg->yaml_node_, "System")["map_format"].as<std::string>("msgpack");
+    auto map_format = system_params["map_format"].as<std::string>("msgpack");
     if (map_format == "sqlite3") {
         map_database_io_ = std::make_shared<io::map_database_io_sqlite3>();
     }

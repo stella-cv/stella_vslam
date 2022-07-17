@@ -222,7 +222,7 @@ void mapping_module::store_new_keyframe() {
         cur_keyfrm_->compute_bow(bow_vocab_);
     }
 
-    // update graph
+    // Set landmarks into local_map_cleaner to exclude invalid landmarks
     const auto cur_lms = cur_keyfrm_->get_landmarks();
     for (unsigned int idx = 0; idx < cur_lms.size(); ++idx) {
         auto lm = cur_lms.at(idx);
@@ -233,10 +233,11 @@ void mapping_module::store_new_keyframe() {
             continue;
         }
 
-        // if `lm` is correctly observed, make it be checked by the local map cleaner
         local_map_cleaner_->add_fresh_landmark(lm);
     }
-    cur_keyfrm_->graph_node_->update_connections();
+
+    // update graph
+    cur_keyfrm_->graph_node_->update_connections(map_db_->get_min_num_shared_lms());
 
     // store the new keyframe to the map database
     map_db_->add_keyframe(cur_keyfrm_);
@@ -372,8 +373,8 @@ void mapping_module::update_new_keyframe() {
         }
     }
 
-    // update the graph
-    cur_keyfrm_->graph_node_->update_connections();
+    // update the graph (Because fuse_landmark_duplication changes the landmark)
+    cur_keyfrm_->graph_node_->update_connections(map_db_->get_min_num_shared_lms());
 }
 
 nondeterministic::unordered_set<std::shared_ptr<data::keyframe>> mapping_module::get_second_order_covisibilities(const unsigned int first_order_thr,

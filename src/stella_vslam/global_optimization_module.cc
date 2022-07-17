@@ -160,10 +160,6 @@ void global_optimization_module::correct_loop() {
     // wait till the mapping module pauses
     future_pause.get();
 
-    // 0-2. update the graph
-
-    cur_keyfrm_->graph_node_->update_connections();
-
     // 1. compute the Sim3 of the covisibilities of the current keyframe whose Sim3 is already estimated by the loop detector
     //    then, the covisibilities are moved to the corrected positions
     //    finally, landmarks observed in them are also moved to the correct position using the camera poses before and after camera pose correction
@@ -324,9 +320,6 @@ void global_optimization_module::correct_covisibility_keyframes(const module::ke
         const Vec3_t trans_nw = Sim3_nw_after_correction.translation() / s_nw;
         const Mat44_t cam_pose_nw = util::converter::to_eigen_pose(rot_nw, trans_nw);
         neighbor->set_pose_cw(cam_pose_nw);
-
-        // update graph
-        neighbor->graph_node_->update_connections();
     }
 }
 
@@ -432,7 +425,7 @@ auto global_optimization_module::extract_new_connections(const std::vector<std::
         const auto neighbors_before_update = covisibility->graph_node_->get_covisibilities();
 
         // call update_connections()
-        covisibility->graph_node_->update_connections();
+        covisibility->graph_node_->update_connections(map_db_->get_min_num_shared_lms());
         // acquire neighbors AFTER loop fusion
         new_connections[covisibility] = covisibility->graph_node_->get_connected_keyframes();
 

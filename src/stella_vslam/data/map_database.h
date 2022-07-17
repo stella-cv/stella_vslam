@@ -34,7 +34,7 @@ public:
     /**
      * Constructor
      */
-    map_database();
+    map_database(unsigned int min_num_shared_lms);
 
     /**
      * Destructor
@@ -174,6 +174,12 @@ public:
     unsigned int get_num_landmarks() const;
 
     /**
+     * Get minimum threshold for covisibility graph connection
+     * @return minimum threshold for covisibility graph connection
+     */
+    unsigned int get_min_num_shared_lms() const;
+
+    /**
      * Update frame statistics
      * @param frm
      * @param is_lost
@@ -310,6 +316,12 @@ private:
 
     //! local landmarks
     std::vector<std::shared_ptr<landmark>> local_landmarks_;
+
+    //-----------------------------------------
+    // parameters for global/local mapping (optimization)
+
+    //! minimum threshold for covisibility graph connection
+    const unsigned int min_num_shared_lms_ = 15;
 
     //-----------------------------------------
     // frame statistics for odometry evaluation
