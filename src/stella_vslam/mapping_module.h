@@ -133,12 +133,8 @@ private:
     //! Update the new keyframe
     void update_new_keyframe();
 
-    //! Get the first and second order covisibilities of current keyframe
-    nondeterministic::unordered_set<std::shared_ptr<data::keyframe>> get_second_order_covisibilities(const unsigned int first_order_thr,
-                                                                                                     const unsigned int second_order_thr);
-
     //! Fuse duplicated landmarks between current keyframe and covisibility keyframes
-    void fuse_landmark_duplication(const nondeterministic::unordered_set<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms,
+    void fuse_landmark_duplication(const std::vector<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms,
                                    nondeterministic::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>& replaced_lms);
 
     //! Set is_idle (True when no keyframes are being processed.)
@@ -278,6 +274,12 @@ private:
 
     //! if true, enable interruption before local BA
     const bool enable_interruption_before_local_BA_ = true;
+
+    //! Number of keyframes used for landmark generation
+    const unsigned int num_covisibilities_for_landmark_generation_ = 10;
+
+    //! Number of keyframes used for landmark fusion
+    const unsigned int num_covisibilities_for_landmark_fusion_ = 10;
 };
 
 } // namespace stella_vslam
