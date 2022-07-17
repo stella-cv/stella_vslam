@@ -74,13 +74,18 @@ unsigned int local_map_cleaner::remove_redundant_landmarks(const unsigned int cu
 }
 
 unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr<data::keyframe>& cur_keyfrm) const {
+    if (redundant_obs_ratio_thr_ < 0.0) {
+        return 0;
+    }
+
+    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
     // window size not to remove
     constexpr unsigned int window_size_not_to_remove = 2;
     // if the redundancy ratio of observations is larger than this threshold,
     // the corresponding keyframe will be erased
     unsigned int num_removed = 0;
     // check redundancy for each of the covisibilities
-    const auto cur_covisibilities = cur_keyfrm->graph_node_->get_covisibilities();
+    const auto cur_covisibilities = cur_keyfrm->graph_node_->get_top_n_covisibilities(30);
     for (const auto& covisibility : cur_covisibilities) {
         // cannot remove the origin
         if (covisibility->id_ == origin_keyfrm_id_) {
@@ -98,61 +103,23 @@ unsigned int local_map_cleaner::remove_redundant_keyframes(const std::shared_ptr
         unsigned int num_valid_obs = 0;
         count_redundant_observations(covisibility, num_valid_obs, num_redundant_obs);
 
-        // Remove redundant connections
-        unsigned int num_removed_connection = 0;
-        if (desired_valid_obs_ > 0 && num_valid_obs > desired_valid_obs_) {
-            std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
-            auto lms = covisibility->get_landmarks();
-            for (unsigned int idx = 0; idx < lms.size(); ++idx) {
-                const auto& lm = lms.at(idx);
+        // if the redundant observation ratio of `covisibility` is larger than the threshold, it will be removed
+        if (redundant_obs_ratio_thr_ <= static_cast<float>(num_redundant_obs) / num_valid_obs) {
+            ++num_removed;
+            const auto cur_landmarks = covisibility->get_landmarks();
+            covisibility->prepare_for_erasing(map_db_, bow_db_);
+            for (const auto& lm : cur_landmarks) {
                 if (!lm) {
                     continue;
                 }
                 if (lm->will_be_erased()) {
                     continue;
                 }
-
-                const auto num_obs_keyfrms = lm->num_observations();
-                if (num_obs_keyfrms > num_obs_keyfrms_thr_) {
-                    covisibility->erase_landmark_with_index(idx);
-                    lm->erase_observation(map_db_, covisibility);
-                    num_removed_connection++;
-                    if (!lm->will_be_erased()) {
-                        if (!lm->has_representative_descriptor()) {
-                            lm->compute_descriptor();
-                        }
-                        if (!lm->has_valid_prediction_parameters()) {
-                            lm->update_mean_normal_and_obs_scale_variance();
-                        }
-                    }
-                    if (num_removed_connection >= num_valid_obs - desired_valid_obs_) {
-                        break;
-                    }
+                if (!lm->has_representative_descriptor()) {
+                    lm->compute_descriptor();
                 }
-            }
-            covisibility->graph_node_->update_connections();
-        }
-
-        // if the redundant observation ratio of `covisibility` is larger than the threshold, it will be removed
-        if (redundant_obs_ratio_thr_ <= static_cast<float>(num_redundant_obs) / num_valid_obs) {
-            ++num_removed;
-            {
-                std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
-                const auto cur_landmarks = covisibility->get_landmarks();
-                covisibility->prepare_for_erasing(map_db_, bow_db_);
-                for (const auto& lm : cur_landmarks) {
-                    if (!lm) {
-                        continue;
-                    }
-                    if (lm->will_be_erased()) {
-                        continue;
-                    }
-                    if (!lm->has_representative_descriptor()) {
-                        lm->compute_descriptor();
-                    }
-                    if (!lm->has_valid_prediction_parameters()) {
-                        lm->update_mean_normal_and_obs_scale_variance();
-                    }
+                if (!lm->has_valid_prediction_parameters()) {
+                    lm->update_mean_normal_and_obs_scale_variance();
                 }
             }
         }
