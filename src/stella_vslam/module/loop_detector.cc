@@ -53,6 +53,10 @@ bool loop_detector::detect_loop_candidates() {
     return succeeded;
 }
 
+void loop_detector::add_loop_candidate(const std::shared_ptr<data::keyframe>& keyfrm) {
+    loop_candidates_to_validate_.insert(keyfrm);
+}
+
 bool loop_detector::detect_loop_candidates_impl() {
     // if the loop detector is disabled or the loop has been corrected recently,
     // cannot perfrom the loop correction

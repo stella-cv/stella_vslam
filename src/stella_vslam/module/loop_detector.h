@@ -55,6 +55,11 @@ public:
     bool detect_loop_candidates();
 
     /**
+     * Add loop candidate
+     */
+    void add_loop_candidate(const std::shared_ptr<data::keyframe>& keyfrm);
+
+    /**
      * Validate loop candidates selected in detect_loop_candidate()
      */
     bool validate_candidates();

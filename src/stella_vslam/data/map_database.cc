@@ -42,6 +42,9 @@ void map_database::erase_keyframe(const std::shared_ptr<keyframe>& keyfrm) {
 
 std::shared_ptr<keyframe> map_database::get_keyframe(unsigned int id) const {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
+    if (!keyframes_.count(id)) {
+        return nullptr;
+    }
     return keyframes_.at(id);
 }
 
@@ -57,6 +60,9 @@ void map_database::erase_landmark(unsigned int id) {
 
 std::shared_ptr<landmark> map_database::get_landmark(unsigned int id) const {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
+    if (!landmarks_.count(id)) {
+        return nullptr;
+    }
     return landmarks_.at(id);
 }
 

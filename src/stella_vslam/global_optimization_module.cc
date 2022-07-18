@@ -53,6 +53,67 @@ bool global_optimization_module::loop_detector_is_enabled() const {
     return loop_detector_->is_enabled();
 }
 
+bool global_optimization_module::request_loop_closure(unsigned int keyfrm1_id, unsigned int keyfrm2_id) {
+    std::lock_guard<std::mutex> lock(mtx_loop_closure_request_);
+    if (loop_closure_is_requested_) {
+        spdlog::warn("Can not process new loop closure request while previous was not finished");
+        return false;
+    }
+    loop_closure_is_requested_ = true;
+    loop_closure_request_.keyfrm1_id_ = keyfrm1_id;
+    loop_closure_request_.keyfrm2_id_ = keyfrm2_id;
+    return true;
+}
+
+bool global_optimization_module::loop_closure_is_requested() {
+    std::lock_guard<std::mutex> lock(mtx_loop_closure_request_);
+    return loop_closure_is_requested_;
+}
+
+loop_closure_request& global_optimization_module::get_loop_closure_request() {
+    std::lock_guard<std::mutex> lock(mtx_loop_closure_request_);
+    return loop_closure_request_;
+}
+
+void global_optimization_module::finish_loop_closure_request() {
+    std::lock_guard<std::mutex> lock(mtx_loop_closure_request_);
+    loop_closure_is_requested_ = false;
+}
+
+bool global_optimization_module::loop_closure(const loop_closure_request& request) {
+    {
+        std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+        unsigned int curr_keyfrm_id = std::max(request.keyfrm1_id_, request.keyfrm2_id_);
+        unsigned int candidate_keyfrm_id = std::min(request.keyfrm1_id_, request.keyfrm2_id_);
+        // not to be removed during loop detection and correction
+        cur_keyfrm_ = map_db_->get_keyframe(curr_keyfrm_id);
+        if (cur_keyfrm_ == nullptr) {
+            spdlog::info("keyframe {} not found", curr_keyfrm_id);
+            return false;
+        }
+        cur_keyfrm_->set_not_to_be_erased();
+        loop_detector_->set_current_keyframe(cur_keyfrm_);
+        auto candidate_keyfrm = map_db_->get_keyframe(candidate_keyfrm_id);
+        if (candidate_keyfrm == nullptr) {
+            spdlog::info("candidate keyframe {} not found", candidate_keyfrm_id);
+            return false;
+        }
+        loop_detector_->add_loop_candidate(candidate_keyfrm);
+
+        // validate candidates and select ONE candidate from them
+        if (!loop_detector_->validate_candidates()) {
+            // could not find
+            // allow the removal of the current keyframe
+            cur_keyfrm_->set_to_be_erased();
+            return false;
+        }
+    }
+
+    correct_loop();
+    finish_loop_closure_request();
+    return true;
+}
+
 void global_optimization_module::run() {
     spdlog::info("start global optimization module");
 
@@ -66,6 +127,11 @@ void global_optimization_module::run() {
             // terminate and break
             terminate();
             break;
+        }
+
+        // check if loop closure is requested
+        if (loop_closure_is_requested()) {
+            loop_closure(get_loop_closure_request());
         }
 
         // check if pause is requested
