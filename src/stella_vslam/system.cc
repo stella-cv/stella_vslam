@@ -301,6 +301,10 @@ bool system::loop_detector_is_enabled() const {
     return global_optimizer_->loop_detector_is_enabled();
 }
 
+bool system::request_loop_closure(int keyfrm1_id, int keyfrm2_id) {
+    return global_optimizer_->request_loop_closure(keyfrm1_id, keyfrm2_id);
+}
+
 bool system::loop_BA_is_running() const {
     return global_optimizer_->loop_BA_is_running();
 }
