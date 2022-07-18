@@ -38,7 +38,7 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
                    const bool no_sleep,
                    const bool wait_loop_ba,
                    const bool auto_term,
-                   const bool eval_log,
+                   const std::string& eval_log_dir,
                    const std::string& map_db_path,
                    const bool load_map,
                    const bool disable_mapping) {
@@ -141,12 +141,12 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
     // shutdown the SLAM process
     SLAM.shutdown();
 
-    if (eval_log) {
+    if (!eval_log_dir.empty()) {
         // output the trajectories for evaluation
-        SLAM.save_frame_trajectory("frame_trajectory.txt", "TUM");
-        SLAM.save_keyframe_trajectory("keyframe_trajectory.txt", "TUM");
+        SLAM.save_frame_trajectory(eval_log_dir + "/frame_trajectory.txt", "TUM");
+        SLAM.save_keyframe_trajectory(eval_log_dir + "/keyframe_trajectory.txt", "TUM");
         // output the tracking times for evaluation
-        std::ofstream ofs("track_times.txt", std::ios::out);
+        std::ofstream ofs(eval_log_dir + "/track_times.txt", std::ios::out);
         if (ofs.is_open()) {
             for (const auto track_time : track_times) {
                 ofs << track_time << std::endl;
@@ -173,7 +173,7 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
                      const bool no_sleep,
                      const bool wait_loop_ba,
                      const bool auto_term,
-                     const bool eval_log,
+                     const std::string& eval_log_dir,
                      const std::string& map_db_path,
                      const bool load_map,
                      const bool disable_mapping) {
@@ -277,12 +277,12 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
     // shutdown the SLAM process
     SLAM.shutdown();
 
-    if (eval_log) {
+    if (!eval_log_dir.empty()) {
         // output the trajectories for evaluation
-        SLAM.save_frame_trajectory("frame_trajectory.txt", "TUM");
-        SLAM.save_keyframe_trajectory("keyframe_trajectory.txt", "TUM");
+        SLAM.save_frame_trajectory(eval_log_dir + "/frame_trajectory.txt", "TUM");
+        SLAM.save_keyframe_trajectory(eval_log_dir + "/keyframe_trajectory.txt", "TUM");
         // output the tracking times for evaluation
-        std::ofstream ofs("track_times.txt", std::ios::out);
+        std::ofstream ofs(eval_log_dir + "/track_times.txt", std::ios::out);
         if (ofs.is_open()) {
             for (const auto track_time : track_times) {
                 ofs << track_time << std::endl;
@@ -318,7 +318,7 @@ int main(int argc, char* argv[]) {
     auto wait_loop_ba = op.add<popl::Switch>("", "wait-loop-ba", "wait until the loop BA is finished");
     auto auto_term = op.add<popl::Switch>("", "auto-term", "automatically terminate the viewer");
     auto log_level = op.add<popl::Value<std::string>>("", "log-level", "log level", "info");
-    auto eval_log = op.add<popl::Switch>("", "eval-log", "store trajectory and tracking times for evaluation");
+    auto eval_log_dir = op.add<popl::Value<std::string>>("", "eval-log-dir", "store trajectory and tracking times at this path (Specify the directory where it exists.)", "");
     auto map_db_path = op.add<popl::Value<std::string>>("p", "map-db", "store a map database at this path after SLAM", "");
     auto load_map = op.add<popl::Switch>("", "load-map", "load a map database");
     auto disable_mapping = op.add<popl::Switch>("", "disable-mapping", "disable mapping");
@@ -371,7 +371,7 @@ int main(int argc, char* argv[]) {
                       no_sleep->is_set(),
                       wait_loop_ba->is_set(),
                       auto_term->is_set(),
-                      eval_log->is_set(),
+                      eval_log_dir->value(),
                       map_db_path->value(),
                       load_map->is_set(),
                       disable_mapping->is_set());
@@ -384,7 +384,7 @@ int main(int argc, char* argv[]) {
                         no_sleep->is_set(),
                         wait_loop_ba->is_set(),
                         auto_term->is_set(),
-                        eval_log->is_set(),
+                        eval_log_dir->value(),
                         map_db_path->value(),
                         load_map->is_set(),
                         disable_mapping->is_set());
