@@ -131,7 +131,7 @@ jobs:
       - name: Localization test (monocular) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
-          ./run_euroc_localization -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log --map-db MH_01_mono.msg
+          ./run_euroc_slam --load-map --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log --map-db MH_01_mono.msg
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_mono_localization.txt
           mv track_times.txt ../artifact/track_times_MH_01_mono_localization.txt
       - name: SLAM test (monocular) with EuRoC MAV dataset (MH_04)
@@ -149,7 +149,7 @@ jobs:
       - name: Localization test (monocular) with EuRoC MAV dataset (MH_04)
         run: |
           cd build
-          ./run_euroc_localization -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log --map-db MH_04_mono.msg
+          ./run_euroc_slam --load-map --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log --map-db MH_04_mono.msg
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_04_mono_localization.txt
           mv track_times.txt ../artifact/track_times_MH_04_mono_localization.txt
       - name: download openvslam_test_dataset
@@ -260,7 +260,7 @@ jobs:
       - name: localization test with the tutorial
         run: |
           cd build
-          ./run_video_localization -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --log-level=debug --eval-log --map-db map.msg
+          ./run_video_slam --load-map --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --log-level=debug --eval-log --map-db map.msg
 
   rosdep_foxy:
     runs-on: ubuntu-latest

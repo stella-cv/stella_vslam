@@ -34,16 +34,32 @@
 #endif
 
 void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
-                   const std::string& vocab_file_path, const std::string& sequence_dir_path,
-                   const unsigned int frame_skip, const bool no_sleep, const bool wait_loop_ba, const bool auto_term,
-                   const bool eval_log, const std::string& map_db_path, const bool equal_hist) {
+                   const std::string& vocab_file_path,
+                   const std::string& sequence_dir_path,
+                   const unsigned int frame_skip,
+                   const bool no_sleep,
+                   const bool wait_loop_ba,
+                   const bool auto_term,
+                   const bool eval_log,
+                   const std::string& map_db_path,
+                   const bool load_map,
+                   const bool disable_mapping,
+                   const bool equal_hist) {
     const euroc_sequence sequence(sequence_dir_path);
     const auto frames = sequence.get_frames();
 
     // build a SLAM system
     stella_vslam::system SLAM(cfg, vocab_file_path);
-    // startup the SLAM process
-    SLAM.startup();
+    bool need_initialize = true;
+    if (load_map) {
+        need_initialize = false;
+        // load the prebuilt map
+        SLAM.load_map_database(map_db_path);
+    }
+    SLAM.startup(need_initialize);
+    if (disable_mapping) {
+        SLAM.disable_mapping_module();
+    }
 
     // create a viewer object
     // and pass the frame_publisher and the map_publisher
@@ -161,9 +177,17 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
 }
 
 void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
-                     const std::string& vocab_file_path, const std::string& sequence_dir_path,
-                     const unsigned int frame_skip, const bool no_sleep, const bool wait_loop_ba, const bool auto_term,
-                     const bool eval_log, const std::string& map_db_path, const bool equal_hist) {
+                     const std::string& vocab_file_path,
+                     const std::string& sequence_dir_path,
+                     const unsigned int frame_skip,
+                     const bool no_sleep,
+                     const bool wait_loop_ba,
+                     const bool auto_term,
+                     const bool eval_log,
+                     const std::string& map_db_path,
+                     const bool load_map,
+                     const bool disable_mapping,
+                     const bool equal_hist) {
     const euroc_sequence sequence(sequence_dir_path);
     const auto frames = sequence.get_frames();
 
@@ -171,8 +195,16 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
 
     // build a SLAM system
     stella_vslam::system SLAM(cfg, vocab_file_path);
-    // startup the SLAM process
-    SLAM.startup();
+    bool need_initialize = true;
+    if (load_map) {
+        need_initialize = false;
+        // load the prebuilt map
+        SLAM.load_map_database(map_db_path);
+    }
+    SLAM.startup(need_initialize);
+    if (disable_mapping) {
+        SLAM.disable_mapping_module();
+    }
 
     // create a viewer object
     // and pass the frame_publisher and the map_publisher
@@ -318,6 +350,9 @@ int main(int argc, char* argv[]) {
     auto log_level = op.add<popl::Value<std::string>>("", "log-level", "log level", "info");
     auto eval_log = op.add<popl::Switch>("", "eval-log", "store trajectory and tracking times for evaluation");
     auto map_db_path = op.add<popl::Value<std::string>>("p", "map-db", "store a map database at this path after SLAM", "");
+    auto load_map = op.add<popl::Switch>("", "load-map", "load a map database");
+    auto disable_mapping = op.add<popl::Switch>("", "disable-mapping", "disable mapping");
+
     auto equal_hist = op.add<popl::Switch>("", "equal-hist", "apply histogram equalization");
 
     try {
@@ -362,14 +397,32 @@ int main(int argc, char* argv[]) {
 
     // run tracking
     if (cfg->camera_->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
-        mono_tracking(cfg, vocab_file_path->value(), data_dir_path->value(),
-                      frame_skip->value(), no_sleep->is_set(), wait_loop_ba->is_set(), auto_term->is_set(),
-                      eval_log->is_set(), map_db_path->value(), equal_hist->is_set());
+        mono_tracking(cfg,
+                      vocab_file_path->value(),
+                      data_dir_path->value(),
+                      frame_skip->value(),
+                      no_sleep->is_set(),
+                      wait_loop_ba->is_set(),
+                      auto_term->is_set(),
+                      eval_log->is_set(),
+                      map_db_path->value(),
+                      load_map->is_set(),
+                      disable_mapping->is_set(),
+                      equal_hist->is_set());
     }
     else if (cfg->camera_->setup_type_ == stella_vslam::camera::setup_type_t::Stereo) {
-        stereo_tracking(cfg, vocab_file_path->value(), data_dir_path->value(),
-                        frame_skip->value(), no_sleep->is_set(), wait_loop_ba->is_set(), auto_term->is_set(),
-                        eval_log->is_set(), map_db_path->value(), equal_hist->is_set());
+        stereo_tracking(cfg,
+                        vocab_file_path->value(),
+                        data_dir_path->value(),
+                        frame_skip->value(),
+                        no_sleep->is_set(),
+                        wait_loop_ba->is_set(),
+                        auto_term->is_set(),
+                        eval_log->is_set(),
+                        map_db_path->value(),
+                        load_map->is_set(),
+                        disable_mapping->is_set(),
+                        equal_hist->is_set());
     }
     else {
         throw std::runtime_error("Invalid setup type: " + cfg->camera_->get_setup_type_string());
