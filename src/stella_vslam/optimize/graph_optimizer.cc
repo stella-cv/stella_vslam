@@ -238,6 +238,8 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
     optimizer.initializeOptimization();
     optimizer.optimize(50);
 
+    delete terminateAction;
+
     // 5. Update the camera poses and point-cloud
 
     {
