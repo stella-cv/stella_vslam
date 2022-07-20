@@ -329,6 +329,8 @@ void local_bundle_adjuster::optimize(data::map_database* map_db,
         optimizer.optimize(num_second_iter_);
     }
 
+    delete terminateAction;
+
     // 7. Count the outliers
 
     std::vector<std::pair<std::shared_ptr<data::keyframe>, std::shared_ptr<data::landmark>>> outlier_observations;

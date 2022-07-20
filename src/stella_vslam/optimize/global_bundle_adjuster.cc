@@ -264,6 +264,8 @@ bool global_bundle_adjuster::optimize(std::unordered_set<unsigned int>& optimize
         return false;
     }
 
+    delete terminateAction;
+
     // 6. Extract the result
 
     for (auto keyfrm : keyfrms) {
