@@ -161,6 +161,7 @@ endif()
 target_include_directories(${PROJECT_NAME}
                            PUBLIC
                            "$<BUILD_INTERFACE:${json_INCLUDE_DIR}>"
+                           "$<BUILD_INTERFACE:${tinycolormap_INCLUDE_DIR}>"
                            "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>"
                            "$<INSTALL_INTERFACE:include/stella_vslam/3rd/json/include>"
                            "$<INSTALL_INTERFACE:include/>")
