@@ -21,8 +21,11 @@ public:
     std::array<float, 3> curr_cam_{};
     //! keyframe line color
     std::array<float, 3> kf_line_{};
+    std::array<float, 3> kf_line_selected_{};
     //! graph edge line color
     std::array<float, 4> graph_line_{};
+    std::array<float, 4> graph_line_spanning_tree_{};
+    std::array<float, 4> graph_line_loop_edge_{};
     //! landmark color
     std::array<float, 3> lm_{};
     //! local_landmark color

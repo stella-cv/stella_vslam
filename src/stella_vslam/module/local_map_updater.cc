@@ -29,22 +29,22 @@ bool local_map_updater::acquire_local_map() {
 }
 
 bool local_map_updater::find_local_keyframes() {
-    const auto keyfrm_weights = count_keyframe_weights();
-    if (keyfrm_weights.empty()) {
+    const auto keyfrm_to_num_shared_lms = count_num_shared_lms();
+    if (keyfrm_to_num_shared_lms.empty()) {
         return false;
     }
     std::unordered_set<unsigned int> already_found_keyfrm_ids;
-    const auto first_local_keyfrms = find_first_local_keyframes(keyfrm_weights, already_found_keyfrm_ids);
+    const auto first_local_keyfrms = find_first_local_keyframes(keyfrm_to_num_shared_lms, already_found_keyfrm_ids);
     const auto second_local_keyfrms = find_second_local_keyframes(first_local_keyfrms, already_found_keyfrm_ids);
     local_keyfrms_ = first_local_keyfrms;
     std::copy(second_local_keyfrms.begin(), second_local_keyfrms.end(), std::back_inserter(local_keyfrms_));
     return true;
 }
 
-local_map_updater::keyframe_weights_t local_map_updater::count_keyframe_weights() const {
+local_map_updater::keyframe_to_num_shared_lms_t local_map_updater::count_num_shared_lms() const {
     // count the number of sharing landmarks between the current frame and each of the neighbor keyframes
     // key: keyframe, value: number of sharing landmarks
-    keyframe_weights_t keyfrm_weights;
+    keyframe_to_num_shared_lms_t keyfrm_to_num_shared_lms;
     for (unsigned int idx = 0; idx < num_keypts_; ++idx) {
         auto& lm = frm_lms_.at(idx);
         if (!lm) {
@@ -55,22 +55,22 @@ local_map_updater::keyframe_weights_t local_map_updater::count_keyframe_weights(
         }
         const auto observations = lm->get_observations();
         for (auto obs : observations) {
-            ++keyfrm_weights[obs.first.lock()];
+            ++keyfrm_to_num_shared_lms[obs.first.lock()];
         }
     }
-    return keyfrm_weights;
+    return keyfrm_to_num_shared_lms;
 }
 
-auto local_map_updater::find_first_local_keyframes(const keyframe_weights_t& keyfrm_weights,
+auto local_map_updater::find_first_local_keyframes(const keyframe_to_num_shared_lms_t& keyfrm_to_num_shared_lms,
                                                    std::unordered_set<unsigned int>& already_found_keyfrm_ids)
     -> std::vector<std::shared_ptr<data::keyframe>> {
     std::vector<std::shared_ptr<data::keyframe>> first_local_keyfrms;
-    first_local_keyfrms.reserve(2 * keyfrm_weights.size());
+    first_local_keyfrms.reserve(2 * keyfrm_to_num_shared_lms.size());
 
-    unsigned int max_weight = 0;
-    for (auto& keyfrm_weight : keyfrm_weights) {
-        const auto& keyfrm = keyfrm_weight.first;
-        const auto weight = keyfrm_weight.second;
+    unsigned int max_num_shared_lms = 0;
+    for (auto& keyfrm_and_num_shared_lms : keyfrm_to_num_shared_lms) {
+        const auto& keyfrm = keyfrm_and_num_shared_lms.first;
+        const auto num_shared_lms = keyfrm_and_num_shared_lms.second;
 
         if (keyfrm->will_be_erased()) {
             continue;
@@ -82,8 +82,8 @@ auto local_map_updater::find_first_local_keyframes(const keyframe_weights_t& key
         already_found_keyfrm_ids.insert(keyfrm->id_);
 
         // update the nearest keyframe
-        if (max_weight < weight) {
-            max_weight = weight;
+        if (max_num_shared_lms < num_shared_lms) {
+            max_num_shared_lms = num_shared_lms;
             nearest_covisibility_ = keyfrm;
         }
     }

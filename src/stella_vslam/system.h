@@ -116,6 +116,9 @@ public:
     //! The loop detector is enabled or not
     bool loop_detector_is_enabled() const;
 
+    //! Request loop closure
+    bool request_loop_closure(int keyfrm1_id, int keyfrm2_id);
+
     //! Loop BA is running or not
     bool loop_BA_is_running() const;
 

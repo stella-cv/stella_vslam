@@ -160,6 +160,8 @@ unsigned int pose_optimizer::optimize(const Mat44_t& cam_pose_cw, const data::fr
         }
     }
 
+    delete terminateAction;
+
     // 5. Update the information
 
     optimized_pose = frm_vtx->estimate();

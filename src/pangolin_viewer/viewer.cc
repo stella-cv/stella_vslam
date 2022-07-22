@@ -9,6 +9,21 @@
 #include "stella_vslam/util/yaml.h"
 
 #include <opencv2/highgui.hpp>
+#include <tinycolormap.hpp>
+
+namespace {
+int parse_int(const std::string& msg) {
+    int ret = -1;
+    try {
+        ret = stoi(msg);
+    }
+    catch (std::invalid_argument& e) {
+    }
+    catch (std::out_of_range& e) {
+    }
+    return ret;
+}
+} // namespace
 
 namespace pangolin_viewer {
 
@@ -27,6 +42,7 @@ viewer::viewer(const YAML::Node& yaml_node, stella_vslam::system* system,
       point_size_(yaml_node["point_size"].as<unsigned int>(2)),
       camera_size_(yaml_node["camera_size"].as<float>(0.15)),
       camera_line_width_(yaml_node["camera_line_width"].as<unsigned int>(2)),
+      menu_width_(yaml_node["menu_width"].as<unsigned int>(230)),
       cs_(yaml_node["color_scheme"].as<std::string>("black")),
       mapping_mode_(system->mapping_module_is_enabled()),
       loop_detection_mode_(system->loop_detector_is_enabled()) {}
@@ -122,18 +138,20 @@ void viewer::run() {
 }
 
 void viewer::create_menu_panel() {
-    pangolin::CreatePanel("menu").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(175));
+    pangolin::CreatePanel("menu").SetBounds(0.0, 1.0, 0.0, pangolin::Attach::Pix(230));
     menu_follow_camera_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Follow Camera", true, true));
     menu_grid_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Grid", false, true));
     menu_show_keyfrms_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Keyframes", true, true));
     menu_show_lms_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Landmarks", true, true));
-    menu_show_local_map_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Local Map", true, true));
-    menu_show_graph_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Graph", true, true));
+    menu_show_local_map_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show Local Map", false, true));
+    menu_show_graph_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Show covisibility graph", true, true));
     menu_mapping_mode_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Mapping", mapping_mode_, true));
     menu_loop_detection_mode_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Loop Detection", loop_detection_mode_, true));
     menu_pause_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Pause", false, true));
     menu_reset_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Reset", false, false));
     menu_terminate_ = std::unique_ptr<pangolin::Var<bool>>(new pangolin::Var<bool>("menu.Terminate", false, false));
+    menu_min_shared_lms_ = std::unique_ptr<pangolin::Var<int>>(new pangolin::Var<int>("menu.Min shared landmarks", 100, 1, 500));
+    menu_kf_id_ = std::unique_ptr<pangolin::Var<std::string>>(new pangolin::Var<std::string>("menu.Keyframe ID", "0"));
     menu_frm_size_ = std::unique_ptr<pangolin::Var<float>>(new pangolin::Var<float>("menu.Frame Size", 1.0, 1e-1, 1e1, true));
     menu_lm_size_ = std::unique_ptr<pangolin::Var<float>>(new pangolin::Var<float>("menu.Landmark Size", 1.0, 1e-1, 1e1, true));
 }
@@ -204,29 +222,33 @@ void viewer::draw_keyframes() {
 
     std::vector<std::shared_ptr<stella_vslam::data::keyframe>> keyfrms;
     map_publisher_->get_keyframes(keyfrms);
-
+    int keyframe_id = parse_int(*menu_kf_id_);
     if (*menu_show_keyfrms_) {
         glLineWidth(keyfrm_line_width_);
-        glColor3fv(cs_.kf_line_.data());
         for (const auto keyfrm : keyfrms) {
             if (!keyfrm || keyfrm->will_be_erased()) {
                 continue;
+            }
+            if (keyframe_id != -1 && keyfrm->id_ == static_cast<unsigned int>(keyframe_id)) {
+                glColor3fv(cs_.kf_line_selected_.data());
+            }
+            else {
+                glColor3fv(cs_.kf_line_.data());
             }
             draw_camera(keyfrm->get_pose_wc(), w);
         }
     }
 
+    glLineWidth(graph_line_width_);
+
+    const auto draw_edge = [](const stella_vslam::Vec3_t& cam_center_1, const stella_vslam::Vec3_t& cam_center_2) {
+        glVertex3fv(cam_center_1.cast<float>().eval().data());
+        glVertex3fv(cam_center_2.cast<float>().eval().data());
+    };
+
     if (*menu_show_graph_) {
-        glLineWidth(graph_line_width_);
         glColor4fv(cs_.graph_line_.data());
-
-        const auto draw_edge = [](const stella_vslam::Vec3_t& cam_center_1, const stella_vslam::Vec3_t& cam_center_2) {
-            glVertex3fv(cam_center_1.cast<float>().eval().data());
-            glVertex3fv(cam_center_2.cast<float>().eval().data());
-        };
-
         glBegin(GL_LINES);
-
         for (const auto keyfrm : keyfrms) {
             if (!keyfrm || keyfrm->will_be_erased()) {
                 continue;
@@ -235,7 +257,7 @@ void viewer::draw_keyframes() {
             const stella_vslam::Vec3_t cam_center_1 = keyfrm->get_trans_wc();
 
             // covisibility graph
-            const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_weight(100);
+            const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(*menu_min_shared_lms_);
             if (!covisibilities.empty()) {
                 for (const auto covisibility : covisibilities) {
                     if (!covisibility || covisibility->will_be_erased()) {
@@ -248,30 +270,51 @@ void viewer::draw_keyframes() {
                     draw_edge(cam_center_1, cam_center_2);
                 }
             }
-
-            // spanning tree
-            auto spanning_parent = keyfrm->graph_node_->get_spanning_parent();
-            if (spanning_parent) {
-                const stella_vslam::Vec3_t cam_center_2 = spanning_parent->get_trans_wc();
-                draw_edge(cam_center_1, cam_center_2);
-            }
-
-            // loop edges
-            const auto loop_edges = keyfrm->graph_node_->get_loop_edges();
-            for (const auto loop_edge : loop_edges) {
-                if (!loop_edge) {
-                    continue;
-                }
-                if (loop_edge->id_ < keyfrm->id_) {
-                    continue;
-                }
-                const stella_vslam::Vec3_t cam_center_2 = loop_edge->get_trans_wc();
-                draw_edge(cam_center_1, cam_center_2);
-            }
         }
-
         glEnd();
     }
+
+    glColor4fv(cs_.graph_line_spanning_tree_.data());
+    glBegin(GL_LINES);
+    for (const auto keyfrm : keyfrms) {
+        if (!keyfrm || keyfrm->will_be_erased()) {
+            continue;
+        }
+
+        const stella_vslam::Vec3_t cam_center_1 = keyfrm->get_trans_wc();
+
+        // spanning tree
+        auto spanning_parent = keyfrm->graph_node_->get_spanning_parent();
+        if (spanning_parent) {
+            const stella_vslam::Vec3_t cam_center_2 = spanning_parent->get_trans_wc();
+            draw_edge(cam_center_1, cam_center_2);
+        }
+    }
+    glEnd();
+
+    glColor4fv(cs_.graph_line_loop_edge_.data());
+    glBegin(GL_LINES);
+    for (const auto keyfrm : keyfrms) {
+        if (!keyfrm || keyfrm->will_be_erased()) {
+            continue;
+        }
+
+        const stella_vslam::Vec3_t cam_center_1 = keyfrm->get_trans_wc();
+
+        // loop edges
+        const auto loop_edges = keyfrm->graph_node_->get_loop_edges();
+        for (const auto loop_edge : loop_edges) {
+            if (!loop_edge) {
+                continue;
+            }
+            if (loop_edge->id_ < keyfrm->id_) {
+                continue;
+            }
+            const stella_vslam::Vec3_t cam_center_2 = loop_edge->get_trans_wc();
+            draw_edge(cam_center_1, cam_center_2);
+        }
+    }
+    glEnd();
 }
 
 void viewer::draw_landmarks() {
@@ -301,6 +344,12 @@ void viewer::draw_landmarks() {
             continue;
         }
         const stella_vslam::Vec3_t pos_w = lm->get_pos_in_world();
+        if (!*menu_show_local_map_) {
+            const double score = lm->get_observed_ratio();
+            const tinycolormap::Color score_color = tinycolormap::GetColor(score, tinycolormap::ColormapType::Turbo);
+            std::array<float, 3> lm_color{static_cast<float>(score_color.r()), static_cast<float>(score_color.g()), static_cast<float>(score_color.b())};
+            glColor3fv(lm_color.data());
+        }
         glVertex3fv(pos_w.cast<float>().eval().data());
     }
 

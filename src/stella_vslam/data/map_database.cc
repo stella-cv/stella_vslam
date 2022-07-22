@@ -19,7 +19,8 @@ namespace data {
 
 std::mutex map_database::mtx_database_;
 
-map_database::map_database() {
+map_database::map_database(unsigned int min_num_shared_lms)
+    : min_num_shared_lms_(min_num_shared_lms) {
     spdlog::debug("CONSTRUCT: data::map_database");
 }
 
@@ -39,6 +40,14 @@ void map_database::erase_keyframe(const std::shared_ptr<keyframe>& keyfrm) {
     keyframes_.erase(keyfrm->id_);
 }
 
+std::shared_ptr<keyframe> map_database::get_keyframe(unsigned int id) const {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    if (!keyframes_.count(id)) {
+        return nullptr;
+    }
+    return keyframes_.at(id);
+}
+
 void map_database::add_landmark(std::shared_ptr<landmark>& lm) {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
     landmarks_[lm->id_] = lm;
@@ -47,6 +56,14 @@ void map_database::add_landmark(std::shared_ptr<landmark>& lm) {
 void map_database::erase_landmark(unsigned int id) {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
     landmarks_.erase(id);
+}
+
+std::shared_ptr<landmark> map_database::get_landmark(unsigned int id) const {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    if (!landmarks_.count(id)) {
+        return nullptr;
+    }
+    return landmarks_.at(id);
 }
 
 void map_database::add_marker(const std::shared_ptr<marker>& mkr) {
@@ -188,6 +205,10 @@ unsigned int map_database::get_num_landmarks() const {
     return landmarks_.size();
 }
 
+unsigned int map_database::get_min_num_shared_lms() const {
+    return min_num_shared_lms_;
+}
+
 void map_database::clear() {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
@@ -273,7 +294,7 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
         assert(keyframes_.count(id));
         auto keyfrm = keyframes_.at(id);
 
-        keyfrm->graph_node_->update_connections();
+        keyfrm->graph_node_->update_connections(min_num_shared_lms_);
         keyfrm->graph_node_->update_covisibility_orders();
     }
 
@@ -419,7 +440,7 @@ void map_database::to_json(nlohmann::json& json_keyfrms, nlohmann::json& json_la
         assert(keyfrm);
         assert(id == keyfrm->id_);
         assert(!keyfrm->will_be_erased());
-        keyfrm->graph_node_->update_connections();
+        keyfrm->graph_node_->update_connections(min_num_shared_lms_);
         assert(!keyfrms.count(std::to_string(id)));
         keyfrms[std::to_string(id)] = keyfrm->to_json();
     }
@@ -480,7 +501,7 @@ bool map_database::from_db(sqlite3* db,
     for (const auto& id_keyfrm : keyframes_) {
         const auto keyfrm = id_keyfrm.second;
 
-        keyfrm->graph_node_->update_connections();
+        keyfrm->graph_node_->update_connections(min_num_shared_lms_);
         keyfrm->graph_node_->update_covisibility_orders();
     }
 
@@ -536,14 +557,21 @@ bool map_database::load_keyframes_from_db(sqlite3* db,
         p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
         std::memcpy(undist_keypts.data(), p, sqlite3_column_bytes(stmt, column_id));
         column_id++;
-        std::vector<float> stereo_x_right(num_keypts);
-        p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
-        std::memcpy(stereo_x_right.data(), p, sqlite3_column_bytes(stmt, column_id));
-        column_id++;
-        std::vector<float> depths(num_keypts);
-        p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
-        std::memcpy(depths.data(), p, sqlite3_column_bytes(stmt, column_id));
-        column_id++;
+        std::vector<float> stereo_x_right;
+        std::vector<float> depths;
+        if (camera->setup_type_ != stella_vslam::camera::setup_type_t::Monocular) {
+            stereo_x_right.resize(num_keypts);
+            p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
+            std::memcpy(stereo_x_right.data(), p, sqlite3_column_bytes(stmt, column_id));
+            column_id++;
+            depths.resize(num_keypts);
+            p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
+            std::memcpy(depths.data(), p, sqlite3_column_bytes(stmt, column_id));
+            column_id++;
+        }
+        else {
+            column_id += 2;
+        }
         cv::Mat descriptors(num_keypts, 32, CV_8U);
         p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
         std::memcpy(descriptors.data, p, sqlite3_column_bytes(stmt, column_id));
@@ -685,7 +713,7 @@ bool map_database::to_db(sqlite3* db) const {
         const auto keyfrm = id_keyfrm.second;
         assert(keyfrm);
         assert(!keyfrm->will_be_erased());
-        keyfrm->graph_node_->update_connections();
+        keyfrm->graph_node_->update_connections(min_num_shared_lms_);
     }
 
     int ret = SQLITE_ERROR;

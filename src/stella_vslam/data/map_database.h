@@ -34,7 +34,7 @@ public:
     /**
      * Constructor
      */
-    map_database();
+    map_database(unsigned int min_num_shared_lms);
 
     /**
      * Destructor
@@ -54,6 +54,12 @@ public:
     void erase_keyframe(const std::shared_ptr<keyframe>& keyfrm);
 
     /**
+     * Get keyframe from the database
+     * @param id
+     */
+    std::shared_ptr<keyframe> get_keyframe(unsigned int id) const;
+
+    /**
      * Add landmark to the database
      * @param lm
      */
@@ -61,9 +67,15 @@ public:
 
     /**
      * Erase landmark from the database
-     * @param lm
+     * @param id
      */
     void erase_landmark(unsigned int id);
+
+    /**
+     * Get landmark from the database
+     * @param id
+     */
+    std::shared_ptr<landmark> get_landmark(unsigned int id) const;
 
     /**
      * Add marker to the database
@@ -160,6 +172,12 @@ public:
      * @return
      */
     unsigned int get_num_landmarks() const;
+
+    /**
+     * Get minimum threshold for covisibility graph connection
+     * @return minimum threshold for covisibility graph connection
+     */
+    unsigned int get_min_num_shared_lms() const;
 
     /**
      * Update frame statistics
@@ -298,6 +316,12 @@ private:
 
     //! local landmarks
     std::vector<std::shared_ptr<landmark>> local_landmarks_;
+
+    //-----------------------------------------
+    // parameters for global/local mapping (optimization)
+
+    //! minimum threshold for covisibility graph connection
+    const unsigned int min_num_shared_lms_ = 15;
 
     //-----------------------------------------
     // frame statistics for odometry evaluation

@@ -73,7 +73,9 @@ bool frame::can_observe(const std::shared_ptr<landmark>& lm, const float ray_cos
 
     const Vec3_t cam_to_lm_vec = pos_w - trans_wc_;
     const auto cam_to_lm_dist = cam_to_lm_vec.norm();
-    if (!lm->is_inside_in_orb_scale(cam_to_lm_dist)) {
+    const auto margin_far = 1.3;
+    const auto margin_near = 1.0 / margin_far;
+    if (!lm->is_inside_in_orb_scale(cam_to_lm_dist, margin_far, margin_near)) {
         return false;
     }
 

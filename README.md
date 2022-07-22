@@ -72,11 +72,15 @@ Please contact us via [GitHub Discussions](https://github.com/stella-cv/stella_v
 
 ## Currently working on
 
-- IMU integration
-- Python bindings
-- Implementation of extra camera models
 - Refactoring
+- Algorithm changes and parameter additions to improve performance
+- Add tests
+- Marker integration
+- Implementation of extra camera models
+- Python bindings
+- IMU integration
 
+The higher up the list, the higher the priority.
 Feedbacks, feature requests, and contribution are welcome!
 
 ## License
@@ -88,6 +92,7 @@ The following files are derived from third-party libraries.
 - `./3rd/json` : [nlohmann/json \[v3.6.1\]](https://github.com/nlohmann/json) (MIT license)
 - `./3rd/popl` : [badaix/popl \[v1.2.0\]](https://github.com/badaix/popl) (MIT license)
 - `./3rd/spdlog` : [gabime/spdlog \[v1.3.1\]](https://github.com/gabime/spdlog) (MIT license)
+- `./3rd/tinycolormap` : [yuki-koyama/tinycolormap](https://github.com/yuki-koyama/tinycolormap) (MIT license)
 - `./src/stella_vslam/solver/pnp_solver.cc` : part of [laurentkneip/opengv](https://github.com/laurentkneip/opengv) (3-clause BSD license)
 - `./src/stella_vslam/feature/orb_extractor.cc` : part of [opencv/opencv](https://github.com/opencv/opencv) (3-clause BSD License)
 - `./src/stella_vslam/feature/orb_point_pairs.h` : part of [opencv/opencv](https://github.com/opencv/opencv) (3-clause BSD License)
