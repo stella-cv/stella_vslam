@@ -19,7 +19,11 @@ namespace stella_vslam {
 mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* map_db, data::bow_database* bow_db, data::bow_vocabulary* bow_vocab)
     : local_map_cleaner_(new module::local_map_cleaner(yaml_node, map_db, bow_db)),
       map_db_(map_db), bow_db_(bow_db), bow_vocab_(bow_vocab),
-      local_bundle_adjuster_(new optimize::local_bundle_adjuster(yaml_node)) {
+      local_bundle_adjuster_(new optimize::local_bundle_adjuster(yaml_node)),
+      enable_interruption_of_landmark_generation_(yaml_node["enable_interruption_of_landmark_generation"].as<bool>(true)),
+      enable_interruption_before_local_BA_(yaml_node["enable_interruption_before_local_BA"].as<bool>(true)),
+      num_covisibilities_for_landmark_generation_(yaml_node["num_covisibilities_for_landmark_generation"].as<unsigned int>(10)),
+      num_covisibilities_for_landmark_fusion_(yaml_node["num_covisibilities_for_landmark_fusion"].as<unsigned int>(10)) {
     spdlog::debug("CONSTRUCT: mapping_module");
     spdlog::debug("load mapping parameters");
 
@@ -160,9 +164,6 @@ void mapping_module::mapping_with_new_keyframe() {
         keyfrms_queue_.pop_front();
     }
 
-    // set the origin keyframe
-    local_map_cleaner_->set_origin_keyframe_id(map_db_->origin_keyfrm_->id_);
-
 #ifdef DETERMINISTIC
     // prevent the tracker running on unprocessed data
     std::lock_guard<std::mutex> tracking_lock(mtx_processing_);
@@ -173,12 +174,15 @@ void mapping_module::mapping_with_new_keyframe() {
     // store the new keyframe to the database
     store_new_keyframe();
 
-    // remove redundant landmarks
-    local_map_cleaner_->remove_redundant_landmarks(cur_keyfrm_->id_);
+    // remove invalid landmarks
+    local_map_cleaner_->remove_invalid_landmarks(cur_keyfrm_->id_);
 
     // triangulate new landmarks between the current frame and each of the covisibilities
     std::atomic<bool> abort_create_new_landmarks{false};
-    {
+    if (!enable_interruption_of_landmark_generation_) {
+        create_new_landmarks(abort_create_new_landmarks);
+    }
+    else {
         auto future_create_new_landmark = std::async(std::launch::async,
                                                      [this, &abort_create_new_landmarks]() {
                                                          create_new_landmarks(abort_create_new_landmarks);
@@ -190,16 +194,12 @@ void mapping_module::mapping_with_new_keyframe() {
         }
     }
 
-    if (keyframe_is_queued()) {
-        return;
-    }
-
     SPDLOG_TRACE("mapping_module: update_new_keyframe (current keyframe is {})", cur_keyfrm_->id_);
 
     // detect and resolve the duplication of the landmarks observed in the current frame
     update_new_keyframe();
 
-    if (keyframe_is_queued() || pause_is_requested()) {
+    if (enable_interruption_before_local_BA_ && (keyframe_is_queued() || pause_is_requested())) {
         return;
     }
 
@@ -225,7 +225,7 @@ void mapping_module::store_new_keyframe() {
         cur_keyfrm_->compute_bow(bow_vocab_);
     }
 
-    // update graph
+    // Set landmarks into local_map_cleaner to exclude invalid landmarks
     const auto cur_lms = cur_keyfrm_->get_landmarks();
     for (unsigned int idx = 0; idx < cur_lms.size(); ++idx) {
         auto lm = cur_lms.at(idx);
@@ -236,10 +236,11 @@ void mapping_module::store_new_keyframe() {
             continue;
         }
 
-        // if `lm` is correctly observed, make it be checked by the local map cleaner
         local_map_cleaner_->add_fresh_landmark(lm);
     }
-    cur_keyfrm_->graph_node_->update_connections();
+
+    // update graph
+    cur_keyfrm_->graph_node_->update_connections(map_db_->get_min_num_shared_lms());
 
     // store the new keyframe to the map database
     map_db_->add_keyframe(cur_keyfrm_);
@@ -248,9 +249,7 @@ void mapping_module::store_new_keyframe() {
 void mapping_module::create_new_landmarks(std::atomic<bool>& abort_create_new_landmarks) {
     // get the covisibilities of `cur_keyfrm_`
     // in order to triangulate landmarks between `cur_keyfrm_` and each of the covisibilities
-    constexpr unsigned int num_covisibilities = 10;
-    const unsigned int heuristic_ratio = cur_keyfrm_->depth_is_available() ? 1 : 2;
-    const auto cur_covisibilities = cur_keyfrm_->graph_node_->get_top_n_covisibilities(num_covisibilities * heuristic_ratio);
+    const auto cur_covisibilities = cur_keyfrm_->graph_node_->get_top_n_covisibilities(num_covisibilities_for_landmark_generation_);
 
     // lowe's_ratio will not be used
     match::robust robust_matcher(0.0, false);
@@ -348,8 +347,7 @@ void mapping_module::update_new_keyframe() {
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
     // get the targets to check landmark fusion
-    const unsigned int num_covisibilities = cur_keyfrm_->depth_is_available() ? 10 : 20;
-    const auto fuse_tgt_keyfrms = get_second_order_covisibilities(num_covisibilities, 5);
+    const auto fuse_tgt_keyfrms = cur_keyfrm_->graph_node_->get_top_n_covisibilities(num_covisibilities_for_landmark_fusion_);
 
     // resolve the duplication of landmarks between the current keyframe and the targets
     nondeterministic::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>> replaced_lms;
@@ -375,47 +373,11 @@ void mapping_module::update_new_keyframe() {
         }
     }
 
-    // update the graph
-    cur_keyfrm_->graph_node_->update_connections();
+    // update the graph (Because fuse_landmark_duplication changes the landmark)
+    cur_keyfrm_->graph_node_->update_connections(map_db_->get_min_num_shared_lms());
 }
 
-nondeterministic::unordered_set<std::shared_ptr<data::keyframe>> mapping_module::get_second_order_covisibilities(const unsigned int first_order_thr,
-                                                                                                                 const unsigned int second_order_thr) {
-    const auto cur_covisibilities = cur_keyfrm_->graph_node_->get_top_n_covisibilities(first_order_thr);
-
-    nondeterministic::unordered_set<std::shared_ptr<data::keyframe>> fuse_tgt_keyfrms;
-
-    for (const auto& first_order_covis : cur_covisibilities) {
-        if (first_order_covis->will_be_erased()) {
-            continue;
-        }
-
-        // check if the keyframe is aleady inserted
-        if (static_cast<bool>(fuse_tgt_keyfrms.count(first_order_covis))) {
-            continue;
-        }
-
-        fuse_tgt_keyfrms.insert(first_order_covis);
-
-        // get the covisibilities of the covisibility of the current keyframe
-        const auto ngh_covisibilities = first_order_covis->graph_node_->get_top_n_covisibilities(second_order_thr);
-        for (const auto& second_order_covis : ngh_covisibilities) {
-            if (second_order_covis->will_be_erased()) {
-                continue;
-            }
-            // "the covisibilities of the covisibility" contains the current keyframe
-            if (*second_order_covis == *cur_keyfrm_) {
-                continue;
-            }
-
-            fuse_tgt_keyfrms.insert(second_order_covis);
-        }
-    }
-
-    return fuse_tgt_keyfrms;
-}
-
-void mapping_module::fuse_landmark_duplication(const nondeterministic::unordered_set<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms,
+void mapping_module::fuse_landmark_duplication(const std::vector<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms,
                                                nondeterministic::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>& replaced_lms) {
     match::fuse fuse_matcher(0.6, true, true);
 

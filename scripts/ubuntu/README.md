@@ -66,7 +66,7 @@ You can use it for the below tracking demo.
 #### run localization
 
 ```shell
-./run_video_localization -v /vocab/orb_vocab.fbow -m /dataset/aist_living_lab_2/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --map-db map.msg
+./run_video_slam --load-map --disable-mapping -v /vocab/orb_vocab.fbow -m /dataset/aist_living_lab_2/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --map-db map.msg
 ```
 
 ## Run stella_vslam on your own video

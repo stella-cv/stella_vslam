@@ -495,7 +495,7 @@ void tracking_module::search_local_landmarks() {
     std::unordered_map<unsigned int, float> lm_to_x_right;
     std::unordered_map<unsigned int, int> lm_to_scale;
     for (const auto& lm : local_landmarks_) {
-        if (curr_landmark_ids.count(curr_frm_.id_)) {
+        if (curr_landmark_ids.count(lm->id_)) {
             continue;
         }
         if (lm->will_be_erased()) {

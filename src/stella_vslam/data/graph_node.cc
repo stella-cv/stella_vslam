@@ -7,26 +7,26 @@ struct {
     bool operator()(const std::pair<unsigned int, std::shared_ptr<stella_vslam::data::keyframe>>& a, const std::pair<unsigned int, std::shared_ptr<stella_vslam::data::keyframe>>& b) {
         return a.first < b.first || (a.first == b.first && a.second != nullptr && (b.second == nullptr || a.second->id_ < b.second->id_));
     }
-} cmp_weight_keyfrm_pairs;
+} cmp_num_shared_lms_and_keyfrm_pairs;
 } // namespace
 
 namespace stella_vslam {
 namespace data {
 
 graph_node::graph_node(std::shared_ptr<keyframe>& keyfrm)
-    : owner_keyfrm_(keyfrm), spanning_parent_is_not_set_(true) {}
+    : owner_keyfrm_(keyfrm), has_spanning_parent_(false) {}
 
-void graph_node::add_connection(const std::shared_ptr<keyframe>& keyfrm, const unsigned int weight) {
+void graph_node::add_connection(const std::shared_ptr<keyframe>& keyfrm, const unsigned int num_shared_lms) {
     std::lock_guard<std::mutex> lock(mtx_);
     bool need_update = false;
-    if (!connected_keyfrms_and_weights_.count(keyfrm)) {
+    if (!connected_keyfrms_and_num_shared_lms_.count(keyfrm)) {
         // if `keyfrm` not exists
-        connected_keyfrms_and_weights_[keyfrm] = weight;
+        connected_keyfrms_and_num_shared_lms_[keyfrm] = num_shared_lms;
         need_update = true;
     }
-    else if (connected_keyfrms_and_weights_.at(keyfrm) != weight) {
-        // if the weight is updated
-        connected_keyfrms_and_weights_.at(keyfrm) = weight;
+    else if (connected_keyfrms_and_num_shared_lms_.at(keyfrm) != num_shared_lms) {
+        // if the number of shared landmarks is updated
+        connected_keyfrms_and_num_shared_lms_.at(keyfrm) = num_shared_lms;
         need_update = true;
     }
 
@@ -38,8 +38,8 @@ void graph_node::add_connection(const std::shared_ptr<keyframe>& keyfrm, const u
 void graph_node::erase_connection(const std::shared_ptr<keyframe>& keyfrm) {
     std::lock_guard<std::mutex> lock(mtx_);
     bool need_update = false;
-    if (connected_keyfrms_and_weights_.count(keyfrm)) {
-        connected_keyfrms_and_weights_.erase(keyfrm);
+    if (connected_keyfrms_and_num_shared_lms_.count(keyfrm)) {
+        connected_keyfrms_and_num_shared_lms_.erase(keyfrm);
         need_update = true;
     }
 
@@ -50,23 +50,23 @@ void graph_node::erase_connection(const std::shared_ptr<keyframe>& keyfrm) {
 
 void graph_node::erase_all_connections() {
     // remote myself from the connected keyframes
-    for (const auto& keyfrm_and_weight : connected_keyfrms_and_weights_) {
-        if (keyfrm_and_weight.first.expired()) {
+    for (const auto& keyfrm_and_num_shared_lms : connected_keyfrms_and_num_shared_lms_) {
+        if (keyfrm_and_num_shared_lms.first.expired()) {
             continue;
         }
-        keyfrm_and_weight.first.lock()->graph_node_->erase_connection(owner_keyfrm_.lock());
+        keyfrm_and_num_shared_lms.first.lock()->graph_node_->erase_connection(owner_keyfrm_.lock());
     }
     // remove the buffers
-    connected_keyfrms_and_weights_.clear();
+    connected_keyfrms_and_num_shared_lms_.clear();
     ordered_covisibilities_.clear();
-    ordered_weights_.clear();
+    ordered_num_shared_lms_.clear();
 }
 
-void graph_node::update_connections() {
+void graph_node::update_connections(unsigned int min_num_shared_lms) {
     const auto owner_keyfrm = owner_keyfrm_.lock();
     const auto landmarks = owner_keyfrm->get_landmarks();
 
-    id_ordered_map<std::weak_ptr<keyframe>, unsigned int> keyfrm_weights;
+    id_ordered_map<std::weak_ptr<keyframe>, unsigned int> keyfrm_and_num_shared_lms;
 
     for (const auto& lm : landmarks) {
         if (!lm) {
@@ -82,80 +82,80 @@ void graph_node::update_connections() {
             auto keyfrm = obs.first;
             auto locked_keyfrm = keyfrm.lock();
 
-            if (locked_keyfrm->graph_node_->spanning_parent_is_not_set_ && locked_keyfrm->id_ != 0) {
+            if (!locked_keyfrm->graph_node_->has_spanning_parent_ && locked_keyfrm->id_ != 0) {
                 continue;
             }
             if (locked_keyfrm->id_ == owner_keyfrm->id_) {
                 continue;
             }
-            // count up weight of `keyfrm`
-            keyfrm_weights[keyfrm]++;
+            // count up number of shared landmarks of `keyfrm`
+            keyfrm_and_num_shared_lms[keyfrm]++;
         }
     }
 
-    if (keyfrm_weights.empty()) {
+    if (keyfrm_and_num_shared_lms.empty()) {
         return;
     }
 
-    unsigned int max_weight = 0;
+    unsigned int max_num_shared_lms = 0;
     std::shared_ptr<keyframe> nearest_covisibility = nullptr;
 
     // vector for sorting
-    std::vector<std::pair<unsigned int, std::shared_ptr<keyframe>>> weight_covisibility_pairs;
-    weight_covisibility_pairs.reserve(keyfrm_weights.size());
-    for (const auto& keyfrm_weight : keyfrm_weights) {
-        auto keyfrm = keyfrm_weight.first.lock();
-        const auto weight = keyfrm_weight.second;
+    std::vector<std::pair<unsigned int, std::shared_ptr<keyframe>>> num_shared_lms_and_covisibility_pairs;
+    num_shared_lms_and_covisibility_pairs.reserve(keyfrm_and_num_shared_lms.size());
+    for (const auto& keyfrm_and_num_shared_lms : keyfrm_and_num_shared_lms) {
+        auto keyfrm = keyfrm_and_num_shared_lms.first.lock();
+        const auto num_shared_lms = keyfrm_and_num_shared_lms.second;
 
-        // nearest_covisibility with greatest id_ will be selected if weights are the same due to ordering of keyfrm_weights.
-        if (max_weight <= weight) {
-            max_weight = weight;
+        // nearest_covisibility with greatest id_ will be selected if number of shared landmarks are the same due to ordering of keyfrm_and_num_shared_lms.
+        if (max_num_shared_lms <= num_shared_lms) {
+            max_num_shared_lms = num_shared_lms;
             nearest_covisibility = keyfrm;
         }
 
-        if (weight_thr_ < weight) {
-            weight_covisibility_pairs.emplace_back(std::make_pair(weight, keyfrm));
+        if (min_num_shared_lms < num_shared_lms) {
+            num_shared_lms_and_covisibility_pairs.emplace_back(std::make_pair(num_shared_lms, keyfrm));
         }
     }
     // add ONE node at least
-    if (weight_covisibility_pairs.empty()) {
-        weight_covisibility_pairs.emplace_back(std::make_pair(max_weight, nearest_covisibility));
+    if (num_shared_lms_and_covisibility_pairs.empty()) {
+        num_shared_lms_and_covisibility_pairs.emplace_back(std::make_pair(max_num_shared_lms, nearest_covisibility));
     }
 
     // add connection from the covisibility to myself
-    for (const auto& weight_covisibility : weight_covisibility_pairs) {
-        auto covisibility = weight_covisibility.second;
-        const auto weight = weight_covisibility.first;
-        covisibility->graph_node_->add_connection(owner_keyfrm, weight);
+    for (const auto& num_shared_lms_and_covisibility : num_shared_lms_and_covisibility_pairs) {
+        auto covisibility = num_shared_lms_and_covisibility.second;
+        const auto num_shared_lms = num_shared_lms_and_covisibility.first;
+        covisibility->graph_node_->add_connection(owner_keyfrm, num_shared_lms);
     }
 
-    // sort with weights and keyframe IDs for consistency; IDs are also in reverse order
+    // sort with number of shared landmarks and keyframe IDs for consistency; IDs are also in reverse order
     // to match selection of nearest_covisibility.
-    std::sort(weight_covisibility_pairs.rbegin(), weight_covisibility_pairs.rend(), cmp_weight_keyfrm_pairs);
+    std::sort(num_shared_lms_and_covisibility_pairs.rbegin(), num_shared_lms_and_covisibility_pairs.rend(), cmp_num_shared_lms_and_keyfrm_pairs);
 
     decltype(ordered_covisibilities_) ordered_covisibilities;
-    ordered_covisibilities.reserve(weight_covisibility_pairs.size());
-    decltype(ordered_weights_) ordered_weights;
-    ordered_weights.reserve(weight_covisibility_pairs.size());
-    for (const auto& weight_keyfrm_pair : weight_covisibility_pairs) {
-        ordered_covisibilities.push_back(weight_keyfrm_pair.second);
-        ordered_weights.push_back(weight_keyfrm_pair.first);
+    ordered_covisibilities.reserve(num_shared_lms_and_covisibility_pairs.size());
+    decltype(ordered_num_shared_lms_) ordered_num_shared_lms;
+    ordered_num_shared_lms.reserve(num_shared_lms_and_covisibility_pairs.size());
+    for (const auto& num_shared_lms_and_keyfrm_pair : num_shared_lms_and_covisibility_pairs) {
+        ordered_covisibilities.push_back(num_shared_lms_and_keyfrm_pair.second);
+        ordered_num_shared_lms.push_back(num_shared_lms_and_keyfrm_pair.first);
     }
 
     {
         std::lock_guard<std::mutex> lock(mtx_);
 
-        connected_keyfrms_and_weights_ = decltype(connected_keyfrms_and_weights_)(keyfrm_weights.begin(), keyfrm_weights.end());
+        connected_keyfrms_and_num_shared_lms_ = decltype(connected_keyfrms_and_num_shared_lms_)(keyfrm_and_num_shared_lms.begin(), keyfrm_and_num_shared_lms.end());
 
         ordered_covisibilities_ = ordered_covisibilities;
-        ordered_weights_ = ordered_weights;
+        ordered_num_shared_lms_ = ordered_num_shared_lms;
 
-        if (spanning_parent_is_not_set_ && owner_keyfrm->id_ != 0) {
+        if (!has_spanning_parent_ && owner_keyfrm->id_ != 0) {
             // set the parent of spanning tree
             assert(nearest_covisibility->id_ == ordered_covisibilities.front().lock()->id_);
             spanning_parent_ = nearest_covisibility;
             nearest_covisibility->graph_node_->add_spanning_child(owner_keyfrm);
-            spanning_parent_is_not_set_ = false;
+            has_spanning_parent_ = true;
         }
     }
 }
@@ -166,23 +166,23 @@ void graph_node::update_covisibility_orders() {
 }
 
 void graph_node::update_covisibility_orders_impl() {
-    std::vector<std::pair<unsigned int, std::shared_ptr<keyframe>>> weight_keyfrm_pairs;
-    weight_keyfrm_pairs.reserve(connected_keyfrms_and_weights_.size());
+    std::vector<std::pair<unsigned int, std::shared_ptr<keyframe>>> num_shared_lms_and_keyfrm_pairs;
+    num_shared_lms_and_keyfrm_pairs.reserve(connected_keyfrms_and_num_shared_lms_.size());
 
-    for (const auto& keyfrm_and_weight : connected_keyfrms_and_weights_) {
-        weight_keyfrm_pairs.emplace_back(std::make_pair(keyfrm_and_weight.second, keyfrm_and_weight.first.lock()));
+    for (const auto& keyfrm_and_num_shared_lms : connected_keyfrms_and_num_shared_lms_) {
+        num_shared_lms_and_keyfrm_pairs.emplace_back(std::make_pair(keyfrm_and_num_shared_lms.second, keyfrm_and_num_shared_lms.first.lock()));
     }
 
-    // sort with weights and keyframe IDs for consistency
-    std::sort(weight_keyfrm_pairs.rbegin(), weight_keyfrm_pairs.rend(), cmp_weight_keyfrm_pairs);
+    // sort with number of shared landmarks and keyframe IDs for consistency
+    std::sort(num_shared_lms_and_keyfrm_pairs.rbegin(), num_shared_lms_and_keyfrm_pairs.rend(), cmp_num_shared_lms_and_keyfrm_pairs);
 
     ordered_covisibilities_.clear();
-    ordered_covisibilities_.reserve(weight_keyfrm_pairs.size());
-    ordered_weights_.clear();
-    ordered_weights_.reserve(weight_keyfrm_pairs.size());
-    for (const auto& weight_keyfrm_pair : weight_keyfrm_pairs) {
-        ordered_covisibilities_.push_back(weight_keyfrm_pair.second);
-        ordered_weights_.push_back(weight_keyfrm_pair.first);
+    ordered_covisibilities_.reserve(num_shared_lms_and_keyfrm_pairs.size());
+    ordered_num_shared_lms_.clear();
+    ordered_num_shared_lms_.reserve(num_shared_lms_and_keyfrm_pairs.size());
+    for (const auto& num_shared_lms_and_keyfrm_pair : num_shared_lms_and_keyfrm_pairs) {
+        ordered_covisibilities_.push_back(num_shared_lms_and_keyfrm_pair.second);
+        ordered_num_shared_lms_.push_back(num_shared_lms_and_keyfrm_pair.first);
     }
 }
 
@@ -190,8 +190,8 @@ std::set<std::shared_ptr<keyframe>> graph_node::get_connected_keyframes() const 
     std::lock_guard<std::mutex> lock(mtx_);
     std::set<std::shared_ptr<keyframe>> keyfrms;
 
-    for (const auto& keyfrm_and_weight : connected_keyfrms_and_weights_) {
-        keyfrms.insert(keyfrm_and_weight.first.lock());
+    for (const auto& keyfrm_and_num_shared_lms : connected_keyfrms_and_num_shared_lms_) {
+        keyfrms.insert(keyfrm_and_num_shared_lms.first.lock());
     }
 
     return keyfrms;
@@ -227,19 +227,26 @@ std::vector<std::shared_ptr<keyframe>> graph_node::get_top_n_covisibilities(cons
     return covisibilities;
 }
 
-std::vector<std::shared_ptr<keyframe>> graph_node::get_covisibilities_over_weight(const unsigned int weight) const {
+std::vector<std::shared_ptr<keyframe>> graph_node::get_covisibilities_over_min_num_shared_lms(const unsigned int min_num_shared_lms) const {
     std::lock_guard<std::mutex> lock(mtx_);
 
     if (ordered_covisibilities_.empty()) {
         return std::vector<std::shared_ptr<keyframe>>();
     }
 
-    auto itr = std::upper_bound(ordered_weights_.begin(), ordered_weights_.end(), weight, std::greater<unsigned int>());
-    if (itr == ordered_weights_.end()) {
-        return std::vector<std::shared_ptr<keyframe>>();
+    auto itr = std::upper_bound(ordered_num_shared_lms_.begin(), ordered_num_shared_lms_.end(), min_num_shared_lms, std::greater<unsigned int>());
+    if (itr == ordered_num_shared_lms_.end()) {
+        std::vector<std::shared_ptr<keyframe>> covisibilities;
+        for (const auto& covisibility : ordered_covisibilities_) {
+            if (covisibility.expired()) {
+                continue;
+            }
+            covisibilities.push_back(covisibility.lock());
+        }
+        return covisibilities;
     }
     else {
-        const auto upper_bound_idx = static_cast<unsigned int>(itr - ordered_weights_.begin());
+        const auto upper_bound_idx = static_cast<unsigned int>(itr - ordered_num_shared_lms_.begin());
         std::vector<std::shared_ptr<keyframe>> covisibilities;
         unsigned int idx = 0;
         for (const auto& covisibility : ordered_covisibilities_) {
@@ -256,10 +263,10 @@ std::vector<std::shared_ptr<keyframe>> graph_node::get_covisibilities_over_weigh
     }
 }
 
-unsigned int graph_node::get_weight(const std::shared_ptr<keyframe>& keyfrm) const {
+unsigned int graph_node::get_num_shared_landmarks(const std::shared_ptr<keyframe>& keyfrm) const {
     std::lock_guard<std::mutex> lock(mtx_);
-    if (connected_keyfrms_and_weights_.count(keyfrm)) {
-        return connected_keyfrms_and_weights_.at(keyfrm);
+    if (connected_keyfrms_and_num_shared_lms_.count(keyfrm)) {
+        return connected_keyfrms_and_num_shared_lms_.at(keyfrm);
     }
     else {
         return 0;
@@ -268,9 +275,13 @@ unsigned int graph_node::get_weight(const std::shared_ptr<keyframe>& keyfrm) con
 
 void graph_node::set_spanning_parent(const std::shared_ptr<keyframe>& keyfrm) {
     std::lock_guard<std::mutex> lock(mtx_);
-    assert(spanning_parent_is_not_set_);
+    assert(!has_spanning_parent_);
     spanning_parent_ = keyfrm;
-    spanning_parent_is_not_set_ = false;
+    has_spanning_parent_ = true;
+}
+
+bool graph_node::has_spanning_parent() const {
+    return has_spanning_parent_;
 }
 
 std::shared_ptr<keyframe> graph_node::get_spanning_parent() const {
@@ -305,9 +316,9 @@ void graph_node::recover_spanning_connections() {
     while (!spanning_children_.empty()) {
         bool max_is_found = false;
 
-        unsigned int max_weight = 0;
-        std::shared_ptr<keyframe> max_weight_parent = nullptr;
-        std::shared_ptr<keyframe> max_weight_child = nullptr;
+        unsigned int max_num_shared_lms = 0;
+        std::shared_ptr<keyframe> max_num_shared_lms_parent = nullptr;
+        std::shared_ptr<keyframe> max_num_shared_lms_child = nullptr;
 
         for (const auto& spanning_child : spanning_children_) {
             auto locked_spanning_child = spanning_child.lock();
@@ -319,13 +330,13 @@ void graph_node::recover_spanning_connections() {
             const auto child_covisibilities = locked_spanning_child->graph_node_->get_covisibilities();
             const auto intersection = extract_intersection(new_parent_candidates, child_covisibilities);
 
-            // find the new parent (which has the maximum weight with the spanning child) from the intersection
+            // find the new parent (which has the maximum number of shared landmarks with the spanning child) from the intersection
             for (const auto& parent_candidate : intersection) {
-                const auto weight = locked_spanning_child->graph_node_->get_weight(parent_candidate);
-                if (max_weight < weight) {
-                    max_weight = weight;
-                    max_weight_parent = parent_candidate;
-                    max_weight_child = locked_spanning_child;
+                const auto num_shared_lms = locked_spanning_child->graph_node_->get_num_shared_landmarks(parent_candidate);
+                if (max_num_shared_lms < num_shared_lms) {
+                    max_num_shared_lms = num_shared_lms;
+                    max_num_shared_lms_parent = parent_candidate;
+                    max_num_shared_lms_child = locked_spanning_child;
                     max_is_found = true;
                 }
             }
@@ -333,9 +344,9 @@ void graph_node::recover_spanning_connections() {
 
         if (max_is_found) {
             // update spanning tree
-            max_weight_child->graph_node_->change_spanning_parent(max_weight_parent);
-            spanning_children_.erase(max_weight_child);
-            new_parent_candidates.insert(max_weight_child);
+            max_num_shared_lms_child->graph_node_->change_spanning_parent(max_num_shared_lms_parent);
+            spanning_children_.erase(max_num_shared_lms_child);
+            new_parent_candidates.insert(max_num_shared_lms_child);
         }
         else {
             // cannot update anymore

@@ -25,6 +25,11 @@ class bow_database;
 class map_database;
 } // namespace data
 
+struct loop_closure_request {
+    unsigned int keyfrm1_id_;
+    unsigned int keyfrm2_id_;
+};
+
 class global_optimization_module {
 public:
     //! Constructor
@@ -99,6 +104,11 @@ public:
     //! Abort the loop BA externally
     //! (NOTE: this function does not wait for abort)
     void abort_loop_BA();
+
+    //-----------------------------------------
+    // management for loop closure request
+
+    bool request_loop_closure(unsigned int keyfrm1_id, unsigned int keyfrm2_id);
 
 private:
     //-----------------------------------------
@@ -192,6 +202,24 @@ private:
     bool terminate_is_requested_ = false;
     //! flag which indicates whether the main loop is terminated or not
     bool is_terminated_ = true;
+
+    //-----------------------------------------
+    // management for loop closure request
+
+    //! Mutex for loop closure request
+    mutable std::mutex mtx_loop_closure_request_;
+    //! Loop closure is requested or not
+    bool loop_closure_is_requested();
+    //! Get loop closure request
+    loop_closure_request& get_loop_closure_request();
+    //! Finish loop closure request
+    void finish_loop_closure_request();
+    //! Process loop closure request
+    bool loop_closure(const loop_closure_request& request);
+    //! Indicator of loop closure request
+    bool loop_closure_is_requested_ = false;
+    //! Request
+    loop_closure_request loop_closure_request_;
 
     //-----------------------------------------
     // modules

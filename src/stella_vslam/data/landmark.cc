@@ -226,7 +226,7 @@ void landmark::compute_orb_scale_variance(const observations_t& observations,
     const auto num_scale_levels = ref_keyfrm->orb_params_->num_levels_;
 
     max_valid_dist = dist_ref_keyfrm_to_lm * scale_factor;
-    min_valid_dist = max_valid_dist_ * ref_keyfrm->orb_params_->inv_scale_factors_.at(num_scale_levels - 1);
+    min_valid_dist = max_valid_dist * ref_keyfrm->orb_params_->inv_scale_factors_.at(num_scale_levels - 1);
 }
 
 void landmark::update_mean_normal_and_obs_scale_variance() {

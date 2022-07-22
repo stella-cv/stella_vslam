@@ -29,16 +29,33 @@
 #endif
 
 void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
-                   const std::string& vocab_file_path, const std::string& video_file_path, const std::string& mask_img_path,
-                   const unsigned int frame_skip, const bool no_sleep, const bool auto_term,
-                   const bool eval_log, const std::string& map_db_path) {
+                   const std::string& vocab_file_path,
+                   const std::string& video_file_path,
+                   const std::string& mask_img_path,
+                   const unsigned int frame_skip,
+                   const unsigned int start_time,
+                   const bool no_sleep,
+                   const bool wait_loop_ba,
+                   const bool auto_term,
+                   const std::string& eval_log_dir,
+                   const std::string& map_db_path,
+                   const bool load_map,
+                   const bool disable_mapping) {
     // load the mask image
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
 
     // build a SLAM system
     stella_vslam::system SLAM(cfg, vocab_file_path);
-    // startup the SLAM process
-    SLAM.startup();
+    bool need_initialize = true;
+    if (load_map) {
+        need_initialize = false;
+        // load the prebuilt map
+        SLAM.load_map_database(map_db_path);
+    }
+    SLAM.startup(need_initialize);
+    if (disable_mapping) {
+        SLAM.disable_mapping_module();
+    }
 
     // create a viewer object
     // and pass the frame_publisher and the map_publisher
@@ -51,6 +68,11 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
 #endif
 
     auto video = cv::VideoCapture(video_file_path, cv::CAP_FFMPEG);
+    if (!video.isOpened()) {
+        std::cerr << "Unable to open the video." << std::endl;
+        return;
+    }
+    video.set(0, start_time);
     std::vector<double> track_times;
 
     cv::Mat frame;
@@ -62,6 +84,13 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
     // run the SLAM in another thread
     std::thread thread([&]() {
         while (is_not_end) {
+            // wait until the loop BA is finished
+            if (wait_loop_ba) {
+                while (SLAM.loop_BA_is_running() || !SLAM.mapping_module_is_enabled()) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                }
+            }
+
             is_not_end = video.read(frame);
 
             const auto tp_1 = std::chrono::steady_clock::now();
@@ -124,12 +153,12 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
     // shutdown the SLAM process
     SLAM.shutdown();
 
-    if (eval_log) {
+    if (!eval_log_dir.empty()) {
         // output the trajectories for evaluation
-        SLAM.save_frame_trajectory("frame_trajectory.txt", "TUM");
-        SLAM.save_keyframe_trajectory("keyframe_trajectory.txt", "TUM");
+        SLAM.save_frame_trajectory(eval_log_dir + "/frame_trajectory.txt", "TUM");
+        SLAM.save_keyframe_trajectory(eval_log_dir + "/keyframe_trajectory.txt", "TUM");
         // output the tracking times for evaluation
-        std::ofstream ofs("track_times.txt", std::ios::out);
+        std::ofstream ofs(eval_log_dir + "/track_times.txt", std::ios::out);
         if (ofs.is_open()) {
             for (const auto track_time : track_times) {
                 ofs << track_time << std::endl;
@@ -162,11 +191,15 @@ int main(int argc, char* argv[]) {
     auto config_file_path = op.add<popl::Value<std::string>>("c", "config", "config file path");
     auto mask_img_path = op.add<popl::Value<std::string>>("", "mask", "mask image path", "");
     auto frame_skip = op.add<popl::Value<unsigned int>>("", "frame-skip", "interval of frame skip", 1);
+    auto start_time = op.add<popl::Value<unsigned int>>("s", "start-time", "time to start playing [milli seconds]", 0);
     auto no_sleep = op.add<popl::Switch>("", "no-sleep", "not wait for next frame in real time");
+    auto wait_loop_ba = op.add<popl::Switch>("", "wait-loop-ba", "wait until the loop BA is finished");
     auto auto_term = op.add<popl::Switch>("", "auto-term", "automatically terminate the viewer");
     auto log_level = op.add<popl::Value<std::string>>("", "log-level", "log level", "info");
-    auto eval_log = op.add<popl::Switch>("", "eval-log", "store trajectory and tracking times for evaluation");
+    auto eval_log_dir = op.add<popl::Value<std::string>>("", "eval-log-dir", "store trajectory and tracking times at this path (Specify the directory where it exists.)", "");
     auto map_db_path = op.add<popl::Value<std::string>>("p", "map-db", "store a map database at this path after SLAM", "");
+    auto load_map = op.add<popl::Switch>("", "load-map", "load a map database");
+    auto disable_mapping = op.add<popl::Switch>("", "disable-mapping", "disable mapping");
     try {
         op.parse(argc, argv);
     }
@@ -209,9 +242,19 @@ int main(int argc, char* argv[]) {
 
     // run tracking
     if (cfg->camera_->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
-        mono_tracking(cfg, vocab_file_path->value(), video_file_path->value(), mask_img_path->value(),
-                      frame_skip->value(), no_sleep->is_set(), auto_term->is_set(),
-                      eval_log->is_set(), map_db_path->value());
+        mono_tracking(cfg,
+                      vocab_file_path->value(),
+                      video_file_path->value(),
+                      mask_img_path->value(),
+                      frame_skip->value(),
+                      start_time->value(),
+                      no_sleep->is_set(),
+                      wait_loop_ba->is_set(),
+                      auto_term->is_set(),
+                      eval_log_dir->value(),
+                      map_db_path->value(),
+                      load_map->is_set(),
+                      disable_mapping->is_set());
     }
     else {
         throw std::runtime_error("Invalid setup type: " + cfg->camera_->get_setup_type_string());

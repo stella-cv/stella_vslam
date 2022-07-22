@@ -41,7 +41,7 @@ TEST(pnp_solver, without_ransac) {
     }
 
     // Compute the camera pose by pnp_solver
-    auto solver = std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(bearings, keypts, landmarks, scale_factor, 0));
+    auto solver = std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(bearings, keypts, landmarks, scale_factor, 0, true));
     solver->find_via_ransac(10);
 
     EXPECT_TRUE(solver->solution_is_valid());
@@ -81,7 +81,7 @@ TEST(pnp_solver, without_noise) {
     }
 
     // Compute the camera pose by pnp_solver
-    auto solver = std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(bearings, keypts, landmarks, scale_factor));
+    auto solver = std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(bearings, keypts, landmarks, scale_factor, 10, true));
     solver->find_via_ransac(30);
     EXPECT_TRUE(solver->solution_is_valid());
 
@@ -119,7 +119,7 @@ TEST(pnp_solver, with_noise) {
     }
 
     // Compute the camera pose by pnp_solver
-    auto solver = std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(bearings, keypts, landmarks, scale_factor));
+    auto solver = std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(bearings, keypts, landmarks, scale_factor, 10, true));
     solver->find_via_ransac(30);
     EXPECT_TRUE(solver->solution_is_valid());
 
