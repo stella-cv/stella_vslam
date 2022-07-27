@@ -34,6 +34,8 @@ public:
 
     std::string serialize_messages(const std::vector<std::string>& tags, const std::vector<std::string>& messages);
 
+    std::string send_full_map();
+
     std::string serialize_map_diff();
 
     std::string serialize_latest_frame(const unsigned int image_quality_);

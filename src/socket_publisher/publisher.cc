@@ -63,6 +63,10 @@ void publisher::run() {
     terminate();
 }
 
+void publisher::send_map() {
+    client_->emit("map_publish", data_serializer_->send_full_map());
+}
+
 void publisher::callback(const std::string& message) {
     if (message == "disable_mapping_mode") {
         system_->disable_mapping_module();

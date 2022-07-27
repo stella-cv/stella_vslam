@@ -44,6 +44,23 @@ std::string data_serializer::serialize_messages(const std::vector<std::string>& 
     return base64_encode(cstr, buffer.length());
 }
 
+std::string data_serializer::send_full_map() {
+    keyframe_hash_map_->clear();
+    point_hash_map_->clear();
+    std::vector<std::shared_ptr<stella_vslam::data::keyframe>> keyframes;
+    map_publisher_->get_keyframes(keyframes);
+
+    std::vector<std::shared_ptr<stella_vslam::data::landmark>> all_landmarks;
+    std::set<std::shared_ptr<stella_vslam::data::landmark>> local_landmarks;
+    if (publish_points_) {
+        map_publisher_->get_landmarks(all_landmarks, local_landmarks);
+    }
+
+    const auto current_camera_pose = map_publisher_->get_current_cam_pose();
+
+    return serialize_as_protobuf(keyframes, all_landmarks, local_landmarks, current_camera_pose);
+}
+
 std::string data_serializer::serialize_map_diff() {
     std::vector<std::shared_ptr<stella_vslam::data::keyframe>> keyframes;
     map_publisher_->get_keyframes(keyframes);

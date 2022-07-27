@@ -29,6 +29,8 @@ public:
 
     void run();
 
+    void send_map();
+
     /* thread controls */
     void request_pause();
     bool is_paused();
