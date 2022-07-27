@@ -89,6 +89,9 @@ public:
     //! Get the frame publisher
     const std::shared_ptr<publish::frame_publisher> get_frame_publisher() const;
 
+    //! Get the map database
+    const data::map_database* get_map_database() const;
+
     //! Get tracking state
     uint8_t get_tracking_state();
 
