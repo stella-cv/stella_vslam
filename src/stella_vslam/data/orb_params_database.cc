@@ -49,11 +49,11 @@ void orb_params_database::from_json(const nlohmann::json& json_orb_params) {
         const auto& json_orb_params = json_id_orb_params.value();
 
         if (orb_params_name == curr_orb_params_->name_) {
+            spdlog::info("orb_params \"{}\" found in JSON", orb_params_name);
             if (std::abs(curr_orb_params_->scale_factor_ - json_orb_params.at("scale_factor").get<float>()) < 1e-6
                 && curr_orb_params_->num_levels_ - json_orb_params.at("num_levels").get<unsigned int>() == 0
                 && curr_orb_params_->ini_fast_thr_ - json_orb_params.at("ini_fast_threshold").get<unsigned int>() == 0
                 && curr_orb_params_->min_fast_thr_ - json_orb_params.at("min_fast_threshold").get<unsigned int>() == 0) {
-                spdlog::info("load the current orb_params \"{}\"", orb_params_name);
                 continue;
             }
             else {
@@ -61,6 +61,7 @@ void orb_params_database::from_json(const nlohmann::json& json_orb_params) {
             }
         }
 
+        // This orb_params is used for keyframes on the database.
         spdlog::info("load a orb_params \"{}\" from JSON", orb_params_name);
 
         auto orb_params = new feature::orb_params(orb_params_name,

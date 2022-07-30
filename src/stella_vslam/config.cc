@@ -69,6 +69,7 @@ config::config(const YAML::Node& yaml_node, const std::string& config_file_path)
     spdlog::debug("load ORB parameters");
     try {
         orb_params_ = new feature::orb_params(util::yaml_optional_ref(yaml_node_, "Feature"));
+        spdlog::info("load orb_params \"{}\"", orb_params_->name_);
     }
     catch (const std::exception& e) {
         spdlog::debug("failed in loading ORB feature extraction model: {}", e.what());
