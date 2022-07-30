@@ -302,6 +302,9 @@ bool tracking_module::relocalize_by_pose(const pose_request& request) {
         curr_frm_.compute_bow(bow_vocab_);
     }
     const auto candidates = get_close_keyframes(request);
+    for (const auto& candidate : candidates) {
+        spdlog::debug("relocalize_by_pose: candidate = {}", candidate->id_);
+    }
 
     if (!candidates.empty()) {
         succeeded = relocalizer_.reloc_by_candidates(curr_frm_, candidates, use_robust_matcher_for_relocalization_request_);

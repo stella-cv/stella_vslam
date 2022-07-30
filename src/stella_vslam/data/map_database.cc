@@ -128,7 +128,9 @@ std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes_2d(cons
         // Angle between two cameras related to given pose and selected keyframe
         const double cos_angle = ((M * N.transpose()).trace() - 1) / 2;
         // Distance between given pose and selected keyframe
-        const double dist = ((Nt - Nt.dot(normal_vector) * normal_vector) - Mt).norm();
+        const double dist = ((Nt - Nt.dot(normal_vector) * normal_vector)
+                             - (Mt - Mt.dot(normal_vector) * normal_vector))
+                                .norm();
         if (dist < distance_threshold && cos_angle > cos_angle_threshold) {
             filtered_keyframes.push_back(id_keyframe.second);
         }
