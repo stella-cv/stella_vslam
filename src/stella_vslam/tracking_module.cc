@@ -47,7 +47,7 @@ void tracking_module::set_global_optimization_module(global_optimization_module*
     global_optimizer_ = global_optimizer;
 }
 
-bool tracking_module::request_relocalize_by_pose(const Mat44_t& pose) {
+bool tracking_module::request_relocalize_by_pose(const Mat44_t& pose_cw) {
     std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
     if (relocalize_by_pose_is_requested_) {
         spdlog::warn("Can not process new pose update request while previous was not finished");
@@ -55,11 +55,11 @@ bool tracking_module::request_relocalize_by_pose(const Mat44_t& pose) {
     }
     relocalize_by_pose_is_requested_ = true;
     relocalize_by_pose_request_.mode_2d_ = false;
-    relocalize_by_pose_request_.pose_ = pose;
+    relocalize_by_pose_request_.pose_cw_ = pose_cw;
     return true;
 }
 
-bool tracking_module::request_relocalize_by_pose_2d(const Mat44_t& pose, const Vec3_t& normal_vector) {
+bool tracking_module::request_relocalize_by_pose_2d(const Mat44_t& pose_cw, const Vec3_t& normal_vector) {
     std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
     if (relocalize_by_pose_is_requested_) {
         spdlog::warn("Can not process new pose update request while previous was not finished");
@@ -67,7 +67,7 @@ bool tracking_module::request_relocalize_by_pose_2d(const Mat44_t& pose, const V
     }
     relocalize_by_pose_is_requested_ = true;
     relocalize_by_pose_request_.mode_2d_ = true;
-    relocalize_by_pose_request_.pose_ = pose;
+    relocalize_by_pose_request_.pose_cw_ = pose_cw;
     relocalize_by_pose_request_.normal_vector_ = normal_vector;
     return true;
 }
@@ -296,7 +296,7 @@ bool tracking_module::track_current_frame() {
 
 bool tracking_module::relocalize_by_pose(const pose_request& request) {
     bool succeeded = false;
-    curr_frm_.set_pose_cw(request.pose_);
+    curr_frm_.set_pose_cw(request.pose_cw_);
 
     if (!curr_frm_.bow_is_available()) {
         curr_frm_.compute_bow(bow_vocab_);
@@ -323,14 +323,14 @@ bool tracking_module::relocalize_by_pose(const pose_request& request) {
 std::vector<std::shared_ptr<data::keyframe>> tracking_module::get_close_keyframes(const pose_request& request) {
     if (request.mode_2d_) {
         return map_db_->get_close_keyframes_2d(
-            request.pose_,
+            request.pose_cw_,
             request.normal_vector_,
             reloc_distance_threshold_,
             reloc_angle_threshold_);
     }
     else {
         return map_db_->get_close_keyframes(
-            request.pose_,
+            request.pose_cw_,
             reloc_distance_threshold_,
             reloc_angle_threshold_);
     }

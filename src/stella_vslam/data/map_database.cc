@@ -108,7 +108,7 @@ std::vector<std::shared_ptr<keyframe>> map_database::get_all_keyframes() const {
     return keyframes;
 }
 
-std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes_2d(const Mat44_t& pose,
+std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes_2d(const Mat44_t& pose_cw,
                                                                             const Vec3_t& normal_vector,
                                                                             const double distance_threshold,
                                                                             const double angle_threshold) const {
@@ -120,8 +120,8 @@ std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes_2d(cons
     const double cos_angle_threshold = std::cos(angle_threshold);
 
     // Calculate angles and distances between given pose and all keyframes
-    Mat33_t M = pose.block<3, 3>(0, 0);
-    Vec3_t Mt = pose.block<3, 1>(0, 3);
+    Mat33_t M = pose_cw.block<3, 3>(0, 0);
+    Vec3_t Mt = pose_cw.block<3, 1>(0, 3);
     for (const auto& id_keyframe : keyframes_) {
         Mat33_t N = id_keyframe.second->get_pose_cw().block<3, 3>(0, 0);
         Vec3_t Nt = id_keyframe.second->get_pose_cw().block<3, 1>(0, 3);
@@ -139,7 +139,7 @@ std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes_2d(cons
     return filtered_keyframes;
 }
 
-std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes(const Mat44_t& pose,
+std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes(const Mat44_t& pose_cw,
                                                                          const double distance_threshold,
                                                                          const double angle_threshold) const {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
@@ -150,8 +150,8 @@ std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes(const M
     const double cos_angle_threshold = std::cos(angle_threshold);
 
     // Calculate angles and distances between given pose and all keyframes
-    Mat33_t M = pose.block<3, 3>(0, 0);
-    Vec3_t Mt = pose.block<3, 1>(0, 3);
+    Mat33_t M = pose_cw.block<3, 3>(0, 0);
+    Vec3_t Mt = pose_cw.block<3, 1>(0, 3);
     for (const auto& id_keyframe : keyframes_) {
         Mat33_t N = id_keyframe.second->get_pose_cw().block<3, 3>(0, 0);
         Vec3_t Nt = id_keyframe.second->get_pose_cw().block<3, 1>(0, 3);

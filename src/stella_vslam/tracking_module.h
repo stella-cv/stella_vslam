@@ -37,7 +37,7 @@ struct pose_request {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     bool mode_2d_;
-    Mat44_t pose_;
+    Mat44_t pose_cw_;
     Vec3_t normal_vector_;
 };
 
@@ -72,8 +72,8 @@ public:
 
     //! Request to update the pose to a given one.
     //! Return failure in case if previous request was not finished yet.
-    bool request_relocalize_by_pose(const Mat44_t& pose);
-    bool request_relocalize_by_pose_2d(const Mat44_t& pose, const Vec3_t& normal_vector);
+    bool request_relocalize_by_pose(const Mat44_t& pose_cw);
+    bool request_relocalize_by_pose_2d(const Mat44_t& pose_cw, const Vec3_t& normal_vector);
 
     //-----------------------------------------
     // management for reset process
