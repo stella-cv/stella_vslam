@@ -118,13 +118,14 @@ std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes_2d(cons
     std::vector<std::shared_ptr<keyframe>> filtered_keyframes;
 
     const double cos_angle_threshold = std::cos(angle_threshold);
+    Mat44_t pose_wc = util::converter::inverse_pose(pose_cw);
 
     // Calculate angles and distances between given pose and all keyframes
-    Mat33_t M = pose_cw.block<3, 3>(0, 0);
-    Vec3_t Mt = pose_cw.block<3, 1>(0, 3);
+    Mat33_t M = pose_wc.block<3, 3>(0, 0);
+    Vec3_t Mt = pose_wc.block<3, 1>(0, 3);
     for (const auto& id_keyframe : keyframes_) {
-        Mat33_t N = id_keyframe.second->get_pose_cw().block<3, 3>(0, 0);
-        Vec3_t Nt = id_keyframe.second->get_pose_cw().block<3, 1>(0, 3);
+        Mat33_t N = id_keyframe.second->get_pose_wc().block<3, 3>(0, 0);
+        Vec3_t Nt = id_keyframe.second->get_pose_wc().block<3, 1>(0, 3);
         // Angle between two cameras related to given pose and selected keyframe
         const double cos_angle = ((M * N.transpose()).trace() - 1) / 2;
         // Distance between given pose and selected keyframe
@@ -148,13 +149,14 @@ std::vector<std::shared_ptr<keyframe>> map_database::get_close_keyframes(const M
     std::vector<std::shared_ptr<keyframe>> filtered_keyframes;
 
     const double cos_angle_threshold = std::cos(angle_threshold);
+    Mat44_t pose_wc = util::converter::inverse_pose(pose_cw);
 
     // Calculate angles and distances between given pose and all keyframes
-    Mat33_t M = pose_cw.block<3, 3>(0, 0);
-    Vec3_t Mt = pose_cw.block<3, 1>(0, 3);
+    Mat33_t M = pose_wc.block<3, 3>(0, 0);
+    Vec3_t Mt = pose_wc.block<3, 1>(0, 3);
     for (const auto& id_keyframe : keyframes_) {
-        Mat33_t N = id_keyframe.second->get_pose_cw().block<3, 3>(0, 0);
-        Vec3_t Nt = id_keyframe.second->get_pose_cw().block<3, 1>(0, 3);
+        Mat33_t N = id_keyframe.second->get_pose_wc().block<3, 3>(0, 0);
+        Vec3_t Nt = id_keyframe.second->get_pose_wc().block<3, 1>(0, 3);
         // Angle between two cameras related to given pose and selected keyframe
         const double cos_angle = ((M * N.transpose()).trace() - 1) / 2;
         // Distance between given pose and selected keyframe
