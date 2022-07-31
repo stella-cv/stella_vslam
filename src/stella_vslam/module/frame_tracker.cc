@@ -133,6 +133,10 @@ unsigned int frame_tracker::discard_outliers(const std::vector<bool>& outlier_fl
     unsigned int num_valid_matches = 0;
 
     for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
+        if (curr_frm.get_landmark(idx) == nullptr) {
+            continue;
+        }
+
         if (outlier_flags.at(idx)) {
             curr_frm.erase_landmark_with_index(idx);
         }
