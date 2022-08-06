@@ -76,7 +76,6 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
     std::vector<double> track_times;
 
     cv::Mat frame;
-    double timestamp = 0.0;
 
     unsigned int num_frame = 0;
 
@@ -96,6 +95,8 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
             const auto tp_1 = std::chrono::steady_clock::now();
 
             if (!frame.empty() && (num_frame % frame_skip == 0)) {
+                std::chrono::system_clock::time_point start_time_system = std::chrono::system_clock::now();
+                double timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(start_time_system.time_since_epoch()).count();
                 // input the current frame and estimate the camera pose
                 SLAM.feed_monocular_frame(frame, timestamp, mask);
             }
@@ -115,7 +116,6 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
                 }
             }
 
-            timestamp += 1.0 / cfg->camera_->fps_;
             ++num_frame;
 
             // check if the termination of SLAM system is requested or not
