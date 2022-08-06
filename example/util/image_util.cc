@@ -8,8 +8,7 @@
 #include <algorithm>
 #include <stdexcept>
 
-image_sequence::image_sequence(const std::string& img_dir_path, const double fps)
-    : fps_(fps) {
+image_sequence::image_sequence(const std::string& img_dir_path) {
 #ifdef _MSC_VER
     // refine the path string
     std::string refined_img_dir_path;
@@ -62,7 +61,7 @@ image_sequence::image_sequence(const std::string& img_dir_path, const double fps
 std::vector<image_sequence::frame> image_sequence::get_frames() const {
     std::vector<frame> frames;
     for (unsigned int i = 0; i < img_file_paths_.size(); ++i) {
-        frames.emplace_back(frame{img_file_paths_.at(i), (1.0 / fps_) * i});
+        frames.emplace_back(frame{img_file_paths_.at(i)});
     }
     return frames;
 }

@@ -44,7 +44,7 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
     // load the mask image
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
 
-    const image_sequence sequence(image_dir_path, cfg->camera_->fps_);
+    const image_sequence sequence(image_dir_path);
     const auto frames = sequence.get_frames();
 
     // build a SLAM system
@@ -87,8 +87,10 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
             const auto tp_1 = std::chrono::steady_clock::now();
 
             if (!img.empty() && (i % frame_skip == 0)) {
+                std::chrono::system_clock::time_point start_time_system = std::chrono::system_clock::now();
+                double timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(start_time_system.time_since_epoch()).count();
                 // input the current frame and estimate the camera pose
-                SLAM.feed_monocular_frame(img, frame.timestamp_, mask);
+                SLAM.feed_monocular_frame(img, timestamp, mask);
             }
 
             const auto tp_2 = std::chrono::steady_clock::now();
@@ -100,7 +102,7 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
 
             // wait until the timestamp of the next frame
             if (!no_sleep && i < frames.size() - 1) {
-                const auto wait_time = frames.at(i + 1).timestamp_ - (frame.timestamp_ + track_time);
+                const auto wait_time = 1.0 / cfg->camera_->fps_ - track_time;
                 if (0.0 < wait_time) {
                     std::this_thread::sleep_for(std::chrono::microseconds(static_cast<unsigned int>(wait_time * 1e6)));
                 }
