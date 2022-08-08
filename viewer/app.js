@@ -1,15 +1,15 @@
 let express = require("express");
 let http_server = require("http").Server(express());
 let io_server = require("socket.io")(http_server, {
-  maxHttpBufferSize: 1e10,
-  pingTimeout: 60000
+  maxHttpBufferSize: 1e12,
+  pingTimeout: 120000
 });
 
 let app = express();
 let http_publisher = require("http").Server(app);
 let io_publisher = require("socket.io")(http_publisher, {
-  maxHttpBufferSize: 1e10,
-  pingTimeout: 60000
+  maxHttpBufferSize: 1e12,
+  pingTimeout: 120000
 });
 
 // Port variables
