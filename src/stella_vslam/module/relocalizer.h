@@ -52,6 +52,8 @@ public:
     bool refine_pose(data::frame& curr_frm,
                      const std::shared_ptr<stella_vslam::data::keyframe>& candidate_keyfrm,
                      const std::set<std::shared_ptr<data::landmark>>& already_found_landmarks) const;
+    bool refine_pose_by_local_map(data::frame& curr_frm,
+                                  const std::shared_ptr<stella_vslam::data::keyframe>& candidate_keyfrm) const;
 
 private:
     //! Extract valid (non-deleted) landmarks from landmark vector
