@@ -7,7 +7,7 @@ namespace stella_vslam {
 
 namespace data {
 class frame;
-class frame_observation;
+struct frame_observation;
 class keyframe;
 } // namespace data
 
@@ -16,7 +16,7 @@ class base;
 } // namespace camera
 
 namespace feature {
-class orb_params;
+struct orb_params;
 } // namespace feature
 
 namespace optimize {

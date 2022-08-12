@@ -11,7 +11,7 @@ namespace stella_vslam {
 
 namespace data {
 class frame;
-class frame_observation;
+struct frame_observation;
 class keyframe;
 class landmark;
 } // namespace data
