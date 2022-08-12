@@ -11,7 +11,7 @@
 namespace stella_vslam {
 namespace data {
 
-class frame_observation;
+struct frame_observation;
 
 nlohmann::json convert_rotation_to_json(const Mat33_t& rot_cw);
 
