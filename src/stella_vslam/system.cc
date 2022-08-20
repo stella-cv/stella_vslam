@@ -89,18 +89,7 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     // preprocessing modules
     const auto preprocessing_params = util::yaml_optional_ref(cfg->yaml_node_, "Preprocessing");
     depthmap_factor_ = get_depthmap_factor(camera_, preprocessing_params);
-    auto mask_rectangles = preprocessing_params["mask_rectangles"].as<std::vector<std::vector<float>>>(std::vector<std::vector<float>>());
-    for (const auto& v : mask_rectangles) {
-        if (v.size() != 4) {
-            throw std::runtime_error("mask rectangle must contain four parameters");
-        }
-        if (v.at(0) >= v.at(1)) {
-            throw std::runtime_error("x_max must be greater than x_min");
-        }
-        if (v.at(2) >= v.at(3)) {
-            throw std::runtime_error("y_max must be greater than x_min");
-        }
-    }
+    auto mask_rectangles = util::get_rectangles(preprocessing_params["mask_rectangles"]);
 
     const auto min_size = preprocessing_params["min_size"].as<unsigned int>(800);
     extractor_left_ = new feature::orb_extractor(orb_params_, min_size, mask_rectangles);
