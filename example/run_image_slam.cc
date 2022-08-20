@@ -40,7 +40,8 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
                    const std::string& eval_log_dir,
                    const std::string& map_db_path,
                    const bool load_map,
-                   const bool disable_mapping) {
+                   const bool disable_mapping,
+                   const double start_timestamp) {
     // load the mask image
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
 
@@ -70,6 +71,7 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
 
     std::vector<double> track_times;
     track_times.reserve(frames.size());
+    double timestamp = start_timestamp;
 
     // run the SLAM in another thread
     std::thread thread([&]() {
@@ -87,8 +89,6 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
             const auto tp_1 = std::chrono::steady_clock::now();
 
             if (!img.empty() && (i % frame_skip == 0)) {
-                std::chrono::system_clock::time_point start_time_system = std::chrono::system_clock::now();
-                double timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(start_time_system.time_since_epoch()).count();
                 // input the current frame and estimate the camera pose
                 SLAM.feed_monocular_frame(img, timestamp, mask);
             }
@@ -107,6 +107,8 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
                     std::this_thread::sleep_for(std::chrono::microseconds(static_cast<unsigned int>(wait_time * 1e6)));
                 }
             }
+
+            timestamp += 1.0 / cfg->camera_->fps_;
 
             // check if the termination of SLAM system is requested or not
             if (SLAM.terminate_is_requested()) {
@@ -189,6 +191,7 @@ int main(int argc, char* argv[]) {
     auto map_db_path = op.add<popl::Value<std::string>>("p", "map-db", "store a map database at this path after SLAM", "");
     auto load_map = op.add<popl::Switch>("", "load-map", "load a map database");
     auto disable_mapping = op.add<popl::Switch>("", "disable-mapping", "disable mapping");
+    auto start_timestamp = op.add<popl::Value<double>>("t", "start-timestamp", "timestamp of the start of the video capture");
     try {
         op.parse(argc, argv);
     }
@@ -229,6 +232,22 @@ int main(int argc, char* argv[]) {
     ProfilerStart("slam.prof");
 #endif
 
+    // You cannot get timestamps of images with this input format.
+    // It is recommended to specify the timestamp when the video recording was started in Unix time.
+    // If not specified, the current system time is used instead.
+    double timestamp = 0.0;
+    if (!start_timestamp->is_set()) {
+        std::cerr << "--start-timestamp is not set. using system timestamp." << std::endl;
+        if (no_sleep->is_set()) {
+            std::cerr << "If --no-sleep is set without --start-timestamp, timestamps may overlap between multiple runs." << std::endl;
+        }
+        std::chrono::system_clock::time_point start_time_system = std::chrono::system_clock::now();
+        timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(start_time_system.time_since_epoch()).count();
+    }
+    else {
+        timestamp = start_timestamp->value();
+    }
+
     // run tracking
     if (cfg->camera_->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
         mono_tracking(cfg,
@@ -242,7 +261,8 @@ int main(int argc, char* argv[]) {
                       eval_log_dir->value(),
                       map_db_path->value(),
                       load_map->is_set(),
-                      disable_mapping->is_set());
+                      disable_mapping->is_set(),
+                      timestamp);
     }
     else {
         throw std::runtime_error("Invalid setup type: " + cfg->camera_->get_setup_type_string());
