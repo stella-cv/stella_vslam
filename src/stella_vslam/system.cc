@@ -61,6 +61,7 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     cam_db_ = new data::camera_database(camera_);
     map_db_ = new data::map_database(system_params["min_num_shared_lms"].as<unsigned int>(15));
     bow_db_ = new data::bow_database(bow_vocab_);
+    orb_params_db_ = new data::orb_params_database(orb_params_);
 
     // frame and map publisher
     frame_publisher_ = std::shared_ptr<publish::frame_publisher>(new publish::frame_publisher(cfg_, map_db_));
@@ -100,8 +101,6 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
             throw std::runtime_error("y_max must be greater than x_min");
         }
     }
-
-    orb_params_db_ = new data::orb_params_database(orb_params_);
 
     const auto min_size = preprocessing_params["min_size"].as<unsigned int>(800);
     extractor_left_ = new feature::orb_extractor(orb_params_, min_size, mask_rectangles);
