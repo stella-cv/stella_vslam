@@ -27,22 +27,6 @@
 
 #include <spdlog/spdlog.h>
 
-namespace {
-using namespace stella_vslam;
-
-double get_depthmap_factor(const camera::base* camera, const YAML::Node& yaml_node) {
-    spdlog::debug("load depthmap factor");
-    double depthmap_factor = 1.0;
-    if (camera->setup_type_ == camera::setup_type_t::RGBD) {
-        depthmap_factor = yaml_node["depthmap_factor"].as<double>(depthmap_factor);
-    }
-    if (depthmap_factor < 0.) {
-        throw std::runtime_error("depthmap_factor must be greater than 0");
-    }
-    return depthmap_factor;
-}
-} // namespace
-
 namespace stella_vslam {
 
 system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file_path)
@@ -79,7 +63,12 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
 
     // preprocessing modules
     const auto preprocessing_params = util::yaml_optional_ref(cfg->yaml_node_, "Preprocessing");
-    depthmap_factor_ = get_depthmap_factor(camera_, preprocessing_params);
+    if (camera_->setup_type_ == camera::setup_type_t::RGBD) {
+        depthmap_factor_ = preprocessing_params["depthmap_factor"].as<double>(depthmap_factor_);
+        if (depthmap_factor_ < 0.) {
+            throw std::runtime_error("depthmap_factor must be greater than 0");
+        }
+    }
     auto mask_rectangles = util::get_rectangles(preprocessing_params["mask_rectangles"]);
 
     const auto min_size = preprocessing_params["min_size"].as<unsigned int>(800);
