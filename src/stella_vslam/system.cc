@@ -49,26 +49,7 @@ namespace stella_vslam {
 system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file_path)
     : cfg_(cfg), camera_(cfg->camera_), orb_params_(cfg->orb_params_) {
     spdlog::debug("CONSTRUCT: system");
-
-    std::ostringstream message_stream;
-
-    message_stream << std::endl;
-    message_stream << "original version of OpenVSLAM," << std::endl;
-    message_stream << "Copyright (C) 2019," << std::endl;
-    message_stream << "National Institute of Advanced Industrial Science and Technology (AIST)" << std::endl;
-    message_stream << "All rights reserved." << std::endl;
-    message_stream << "stella_vslam (the changes after forking from OpenVSLAM)," << std::endl;
-    message_stream << "Copyright (C) 2022, stella-cv, All rights reserved." << std::endl;
-    message_stream << std::endl;
-    message_stream << "This is free software," << std::endl;
-    message_stream << "and you are welcome to redistribute it under certain conditions." << std::endl;
-    message_stream << "See the LICENSE file." << std::endl;
-    message_stream << std::endl;
-
-    // show configuration
-    message_stream << *cfg_ << std::endl;
-
-    spdlog::info(message_stream.str());
+    print_info();
 
     // load ORB vocabulary
     spdlog::info("loading ORB vocabulary: {}", vocab_file_path);
@@ -180,6 +161,28 @@ system::~system() {
     orb_params_db_ = nullptr;
 
     spdlog::debug("DESTRUCT: system");
+}
+
+void system::print_info() {
+    std::ostringstream message_stream;
+
+    message_stream << std::endl;
+    message_stream << "original version of OpenVSLAM," << std::endl;
+    message_stream << "Copyright (C) 2019," << std::endl;
+    message_stream << "National Institute of Advanced Industrial Science and Technology (AIST)" << std::endl;
+    message_stream << "All rights reserved." << std::endl;
+    message_stream << "stella_vslam (the changes after forking from OpenVSLAM)," << std::endl;
+    message_stream << "Copyright (C) 2022, stella-cv, All rights reserved." << std::endl;
+    message_stream << std::endl;
+    message_stream << "This is free software," << std::endl;
+    message_stream << "and you are welcome to redistribute it under certain conditions." << std::endl;
+    message_stream << "See the LICENSE file." << std::endl;
+    message_stream << std::endl;
+
+    // show configuration
+    message_stream << *cfg_ << std::endl;
+
+    spdlog::info(message_stream.str());
 }
 
 void system::startup(const bool need_initialize) {
