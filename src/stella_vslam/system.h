@@ -61,6 +61,9 @@ public:
     //-----------------------------------------
     // system startup and shutdown
 
+    //! Print system information
+    void print_info();
+
     //! Startup the SLAM system
     void startup(const bool need_initialize = true);
 
@@ -178,6 +181,8 @@ public:
 
     //-----------------------------------------
     // config
+
+    camera::base* get_camera() const;
 
     //! depthmap factor (pixel_value / depthmap_factor = true_depth)
     double depthmap_factor_ = 1.0;

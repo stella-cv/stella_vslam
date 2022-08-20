@@ -13,6 +13,8 @@ inline YAML::Node yaml_optional_ref(const YAML::Node& ref_node, const std::strin
     return ref_node[key] ? ref_node[key] : YAML::Node();
 }
 
+std::vector<std::vector<float>> get_rectangles(const YAML::Node& node);
+
 } // namespace util
 } // namespace stella_vslam
 

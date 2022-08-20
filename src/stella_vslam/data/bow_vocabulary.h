@@ -14,7 +14,8 @@ namespace stella_vslam {
 namespace data {
 namespace bow_vocabulary_util {
 
-void compute_bow(data::bow_vocabulary* bow_vocab, const cv::Mat& descriptors, data::bow_vector& bow_vec, data::bow_feature_vector& bow_feat_vec);
+void compute_bow(bow_vocabulary* bow_vocab, const cv::Mat& descriptors, bow_vector& bow_vec, bow_feature_vector& bow_feat_vec);
+bow_vocabulary* load(std::string path);
 
 }; // namespace bow_vocabulary_util
 }; // namespace data
