@@ -9,8 +9,8 @@
 namespace stella_vslam {
 namespace util {
 
-stereo_rectifier::stereo_rectifier(const std::shared_ptr<stella_vslam::config>& cfg)
-    : stereo_rectifier(cfg->camera_,
+stereo_rectifier::stereo_rectifier(const std::shared_ptr<stella_vslam::config>& cfg, camera::base* camera)
+    : stereo_rectifier(camera,
                        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "StereoRectifier")) {}
 
 stereo_rectifier::stereo_rectifier(camera::base* camera, const YAML::Node& yaml_node)

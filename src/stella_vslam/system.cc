@@ -3,7 +3,7 @@
 #include "stella_vslam/tracking_module.h"
 #include "stella_vslam/mapping_module.h"
 #include "stella_vslam/global_optimization_module.h"
-#include "stella_vslam/camera/base.h"
+#include "stella_vslam/camera/camera_factory.h"
 #include "stella_vslam/data/camera_database.h"
 #include "stella_vslam/data/common.h"
 #include "stella_vslam/data/frame_observation.h"
@@ -30,7 +30,7 @@
 namespace stella_vslam {
 
 system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file_path)
-    : cfg_(cfg), camera_(cfg->camera_), orb_params_(cfg->orb_params_) {
+    : cfg_(cfg), orb_params_(cfg->orb_params_) {
     spdlog::debug("CONSTRUCT: system");
     print_info();
 
@@ -39,6 +39,8 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     bow_vocab_ = data::bow_vocabulary_util::load(vocab_file_path);
 
     const auto system_params = util::yaml_optional_ref(cfg->yaml_node_, "System");
+
+    camera_ = camera::camera_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Camera"));
 
     // database
     cam_db_ = new data::camera_database(camera_);
@@ -55,7 +57,7 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     map_database_io_ = io::map_database_io_factory::create(map_format);
 
     // tracking module
-    tracker_ = new tracking_module(cfg_, map_db_, bow_vocab_, bow_db_);
+    tracker_ = new tracking_module(cfg_, camera_, map_db_, bow_vocab_, bow_db_);
     // mapping module
     mapper_ = new mapping_module(cfg_->yaml_node_["Mapping"], map_db_, bow_db_, bow_vocab_);
     // global optimization module
@@ -498,6 +500,10 @@ void system::request_terminate() {
 bool system::terminate_is_requested() const {
     std::lock_guard<std::mutex> lock(mtx_terminate_);
     return terminate_is_requested_;
+}
+
+camera::base* system::get_camera() const {
+    return camera_;
 }
 
 void system::check_reset_request() {

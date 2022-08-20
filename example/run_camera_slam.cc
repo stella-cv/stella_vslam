@@ -6,6 +6,7 @@
 
 #include "stella_vslam/system.h"
 #include "stella_vslam/config.h"
+#include "stella_vslam/camera/base.h"
 #include "stella_vslam/util/stereo_rectifier.h"
 #include "stella_vslam/util/yaml.h"
 
@@ -29,44 +30,29 @@
 #include <gperftools/profiler.h>
 #endif
 
-void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
-                   const std::string& vocab_file_path,
+void mono_tracking(stella_vslam::system& slam,
+                   const std::shared_ptr<stella_vslam::config>& cfg,
                    const unsigned int cam_num,
                    const std::string& mask_img_path,
                    const float scale,
-                   const std::string& map_db_path,
-                   const bool load_map,
-                   const bool disable_mapping) {
+                   const std::string& map_db_path) {
     // load the mask image
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
-
-    // build a SLAM system
-    stella_vslam::system SLAM(cfg, vocab_file_path);
-    bool need_initialize = true;
-    if (load_map) {
-        need_initialize = false;
-        // load the prebuilt map
-        SLAM.load_map_database(map_db_path);
-    }
-    SLAM.startup(need_initialize);
-    if (disable_mapping) {
-        SLAM.disable_mapping_module();
-    }
 
     // create a viewer object
     // and pass the frame_publisher and the map_publisher
 #ifdef USE_PANGOLIN_VIEWER
     pangolin_viewer::viewer viewer(
-        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), &slam, slam.get_frame_publisher(), slam.get_map_publisher());
 #elif USE_SOCKET_PUBLISHER
     socket_publisher::publisher publisher(
-        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), &slam, slam.get_frame_publisher(), slam.get_map_publisher());
 #endif
 
     auto video = cv::VideoCapture(cam_num);
     if (!video.isOpened()) {
         spdlog::critical("cannot open a camera {}", cam_num);
-        SLAM.shutdown();
+        slam.shutdown();
         return;
     }
 
@@ -76,11 +62,11 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
     unsigned int num_frame = 0;
 
     bool is_not_end = true;
-    // run the SLAM in another thread
+    // run the slam in another thread
     std::thread thread([&]() {
         while (is_not_end) {
-            // check if the termination of SLAM system is requested or not
-            if (SLAM.terminate_is_requested()) {
+            // check if the termination of slam system is requested or not
+            if (slam.terminate_is_requested()) {
                 break;
             }
 
@@ -97,7 +83,7 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
             // input the current frame and estimate the camera pose
             std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
             double timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(now.time_since_epoch()).count();
-            SLAM.feed_monocular_frame(frame, timestamp, mask);
+            slam.feed_monocular_frame(frame, timestamp, mask);
 
             const auto tp_2 = std::chrono::steady_clock::now();
 
@@ -108,7 +94,7 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
         }
 
         // wait until the loop BA is finished
-        while (SLAM.loop_BA_is_running()) {
+        while (slam.loop_BA_is_running()) {
             std::this_thread::sleep_for(std::chrono::microseconds(5000));
         }
     });
@@ -122,12 +108,12 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
 
     thread.join();
 
-    // shutdown the SLAM process
-    SLAM.shutdown();
+    // shutdown the slam process
+    slam.shutdown();
 
     if (!map_db_path.empty()) {
         // output the map database
-        SLAM.save_map_database(map_db_path);
+        slam.save_map_database(map_db_path);
     }
 
     std::sort(track_times.begin(), track_times.end());
@@ -136,36 +122,22 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
     std::cout << "mean tracking time: " << total_track_time / track_times.size() << "[s]" << std::endl;
 }
 
-void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
-                     const std::string& vocab_file_path,
+void stereo_tracking(stella_vslam::system& slam,
+                     const std::shared_ptr<stella_vslam::config>& cfg,
                      const unsigned int cam_num,
                      const std::string& mask_img_path,
                      const float scale,
-                     const std::string& map_db_path,
-                     const bool load_map,
-                     const bool disable_mapping) {
+                     const std::string& map_db_path) {
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
-    // build a SLAM system
-    stella_vslam::system SLAM(cfg, vocab_file_path);
-    bool need_initialize = true;
-    if (load_map) {
-        need_initialize = false;
-        // load the prebuilt map
-        SLAM.load_map_database(map_db_path);
-    }
-    SLAM.startup(need_initialize);
-    if (disable_mapping) {
-        SLAM.disable_mapping_module();
-    }
 
     // create a viewer object
     // and pass the frame_publisher and the map_publisher
 #ifdef USE_PANGOLIN_VIEWER
     pangolin_viewer::viewer viewer(
-        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), &slam, slam.get_frame_publisher(), slam.get_map_publisher());
 #elif USE_SOCKET_PUBLISHER
     socket_publisher::publisher publisher(
-        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), &slam, slam.get_frame_publisher(), slam.get_map_publisher());
 #endif
 
     cv::VideoCapture videos[2];
@@ -173,12 +145,12 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
         videos[i] = cv::VideoCapture(cam_num + i);
         if (!videos[i].isOpened()) {
             spdlog::critical("cannot open a camera {}", cam_num + i);
-            SLAM.shutdown();
+            slam.shutdown();
             return;
         }
     }
 
-    const stella_vslam::util::stereo_rectifier rectifier(cfg);
+    const stella_vslam::util::stereo_rectifier rectifier(cfg, slam.get_camera());
 
     cv::Mat frames[2];
     cv::Mat frames_rectified[2];
@@ -186,11 +158,11 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
     unsigned int num_frame = 0;
 
     bool is_not_end = true;
-    // run the SLAM in another thread
+    // run the slam in another thread
     std::thread thread([&]() {
         while (is_not_end) {
-            // check if the termination of SLAM system is requested or not
-            if (SLAM.terminate_is_requested()) {
+            // check if the termination of slam system is requested or not
+            if (slam.terminate_is_requested()) {
                 break;
             }
 
@@ -210,7 +182,7 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
             // input the current frame and estimate the camera pose
             std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
             double timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(now.time_since_epoch()).count();
-            SLAM.feed_stereo_frame(frames_rectified[0], frames_rectified[1], timestamp, mask);
+            slam.feed_stereo_frame(frames_rectified[0], frames_rectified[1], timestamp, mask);
 
             const auto tp_2 = std::chrono::steady_clock::now();
 
@@ -221,7 +193,7 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
         }
 
         // wait until the loop BA is finished
-        while (SLAM.loop_BA_is_running()) {
+        while (slam.loop_BA_is_running()) {
             std::this_thread::sleep_for(std::chrono::microseconds(5000));
         }
     });
@@ -235,12 +207,12 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
 
     thread.join();
 
-    // shutdown the SLAM process
-    SLAM.shutdown();
+    // shutdown the slam process
+    slam.shutdown();
 
     if (!map_db_path.empty()) {
         // output the map database
-        SLAM.save_map_database(map_db_path);
+        slam.save_map_database(map_db_path);
     }
 
     std::sort(track_times.begin(), track_times.end());
@@ -262,7 +234,7 @@ int main(int argc, char* argv[]) {
     auto config_file_path = op.add<popl::Value<std::string>>("c", "config", "config file path");
     auto mask_img_path = op.add<popl::Value<std::string>>("", "mask", "mask image path", "");
     auto scale = op.add<popl::Value<float>>("s", "scale", "scaling ratio of images", 1.0);
-    auto map_db_path = op.add<popl::Value<std::string>>("p", "map-db", "store a map database at this path after SLAM", "");
+    auto map_db_path = op.add<popl::Value<std::string>>("p", "map-db", "store a map database at this path after slam", "");
     auto log_level = op.add<popl::Value<std::string>>("", "log-level", "log level", "info");
     auto load_map = op.add<popl::Switch>("", "load-map", "load a map database");
     auto disable_mapping = op.add<popl::Switch>("", "disable-mapping", "disable mapping");
@@ -307,29 +279,38 @@ int main(int argc, char* argv[]) {
     ProfilerStart("slam.prof");
 #endif
 
+    // build a slam system
+    stella_vslam::system slam(cfg, vocab_file_path->value());
+    bool need_initialize = true;
+    if (load_map->is_set()) {
+        need_initialize = false;
+        // load the prebuilt map
+        slam.load_map_database(map_db_path->value());
+    }
+    slam.startup(need_initialize);
+    if (disable_mapping->is_set()) {
+        slam.disable_mapping_module();
+    }
+
     // run tracking
-    if (cfg->camera_->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
-        mono_tracking(cfg,
-                      vocab_file_path->value(),
+    if (slam.get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
+        mono_tracking(slam,
+                      cfg,
                       cam_num->value(),
                       mask_img_path->value(),
                       scale->value(),
-                      map_db_path->value(),
-                      load_map->is_set(),
-                      disable_mapping->is_set());
+                      map_db_path->value());
     }
-    else if (cfg->camera_->setup_type_ == stella_vslam::camera::setup_type_t::Stereo) {
-        stereo_tracking(cfg,
-                        vocab_file_path->value(),
+    else if (slam.get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Stereo) {
+        stereo_tracking(slam,
+                        cfg,
                         cam_num->value(),
                         mask_img_path->value(),
                         scale->value(),
-                        map_db_path->value(),
-                        load_map->is_set(),
-                        disable_mapping->is_set());
+                        map_db_path->value());
     }
     else {
-        throw std::runtime_error("Invalid setup type: " + cfg->camera_->get_setup_type_string());
+        throw std::runtime_error("Invalid setup type: " + slam.get_camera()->get_setup_type_string());
     }
 
 #ifdef USE_GOOGLE_PERFTOOLS
