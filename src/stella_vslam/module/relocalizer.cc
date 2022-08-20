@@ -249,7 +249,7 @@ bool relocalizer::refine_pose_by_local_map(data::frame& curr_frm,
     SPDLOG_TRACE("refine_pose_by_local_map: keyfrms={}, lms={} nearest_covisibility id={}", local_keyfrms.size(), local_landmarks.size(), nearest_covisibility->id_);
 
     std::vector<int> margins{5, 15, 5};
-    for (int i = 0; i < margins.size(); ++i) {
+    for (size_t i = 0; i < margins.size(); ++i) {
         // select the landmarks which can be reprojected from the ones observed in the current frame
         std::unordered_set<unsigned int> curr_landmark_ids;
         for (const auto& lm : curr_frm.get_landmarks()) {

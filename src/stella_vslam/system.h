@@ -61,6 +61,9 @@ public:
     //-----------------------------------------
     // system startup and shutdown
 
+    //! Print system information
+    void print_info();
+
     //! Startup the SLAM system
     void startup(const bool need_initialize = true);
 
