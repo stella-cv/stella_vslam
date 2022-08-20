@@ -95,8 +95,8 @@ void mono_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
             const auto tp_1 = std::chrono::steady_clock::now();
 
             // input the current frame and estimate the camera pose
-            std::chrono::system_clock::time_point start_time_system = std::chrono::system_clock::now();
-            double timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(start_time_system.time_since_epoch()).count();
+            std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+            double timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(now.time_since_epoch()).count();
             SLAM.feed_monocular_frame(frame, timestamp, mask);
 
             const auto tp_2 = std::chrono::steady_clock::now();
@@ -182,7 +182,6 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
 
     cv::Mat frames[2];
     cv::Mat frames_rectified[2];
-    double timestamp = 0.0;
     std::vector<double> track_times;
     unsigned int num_frame = 0;
 
@@ -209,6 +208,8 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
             const auto tp_1 = std::chrono::steady_clock::now();
 
             // input the current frame and estimate the camera pose
+            std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+            double timestamp = std::chrono::duration_cast<std::chrono::duration<double>>(now.time_since_epoch()).count();
             SLAM.feed_stereo_frame(frames_rectified[0], frames_rectified[1], timestamp, mask);
 
             const auto tp_2 = std::chrono::steady_clock::now();
@@ -216,7 +217,6 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::config>& cfg,
             const auto track_time = std::chrono::duration_cast<std::chrono::duration<double>>(tp_2 - tp_1).count();
             track_times.push_back(track_time);
 
-            timestamp += 1.0 / cfg->camera_->fps_;
             ++num_frame;
         }
 

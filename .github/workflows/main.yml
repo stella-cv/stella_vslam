@@ -163,19 +163,19 @@ jobs:
       - name: SLAM test with equirectangular dataset (1)
         run: |
           cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/1/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db equirectangular_map.msg
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/1/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db equirectangular_map.msg -t 0.0
           mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_1.txt
           mv track_times.txt ../artifact/track_times_equirectangular_1.txt
       - name: SLAM test with equirectangular dataset (2)
         run: |
           cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/2/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db equirectangular_map.msg
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/2/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db equirectangular_map.msg -t 0.0
           mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_2.txt
           mv track_times.txt ../artifact/track_times_equirectangular_2.txt
       - name: SLAM test with equirectangular dataset (3)
         run: |
           cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/3/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db equirectangular_map.msg
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/3/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db equirectangular_map.msg -t 0.0
           mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_3.txt
           mv track_times.txt ../artifact/track_times_equirectangular_3.txt
       - name: Evaluation
