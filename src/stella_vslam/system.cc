@@ -16,8 +16,7 @@
 #include "stella_vslam/match/stereo.h"
 #include "stella_vslam/feature/orb_extractor.h"
 #include "stella_vslam/io/trajectory_io.h"
-#include "stella_vslam/io/map_database_io_msgpack.h"
-#include "stella_vslam/io/map_database_io_sqlite3.h"
+#include "stella_vslam/io/map_database_io_factory.h"
 #include "stella_vslam/publish/map_publisher.h"
 #include "stella_vslam/publish/frame_publisher.h"
 #include "stella_vslam/util/converter.h"
@@ -69,15 +68,7 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
 
     // map I/O
     auto map_format = system_params["map_format"].as<std::string>("msgpack");
-    if (map_format == "sqlite3") {
-        map_database_io_ = std::make_shared<io::map_database_io_sqlite3>();
-    }
-    else if (map_format == "msgpack") {
-        map_database_io_ = std::make_shared<io::map_database_io_msgpack>();
-    }
-    else {
-        throw std::runtime_error("Invalid map format: " + map_format);
-    }
+    map_database_io_ = io::map_database_io_factory::create(map_format);
 
     // tracking module
     tracker_ = new tracking_module(cfg_, map_db_, bow_vocab_, bow_db_);
