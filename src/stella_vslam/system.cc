@@ -47,7 +47,8 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     cam_db_->add_camera(camera_);
     map_db_ = new data::map_database(system_params["min_num_shared_lms"].as<unsigned int>(15));
     bow_db_ = new data::bow_database(bow_vocab_);
-    orb_params_db_ = new data::orb_params_database(orb_params_);
+    orb_params_db_ = new data::orb_params_database();
+    orb_params_db_->add_orb_params(orb_params_);
 
     // frame and map publisher
     frame_publisher_ = std::shared_ptr<publish::frame_publisher>(new publish::frame_publisher(cfg_, map_db_));

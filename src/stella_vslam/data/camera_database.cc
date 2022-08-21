@@ -29,7 +29,7 @@ camera_database::~camera_database() {
 
 void camera_database::add_camera(camera::base* camera) {
     std::lock_guard<std::mutex> lock(mtx_database_);
-    assert(cameras_.count(camera_name) == 0);
+    assert(cameras_.count(camera->name_) == 0);
     cameras_.emplace(camera->name_, camera);
 }
 
