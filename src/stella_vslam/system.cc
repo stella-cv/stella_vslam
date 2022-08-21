@@ -43,7 +43,8 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     camera_ = camera::camera_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Camera"));
 
     // database
-    cam_db_ = new data::camera_database(camera_);
+    cam_db_ = new data::camera_database();
+    cam_db_->add_camera(camera_);
     map_db_ = new data::map_database(system_params["min_num_shared_lms"].as<unsigned int>(15));
     bow_db_ = new data::bow_database(bow_vocab_);
     orb_params_db_ = new data::orb_params_database(orb_params_);

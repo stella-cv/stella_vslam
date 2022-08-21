@@ -327,6 +327,7 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     const auto timestamp = json_keyfrm.at("ts").get<double>();
     const auto camera_name = json_keyfrm.at("cam").get<std::string>();
     const auto camera = cam_db->get_camera(camera_name);
+    assert(camera != nullptr);
     const auto orb_params_name = json_keyfrm.at("orb_params").get<std::string>();
     const auto orb_params = orb_params_db->get_orb_params(orb_params_name);
 
@@ -546,6 +547,7 @@ bool map_database::load_keyframes_from_db(sqlite3* db,
         p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
         std::string camera_name(p, p + sqlite3_column_bytes(stmt, column_id));
         const auto camera = cam_db->get_camera(camera_name);
+        assert(camera != nullptr);
         column_id++;
         p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
         std::string orb_params_name(p, p + sqlite3_column_bytes(stmt, column_id));
