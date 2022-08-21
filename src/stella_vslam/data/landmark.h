@@ -28,7 +28,7 @@ public:
     using observations_t = std::map<std::weak_ptr<keyframe>, unsigned int, id_less<std::weak_ptr<keyframe>>>;
 
     //! constructor
-    landmark(const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm);
+    landmark(unsigned int id, const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm);
 
     //! constructor for map loading with computing parameters which can be recomputed
     landmark(const unsigned int id, const unsigned int first_keyfrm_id,
@@ -115,7 +115,6 @@ public:
 
 public:
     unsigned int id_;
-    static std::atomic<unsigned int> next_id_;
     unsigned int first_keyfrm_id_ = 0;
     unsigned int num_observations_ = 0;
 

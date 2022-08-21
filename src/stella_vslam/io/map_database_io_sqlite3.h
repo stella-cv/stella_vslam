@@ -49,8 +49,8 @@ public:
               data::bow_vocabulary* bow_vocab) override;
 
 private:
-    bool save_stats(sqlite3* db) const;
-    bool load_stats(sqlite3* db) const;
+    bool save_stats(sqlite3* db, const data::map_database* map_db) const;
+    bool load_stats(sqlite3* db, data::map_database* map_db) const;
 };
 
 } // namespace io

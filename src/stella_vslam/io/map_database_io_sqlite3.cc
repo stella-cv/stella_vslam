@@ -32,7 +32,7 @@ void map_database_io_sqlite3::save(const std::string& path,
     }
 
     // Write data into database
-    bool ok = save_stats(db);
+    bool ok = save_stats(db, map_db);
     ok = ok && cam_db->to_db(db);
     ok = ok && map_db->to_db(db);
 
@@ -52,14 +52,7 @@ void map_database_io_sqlite3::load(const std::string& path,
                                    data::bow_database* bow_db,
                                    data::bow_vocabulary* bow_vocab) {
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
-
-    // 1. initialize database
-
     assert(cam_db && map_db && bow_db && bow_vocab);
-    map_db->clear();
-    bow_db->clear();
-
-    // 2. load database
 
     // Open database
     sqlite3* db = nullptr;
@@ -70,7 +63,7 @@ void map_database_io_sqlite3::load(const std::string& path,
     }
 
     // load from database
-    bool ok = load_stats(db);
+    bool ok = load_stats(db, map_db);
     ok = ok && cam_db->from_db(db);
     ok = ok && map_db->from_db(db, cam_db, orb_params_db, bow_vocab);
     if (ok) {
@@ -83,7 +76,7 @@ void map_database_io_sqlite3::load(const std::string& path,
     sqlite3_close(db);
 }
 
-bool map_database_io_sqlite3::save_stats(sqlite3* db) const {
+bool map_database_io_sqlite3::save_stats(sqlite3* db, const data::map_database* map_db) const {
     int ret = sqlite3_exec(db, "DROP TABLE IF EXISTS stats;", nullptr, nullptr, nullptr);
     if (ret == SQLITE_OK) {
         ret = sqlite3_exec(db, "CREATE TABLE stats(id INTEGER PRIMARY KEY, frame_next_id INTEGER, keyframe_next_id INTEGER, landmark_next_id INTEGER);", nullptr, nullptr, nullptr);
@@ -103,13 +96,10 @@ bool map_database_io_sqlite3::save_stats(sqlite3* db) const {
         ret = sqlite3_bind_int64(stmt, 1, 0);
     }
     if (ret == SQLITE_OK) {
-        ret = sqlite3_bind_int64(stmt, 2, stella_vslam::data::frame::next_id_);
+        ret = sqlite3_bind_int64(stmt, 3, map_db->next_keyframe_id_);
     }
     if (ret == SQLITE_OK) {
-        ret = sqlite3_bind_int64(stmt, 3, stella_vslam::data::keyframe::next_id_);
-    }
-    if (ret == SQLITE_OK) {
-        ret = sqlite3_bind_int64(stmt, 4, stella_vslam::data::landmark::next_id_);
+        ret = sqlite3_bind_int64(stmt, 4, map_db->next_landmark_id_);
     }
     if (ret != SQLITE_OK) {
         spdlog::error("SQLite error: {}", sqlite3_errmsg(db));
@@ -134,7 +124,7 @@ bool map_database_io_sqlite3::save_stats(sqlite3* db) const {
     }
 }
 
-bool map_database_io_sqlite3::load_stats(sqlite3* db) const {
+bool map_database_io_sqlite3::load_stats(sqlite3* db, data::map_database* map_db) const {
     sqlite3_stmt* stmt;
     int ret = sqlite3_prepare_v2(db, "SELECT * FROM stats;", -1, &stmt, nullptr);
     if (ret != SQLITE_OK) {
@@ -143,9 +133,8 @@ bool map_database_io_sqlite3::load_stats(sqlite3* db) const {
     }
 
     ret = sqlite3_step(stmt);
-    stella_vslam::data::frame::next_id_ = sqlite3_column_int64(stmt, 1);
-    stella_vslam::data::keyframe::next_id_ = sqlite3_column_int64(stmt, 2);
-    stella_vslam::data::landmark::next_id_ = sqlite3_column_int64(stmt, 3);
+    map_db->next_keyframe_id_ = sqlite3_column_int64(stmt, 2);
+    map_db->next_landmark_id_ = sqlite3_column_int64(stmt, 3);
     sqlite3_finalize(stmt);
     return ret == SQLITE_ROW;
 }

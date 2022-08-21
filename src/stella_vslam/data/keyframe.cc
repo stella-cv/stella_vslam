@@ -15,10 +15,8 @@
 namespace stella_vslam {
 namespace data {
 
-std::atomic<unsigned int> keyframe::next_id_{0};
-
-keyframe::keyframe(const frame& frm)
-    : id_(next_id_++), src_frm_id_(frm.id_), timestamp_(frm.timestamp_),
+keyframe::keyframe(unsigned int id, const frame& frm)
+    : id_(id), timestamp_(frm.timestamp_),
       camera_(frm.camera_), orb_params_(frm.orb_params_),
       frm_obs_(frm.frm_obs_), markers_2d_(frm.markers_2d_),
       bow_vec_(frm.bow_vec_), bow_feat_vec_(frm.bow_feat_vec_),
@@ -27,11 +25,11 @@ keyframe::keyframe(const frame& frm)
     set_pose_cw(frm.get_pose_cw());
 }
 
-keyframe::keyframe(const unsigned int id, const unsigned int src_frm_id, const double timestamp,
+keyframe::keyframe(const unsigned int id, const double timestamp,
                    const Mat44_t& pose_cw, camera::base* camera,
                    const feature::orb_params* orb_params, const frame_observation& frm_obs,
                    const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec)
-    : id_(id), src_frm_id_(src_frm_id),
+    : id_(id),
       timestamp_(timestamp), camera_(camera),
       orb_params_(orb_params), frm_obs_(frm_obs),
       bow_vec_(bow_vec), bow_feat_vec_(bow_feat_vec),
@@ -51,21 +49,21 @@ keyframe::~keyframe() {
     SPDLOG_TRACE("keyframe::~keyframe: {}", id_);
 }
 
-std::shared_ptr<keyframe> keyframe::make_keyframe(const frame& frm) {
-    auto ptr = std::allocate_shared<keyframe>(Eigen::aligned_allocator<keyframe>(), frm);
+std::shared_ptr<keyframe> keyframe::make_keyframe(unsigned int id, const frame& frm) {
+    auto ptr = std::allocate_shared<keyframe>(Eigen::aligned_allocator<keyframe>(), id, frm);
     // covisibility graph node (connections is not assigned yet)
     ptr->graph_node_ = stella_vslam::make_unique<graph_node>(ptr);
     return ptr;
 }
 
 std::shared_ptr<keyframe> keyframe::make_keyframe(
-    const unsigned int id, const unsigned int src_frm_id, const double timestamp,
+    const unsigned int id, const double timestamp,
     const Mat44_t& pose_cw, camera::base* camera,
     const feature::orb_params* orb_params, const frame_observation& frm_obs,
     const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec) {
     auto ptr = std::allocate_shared<keyframe>(
         Eigen::aligned_allocator<keyframe>(),
-        id, src_frm_id, timestamp,
+        id, timestamp,
         pose_cw, camera, orb_params,
         frm_obs, bow_vec, bow_feat_vec);
     // covisibility graph node (connections is not assigned yet)
@@ -100,8 +98,7 @@ nlohmann::json keyframe::to_json() const {
         loop_edge_ids.push_back(loop_edge->id_);
     }
 
-    return {{"src_frm_id", src_frm_id_},
-            {"ts", timestamp_},
+    return {{"ts", timestamp_},
             {"cam", camera_->name_},
             {"orb_params", orb_params_->name_},
             // camera pose

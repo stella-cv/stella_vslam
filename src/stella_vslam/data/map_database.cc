@@ -224,6 +224,9 @@ void map_database::clear() {
 
     frm_stats_.clear();
 
+    next_keyframe_id_ = 0;
+    next_landmark_id_ = 0;
+
     spdlog::info("clear map database");
 }
 
@@ -323,7 +326,6 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
 void map_database::register_keyframe(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab,
                                      const unsigned int id, const nlohmann::json& json_keyfrm) {
     // Metadata
-    const auto src_frm_id = json_keyfrm.at("src_frm_id").get<unsigned int>();
     const auto timestamp = json_keyfrm.at("ts").get<double>();
     const auto camera_name = json_keyfrm.at("cam").get<std::string>();
     const auto camera = cam_db->get_camera(camera_name);
@@ -367,7 +369,7 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     // Compute BoW
     data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
     auto keyfrm = data::keyframe::make_keyframe(
-        id, src_frm_id, timestamp, pose_cw, camera, orb_params,
+        id, timestamp, pose_cw, camera, orb_params,
         frm_obs, bow_vec, bow_feat_vec);
 
     // Append to map database
@@ -541,7 +543,7 @@ bool map_database::load_keyframes_from_db(sqlite3* db,
         int column_id = 0;
         auto id = sqlite3_column_int64(stmt, column_id);
         column_id++;
-        auto src_frm_id = sqlite3_column_int64(stmt, column_id);
+        // NOTE: src_frm_id is removed
         column_id++;
         auto timestamp = sqlite3_column_double(stmt, column_id);
         column_id++;
@@ -600,7 +602,7 @@ bool map_database::load_keyframes_from_db(sqlite3* db,
         // Compute BoW
         data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
         auto keyfrm = data::keyframe::make_keyframe(
-            id, src_frm_id, timestamp, pose_cw, camera, orb_params,
+            id, timestamp, pose_cw, camera, orb_params,
             frm_obs, bow_vec, bow_feat_vec);
 
         // Append to map database
@@ -751,7 +753,7 @@ bool map_database::to_db(sqlite3* db) const {
 
 bool map_database::save_keyframes_to_db(sqlite3* db) const {
     std::vector<std::pair<std::string, std::string>> keyframes_columns{
-        {"src_frm_id", "INTEGER"},
+        {"src_frm_id", "INTEGER"}, // removed
         {"ts", "REAL"},
         {"cam", "BLOB"},
         {"orb_params", "BLOB"},
@@ -799,9 +801,8 @@ bool map_database::save_keyframes_to_db(sqlite3* db) const {
         if (ret == SQLITE_OK || ret == SQLITE_DONE) {
             ret = sqlite3_bind_int64(stmt, column_id++, id);
         }
-        if (ret == SQLITE_OK) {
-            ret = sqlite3_bind_int64(stmt, column_id++, keyfrm->src_frm_id_);
-        }
+        // NOTE: src_frm_id is removed
+        column_id++;
         if (ret == SQLITE_OK) {
             ret = sqlite3_bind_double(stmt, column_id++, keyfrm->timestamp_);
         }
