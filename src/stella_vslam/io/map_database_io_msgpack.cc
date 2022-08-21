@@ -32,7 +32,6 @@ void map_database_io_msgpack::save(const std::string& path,
                         {"orb_params", orb_params},
                         {"keyframes", keyfrms},
                         {"landmarks", landmarks},
-                        {"frame_next_id", static_cast<unsigned int>(data::frame::next_id_)},
                         {"keyframe_next_id", static_cast<unsigned int>(data::keyframe::next_id_)},
                         {"landmark_next_id", static_cast<unsigned int>(data::landmark::next_id_)}};
 
@@ -83,7 +82,6 @@ void map_database_io_msgpack::load(const std::string& path,
     const auto json = nlohmann::json::from_msgpack(msgpack);
 
     // load static variables
-    data::frame::next_id_ = json.at("frame_next_id").get<unsigned int>();
     data::keyframe::next_id_ = json.at("keyframe_next_id").get<unsigned int>();
     data::landmark::next_id_ = json.at("landmark_next_id").get<unsigned int>();
     // load database

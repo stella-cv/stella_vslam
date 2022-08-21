@@ -96,9 +96,6 @@ bool map_database_io_sqlite3::save_stats(sqlite3* db) const {
         ret = sqlite3_bind_int64(stmt, 1, 0);
     }
     if (ret == SQLITE_OK) {
-        ret = sqlite3_bind_int64(stmt, 2, stella_vslam::data::frame::next_id_);
-    }
-    if (ret == SQLITE_OK) {
         ret = sqlite3_bind_int64(stmt, 3, stella_vslam::data::keyframe::next_id_);
     }
     if (ret == SQLITE_OK) {
@@ -136,7 +133,6 @@ bool map_database_io_sqlite3::load_stats(sqlite3* db) const {
     }
 
     ret = sqlite3_step(stmt);
-    stella_vslam::data::frame::next_id_ = sqlite3_column_int64(stmt, 1);
     stella_vslam::data::keyframe::next_id_ = sqlite3_column_int64(stmt, 2);
     stella_vslam::data::landmark::next_id_ = sqlite3_column_int64(stmt, 3);
     sqlite3_finalize(stmt);

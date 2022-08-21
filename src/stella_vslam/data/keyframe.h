@@ -53,7 +53,7 @@ public:
      * Constructor for map loading
      * (NOTE: some variables must be recomputed after the construction. See the definition.)
      */
-    keyframe(const unsigned int id, const unsigned int src_frm_id,
+    keyframe(const unsigned int id,
              const double timestamp, const Mat44_t& pose_cw, camera::base* camera,
              const feature::orb_params* orb_params, const frame_observation& frm_obs,
              const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec);
@@ -62,7 +62,7 @@ public:
     // Factory method for create keyframe
     static std::shared_ptr<keyframe> make_keyframe(const frame& frm);
     static std::shared_ptr<keyframe> make_keyframe(
-        const unsigned int id, const unsigned int src_frm_id,
+        const unsigned int id,
         const double timestamp, const Mat44_t& pose_cw, camera::base* camera,
         const feature::orb_params* orb_params, const frame_observation& frm_obs,
         const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec);
@@ -234,9 +234,6 @@ public:
     unsigned int id_;
     //! next keyframe ID
     static std::atomic<unsigned int> next_id_;
-
-    //! source frame ID
-    const unsigned int src_frm_id_;
 
     //! timestamp in seconds
     const double timestamp_;
