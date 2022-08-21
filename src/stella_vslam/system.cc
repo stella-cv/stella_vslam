@@ -30,7 +30,7 @@
 namespace stella_vslam {
 
 system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file_path)
-    : cfg_(cfg), orb_params_(cfg->orb_params_) {
+    : cfg_(cfg) {
     spdlog::debug("CONSTRUCT: system");
     print_info();
 
@@ -41,6 +41,8 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     const auto system_params = util::yaml_optional_ref(cfg->yaml_node_, "System");
 
     camera_ = camera::camera_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Camera"));
+    orb_params_ = new feature::orb_params(util::yaml_optional_ref(cfg->yaml_node_, "Feature"));
+    spdlog::info("load orb_params \"{}\"", orb_params_->name_);
 
     // database
     cam_db_ = new data::camera_database();
