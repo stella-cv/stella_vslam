@@ -15,10 +15,8 @@
 namespace stella_vslam {
 namespace data {
 
-std::atomic<unsigned int> keyframe::next_id_{0};
-
-keyframe::keyframe(const frame& frm)
-    : id_(next_id_++), timestamp_(frm.timestamp_),
+keyframe::keyframe(unsigned int id, const frame& frm)
+    : id_(id), timestamp_(frm.timestamp_),
       camera_(frm.camera_), orb_params_(frm.orb_params_),
       frm_obs_(frm.frm_obs_), markers_2d_(frm.markers_2d_),
       bow_vec_(frm.bow_vec_), bow_feat_vec_(frm.bow_feat_vec_),
@@ -51,8 +49,8 @@ keyframe::~keyframe() {
     SPDLOG_TRACE("keyframe::~keyframe: {}", id_);
 }
 
-std::shared_ptr<keyframe> keyframe::make_keyframe(const frame& frm) {
-    auto ptr = std::allocate_shared<keyframe>(Eigen::aligned_allocator<keyframe>(), frm);
+std::shared_ptr<keyframe> keyframe::make_keyframe(unsigned int id, const frame& frm) {
+    auto ptr = std::allocate_shared<keyframe>(Eigen::aligned_allocator<keyframe>(), id, frm);
     // covisibility graph node (connections is not assigned yet)
     ptr->graph_node_ = stella_vslam::make_unique<graph_node>(ptr);
     return ptr;

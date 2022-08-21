@@ -32,8 +32,8 @@ void map_database_io_msgpack::save(const std::string& path,
                         {"orb_params", orb_params},
                         {"keyframes", keyfrms},
                         {"landmarks", landmarks},
-                        {"keyframe_next_id", static_cast<unsigned int>(data::keyframe::next_id_)},
-                        {"landmark_next_id", static_cast<unsigned int>(data::landmark::next_id_)}};
+                        {"keyframe_next_id", static_cast<unsigned int>(map_db->next_keyframe_id_)},
+                        {"landmark_next_id", static_cast<unsigned int>(map_db->next_landmark_id_)}};
 
     std::ofstream ofs(path, std::ios::out | std::ios::binary);
 
@@ -81,9 +81,9 @@ void map_database_io_msgpack::load(const std::string& path,
 
     const auto json = nlohmann::json::from_msgpack(msgpack);
 
-    // load static variables
-    data::keyframe::next_id_ = json.at("keyframe_next_id").get<unsigned int>();
-    data::landmark::next_id_ = json.at("landmark_next_id").get<unsigned int>();
+    // load next ID
+    map_db->next_keyframe_id_ = json.at("keyframe_next_id").get<unsigned int>();
+    map_db->next_landmark_id_ = json.at("landmark_next_id").get<unsigned int>();
     // load database
     const auto json_cameras = json.at("cameras");
     cam_db->from_json(json_cameras);

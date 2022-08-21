@@ -47,7 +47,7 @@ public:
     /**
      * Constructor for building from a frame
      */
-    explicit keyframe(const frame& frm);
+    explicit keyframe(unsigned int id, const frame& frm);
 
     /**
      * Constructor for map loading
@@ -60,7 +60,7 @@ public:
     virtual ~keyframe();
 
     // Factory method for create keyframe
-    static std::shared_ptr<keyframe> make_keyframe(const frame& frm);
+    static std::shared_ptr<keyframe> make_keyframe(unsigned int id, const frame& frm);
     static std::shared_ptr<keyframe> make_keyframe(
         const unsigned int id,
         const double timestamp, const Mat44_t& pose_cw, camera::base* camera,
@@ -232,8 +232,6 @@ public:
 
     //! keyframe ID
     unsigned int id_;
-    //! next keyframe ID
-    static std::atomic<unsigned int> next_id_;
 
     //! timestamp in seconds
     const double timestamp_;

@@ -224,6 +224,9 @@ void map_database::clear() {
 
     frm_stats_.clear();
 
+    next_keyframe_id_ = 0;
+    next_landmark_id_ = 0;
+
     spdlog::info("clear map database");
 }
 

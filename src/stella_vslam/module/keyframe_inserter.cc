@@ -105,7 +105,7 @@ bool keyframe_inserter::new_keyframe_is_needed(data::map_database* map_db,
 
 std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map_database* map_db,
                                                                        data::frame& curr_frm) {
-    auto keyfrm = data::keyframe::make_keyframe(curr_frm);
+    auto keyfrm = data::keyframe::make_keyframe(map_db->next_keyframe_id_++, curr_frm);
     keyfrm->update_landmarks();
 
     for (const auto& id_mkr2d : keyfrm->markers_2d_) {
@@ -173,7 +173,7 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
 
         // Stereo-triangulation can be performed if the 3D point is not yet associated to the keypoint index
         const Vec3_t pos_w = curr_frm.triangulate_stereo(idx);
-        auto lm = std::make_shared<data::landmark>(pos_w, keyfrm);
+        auto lm = std::make_shared<data::landmark>(map_db->next_landmark_id_++, pos_w, keyfrm);
 
         lm->connect_to_keyframe(keyfrm, idx);
         curr_frm.add_landmark(lm, idx);

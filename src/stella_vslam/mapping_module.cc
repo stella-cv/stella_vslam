@@ -324,7 +324,7 @@ void mapping_module::triangulate_with_two_keyframes(const std::shared_ptr<data::
         // succeeded
 
         // create a landmark object
-        auto lm = std::make_shared<data::landmark>(pos_w, keyfrm_1);
+        auto lm = std::make_shared<data::landmark>(map_db_->next_landmark_id_++, pos_w, keyfrm_1);
 
         lm->connect_to_keyframe(keyfrm_1, idx_1);
         lm->connect_to_keyframe(keyfrm_2, idx_2);

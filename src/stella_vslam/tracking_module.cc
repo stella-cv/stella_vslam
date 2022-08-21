@@ -102,8 +102,6 @@ void tracking_module::reset() {
     map_db_->clear();
 
     data::frame::next_id_ = 0;
-    data::keyframe::next_id_ = 0;
-    data::landmark::next_id_ = 0;
 
     last_reloc_frm_id_ = 0;
     last_reloc_frm_timestamp_ = 0.0;

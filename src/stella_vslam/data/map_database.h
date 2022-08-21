@@ -251,6 +251,10 @@ public:
     //! (NOTE: cannot used in map_database class)
     static std::mutex mtx_database_;
 
+    //! next ID
+    std::atomic<unsigned int> next_keyframe_id_{0};
+    std::atomic<unsigned int> next_landmark_id_{0};
+
 private:
     /**
      * Decode JSON and register keyframe information to the map database

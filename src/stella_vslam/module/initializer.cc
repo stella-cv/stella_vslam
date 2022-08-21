@@ -192,8 +192,8 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     }
 
     // create initial keyframes
-    auto init_keyfrm = data::keyframe::make_keyframe(init_frm_);
-    auto curr_keyfrm = data::keyframe::make_keyframe(curr_frm);
+    auto init_keyfrm = data::keyframe::make_keyframe(map_db_->next_keyframe_id_++, init_frm_);
+    auto curr_keyfrm = data::keyframe::make_keyframe(map_db_->next_keyframe_id_++, curr_frm);
 
     // compute BoW representations
     init_keyfrm->compute_bow(bow_vocab);
@@ -217,7 +217,7 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
         }
 
         // construct a landmark
-        auto lm = std::make_shared<data::landmark>(init_triangulated_pts.at(init_idx), curr_keyfrm);
+        auto lm = std::make_shared<data::landmark>(map_db_->next_landmark_id_++, init_triangulated_pts.at(init_idx), curr_keyfrm);
 
         // set the assocications to the new keyframes
         lm->connect_to_keyframe(init_keyfrm, init_idx);
@@ -321,7 +321,7 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
 
     // create an initial keyframe
     curr_frm.set_pose_cw(Mat44_t::Identity());
-    auto curr_keyfrm = data::keyframe::make_keyframe(curr_frm);
+    auto curr_keyfrm = data::keyframe::make_keyframe(map_db_->next_keyframe_id_++, curr_frm);
 
     // compute BoW representation
     curr_keyfrm->compute_bow(bow_vocab);
@@ -342,7 +342,7 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
 
         // build a landmark
         const Vec3_t pos_w = curr_frm.triangulate_stereo(idx);
-        auto lm = std::make_shared<data::landmark>(pos_w, curr_keyfrm);
+        auto lm = std::make_shared<data::landmark>(map_db_->next_landmark_id_++, pos_w, curr_keyfrm);
 
         // set the associations to the new keyframe
         lm->connect_to_keyframe(curr_keyfrm, idx);

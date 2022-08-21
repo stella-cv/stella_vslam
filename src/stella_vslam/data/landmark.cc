@@ -11,10 +11,8 @@
 namespace stella_vslam {
 namespace data {
 
-std::atomic<unsigned int> landmark::next_id_{0};
-
-landmark::landmark(const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm)
-    : id_(next_id_++), first_keyfrm_id_(ref_keyfrm->id_), pos_w_(pos_w),
+landmark::landmark(unsigned int id, const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm)
+    : id_(id), first_keyfrm_id_(ref_keyfrm->id_), pos_w_(pos_w),
       ref_keyfrm_(ref_keyfrm) {}
 
 landmark::landmark(const unsigned int id, const unsigned int first_keyfrm_id,
