@@ -52,14 +52,7 @@ void map_database_io_sqlite3::load(const std::string& path,
                                    data::bow_database* bow_db,
                                    data::bow_vocabulary* bow_vocab) {
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
-
-    // 1. initialize database
-
     assert(cam_db && map_db && bow_db && bow_vocab);
-    map_db->clear();
-    bow_db->clear();
-
-    // 2. load database
 
     // Open database
     sqlite3* db = nullptr;

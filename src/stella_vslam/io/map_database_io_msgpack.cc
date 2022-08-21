@@ -56,14 +56,9 @@ void map_database_io_msgpack::load(const std::string& path,
                                    data::bow_database* bow_db,
                                    data::bow_vocabulary* bow_vocab) {
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
-
-    // 1. initialize database
-
     assert(cam_db && orb_params_db && map_db && bow_db && bow_vocab);
-    map_db->clear();
-    bow_db->clear();
 
-    // 2. load binary bytes
+    // load binary bytes
 
     std::ifstream ifs(path, std::ios::in | std::ios::binary);
     if (!ifs.is_open()) {
@@ -83,11 +78,9 @@ void map_database_io_msgpack::load(const std::string& path,
     }
     ifs.close();
 
-    // 3. parse into JSON
+    // parse into JSON
 
     const auto json = nlohmann::json::from_msgpack(msgpack);
-
-    // 4. load database
 
     // load static variables
     data::frame::next_id_ = json.at("frame_next_id").get<unsigned int>();
