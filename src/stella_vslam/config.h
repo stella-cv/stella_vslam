@@ -28,9 +28,6 @@ public:
     //! YAML node
     const YAML::Node yaml_node_;
 
-    //! ORB feature extraction model
-    feature::orb_params* orb_params_ = nullptr;
-
     //! Marker model
     std::shared_ptr<marker_model::base> marker_model_ = nullptr;
 };

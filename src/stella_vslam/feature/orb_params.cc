@@ -20,7 +20,7 @@ orb_params::orb_params(const std::string& name, const float scale_factor, const 
 }
 
 orb_params::orb_params(const YAML::Node& yaml_node)
-    : orb_params(yaml_node["name"].as<std::string>(),
+    : orb_params(yaml_node["name"].as<std::string>("default ORB feature extraction setting"),
                  yaml_node["scale_factor"].as<float>(1.2),
                  yaml_node["num_levels"].as<unsigned int>(8),
                  yaml_node["ini_fast_threshold"].as<unsigned int>(20),

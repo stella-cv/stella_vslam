@@ -18,9 +18,11 @@ namespace data {
 
 class camera_database {
 public:
-    explicit camera_database(camera::base* curr_camera);
+    explicit camera_database();
 
     ~camera_database();
+
+    void add_camera(camera::base* camera);
 
     camera::base* get_camera(const std::string& camera_name) const;
 
@@ -36,13 +38,8 @@ private:
     //-----------------------------------------
     //! mutex to access the database
     mutable std::mutex mtx_database_;
-    //! pointer to the camera which used in the current tracking
-    //! (NOTE: the object is owned by config class,
-    //!  thus this class does NOT delete the object of curr_camera_)
-    camera::base* curr_camera_ = nullptr;
     //! database (key: camera name, value: pointer of camera::base)
-    //! (NOTE: tracking camera must NOT be contained in the database)
-    std::unordered_map<std::string, camera::base*> database_;
+    std::unordered_map<std::string, camera::base*> cameras_;
 };
 
 } // namespace data

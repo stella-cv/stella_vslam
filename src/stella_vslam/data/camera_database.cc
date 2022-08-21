@@ -12,36 +12,34 @@
 namespace stella_vslam {
 namespace data {
 
-camera_database::camera_database(camera::base* curr_camera)
-    : curr_camera_(curr_camera) {
+camera_database::camera_database() {
     spdlog::debug("CONSTRUCT: data::camera_database");
 }
 
 camera_database::~camera_database() {
-    for (const auto& name_camera : database_) {
+    for (const auto& name_camera : cameras_) {
         const auto& camera_name = name_camera.first;
-        const auto camera = name_camera.second;
-
-        // Since curr_camera is held in the config class, do not delete curr_camera here
-        if (camera->name_ == curr_camera_->name_) {
-            continue;
-        }
-        delete database_.at(camera_name);
-        database_.at(camera_name) = nullptr;
+        delete cameras_.at(camera_name);
+        cameras_.at(camera_name) = nullptr;
     }
-    database_.clear();
+    cameras_.clear();
 
     spdlog::debug("DESTRUCT: data::camera_database");
 }
 
+void camera_database::add_camera(camera::base* camera) {
+    std::lock_guard<std::mutex> lock(mtx_database_);
+    assert(cameras_.count(camera->name_) == 0);
+    cameras_.emplace(camera->name_, camera);
+}
+
 camera::base* camera_database::get_camera(const std::string& camera_name) const {
     std::lock_guard<std::mutex> lock(mtx_database_);
-    if (camera_name == curr_camera_->name_) {
-        return curr_camera_;
+    if (cameras_.count(camera_name)) {
+        return cameras_.at(camera_name);
     }
     else {
-        assert(database_.count(camera_name));
-        return database_.at(camera_name);
+        return nullptr;
     }
 }
 
@@ -53,8 +51,8 @@ void camera_database::from_json(const nlohmann::json& json_cameras) {
         const auto& camera_name = json_id_camera.key();
         const auto& json_camera = json_id_camera.value();
 
-        if (camera_name == curr_camera_->name_) {
-            spdlog::info("skip the tracking camera \"{}\"", camera_name);
+        if (cameras_.count(camera_name)) {
+            spdlog::info("A camera with the same name (\"{}\") already existed in database.", camera_name);
             continue;
         }
 
@@ -120,18 +118,17 @@ void camera_database::from_json(const nlohmann::json& json_cameras) {
             }
         }
 
-        assert(!database_.count(camera_name));
-        database_[camera_name] = camera;
+        assert(!cameras_.count(camera_name));
+        cameras_[camera_name] = camera;
     }
 }
 
 nlohmann::json camera_database::to_json() const {
     std::lock_guard<std::mutex> lock(mtx_database_);
 
-    spdlog::info("encoding {} camera(s) to store", database_.size() + 1);
+    spdlog::info("encoding {} camera(s) to store", cameras_.size());
     std::map<std::string, nlohmann::json> cameras;
-    cameras[curr_camera_->name_] = curr_camera_->to_json();
-    for (const auto& name_camera : database_) {
+    for (const auto& name_camera : cameras_) {
         const auto& camera_name = name_camera.first;
         const auto camera = name_camera.second;
         cameras[camera_name] = camera->to_json();
@@ -153,8 +150,8 @@ bool camera_database::from_db(sqlite3* db) {
         auto p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, 1));
         std::string camera_name(p, p + sqlite3_column_bytes(stmt, 1));
 
-        if (camera_name == curr_camera_->name_) {
-            spdlog::info("Use the current camera settings for {} in the configuration file", camera_name);
+        if (cameras_.count(camera_name)) {
+            spdlog::info("A camera with the same name (\"{}\") already existed in database.", camera_name);
             continue;
         }
 
@@ -225,8 +222,8 @@ bool camera_database::from_db(sqlite3* db) {
             }
         }
 
-        assert(!database_.count(camera_name));
-        database_[camera_name] = camera;
+        assert(!cameras_.count(camera_name));
+        cameras_[camera_name] = camera;
     }
     sqlite3_finalize(stmt);
     return ret == SQLITE_DONE;
@@ -254,9 +251,6 @@ bool camera_database::to_db(sqlite3* db) const {
         {"k4", "REAL"},
         {"focal_x_baseline", "REAL"},
         {"distortion", "REAL"}};
-    std::unordered_map<std::string, camera::base*> database_merged;
-    database_merged = database_;
-    database_merged.emplace(curr_camera_->name_, curr_camera_);
 
     int ret = sqlite3_exec(db, "DROP TABLE IF EXISTS cameras;", nullptr, nullptr, nullptr);
     if (ret == SQLITE_OK) {
@@ -288,7 +282,7 @@ bool camera_database::to_db(sqlite3* db) const {
         return false;
     }
     unsigned int camera_id = 0;
-    for (const auto& name_camera : database_merged) {
+    for (const auto& name_camera : cameras_) {
         const auto camera = name_camera.second;
         if (ret == SQLITE_OK || ret == SQLITE_DONE) {
             ret = sqlite3_bind_int64(stmt, 1, camera_id);
