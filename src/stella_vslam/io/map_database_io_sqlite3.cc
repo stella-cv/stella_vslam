@@ -68,7 +68,7 @@ void map_database_io_sqlite3::load(const std::string& path,
     ok = ok && map_db->from_db(db, cam_db, orb_params_db, bow_vocab);
     if (ok) {
         const auto keyfrms = map_db->get_all_keyframes();
-        for (const auto keyfrm : keyfrms) {
+        for (const auto& keyfrm : keyfrms) {
             bow_db->add_keyframe(keyfrm);
         }
     }
