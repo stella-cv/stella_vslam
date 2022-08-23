@@ -323,7 +323,7 @@ std::vector<std::shared_ptr<marker>> keyframe::get_markers() const {
     std::lock_guard<std::mutex> lock(mtx_observations_);
     std::vector<std::shared_ptr<marker>> markers;
     markers.reserve(markers_.size());
-    for (const auto id_marker : markers_) {
+    for (const auto& id_marker : markers_) {
         markers.push_back(id_marker.second);
     }
     return markers;
