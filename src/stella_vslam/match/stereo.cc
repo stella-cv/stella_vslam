@@ -64,7 +64,7 @@ void stereo::compute(std::vector<float>& stereo_x_right, std::vector<float>& dep
         // Compute the parallax of the subpixel order by patch correlation
         float best_x_right = -1.0f;
         float best_disp = -1.0f;
-        float best_correlation = UINT_MAX;
+        unsigned int best_correlation = UINT_MAX;
         const auto is_valid = compute_subpixel_disparity(keypt_left, keypt_right, best_x_right, best_disp, best_correlation);
         // Discard if it's not found
         if (!is_valid) {
@@ -178,7 +178,7 @@ void stereo::find_closest_keypoints_in_stereo(const unsigned int idx_left, const
 }
 
 bool stereo::compute_subpixel_disparity(const cv::KeyPoint& keypt_left, const cv::KeyPoint& keypt_right,
-                                        float& best_x_right, float& best_disp, float& best_correlation) const {
+                                        float& best_x_right, float& best_disp, unsigned int& best_correlation) const {
     // The keypoint on the right image whose hamming distance is cloest
     const float x_right = keypt_right.pt.x;
     // Convert cordinates to multiple scaling to compute patch correlation on the scaled image
