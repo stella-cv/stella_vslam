@@ -98,7 +98,7 @@ auto local_map_updater::find_second_local_keyframes(const std::vector<std::share
     second_local_keyfrms.reserve(4 * first_local_keyframes.size());
 
     // add the second-order keyframes to the local landmarks
-    auto add_second_local_keyframe = [this, &second_local_keyfrms, &already_found_keyfrm_ids](const std::shared_ptr<data::keyframe>& keyfrm) {
+    auto add_second_local_keyframe = [&second_local_keyfrms, &already_found_keyfrm_ids](const std::shared_ptr<data::keyframe>& keyfrm) {
         if (!keyfrm) {
             return false;
         }

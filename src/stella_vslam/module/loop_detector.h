@@ -122,8 +122,6 @@ private:
 
     //! BoW database
     data::bow_database* bow_db_;
-    //! BoW vocabulary
-    data::bow_vocabulary* bow_vocab_;
 
     //! transform optimizer
     const optimize::transform_optimizer transform_optimizer_;
@@ -133,8 +131,6 @@ private:
     //! flag which indicates the loop detector is enabled or not
     std::atomic<bool> loop_detector_is_enabled_{true};
 
-    //! for stereo/RGBD models, fix scale when estimating Sim3
-    const bool fix_scale_in_Sim3_estimation_;
 
     //! the threshold of the number of mutual matches after the Sim3 estimation
     const unsigned int num_final_matches_thr_;

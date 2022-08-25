@@ -48,7 +48,7 @@ private:
     std::unique_ptr<std::unordered_map<unsigned int, double>> point_hash_map_;
 
     double current_pose_hash_ = 0;
-    int frame_hash_ = 0;
+    
 
     inline double get_vec_hash(const stella_vslam::Vec3_t& point) {
         return point[0] + point[1] + point[2];

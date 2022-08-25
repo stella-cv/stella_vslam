@@ -221,9 +221,6 @@ private:
     //! map database
     data::map_database* map_db_ = nullptr;
 
-    //! BoW database
-    data::bow_database* bow_db_ = nullptr;
-
     //! BoW vocabulary
     data::bow_vocabulary* bow_vocab_ = nullptr;
 

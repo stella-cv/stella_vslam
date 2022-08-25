@@ -323,7 +323,7 @@ data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& 
     std::thread thread_left([this, &frm_obs, &img_gray, &mask]() {
         extractor_left_->extract(img_gray, mask, keypts_, frm_obs.descriptors_);
     });
-    std::thread thread_right([this, &frm_obs, &right_img_gray, &mask, &keypts_right, &descriptors_right]() {
+    std::thread thread_right([this,&right_img_gray, &mask, &keypts_right, &descriptors_right]() {
         extractor_right_->extract(right_img_gray, mask, keypts_right, descriptors_right);
     });
     thread_left.join();
