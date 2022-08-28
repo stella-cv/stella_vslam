@@ -243,17 +243,6 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
                              const nlohmann::json& json_keyfrms, const nlohmann::json& json_landmarks) {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
-    // Step 1. delete all the data in map database
-    for (auto& lm : landmarks_) {
-        lm.second = nullptr;
-    }
-
-    for (auto& keyfrm : keyframes_) {
-        keyfrm.second = nullptr;
-    }
-
-    landmarks_.clear();
-    keyframes_.clear();
     // When loading the map, leave last_inserted_keyfrm_ as nullptr.
     last_inserted_keyfrm_ = nullptr;
     local_landmarks_.clear();
@@ -262,7 +251,7 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
     // If the object does not exist at this step, the corresponding pointer is set as nullptr.
     spdlog::info("decoding {} keyframes to load", json_keyfrms.size());
     for (const auto& json_id_keyfrm : json_keyfrms.items()) {
-        const auto id = std::stoi(json_id_keyfrm.key());
+        const auto id = std::stoi(json_id_keyfrm.key()) + next_keyframe_id_;
         assert(0 <= id);
         const auto json_keyfrm = json_id_keyfrm.value();
 
@@ -273,7 +262,7 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
     // If the object does not exist at this step, the corresponding pointer is set as nullptr.
     spdlog::info("decoding {} landmarks to load", json_landmarks.size());
     for (const auto& json_id_landmark : json_landmarks.items()) {
-        const auto id = std::stoi(json_id_landmark.key());
+        const auto id = std::stoi(json_id_landmark.key()) + next_landmark_id_;
         assert(0 <= id);
         const auto json_landmark = json_id_landmark.value();
 
@@ -283,7 +272,7 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
     // Step 4. Register graph information
     spdlog::info("registering essential graph");
     for (const auto& json_id_keyfrm : json_keyfrms.items()) {
-        const auto id = std::stoi(json_id_keyfrm.key());
+        const auto id = std::stoi(json_id_keyfrm.key()) + next_keyframe_id_;
         assert(0 <= id);
         const auto json_keyfrm = json_id_keyfrm.value();
 
@@ -293,7 +282,7 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
     // Step 5. Register association between keyframs and 3D points
     spdlog::info("registering keyframe-landmark association");
     for (const auto& json_id_keyfrm : json_keyfrms.items()) {
-        const auto id = std::stoi(json_id_keyfrm.key());
+        const auto id = std::stoi(json_id_keyfrm.key()) + next_keyframe_id_;
         assert(0 <= id);
         const auto json_keyfrm = json_id_keyfrm.value();
 
@@ -303,7 +292,7 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
     // find root node
     std::unordered_set<unsigned int> already_found_root_ids;
     for (const auto& json_id_keyfrm : json_keyfrms.items()) {
-        const auto id = std::stoi(json_id_keyfrm.key());
+        const auto id = std::stoi(json_id_keyfrm.key()) + next_keyframe_id_;
         auto keyfrm = keyframes_.at(id);
         auto root = keyfrm->graph_node_->get_spanning_root();
         if (already_found_root_ids.count(root->id_)) {
@@ -317,7 +306,7 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
     // Step 6. Update graph
     spdlog::info("updating covisibility graph");
     for (const auto& json_id_keyfrm : json_keyfrms.items()) {
-        const auto id = std::stoi(json_id_keyfrm.key());
+        const auto id = std::stoi(json_id_keyfrm.key()) + next_keyframe_id_;
         assert(0 <= id);
 
         assert(keyframes_.count(id));
@@ -330,7 +319,7 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
     // Step 7. Update geometry
     spdlog::info("updating landmark geometry");
     for (const auto& json_id_landmark : json_landmarks.items()) {
-        const auto id = std::stoi(json_id_landmark.key());
+        const auto id = std::stoi(json_id_landmark.key()) + next_landmark_id_;
         assert(0 <= id);
 
         assert(landmarks_.count(id));
@@ -400,9 +389,9 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
 }
 
 void map_database::register_landmark(const unsigned int id, const nlohmann::json& json_landmark) {
-    const auto first_keyfrm_id = json_landmark.at("1st_keyfrm").get<int>();
+    const auto first_keyfrm_id = json_landmark.at("1st_keyfrm").get<int>() + next_keyframe_id_;
     const auto pos_w = Vec3_t(json_landmark.at("pos_w").get<std::vector<Vec3_t::value_type>>().data());
-    const auto ref_keyfrm_id = json_landmark.at("ref_keyfrm").get<int>();
+    const auto ref_keyfrm_id = json_landmark.at("ref_keyfrm").get<int>() + next_keyframe_id_;
     const auto ref_keyfrm = keyframes_.at(ref_keyfrm_id);
     const auto num_visible = json_landmark.at("n_vis").get<unsigned int>();
     const auto num_found = json_landmark.at("n_fnd").get<unsigned int>();
@@ -421,15 +410,15 @@ void map_database::register_graph(const unsigned int id, const nlohmann::json& j
     const auto loop_edge_ids = json_keyfrm.at("loop_edges").get<std::vector<int>>();
 
     assert(keyframes_.count(id));
-    assert(spanning_parent_id == -1 || keyframes_.count(spanning_parent_id));
-    keyframes_.at(id)->graph_node_->set_spanning_parent((spanning_parent_id == -1) ? nullptr : keyframes_.at(spanning_parent_id));
+    assert(spanning_parent_id == -1 || keyframes_.count(spanning_parent_id + next_keyframe_id_));
+    keyframes_.at(id)->graph_node_->set_spanning_parent((spanning_parent_id == -1) ? nullptr : keyframes_.at(spanning_parent_id + next_keyframe_id_));
     for (const auto spanning_child_id : spanning_children_ids) {
         assert(keyframes_.count(spanning_child_id));
-        keyframes_.at(id)->graph_node_->add_spanning_child(keyframes_.at(spanning_child_id));
+        keyframes_.at(id)->graph_node_->add_spanning_child(keyframes_.at(spanning_child_id + next_keyframe_id_));
     }
     for (const auto loop_edge_id : loop_edge_ids) {
         assert(keyframes_.count(loop_edge_id));
-        keyframes_.at(id)->graph_node_->add_loop_edge(keyframes_.at(loop_edge_id));
+        keyframes_.at(id)->graph_node_->add_loop_edge(keyframes_.at(loop_edge_id + next_keyframe_id_));
     }
 }
 
@@ -442,10 +431,11 @@ void map_database::register_association(const unsigned int keyfrm_id, const nloh
     assert(keyframes_.count(keyfrm_id));
     auto keyfrm = keyframes_.at(keyfrm_id);
     for (unsigned int idx = 0; idx < num_keypts; ++idx) {
-        const auto lm_id = landmark_ids.at(idx);
+        auto lm_id = landmark_ids.at(idx);
         if (lm_id < 0) {
             continue;
         }
+        lm_id += next_landmark_id_;
         if (!landmarks_.count(lm_id)) {
             spdlog::warn("landmark {}: not found in the database", lm_id);
             continue;
@@ -494,17 +484,6 @@ bool map_database::from_db(sqlite3* db,
                            bow_vocabulary* bow_vocab) {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
 
-    // Step 1. delete all the data in map database
-    for (auto& lm : landmarks_) {
-        lm.second = nullptr;
-    }
-
-    for (auto& keyfrm : keyframes_) {
-        keyfrm.second = nullptr;
-    }
-
-    landmarks_.clear();
-    keyframes_.clear();
     // When loading the map, leave last_inserted_keyfrm_ as nullptr.
     last_inserted_keyfrm_ = nullptr;
     local_landmarks_.clear();
@@ -636,11 +615,11 @@ bool map_database::load_keyframes_from_db(sqlite3* db,
         // Compute BoW
         data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
         auto keyfrm = data::keyframe::make_keyframe(
-            id, timestamp, pose_cw, camera, orb_params,
+            id + next_keyframe_id_, timestamp, pose_cw, camera, orb_params,
             frm_obs, bow_vec, bow_feat_vec);
 
         // Append to map database
-        assert(!keyframes_.count(id));
+        assert(!keyframes_.count(id + next_keyframe_id_));
         keyframes_[keyfrm->id_] = keyfrm;
     }
 
@@ -674,10 +653,10 @@ bool map_database::load_landmarks_from_db(sqlite3* db) {
         auto num_found = sqlite3_column_int64(stmt, column_id);
         column_id++;
 
-        auto ref_keyfrm = keyframes_.at(ref_keyfrm_id);
+        auto ref_keyfrm = keyframes_.at(ref_keyfrm_id + next_keyframe_id_);
 
         auto lm = std::make_shared<data::landmark>(
-            id, first_keyfrm_id, pos_w, ref_keyfrm,
+            id + next_landmark_id_, first_keyfrm_id + next_keyframe_id_, pos_w, ref_keyfrm,
             num_visible, num_found);
         assert(!landmarks_.count(id));
         landmarks_[lm->id_] = lm;
@@ -719,24 +698,25 @@ bool map_database::load_associations_from_db(sqlite3* db) {
         std::memcpy(loop_edge_ids.data(), p, sqlite3_column_bytes(stmt, column_id));
         column_id++;
 
-        assert(spanning_parent_id == -1 || keyframes_.count(spanning_parent_id));
-        keyframes_.at(keyfrm_id)->graph_node_->set_spanning_parent((spanning_parent_id == -1LL) ? nullptr : keyframes_.at(spanning_parent_id));
+        assert(spanning_parent_id == -1 || keyframes_.count(spanning_parent_id + next_keyframe_id_));
+        keyframes_.at(keyfrm_id)->graph_node_->set_spanning_parent((spanning_parent_id == -1LL) ? nullptr : keyframes_.at(spanning_parent_id + next_keyframe_id_));
         for (const auto spanning_child_id : spanning_children_ids) {
-            assert(keyframes_.count(spanning_child_id));
-            keyframes_.at(keyfrm_id)->graph_node_->add_spanning_child(keyframes_.at(spanning_child_id));
+            assert(keyframes_.count(spanning_child_id + next_keyframe_id_));
+            keyframes_.at(keyfrm_id)->graph_node_->add_spanning_child(keyframes_.at(spanning_child_id + next_keyframe_id_));
         }
         for (const auto loop_edge_id : loop_edge_ids) {
-            assert(keyframes_.count(loop_edge_id));
-            keyframes_.at(keyfrm_id)->graph_node_->add_loop_edge(keyframes_.at(loop_edge_id));
+            assert(keyframes_.count(loop_edge_id + next_keyframe_id_));
+            keyframes_.at(keyfrm_id)->graph_node_->add_loop_edge(keyframes_.at(loop_edge_id + next_keyframe_id_));
         }
 
         assert(keyframes_.count(keyfrm_id));
         auto keyfrm = keyframes_.at(keyfrm_id);
         for (unsigned int idx = 0; idx < lm_ids.size(); ++idx) {
-            const auto lm_id = lm_ids.at(idx);
+            auto lm_id = lm_ids.at(idx);
             if (lm_id < 0) {
                 continue;
             }
+            lm_id += next_landmark_id_;
             if (!landmarks_.count(lm_id)) {
                 spdlog::warn("landmark {}: not found in the database", lm_id);
                 continue;

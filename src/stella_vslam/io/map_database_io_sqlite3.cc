@@ -63,9 +63,11 @@ void map_database_io_sqlite3::load(const std::string& path,
     }
 
     // load from database
-    bool ok = load_stats(db, map_db);
-    ok = ok && cam_db->from_db(db);
+    bool ok = cam_db->from_db(db);
     ok = ok && map_db->from_db(db, cam_db, orb_params_db, bow_vocab);
+    ok = ok && load_stats(db, map_db);
+
+    // update bow database
     if (ok) {
         const auto keyfrms = map_db->get_all_keyframes();
         for (const auto& keyfrm : keyfrms) {

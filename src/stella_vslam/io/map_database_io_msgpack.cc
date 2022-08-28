@@ -81,9 +81,6 @@ void map_database_io_msgpack::load(const std::string& path,
 
     const auto json = nlohmann::json::from_msgpack(msgpack);
 
-    // load next ID
-    map_db->next_keyframe_id_ = json.at("keyframe_next_id").get<unsigned int>();
-    map_db->next_landmark_id_ = json.at("landmark_next_id").get<unsigned int>();
     // load database
     const auto json_cameras = json.at("cameras");
     cam_db->from_json(json_cameras);
@@ -92,6 +89,11 @@ void map_database_io_msgpack::load(const std::string& path,
     const auto json_keyfrms = json.at("keyframes");
     const auto json_landmarks = json.at("landmarks");
     map_db->from_json(cam_db, orb_params_db, bow_vocab, json_keyfrms, json_landmarks);
+    // load next ID
+    map_db->next_keyframe_id_ += json.at("keyframe_next_id").get<unsigned int>();
+    map_db->next_landmark_id_ += json.at("landmark_next_id").get<unsigned int>();
+
+    // update bow database
     const auto keyfrms = map_db->get_all_keyframes();
     for (const auto& keyfrm : keyfrms) {
         bow_db->add_keyframe(keyfrm);
