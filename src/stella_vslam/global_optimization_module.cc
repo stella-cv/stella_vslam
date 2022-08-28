@@ -209,6 +209,11 @@ void global_optimization_module::correct_loop() {
 
     spdlog::info("detect loop: keyframe {} - keyframe {}", final_candidate_keyfrm->id_, cur_keyfrm_->id_);
 
+    if (cur_keyfrm_->graph_node_->get_spanning_root() != final_candidate_keyfrm->graph_node_->get_spanning_root()) {
+        spdlog::warn("The feature to merge two spanning trees has not yet been implemented.");
+        return;
+    }
+
     // 0. pre-processing
 
     // 0-1. stop the mapping module and the previous loop bundle adjuster

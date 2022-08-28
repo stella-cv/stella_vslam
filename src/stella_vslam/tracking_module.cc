@@ -261,8 +261,7 @@ bool tracking_module::initialize() {
 
     // pass all of the keyframes to the mapping module
     assert(!is_stopped_keyframe_insertion_);
-    const auto keyfrms = map_db_->get_all_keyframes();
-    for (const auto& keyfrm : keyfrms) {
+    for (const auto& keyfrm : curr_frm_.ref_keyfrm_->graph_node_->get_keyframes_from_root()) {
         mapper_->queue_keyframe(keyfrm);
     }
 

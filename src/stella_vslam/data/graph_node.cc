@@ -438,6 +438,22 @@ void graph_node::set_spanning_root(std::shared_ptr<keyframe>& keyfrm) {
     spanning_root_ = keyfrm;
 }
 
+std::vector<std::shared_ptr<keyframe>> graph_node::get_keyframes_from_root() {
+    std::vector<std::shared_ptr<keyframe>> keyfrms;
+    std::list<std::shared_ptr<data::keyframe>> keyfrms_to_check;
+    keyfrms_to_check.push_back(get_spanning_root());
+    while (!keyfrms_to_check.empty()) {
+        auto parent = keyfrms_to_check.front();
+        keyfrms.push_back(parent);
+        const auto children = parent->graph_node_->get_spanning_children();
+        for (auto child : children) {
+            keyfrms_to_check.push_back(child);
+        }
+        keyfrms_to_check.pop_front();
+    }
+    return keyfrms;
+}
+
 template<typename T, typename U>
 std::vector<std::shared_ptr<keyframe>> graph_node::extract_intersection(const T& keyfrms_1, const U& keyfrms_2) {
     std::vector<std::shared_ptr<keyframe>> intersection;

@@ -84,7 +84,7 @@ public:
 
     /**
      * Set the parent node of spanning tree
-     * (NOTE: this functions will be only used for map loading)
+     * (NOTE: this functions will be only used for map loading or initialization)
      */
     void set_spanning_parent(const std::shared_ptr<keyframe>& keyfrm);
 
@@ -149,6 +149,8 @@ public:
     bool is_spanning_root() const;
 
     void set_spanning_root(std::shared_ptr<keyframe>& keyfrm);
+
+    std::vector<std::shared_ptr<keyframe>> get_keyframes_from_root();
 
 private:
     /**
