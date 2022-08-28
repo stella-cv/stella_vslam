@@ -88,6 +88,16 @@ std::shared_ptr<marker> map_database::get_marker(unsigned int id) const {
     return mkr;
 }
 
+void map_database::add_spanning_root(std::shared_ptr<keyframe>& keyframe) {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    spanning_roots_.push_back(keyframe);
+}
+
+std::vector<std::shared_ptr<keyframe>> map_database::get_spanning_roots() {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    return spanning_roots_;
+}
+
 void map_database::set_local_landmarks(const std::vector<std::shared_ptr<landmark>>& local_lms) {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
     local_landmarks_ = local_lms;
@@ -259,12 +269,6 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
         register_keyframe(cam_db, orb_params_db, bow_vocab, id, json_keyfrm);
     }
 
-    // find root node
-    for (const auto& id_keyfrm : keyframes_) {
-        const auto keyfrm = id_keyfrm.second;
-        keyfrm->graph_node_->get_spanning_root();
-    }
-
     // Step 3. Register 3D landmark point
     // If the object does not exist at this step, the corresponding pointer is set as nullptr.
     spdlog::info("decoding {} landmarks to load", json_landmarks.size());
@@ -294,6 +298,20 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
         const auto json_keyfrm = json_id_keyfrm.value();
 
         register_association(id, json_keyfrm);
+    }
+
+    // find root node
+    std::unordered_set<unsigned int> already_found_root_ids;
+    for (const auto& json_id_keyfrm : json_keyfrms.items()) {
+        const auto id = std::stoi(json_id_keyfrm.key());
+        auto keyfrm = keyframes_.at(id);
+        auto root = keyfrm->graph_node_->get_spanning_root();
+        if (already_found_root_ids.count(root->id_)) {
+            continue;
+        }
+        already_found_root_ids.insert(root->id_);
+        spdlog::debug("found root node {}", root->id_);
+        spanning_roots_.push_back(root);
     }
 
     // Step 6. Update graph
@@ -505,6 +523,22 @@ bool map_database::from_db(sqlite3* db,
         return false;
     }
 
+    // find root node
+    std::unordered_set<unsigned int> already_found_root_ids;
+    for (const auto& root : spanning_roots_) {
+        already_found_root_ids.insert(root->id_);
+    }
+    for (const auto& id_keyfrm : keyframes_) {
+        const auto keyfrm = id_keyfrm.second;
+        auto root = keyfrm->graph_node_->get_spanning_root();
+        if (already_found_root_ids.count(root->id_)) {
+            continue;
+        }
+        already_found_root_ids.insert(root->id_);
+        spdlog::debug("found root node {}", root->id_);
+        spanning_roots_.push_back(root);
+    }
+
     spdlog::info("updating covisibility graph");
     for (const auto& id_keyfrm : keyframes_) {
         const auto keyfrm = id_keyfrm.second;
@@ -609,11 +643,7 @@ bool map_database::load_keyframes_from_db(sqlite3* db,
         assert(!keyframes_.count(id));
         keyframes_[keyfrm->id_] = keyfrm;
     }
-    // find root node
-    for (const auto& id_keyfrm : keyframes_) {
-        const auto keyfrm = id_keyfrm.second;
-        keyfrm->graph_node_->get_spanning_root();
-    }
+
     sqlite3_finalize(stmt);
     return ret == SQLITE_DONE;
 }

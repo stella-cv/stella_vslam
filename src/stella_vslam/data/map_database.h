@@ -103,6 +103,7 @@ public:
 
     /**
      * Get all of the keyframes in the database
+     * NOTE: Access multiple spanning trees. Used only to read and write databases.
      * @return
      */
     std::vector<std::shared_ptr<keyframe>> get_all_keyframes() const;
@@ -166,6 +167,16 @@ public:
      * @return marker
      */
     std::shared_ptr<marker> get_marker(unsigned int id) const;
+
+    /**
+     * Add spanning root
+     */
+    void add_spanning_root(std::shared_ptr<keyframe>& keyframe);
+
+    /**
+     * Get spanning roots
+     */
+    std::vector<std::shared_ptr<keyframe>> get_spanning_roots();
 
     /**
      * Get the number of landmarks
@@ -311,6 +322,9 @@ private:
     std::unordered_map<unsigned int, std::shared_ptr<landmark>> landmarks_;
     //! IDs and markers
     std::unordered_map<unsigned int, std::shared_ptr<marker>> markers_;
+
+    //! spanning roots
+    std::vector<std::shared_ptr<keyframe>> spanning_roots_;
 
     //! The last keyframe added to the database
     std::shared_ptr<keyframe> last_inserted_keyfrm_ = nullptr;

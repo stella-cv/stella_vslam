@@ -104,8 +104,27 @@ void loop_bundle_adjuster::optimize(const std::shared_ptr<data::keyframe>& curr_
         }
 
         spdlog::debug("update the positions of the landmarks");
-        const auto landmarks = map_db_->get_all_landmarks();
-        for (const auto& lm : landmarks) {
+        auto keyfrms = curr_keyfrm->graph_node_->get_keyframes_from_root();
+        std::unordered_set<unsigned int> already_found_landmark_ids;
+        std::vector<std::shared_ptr<data::landmark>> lms;
+        for (const auto& keyfrm : keyfrms) {
+            for (const auto& lm : keyfrm->get_landmarks()) {
+                if (!lm) {
+                    continue;
+                }
+                if (lm->will_be_erased()) {
+                    continue;
+                }
+                if (already_found_landmark_ids.count(lm->id_)) {
+                    continue;
+                }
+
+                already_found_landmark_ids.insert(lm->id_);
+                lms.push_back(lm);
+            }
+        }
+
+        for (const auto& lm : lms) {
             if (lm->will_be_erased()) {
                 continue;
             }

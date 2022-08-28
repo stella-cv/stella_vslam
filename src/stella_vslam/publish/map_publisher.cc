@@ -28,13 +28,40 @@ Mat44_t map_publisher::get_current_cam_pose() {
 }
 
 unsigned int map_publisher::get_keyframes(std::vector<std::shared_ptr<data::keyframe>>& all_keyfrms) {
-    all_keyfrms = map_db_->get_all_keyframes();
+    auto roots = map_db_->get_spanning_roots();
+    if (roots.empty()) {
+        return 0;
+    }
+    all_keyfrms = roots.back()->graph_node_->get_keyframes_from_root();
     return map_db_->get_num_keyframes();
 }
 
 unsigned int map_publisher::get_landmarks(std::vector<std::shared_ptr<data::landmark>>& all_landmarks,
                                           std::set<std::shared_ptr<data::landmark>>& local_landmarks) {
-    all_landmarks = map_db_->get_all_landmarks();
+    auto roots = map_db_->get_spanning_roots();
+    if (roots.empty()) {
+        return 0;
+    }
+    auto keyfrms = roots.back()->graph_node_->get_keyframes_from_root();
+    std::unordered_set<unsigned int> already_found_landmark_ids;
+    all_landmarks.clear();
+    for (const auto& keyfrm : keyfrms) {
+        for (const auto& lm : keyfrm->get_landmarks()) {
+            if (!lm) {
+                continue;
+            }
+            if (lm->will_be_erased()) {
+                continue;
+            }
+            if (already_found_landmark_ids.count(lm->id_)) {
+                continue;
+            }
+
+            already_found_landmark_ids.insert(lm->id_);
+            all_landmarks.push_back(lm);
+        }
+    }
+
     const auto _local_landmarks = map_db_->get_local_landmarks();
     local_landmarks = std::set<std::shared_ptr<data::landmark>>(_local_landmarks.begin(), _local_landmarks.end());
     return map_db_->get_num_landmarks();

@@ -198,6 +198,7 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     init_keyfrm->graph_node_->add_spanning_child(curr_keyfrm);
     init_keyfrm->graph_node_->set_spanning_root(init_keyfrm);
     curr_keyfrm->graph_node_->set_spanning_root(init_keyfrm);
+    map_db_->add_spanning_root(init_keyfrm);
 
     // compute BoW representations
     init_keyfrm->compute_bow(bow_vocab);
@@ -329,6 +330,7 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
     curr_frm.set_pose_cw(Mat44_t::Identity());
     auto curr_keyfrm = data::keyframe::make_keyframe(map_db_->next_keyframe_id_++, curr_frm);
     curr_keyfrm->graph_node_->set_spanning_root(curr_keyfrm);
+    map_db_->add_spanning_root(curr_keyfrm);
 
     // compute BoW representation
     curr_keyfrm->compute_bow(bow_vocab);
