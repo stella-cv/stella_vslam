@@ -196,9 +196,7 @@ void global_optimization_module::run() {
 
 void global_optimization_module::queue_keyframe(const std::shared_ptr<data::keyframe>& keyfrm) {
     std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
-    if (keyfrm->id_ != 0) {
-        keyfrms_queue_.push_back(keyfrm);
-    }
+    keyfrms_queue_.push_back(keyfrm);
 }
 
 bool global_optimization_module::keyframe_is_queued() const {
@@ -291,7 +289,7 @@ void global_optimization_module::correct_loop() {
         thread_for_loop_BA_.reset(nullptr);
     }
     SPDLOG_TRACE("global_optimization_module: launch loop BA");
-    thread_for_loop_BA_ = std::unique_ptr<std::thread>(new std::thread(&module::loop_bundle_adjuster::optimize, loop_bundle_adjuster_.get()));
+    thread_for_loop_BA_ = std::unique_ptr<std::thread>(new std::thread(&module::loop_bundle_adjuster::optimize, loop_bundle_adjuster_.get(), cur_keyfrm_));
 
     // 6. post-processing
 

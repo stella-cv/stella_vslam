@@ -76,8 +76,8 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             keyfrm_vtx->setEstimate(Sim3_cw);
         }
 
-        // Fix the loop keyframe or origin keyframe
-        if (*keyfrm == *loop_keyfrm || keyfrm->id_ == 0) {
+        // Fix the loop keyframe or root keyframe
+        if (*keyfrm == *loop_keyfrm || keyfrm->graph_node_->is_spanning_root()) {
             keyfrm_vtx->setFixed(true);
         }
 

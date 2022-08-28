@@ -194,6 +194,8 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     // create initial keyframes
     auto init_keyfrm = data::keyframe::make_keyframe(map_db_->next_keyframe_id_++, init_frm_);
     auto curr_keyfrm = data::keyframe::make_keyframe(map_db_->next_keyframe_id_++, curr_frm);
+    init_keyfrm->graph_node_->set_spanning_root(init_keyfrm);
+    curr_keyfrm->graph_node_->set_spanning_root(init_keyfrm);
 
     // compute BoW representations
     init_keyfrm->compute_bow(bow_vocab);
@@ -281,9 +283,6 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     // update the current frame pose
     curr_frm.set_pose_cw(curr_keyfrm->get_pose_cw());
 
-    // set the origin keyframe
-    map_db_->origin_keyfrm_ = init_keyfrm;
-
     spdlog::info("new map created with {} points: frame {} - frame {}", map_db_->get_num_landmarks(), init_frm_.id_, curr_frm.id_);
     state_ = initializer_state_t::Succeeded;
     return true;
@@ -322,6 +321,7 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
     // create an initial keyframe
     curr_frm.set_pose_cw(Mat44_t::Identity());
     auto curr_keyfrm = data::keyframe::make_keyframe(map_db_->next_keyframe_id_++, curr_frm);
+    curr_keyfrm->graph_node_->set_spanning_root(curr_keyfrm);
 
     // compute BoW representation
     curr_keyfrm->compute_bow(bow_vocab);
@@ -358,9 +358,6 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
         // add the landmark to the map DB
         map_db_->add_landmark(lm);
     }
-
-    // set the origin keyframe
-    map_db_->origin_keyfrm_ = curr_keyfrm;
 
     spdlog::info("new map created with {} points: frame {}", map_db_->get_num_landmarks(), curr_frm.id_);
     state_ = initializer_state_t::Succeeded;

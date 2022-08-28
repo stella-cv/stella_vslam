@@ -110,7 +110,9 @@ void mapping_module::run() {
         // create and extend the map with the new keyframe
         mapping_with_new_keyframe();
         // send the new keyframe to the global optimization module
-        global_optimizer_->queue_keyframe(cur_keyfrm_);
+        if (!cur_keyfrm_->graph_node_->is_spanning_root()) {
+            global_optimizer_->queue_keyframe(cur_keyfrm_);
+        }
     }
 
     spdlog::info("terminate mapping module");

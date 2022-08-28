@@ -58,7 +58,7 @@ void optimize_impl(g2o::SparseOptimizer& optimizer,
             continue;
         }
 
-        auto keyfrm_vtx = keyfrm_vtx_container.create_vertex(keyfrm, keyfrm->id_ == 0);
+        auto keyfrm_vtx = keyfrm_vtx_container.create_vertex(keyfrm, keyfrm->graph_node_->is_spanning_root());
         optimizer.addVertex(keyfrm_vtx);
     }
 

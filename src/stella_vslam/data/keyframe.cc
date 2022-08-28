@@ -340,8 +340,8 @@ void keyframe::set_to_be_erased() {
 }
 
 void keyframe::prepare_for_erasing(map_database* map_db, bow_database* bow_db) {
-    // cannot erase the origin
-    if (*this == *(map_db->origin_keyfrm_)) {
+    if (graph_node_->is_spanning_root()) {
+        spdlog::warn("cannot erase the root node: {}", id_);
         return;
     }
 

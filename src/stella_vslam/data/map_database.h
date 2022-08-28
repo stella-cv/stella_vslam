@@ -244,9 +244,6 @@ public:
      */
     bool to_db(sqlite3* db) const;
 
-    //! origin keyframe
-    std::shared_ptr<keyframe> origin_keyfrm_ = nullptr;
-
     //! mutex for locking ALL access to the database
     //! (NOTE: cannot used in map_database class)
     static std::mutex mtx_database_;

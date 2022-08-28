@@ -89,11 +89,6 @@ public:
     void set_spanning_parent(const std::shared_ptr<keyframe>& keyfrm);
 
     /**
-     * Whether this node has the parent or not
-     */
-    bool has_spanning_parent() const;
-
-    /**
      * Get the parent of spanning tree
      */
     std::shared_ptr<keyframe> get_spanning_parent() const;
@@ -146,6 +141,15 @@ public:
      */
     bool has_loop_edge() const;
 
+    //-----------------------------------------
+    // root
+
+    std::shared_ptr<keyframe> get_spanning_root();
+
+    bool is_spanning_root() const;
+
+    void set_spanning_root(std::shared_ptr<keyframe>& keyfrm);
+
 private:
     /**
      * Update the order of the covisibilities (without mutex)
@@ -158,6 +162,13 @@ private:
      */
     template<typename T, typename U>
     static std::vector<std::shared_ptr<keyframe>> extract_intersection(const T& keyfrms_1, const U& keyfrms_2);
+
+    //-----------------------------------------
+    // implementation
+
+    std::shared_ptr<keyframe> get_spanning_root_impl();
+
+    bool is_spanning_root_impl() const;
 
     //! keyframe of this node
     std::weak_ptr<keyframe> const owner_keyfrm_;
@@ -174,8 +185,8 @@ private:
     std::weak_ptr<keyframe> spanning_parent_;
     //! children of spanning tree
     id_ordered_set<std::weak_ptr<keyframe>> spanning_children_;
-    //! flag which indicates spanning tree is not set yet or not
-    std::atomic<bool> has_spanning_parent_;
+    //! root keyframe of spanning tree
+    std::weak_ptr<keyframe> spanning_root_;
 
     //! loop edges
     id_ordered_set<std::weak_ptr<keyframe>> loop_edges_;

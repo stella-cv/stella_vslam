@@ -50,7 +50,7 @@ void local_bundle_adjuster::optimize(data::map_database* map_db,
         if (local_keyfrm->will_be_erased()) {
             continue;
         }
-        if (local_keyfrm->id_ == 0) {
+        if (local_keyfrm->graph_node_->is_spanning_root()) {
             continue;
         }
 

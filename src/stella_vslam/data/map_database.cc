@@ -220,7 +220,6 @@ void map_database::clear() {
     keyframes_.clear();
     last_inserted_keyfrm_ = nullptr;
     local_landmarks_.clear();
-    origin_keyfrm_ = nullptr;
 
     frm_stats_.clear();
 
@@ -248,7 +247,6 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
     // When loading the map, leave last_inserted_keyfrm_ as nullptr.
     last_inserted_keyfrm_ = nullptr;
     local_landmarks_.clear();
-    origin_keyfrm_ = nullptr;
 
     // Step 2. Register keyframes
     // If the object does not exist at this step, the corresponding pointer is set as nullptr.
@@ -259,6 +257,12 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
         const auto json_keyfrm = json_id_keyfrm.value();
 
         register_keyframe(cam_db, orb_params_db, bow_vocab, id, json_keyfrm);
+    }
+
+    // find root node
+    for (const auto& id_keyfrm : keyframes_) {
+        const auto keyfrm = id_keyfrm.second;
+        keyfrm->graph_node_->get_spanning_root();
     }
 
     // Step 3. Register 3D landmark point
@@ -375,9 +379,6 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     // Append to map database
     assert(!keyframes_.count(id));
     keyframes_[keyfrm->id_] = keyfrm;
-    if (id == 0) {
-        origin_keyfrm_ = keyfrm;
-    }
 }
 
 void map_database::register_landmark(const unsigned int id, const nlohmann::json& json_landmark) {
@@ -489,7 +490,6 @@ bool map_database::from_db(sqlite3* db,
     // When loading the map, leave last_inserted_keyfrm_ as nullptr.
     last_inserted_keyfrm_ = nullptr;
     local_landmarks_.clear();
-    origin_keyfrm_ = nullptr;
 
     // Step 2. load data from database
     bool ok = load_keyframes_from_db(db, cam_db, orb_params_db, bow_vocab);
@@ -608,9 +608,11 @@ bool map_database::load_keyframes_from_db(sqlite3* db,
         // Append to map database
         assert(!keyframes_.count(id));
         keyframes_[keyfrm->id_] = keyfrm;
-        if (id == 0) {
-            origin_keyfrm_ = keyfrm;
-        }
+    }
+    // find root node
+    for (const auto& id_keyfrm : keyframes_) {
+        const auto keyfrm = id_keyfrm.second;
+        keyfrm->graph_node_->get_spanning_root();
     }
     sqlite3_finalize(stmt);
     return ret == SQLITE_DONE;
