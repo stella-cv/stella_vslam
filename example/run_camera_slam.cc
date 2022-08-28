@@ -22,6 +22,9 @@
 #include <spdlog/spdlog.h>
 #include <popl.hpp>
 
+#include <ghc/filesystem.hpp>
+namespace fs = ghc::filesystem;
+
 #ifdef USE_STACK_TRACE_LOGGER
 #include <backward.hpp>
 #endif
@@ -234,9 +237,9 @@ int main(int argc, char* argv[]) {
     auto config_file_path = op.add<popl::Value<std::string>>("c", "config", "config file path");
     auto mask_img_path = op.add<popl::Value<std::string>>("", "mask", "mask image path", "");
     auto scale = op.add<popl::Value<float>>("s", "scale", "scaling ratio of images", 1.0);
-    auto map_db_path = op.add<popl::Value<std::string>>("p", "map-db", "store a map database at this path after slam", "");
+    auto map_db_path_in = op.add<popl::Value<std::string>>("i", "map-db-in", "load a map from this path", "");
+    auto map_db_path_out = op.add<popl::Value<std::string>>("o", "map-db-out", "store a map database at this path after slam", "");
     auto log_level = op.add<popl::Value<std::string>>("", "log-level", "log level", "info");
-    auto load_map = op.add<popl::Switch>("", "load-map", "load a map database");
     auto disable_mapping = op.add<popl::Switch>("", "disable-mapping", "disable mapping");
     try {
         op.parse(argc, argv);
@@ -289,10 +292,19 @@ int main(int argc, char* argv[]) {
     // build a slam system
     stella_vslam::system slam(cfg, vocab_file_path->value());
     bool need_initialize = true;
-    if (load_map->is_set()) {
+    if (map_db_path_in->is_set()) {
         need_initialize = false;
-        // load the prebuilt map
-        slam.load_map_database(map_db_path->value());
+        const auto path = fs::path(map_db_path_in->value());
+        if (path.extension() == ".yaml") {
+            YAML::Node node = YAML::LoadFile(path);
+            for (const auto& map_path : node["maps"].as<std::vector<std::string>>()) {
+                slam.load_map_database(path.parent_path() / map_path);
+            }
+        }
+        else {
+            // load the prebuilt map
+            slam.load_map_database(path);
+        }
     }
     slam.startup(need_initialize);
     if (disable_mapping->is_set()) {
@@ -306,7 +318,7 @@ int main(int argc, char* argv[]) {
                       cam_num->value(),
                       mask_img_path->value(),
                       scale->value(),
-                      map_db_path->value());
+                      map_db_path_out->value());
     }
     else if (slam.get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Stereo) {
         stereo_tracking(slam,
@@ -314,7 +326,7 @@ int main(int argc, char* argv[]) {
                         cam_num->value(),
                         mask_img_path->value(),
                         scale->value(),
-                        map_db_path->value());
+                        map_db_path_out->value());
     }
     else {
         throw std::runtime_error("Invalid setup type: " + slam.get_camera()->get_setup_type_string());

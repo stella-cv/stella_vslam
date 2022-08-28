@@ -56,7 +56,7 @@ If you finish all the above procedure, you will see the terminal inside a docker
 #### run tracking and mapping
 
 ```shell
-./run_video_slam -v /vocab/orb_vocab.fbow -m /dataset/aist_living_lab_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --map-db map.msg
+./run_video_slam -v /vocab/orb_vocab.fbow -m /dataset/aist_living_lab_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --map-db-out map.msg
 ```
 
 After you see the window is stopped, press "Terminate" button in the left pane.
@@ -66,7 +66,7 @@ You can use it for the below tracking demo.
 #### run localization
 
 ```shell
-./run_video_slam --load-map --disable-mapping -v /vocab/orb_vocab.fbow -m /dataset/aist_living_lab_2/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --map-db map.msg
+./run_video_slam --disable-mapping -v /vocab/orb_vocab.fbow -m /dataset/aist_living_lab_2/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --map-db-in map.msg
 ```
 
 ## Run stella_vslam on your own video
