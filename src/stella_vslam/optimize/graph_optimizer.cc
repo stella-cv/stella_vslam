@@ -19,8 +19,8 @@
 namespace stella_vslam {
 namespace optimize {
 
-graph_optimizer::graph_optimizer(data::map_database* map_db, const bool fix_scale)
-    : map_db_(map_db), fix_scale_(fix_scale) {}
+graph_optimizer::graph_optimizer(const bool fix_scale)
+    : fix_scale_(fix_scale) {}
 
 void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfrm, const std::shared_ptr<data::keyframe>& curr_keyfrm,
                                const module::keyframe_Sim3_pairs_t& non_corrected_Sim3s,

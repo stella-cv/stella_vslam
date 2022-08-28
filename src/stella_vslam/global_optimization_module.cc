@@ -18,7 +18,7 @@ global_optimization_module::global_optimization_module(data::map_database* map_d
     : loop_detector_(new module::loop_detector(bow_db, bow_vocab, util::yaml_optional_ref(yaml_node, "LoopDetector"), fix_scale)),
       loop_bundle_adjuster_(new module::loop_bundle_adjuster(map_db)),
       map_db_(map_db),
-      graph_optimizer_(new optimize::graph_optimizer(map_db, fix_scale)) {
+      graph_optimizer_(new optimize::graph_optimizer(fix_scale)) {
     spdlog::debug("CONSTRUCT: global_optimization_module");
 }
 
