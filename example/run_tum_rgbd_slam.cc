@@ -309,6 +309,13 @@ int main(int argc, char* argv[]) {
         std::cerr << op << std::endl;
         return EXIT_FAILURE;
     }
+    if (!op.unknown_options().empty()) {
+        for (const auto& unknown_option : op.unknown_options()) {
+            std::cerr << "unknown_options: " << unknown_option << std::endl;
+        }
+        std::cerr << op << std::endl;
+        return EXIT_FAILURE;
+    }
     if (!vocab_file_path->is_set() || !data_dir_path->is_set() || !config_file_path->is_set()) {
         std::cerr << "invalid arguments" << std::endl;
         std::cerr << std::endl;
