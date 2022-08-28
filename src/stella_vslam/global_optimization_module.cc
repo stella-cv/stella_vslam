@@ -18,7 +18,7 @@ global_optimization_module::global_optimization_module(data::map_database* map_d
     : loop_detector_(new module::loop_detector(bow_db, bow_vocab, util::yaml_optional_ref(yaml_node, "LoopDetector"), fix_scale)),
       loop_bundle_adjuster_(new module::loop_bundle_adjuster(map_db)),
       map_db_(map_db),
-      graph_optimizer_(new optimize::graph_optimizer(map_db, fix_scale)) {
+      graph_optimizer_(new optimize::graph_optimizer(fix_scale)) {
     spdlog::debug("CONSTRUCT: global_optimization_module");
 }
 
@@ -196,9 +196,7 @@ void global_optimization_module::run() {
 
 void global_optimization_module::queue_keyframe(const std::shared_ptr<data::keyframe>& keyfrm) {
     std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
-    if (keyfrm->id_ != 0) {
-        keyfrms_queue_.push_back(keyfrm);
-    }
+    keyfrms_queue_.push_back(keyfrm);
 }
 
 bool global_optimization_module::keyframe_is_queued() const {
@@ -210,6 +208,11 @@ void global_optimization_module::correct_loop() {
     auto final_candidate_keyfrm = loop_detector_->get_selected_candidate_keyframe();
 
     spdlog::info("detect loop: keyframe {} - keyframe {}", final_candidate_keyfrm->id_, cur_keyfrm_->id_);
+
+    if (cur_keyfrm_->graph_node_->get_spanning_root() != final_candidate_keyfrm->graph_node_->get_spanning_root()) {
+        spdlog::warn("The feature to merge two spanning trees has not yet been implemented.");
+        return;
+    }
 
     // 0. pre-processing
 
@@ -291,7 +294,7 @@ void global_optimization_module::correct_loop() {
         thread_for_loop_BA_.reset(nullptr);
     }
     SPDLOG_TRACE("global_optimization_module: launch loop BA");
-    thread_for_loop_BA_ = std::unique_ptr<std::thread>(new std::thread(&module::loop_bundle_adjuster::optimize, loop_bundle_adjuster_.get()));
+    thread_for_loop_BA_ = std::unique_ptr<std::thread>(new std::thread(&module::loop_bundle_adjuster::optimize, loop_bundle_adjuster_.get(), cur_keyfrm_));
 
     // 6. post-processing
 

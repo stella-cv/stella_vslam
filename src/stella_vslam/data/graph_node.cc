@@ -14,7 +14,7 @@ namespace stella_vslam {
 namespace data {
 
 graph_node::graph_node(std::shared_ptr<keyframe>& keyfrm)
-    : owner_keyfrm_(keyfrm), has_spanning_parent_(false) {}
+    : owner_keyfrm_(keyfrm) {}
 
 void graph_node::add_connection(const std::shared_ptr<keyframe>& keyfrm, const unsigned int num_shared_lms) {
     std::lock_guard<std::mutex> lock(mtx_);
@@ -82,7 +82,7 @@ void graph_node::update_connections(unsigned int min_num_shared_lms) {
             auto keyfrm = obs.first;
             auto locked_keyfrm = keyfrm.lock();
 
-            if (!locked_keyfrm->graph_node_->has_spanning_parent_ && locked_keyfrm->id_ != 0) {
+            if (locked_keyfrm->graph_node_->spanning_parent_.expired() && !locked_keyfrm->graph_node_->is_spanning_root()) {
                 continue;
             }
             if (locked_keyfrm->id_ == owner_keyfrm->id_) {
@@ -150,12 +150,12 @@ void graph_node::update_connections(unsigned int min_num_shared_lms) {
         ordered_covisibilities_ = ordered_covisibilities;
         ordered_num_shared_lms_ = ordered_num_shared_lms;
 
-        if (!has_spanning_parent_ && owner_keyfrm->id_ != 0) {
+        if (spanning_parent_.expired() && !is_spanning_root_impl()) {
             // set the parent of spanning tree
             assert(nearest_covisibility->id_ == ordered_covisibilities.front().lock()->id_);
             spanning_parent_ = nearest_covisibility;
+            spanning_root_ = spanning_parent_.lock()->graph_node_->get_spanning_root_impl();
             nearest_covisibility->graph_node_->add_spanning_child(owner_keyfrm);
-            has_spanning_parent_ = true;
         }
     }
 }
@@ -274,14 +274,10 @@ unsigned int graph_node::get_num_shared_landmarks(const std::shared_ptr<keyframe
 }
 
 void graph_node::set_spanning_parent(const std::shared_ptr<keyframe>& keyfrm) {
+    // NOTE: keyfrm can be nullptr
     std::lock_guard<std::mutex> lock(mtx_);
-    assert(!has_spanning_parent_);
+    assert(spanning_parent_.expired());
     spanning_parent_ = keyfrm;
-    has_spanning_parent_ = true;
-}
-
-bool graph_node::has_spanning_parent() const {
-    return has_spanning_parent_;
 }
 
 std::shared_ptr<keyframe> graph_node::get_spanning_parent() const {
@@ -401,6 +397,61 @@ std::set<std::shared_ptr<keyframe>> graph_node::get_loop_edges() const {
 bool graph_node::has_loop_edge() const {
     std::lock_guard<std::mutex> lock(mtx_);
     return !loop_edges_.empty();
+}
+
+std::shared_ptr<keyframe> graph_node::get_spanning_root() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return get_spanning_root_impl();
+}
+
+std::shared_ptr<keyframe> graph_node::get_spanning_root_impl() {
+    auto spanning_root = spanning_root_.lock();
+    if (spanning_root) {
+        return spanning_root;
+    }
+    else {
+        auto spanning_parent = spanning_parent_.lock();
+        if (spanning_parent) {
+            spanning_root_ = spanning_parent->graph_node_->get_spanning_root_impl();
+        }
+        else {
+            spanning_root_ = owner_keyfrm_.lock();
+        }
+        return spanning_root_.lock();
+    }
+}
+
+bool graph_node::is_spanning_root() const {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return is_spanning_root_impl();
+}
+
+bool graph_node::is_spanning_root_impl() const {
+    auto spanning_root = spanning_root_.lock();
+    auto owner_keyfrm = owner_keyfrm_.lock();
+    assert(owner_keyfrm);
+    return spanning_root && spanning_root->id_ == owner_keyfrm->id_;
+}
+
+void graph_node::set_spanning_root(std::shared_ptr<keyframe>& keyfrm) {
+    std::lock_guard<std::mutex> lock(mtx_);
+    spanning_root_ = keyfrm;
+}
+
+std::vector<std::shared_ptr<keyframe>> graph_node::get_keyframes_from_root() {
+    std::vector<std::shared_ptr<keyframe>> keyfrms;
+    std::list<std::shared_ptr<data::keyframe>> keyfrms_to_check;
+    keyfrms_to_check.push_back(get_spanning_root());
+    while (!keyfrms_to_check.empty()) {
+        auto parent = keyfrms_to_check.front();
+        keyfrms.push_back(parent);
+        const auto children = parent->graph_node_->get_spanning_children();
+        for (auto child : children) {
+            keyfrms_to_check.push_back(child);
+        }
+        keyfrms_to_check.pop_front();
+    }
+    return keyfrms;
 }
 
 template<typename T, typename U>

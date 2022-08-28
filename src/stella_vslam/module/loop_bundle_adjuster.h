@@ -8,6 +8,7 @@ namespace stella_vslam {
 class mapping_module;
 
 namespace data {
+class keyframe;
 class map_database;
 } // namespace data
 
@@ -43,7 +44,7 @@ public:
     /**
      * Run loop BA
      */
-    void optimize();
+    void optimize(const std::shared_ptr<data::keyframe>& curr_keyfrm);
 
 private:
     //! map database

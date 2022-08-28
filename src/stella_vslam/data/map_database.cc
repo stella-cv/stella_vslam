@@ -88,6 +88,16 @@ std::shared_ptr<marker> map_database::get_marker(unsigned int id) const {
     return mkr;
 }
 
+void map_database::add_spanning_root(std::shared_ptr<keyframe>& keyframe) {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    spanning_roots_.push_back(keyframe);
+}
+
+std::vector<std::shared_ptr<keyframe>> map_database::get_spanning_roots() {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    return spanning_roots_;
+}
+
 void map_database::set_local_landmarks(const std::vector<std::shared_ptr<landmark>>& local_lms) {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
     local_landmarks_ = local_lms;
@@ -220,7 +230,6 @@ void map_database::clear() {
     keyframes_.clear();
     last_inserted_keyfrm_ = nullptr;
     local_landmarks_.clear();
-    origin_keyfrm_ = nullptr;
 
     frm_stats_.clear();
 
@@ -248,7 +257,6 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
     // When loading the map, leave last_inserted_keyfrm_ as nullptr.
     last_inserted_keyfrm_ = nullptr;
     local_landmarks_.clear();
-    origin_keyfrm_ = nullptr;
 
     // Step 2. Register keyframes
     // If the object does not exist at this step, the corresponding pointer is set as nullptr.
@@ -290,6 +298,20 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
         const auto json_keyfrm = json_id_keyfrm.value();
 
         register_association(id, json_keyfrm);
+    }
+
+    // find root node
+    std::unordered_set<unsigned int> already_found_root_ids;
+    for (const auto& json_id_keyfrm : json_keyfrms.items()) {
+        const auto id = std::stoi(json_id_keyfrm.key());
+        auto keyfrm = keyframes_.at(id);
+        auto root = keyfrm->graph_node_->get_spanning_root();
+        if (already_found_root_ids.count(root->id_)) {
+            continue;
+        }
+        already_found_root_ids.insert(root->id_);
+        spdlog::debug("found root node {}", root->id_);
+        spanning_roots_.push_back(root);
     }
 
     // Step 6. Update graph
@@ -375,9 +397,6 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     // Append to map database
     assert(!keyframes_.count(id));
     keyframes_[keyfrm->id_] = keyfrm;
-    if (id == 0) {
-        origin_keyfrm_ = keyfrm;
-    }
 }
 
 void map_database::register_landmark(const unsigned int id, const nlohmann::json& json_landmark) {
@@ -489,7 +508,6 @@ bool map_database::from_db(sqlite3* db,
     // When loading the map, leave last_inserted_keyfrm_ as nullptr.
     last_inserted_keyfrm_ = nullptr;
     local_landmarks_.clear();
-    origin_keyfrm_ = nullptr;
 
     // Step 2. load data from database
     bool ok = load_keyframes_from_db(db, cam_db, orb_params_db, bow_vocab);
@@ -503,6 +521,22 @@ bool map_database::from_db(sqlite3* db,
     ok = load_associations_from_db(db);
     if (!ok) {
         return false;
+    }
+
+    // find root node
+    std::unordered_set<unsigned int> already_found_root_ids;
+    for (const auto& root : spanning_roots_) {
+        already_found_root_ids.insert(root->id_);
+    }
+    for (const auto& id_keyfrm : keyframes_) {
+        const auto keyfrm = id_keyfrm.second;
+        auto root = keyfrm->graph_node_->get_spanning_root();
+        if (already_found_root_ids.count(root->id_)) {
+            continue;
+        }
+        already_found_root_ids.insert(root->id_);
+        spdlog::debug("found root node {}", root->id_);
+        spanning_roots_.push_back(root);
     }
 
     spdlog::info("updating covisibility graph");
@@ -608,10 +642,8 @@ bool map_database::load_keyframes_from_db(sqlite3* db,
         // Append to map database
         assert(!keyframes_.count(id));
         keyframes_[keyfrm->id_] = keyfrm;
-        if (id == 0) {
-            origin_keyfrm_ = keyfrm;
-        }
     }
+
     sqlite3_finalize(stmt);
     return ret == SQLITE_DONE;
 }

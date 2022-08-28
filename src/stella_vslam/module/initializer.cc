@@ -194,6 +194,11 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     // create initial keyframes
     auto init_keyfrm = data::keyframe::make_keyframe(map_db_->next_keyframe_id_++, init_frm_);
     auto curr_keyfrm = data::keyframe::make_keyframe(map_db_->next_keyframe_id_++, curr_frm);
+    curr_keyfrm->graph_node_->set_spanning_parent(init_keyfrm);
+    init_keyfrm->graph_node_->add_spanning_child(curr_keyfrm);
+    init_keyfrm->graph_node_->set_spanning_root(init_keyfrm);
+    curr_keyfrm->graph_node_->set_spanning_root(init_keyfrm);
+    map_db_->add_spanning_root(init_keyfrm);
 
     // compute BoW representations
     init_keyfrm->compute_bow(bow_vocab);
@@ -210,6 +215,7 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     map_db_->update_frame_statistics(curr_frm, false);
 
     // assign 2D-3D associations
+    std::vector<std::shared_ptr<data::landmark>> lms;
     for (unsigned int init_idx = 0; init_idx < init_matches_.size(); init_idx++) {
         const auto curr_idx = init_matches_.at(init_idx);
         if (curr_idx < 0) {
@@ -233,6 +239,7 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
 
         // add the landmark to the map DB
         map_db_->add_landmark(lm);
+        lms.push_back(lm);
     }
 
     bool indefinite_scale = true;
@@ -244,7 +251,8 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     }
 
     // assign marker associations
-    const auto assign_marker_associations = [this](const std::shared_ptr<data::keyframe>& keyfrm) {
+    std::vector<std::shared_ptr<data::marker>> markers;
+    const auto assign_marker_associations = [this, &markers](const std::shared_ptr<data::keyframe>& keyfrm) {
         for (const auto& id_mkr2d : keyfrm->markers_2d_) {
             auto marker = map_db_->get_marker(id_mkr2d.first);
             if (!marker) {
@@ -253,6 +261,7 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
                 marker = std::make_shared<data::marker>(corners_pos_w, id_mkr2d.first, mkr2d.marker_model_);
                 // add the marker to the map DB
                 map_db_->add_marker(marker);
+                markers.push_back(marker);
             }
             // Set the association to the new marker
             keyfrm->add_marker(marker);
@@ -263,8 +272,9 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     assign_marker_associations(curr_keyfrm);
 
     // global bundle adjustment
-    const auto global_bundle_adjuster = optimize::global_bundle_adjuster(map_db_, num_ba_iters_, true);
-    global_bundle_adjuster.optimize_for_initialization();
+    const auto global_bundle_adjuster = optimize::global_bundle_adjuster(num_ba_iters_, true);
+    std::vector<std::shared_ptr<data::keyframe>> keyfrms{init_keyfrm, curr_keyfrm};
+    global_bundle_adjuster.optimize_for_initialization(keyfrms, lms, markers);
 
     if (indefinite_scale) {
         // scale the map so that the median of depths is 1.0
@@ -280,9 +290,6 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
 
     // update the current frame pose
     curr_frm.set_pose_cw(curr_keyfrm->get_pose_cw());
-
-    // set the origin keyframe
-    map_db_->origin_keyfrm_ = init_keyfrm;
 
     spdlog::info("new map created with {} points: frame {} - frame {}", map_db_->get_num_landmarks(), init_frm_.id_, curr_frm.id_);
     state_ = initializer_state_t::Succeeded;
@@ -322,6 +329,8 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
     // create an initial keyframe
     curr_frm.set_pose_cw(Mat44_t::Identity());
     auto curr_keyfrm = data::keyframe::make_keyframe(map_db_->next_keyframe_id_++, curr_frm);
+    curr_keyfrm->graph_node_->set_spanning_root(curr_keyfrm);
+    map_db_->add_spanning_root(curr_keyfrm);
 
     // compute BoW representation
     curr_keyfrm->compute_bow(bow_vocab);
@@ -358,9 +367,6 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
         // add the landmark to the map DB
         map_db_->add_landmark(lm);
     }
-
-    // set the origin keyframe
-    map_db_->origin_keyfrm_ = curr_keyfrm;
 
     spdlog::info("new map created with {} points: frame {}", map_db_->get_num_landmarks(), curr_frm.id_);
     state_ = initializer_state_t::Succeeded;

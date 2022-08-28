@@ -19,8 +19,8 @@
 namespace stella_vslam {
 namespace optimize {
 
-graph_optimizer::graph_optimizer(data::map_database* map_db, const bool fix_scale)
-    : map_db_(map_db), fix_scale_(fix_scale) {}
+graph_optimizer::graph_optimizer(const bool fix_scale)
+    : fix_scale_(fix_scale) {}
 
 void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfrm, const std::shared_ptr<data::keyframe>& curr_keyfrm,
                                const module::keyframe_Sim3_pairs_t& non_corrected_Sim3s,
@@ -41,8 +41,25 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
 
     // 2. Add vertices
 
-    const auto all_keyfrms = map_db_->get_all_keyframes();
-    const auto all_lms = map_db_->get_all_landmarks();
+    const auto all_keyfrms = curr_keyfrm->graph_node_->get_keyframes_from_root();
+    std::unordered_set<unsigned int> already_found_landmark_ids;
+    std::vector<std::shared_ptr<data::landmark>> all_lms;
+    for (const auto& keyfrm : all_keyfrms) {
+        for (const auto& lm : keyfrm->get_landmarks()) {
+            if (!lm) {
+                continue;
+            }
+            if (lm->will_be_erased()) {
+                continue;
+            }
+            if (already_found_landmark_ids.count(lm->id_)) {
+                continue;
+            }
+
+            already_found_landmark_ids.insert(lm->id_);
+            all_lms.push_back(lm);
+        }
+    }
 
     // Transform the pre-modified poses of all the keyframes to Sim3, and save them
     eigen_alloc_unord_map<unsigned int, g2o::Sim3> Sim3s_cw;
@@ -76,8 +93,8 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             keyfrm_vtx->setEstimate(Sim3_cw);
         }
 
-        // Fix the loop keyframe or origin keyframe
-        if (*keyfrm == *loop_keyfrm || keyfrm->id_ == 0) {
+        // Fix the loop keyframe or root keyframe
+        if (*keyfrm == *loop_keyfrm || keyfrm->graph_node_->is_spanning_root()) {
             keyfrm_vtx->setFixed(true);
         }
 
