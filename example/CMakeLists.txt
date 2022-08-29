@@ -1,5 +1,8 @@
 # ----- Find dependencies -----
 
+# filesystem
+set(filesystem_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/filesystem/include)
+
 # popl
 set(popl_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/popl/include)
 
@@ -96,9 +99,10 @@ foreach(EXECUTABLE_TARGET IN LISTS EXECUTABLE_TARGETS)
                           opencv_imgcodecs
                           opencv_videoio)
 
-    # include popl and spdlog headers
+    # include 3rd party library headers
     target_include_directories(${EXECUTABLE_TARGET}
                                PRIVATE
                                $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/3rd/popl/include>
+                               $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/3rd/filesystem/include>
                                $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/3rd/spdlog/include>)
 endforeach()

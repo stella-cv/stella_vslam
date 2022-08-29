@@ -202,14 +202,14 @@ void system::save_keyframe_trajectory(const std::string& path, const std::string
 
 void system::load_map_database(const std::string& path) const {
     pause_other_threads();
-    map_db_->clear();
-    bow_db_->clear();
+    spdlog::debug("load_map_database: {}", path);
     map_database_io_->load(path, cam_db_, orb_params_db_, map_db_, bow_db_, bow_vocab_);
     resume_other_threads();
 }
 
 void system::save_map_database(const std::string& path) const {
     pause_other_threads();
+    spdlog::debug("save_map_database: {}", path);
     map_database_io_->save(path, cam_db_, orb_params_db_, map_db_);
     resume_other_threads();
 }
