@@ -16,7 +16,7 @@ relocalizer::relocalizer(const double bow_match_lowe_ratio, const double proj_ma
                          const unsigned int min_num_bow_matches, const unsigned int min_num_valid_obs,
                          const bool use_fixed_seed)
     : min_num_bow_matches_(min_num_bow_matches), min_num_valid_obs_(min_num_valid_obs),
-      bow_matcher_(bow_match_lowe_ratio, true), proj_matcher_(proj_match_lowe_ratio, true),
+      bow_matcher_(bow_match_lowe_ratio, false), proj_matcher_(proj_match_lowe_ratio, false),
       robust_matcher_(robust_match_lowe_ratio, false),
       pose_optimizer_(), use_fixed_seed_(use_fixed_seed) {
     spdlog::debug("CONSTRUCT: module::relocalizer");

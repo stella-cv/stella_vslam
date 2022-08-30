@@ -381,7 +381,7 @@ void mapping_module::update_new_keyframe() {
 
 void mapping_module::fuse_landmark_duplication(const std::vector<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms,
                                                nondeterministic::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>& replaced_lms) {
-    match::fuse fuse_matcher(0.6, true, true);
+    match::fuse fuse_matcher(0.6);
 
     {
         // reproject the landmarks observed in the current keyframe to each of the targets, and acquire
@@ -394,7 +394,7 @@ void mapping_module::fuse_landmark_duplication(const std::vector<std::shared_ptr
             std::unordered_map<unsigned int, std::shared_ptr<data::landmark>> new_connections;
             const Mat33_t rot_cw = fuse_tgt_keyfrm->get_rot_cw();
             const Vec3_t trans_cw = fuse_tgt_keyfrm->get_trans_cw();
-            fuse_matcher.detect_duplication(fuse_tgt_keyfrm, rot_cw, trans_cw, cur_landmarks, 3.0, duplicated_lms_in_keyfrm, new_connections);
+            fuse_matcher.detect_duplication(fuse_tgt_keyfrm, rot_cw, trans_cw, cur_landmarks, 3.0, duplicated_lms_in_keyfrm, new_connections, true);
 
             // There is association between the 3D point and the keyframe
             // -> Duplication exists
@@ -462,7 +462,7 @@ void mapping_module::fuse_landmark_duplication(const std::vector<std::shared_ptr
         std::unordered_map<unsigned int, std::shared_ptr<data::landmark>> new_connections;
         const Mat33_t rot_cw = cur_keyfrm_->get_rot_cw();
         const Vec3_t trans_cw = cur_keyfrm_->get_trans_cw();
-        fuse_matcher.detect_duplication(cur_keyfrm_, rot_cw, trans_cw, candidate_landmarks_to_fuse, 3.0, duplicated_lms_in_keyfrm, new_connections);
+        fuse_matcher.detect_duplication(cur_keyfrm_, rot_cw, trans_cw, candidate_landmarks_to_fuse, 3.0, duplicated_lms_in_keyfrm, new_connections, true);
 
         // There is association between the 3D point and the keyframe
         // -> Duplication exists

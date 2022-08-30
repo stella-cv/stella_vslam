@@ -16,12 +16,12 @@ class map_database;
 
 namespace match {
 
-class fuse final : public base {
+class fuse final {
 public:
-    explicit fuse(float lowe_ratio, bool check_orientation, bool do_reprojection_matching)
-        : base(lowe_ratio, check_orientation), do_reprojection_matching_(do_reprojection_matching) {}
+    explicit fuse(float lowe_ratio)
+        : lowe_ratio_(lowe_ratio) {}
 
-    ~fuse() final = default;
+    virtual ~fuse() = default;
 
     //! 3次元点(landmarks_to_check)をkeyframeに再投影し，keyframeで観測している3次元点と重複しているものを探す
     template<typename T>
@@ -31,10 +31,11 @@ public:
                                     const T& landmarks_to_check,
                                     const float margin,
                                     std::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>& duplicated_lms_in_keyfrm,
-                                    std::unordered_map<unsigned int, std::shared_ptr<data::landmark>>& new_connections) const;
+                                    std::unordered_map<unsigned int, std::shared_ptr<data::landmark>>& new_connections,
+                                    bool do_reprojection_matching = false) const;
 
 protected:
-    bool do_reprojection_matching_ = false;
+    const float lowe_ratio_;
 };
 
 } // namespace match

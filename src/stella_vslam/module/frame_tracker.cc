@@ -94,7 +94,7 @@ bool frame_tracker::bow_match_based_track(data::frame& curr_frm, const data::fra
 }
 
 bool frame_tracker::robust_match_based_track(data::frame& curr_frm, const data::frame& last_frm, const std::shared_ptr<data::keyframe>& ref_keyfrm) const {
-    match::robust robust_matcher(0.8, false);
+    match::robust robust_matcher(0.8, true);
 
     // Search 2D-2D matches between the ref keyframes and the current frame
     // to acquire 2D-3D matches between the frame keypoints and 3D points observed in the ref keyframe

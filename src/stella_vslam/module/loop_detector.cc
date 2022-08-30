@@ -240,7 +240,7 @@ bool loop_detector::validate_candidates_impl() {
     // then, acquire the extra 2D-3D matches
     // however, landmarks in `curr_match_lms_observed_in_cand_` are already matched with keypoints in the current keyframe,
     // thus they are excluded from the reprojection
-    match::projection projection_matcher(0.75, true);
+    match::projection projection_matcher(0.75);
     projection_matcher.match_by_Sim3_transform(cur_keyfrm_, Sim3_world_to_curr_, curr_match_lms_observed_in_cand_covis_,
                                                curr_match_lms_observed_in_cand_, 10);
 
@@ -355,9 +355,9 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
     // the Sim3 is estimated both in linear and non-linear ways
     // if the inlier after the estimation is lower than the threshold, discard tha candidate
 
-    match::robust robust_matcher(0.75, true);
-    match::bow_tree bow_matcher(0.75, true);
-    match::projection projection_matcher(0.75, true);
+    match::robust robust_matcher(0.75, false);
+    match::bow_tree bow_matcher(0.75, false);
+    match::projection projection_matcher(0.75, false);
 
     for (const auto& candidate : loop_candidates) {
         if (candidate->will_be_erased()) {
