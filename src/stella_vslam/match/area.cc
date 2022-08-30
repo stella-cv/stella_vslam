@@ -1,6 +1,6 @@
 #include "stella_vslam/data/frame.h"
 #include "stella_vslam/match/area.h"
-#include "stella_vslam/match/angle_checker.h"
+#include "stella_vslam/util/angle.h"
 
 namespace stella_vslam {
 namespace match {
@@ -8,8 +8,6 @@ namespace match {
 unsigned int area::match_in_consistent_area(data::frame& frm_1, data::frame& frm_2, std::vector<cv::Point2f>& prev_matched_pts,
                                             std::vector<int>& matched_indices_2_in_frm_1, int margin) {
     unsigned int num_matches = 0;
-
-    angle_checker<int> angle_checker;
 
     matched_indices_2_in_frm_1 = std::vector<int>(frm_1.frm_obs_.undist_keypts_.size(), -1);
 
@@ -39,6 +37,10 @@ unsigned int area::match_in_consistent_area(data::frame& frm_1, data::frame& frm
         int best_idx_2 = -1;
 
         for (const auto idx_2 : indices) {
+            if (check_orientation_ && std::abs(util::angle::diff(frm_1.frm_obs_.undist_keypts_.at(idx_1).angle, frm_2.frm_obs_.undist_keypts_.at(idx_2).angle)) > 30.0) {
+                continue;
+            }
+
             const auto& desc_2 = frm_2.frm_obs_.descriptors_.row(idx_2);
 
             const auto hamm_dist = compute_descriptor_distance_32(desc_1, desc_2);
@@ -83,22 +85,6 @@ unsigned int area::match_in_consistent_area(data::frame& frm_1, data::frame& frm
         matched_indices_1_in_frm_2.at(best_idx_2) = idx_1;
         matched_dists_in_frm_2.at(best_idx_2) = best_hamm_dist;
         ++num_matches;
-
-        if (check_orientation_) {
-            const auto delta_angle
-                = frm_1.frm_obs_.undist_keypts_.at(idx_1).angle - frm_2.frm_obs_.undist_keypts_.at(best_idx_2).angle;
-            angle_checker.append_delta_angle(delta_angle, idx_1);
-        }
-    }
-
-    if (check_orientation_) {
-        const auto invalid_matches = angle_checker.get_invalid_matches();
-        for (const auto invalid_idx_1 : invalid_matches) {
-            if (0 <= matched_indices_2_in_frm_1.at(invalid_idx_1)) {
-                matched_indices_2_in_frm_1.at(invalid_idx_1) = -1;
-                --num_matches;
-            }
-        }
     }
 
     // Update the previous matches

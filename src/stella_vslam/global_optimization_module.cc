@@ -440,7 +440,7 @@ void global_optimization_module::replace_duplicated_landmarks(const std::vector<
 
     // resolve duplications of landmarks between the current keyframe and the candidates of the loop candidate
     auto curr_match_lms_observed_in_cand_covis = loop_detector_->current_matched_landmarks_observed_in_candidate_covisibilities();
-    match::fuse fuse_matcher(0.8, true, false);
+    match::fuse fuse_matcher(0.8);
     for (const auto& t : Sim3s_nw_after_correction) {
         auto neighbor = t.first;
         const Mat44_t Sim3_nw_after_correction = util::converter::to_eigen_mat(t.second);
