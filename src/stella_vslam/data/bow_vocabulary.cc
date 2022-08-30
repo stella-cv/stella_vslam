@@ -1,4 +1,5 @@
 #include "stella_vslam/data/bow_vocabulary.h"
+#include "stella_vslam/util/converter.h"
 #include <spdlog/spdlog.h>
 
 namespace stella_vslam {
