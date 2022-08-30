@@ -23,7 +23,8 @@ namespace socket_publisher {
 
 class publisher {
 public:
-    publisher(const YAML::Node& yaml_node, stella_vslam::system* system,
+    publisher(const YAML::Node& yaml_node,
+              const std::shared_ptr<stella_vslam::system>& system,
               const std::shared_ptr<stella_vslam::publish::frame_publisher>& frame_publisher,
               const std::shared_ptr<stella_vslam::publish::map_publisher>& map_publisher);
 
@@ -37,7 +38,7 @@ public:
     bool is_terminated();
 
 private:
-    stella_vslam::system* system_;
+    const std::shared_ptr<stella_vslam::system> system_;
     const unsigned int emitting_interval_;
     const unsigned int image_quality_;
 

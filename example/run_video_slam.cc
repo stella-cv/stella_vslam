@@ -32,7 +32,7 @@ namespace fs = ghc::filesystem;
 #include <gperftools/profiler.h>
 #endif
 
-void mono_tracking(stella_vslam::system& slam,
+void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                    const std::shared_ptr<stella_vslam::config>& cfg,
                    const std::string& video_file_path,
                    const std::string& mask_img_path,
@@ -51,10 +51,10 @@ void mono_tracking(stella_vslam::system& slam,
     // and pass the frame_publisher and the map_publisher
 #ifdef USE_PANGOLIN_VIEWER
     pangolin_viewer::viewer viewer(
-        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), &slam, slam.get_frame_publisher(), slam.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), slam, slam->get_frame_publisher(), slam->get_map_publisher());
 #elif USE_SOCKET_PUBLISHER
     socket_publisher::publisher publisher(
-        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), &slam, slam.get_frame_publisher(), slam.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), slam, slam->get_frame_publisher(), slam->get_map_publisher());
 #endif
 
     auto video = cv::VideoCapture(video_file_path, cv::CAP_FFMPEG);
@@ -76,7 +76,7 @@ void mono_tracking(stella_vslam::system& slam,
         while (is_not_end) {
             // wait until the loop BA is finished
             if (wait_loop_ba) {
-                while (slam.loop_BA_is_running() || !slam.mapping_module_is_enabled()) {
+                while (slam->loop_BA_is_running() || !slam->mapping_module_is_enabled()) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 }
             }
@@ -87,7 +87,7 @@ void mono_tracking(stella_vslam::system& slam,
 
             if (!frame.empty() && (num_frame % frame_skip == 0)) {
                 // input the current frame and estimate the camera pose
-                slam.feed_monocular_frame(frame, timestamp, mask);
+                slam->feed_monocular_frame(frame, timestamp, mask);
             }
 
             const auto tp_2 = std::chrono::steady_clock::now();
@@ -99,23 +99,23 @@ void mono_tracking(stella_vslam::system& slam,
 
             // wait until the timestamp of the next frame
             if (!no_sleep) {
-                const auto wait_time = 1.0 / slam.get_camera()->fps_ - track_time;
+                const auto wait_time = 1.0 / slam->get_camera()->fps_ - track_time;
                 if (0.0 < wait_time) {
                     std::this_thread::sleep_for(std::chrono::microseconds(static_cast<unsigned int>(wait_time * 1e6)));
                 }
             }
 
-            timestamp += 1.0 / slam.get_camera()->fps_;
+            timestamp += 1.0 / slam->get_camera()->fps_;
             ++num_frame;
 
             // check if the termination of slam system is requested or not
-            if (slam.terminate_is_requested()) {
+            if (slam->terminate_is_requested()) {
                 break;
             }
         }
 
         // wait until the loop BA is finished
-        while (slam.loop_BA_is_running()) {
+        while (slam->loop_BA_is_running()) {
             std::this_thread::sleep_for(std::chrono::microseconds(5000));
         }
 
@@ -141,12 +141,12 @@ void mono_tracking(stella_vslam::system& slam,
     thread.join();
 
     // shutdown the slam process
-    slam.shutdown();
+    slam->shutdown();
 
     if (!eval_log_dir.empty()) {
         // output the trajectories for evaluation
-        slam.save_frame_trajectory(eval_log_dir + "/frame_trajectory.txt", "TUM");
-        slam.save_keyframe_trajectory(eval_log_dir + "/keyframe_trajectory.txt", "TUM");
+        slam->save_frame_trajectory(eval_log_dir + "/frame_trajectory.txt", "TUM");
+        slam->save_keyframe_trajectory(eval_log_dir + "/keyframe_trajectory.txt", "TUM");
         // output the tracking times for evaluation
         std::ofstream ofs(eval_log_dir + "/track_times.txt", std::ios::out);
         if (ofs.is_open()) {
@@ -159,7 +159,7 @@ void mono_tracking(stella_vslam::system& slam,
 
     if (!map_db_path.empty()) {
         // output the map database
-        slam.save_map_database(map_db_path);
+        slam->save_map_database(map_db_path);
     }
 
     std::sort(track_times.begin(), track_times.end());
@@ -255,7 +255,7 @@ int main(int argc, char* argv[]) {
     }
 
     // build a slam system
-    stella_vslam::system slam(cfg, vocab_file_path->value());
+    auto slam = std::make_shared<stella_vslam::system>(cfg, vocab_file_path->value());
     bool need_initialize = true;
     if (map_db_path_in->is_set()) {
         need_initialize = false;
@@ -263,21 +263,21 @@ int main(int argc, char* argv[]) {
         if (path.extension() == ".yaml") {
             YAML::Node node = YAML::LoadFile(path);
             for (const auto& map_path : node["maps"].as<std::vector<std::string>>()) {
-                slam.load_map_database(path.parent_path() / map_path);
+                slam->load_map_database(path.parent_path() / map_path);
             }
         }
         else {
             // load the prebuilt map
-            slam.load_map_database(path);
+            slam->load_map_database(path);
         }
     }
-    slam.startup(need_initialize);
+    slam->startup(need_initialize);
     if (disable_mapping->is_set()) {
-        slam.disable_mapping_module();
+        slam->disable_mapping_module();
     }
 
     // run tracking
-    if (slam.get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
+    if (slam->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
         mono_tracking(slam,
                       cfg,
                       video_file_path->value(),
@@ -292,7 +292,7 @@ int main(int argc, char* argv[]) {
                       timestamp);
     }
     else {
-        throw std::runtime_error("Invalid setup type: " + slam.get_camera()->get_setup_type_string());
+        throw std::runtime_error("Invalid setup type: " + slam->get_camera()->get_setup_type_string());
     }
 
 #ifdef USE_GOOGLE_PERFTOOLS

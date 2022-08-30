@@ -34,7 +34,8 @@ public:
      * @param frame_publisher
      * @param map_publisher
      */
-    viewer(const YAML::Node& yaml_node, stella_vslam::system* system,
+    viewer(const YAML::Node& yaml_node,
+           const std::shared_ptr<stella_vslam::system>& system,
            const std::shared_ptr<stella_vslam::publish::frame_publisher>& frame_publisher,
            const std::shared_ptr<stella_vslam::publish::map_publisher>& map_publisher);
 
@@ -131,7 +132,7 @@ private:
     void check_state_transition();
 
     //! system
-    stella_vslam::system* system_;
+    const std::shared_ptr<stella_vslam::system> system_;
     //! frame publisher
     const std::shared_ptr<stella_vslam::publish::frame_publisher> frame_publisher_;
     //! map publisher
