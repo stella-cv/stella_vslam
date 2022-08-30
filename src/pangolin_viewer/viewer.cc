@@ -27,7 +27,8 @@ int parse_int(const std::string& msg) {
 
 namespace pangolin_viewer {
 
-viewer::viewer(const YAML::Node& yaml_node, stella_vslam::system* system,
+viewer::viewer(const YAML::Node& yaml_node,
+               const std::shared_ptr<stella_vslam::system>& system,
                const std::shared_ptr<stella_vslam::publish::frame_publisher>& frame_publisher,
                const std::shared_ptr<stella_vslam::publish::map_publisher>& map_publisher)
     : system_(system), frame_publisher_(frame_publisher), map_publisher_(map_publisher),
