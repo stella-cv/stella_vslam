@@ -1,4 +1,5 @@
 #include "stella_vslam/camera/base.h"
+#include "stella_vslam/data/bow_vocabulary.h"
 #include "stella_vslam/data/frame.h"
 #include "stella_vslam/data/frame_observation.h"
 #include "stella_vslam/data/keyframe.h"
@@ -6,12 +7,6 @@
 #include "stella_vslam/match/robust.h"
 #include "stella_vslam/solve/essential_solver.h"
 #include "stella_vslam/util/angle.h"
-
-#ifdef USE_DBOW2
-#include <DBoW2/FeatureVector.h>
-#else
-#include <fbow/bow_feat_vector.h>
-#endif
 
 namespace stella_vslam {
 namespace match {
@@ -39,17 +34,10 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
     // Save the keypoint idx in keyframe 2 which is already associated to the keypoint idx in keyframe 1
     std::vector<int> matched_indices_2_in_keyfrm_1(keyfrm_1->frm_obs_.num_keypts_, -1);
 
-#ifdef USE_DBOW2
-    DBoW2::FeatureVector::const_iterator itr_1 = keyfrm_1->bow_feat_vec_.begin();
-    DBoW2::FeatureVector::const_iterator itr_2 = keyfrm_2->bow_feat_vec_.begin();
-    const DBoW2::FeatureVector::const_iterator itr_1_end = keyfrm_1->bow_feat_vec_.end();
-    const DBoW2::FeatureVector::const_iterator itr_2_end = keyfrm_2->bow_feat_vec_.end();
-#else
-    fbow::BoWFeatVector::const_iterator itr_1 = keyfrm_1->bow_feat_vec_.begin();
-    fbow::BoWFeatVector::const_iterator itr_2 = keyfrm_2->bow_feat_vec_.begin();
-    const fbow::BoWFeatVector::const_iterator itr_1_end = keyfrm_1->bow_feat_vec_.end();
-    const fbow::BoWFeatVector::const_iterator itr_2_end = keyfrm_2->bow_feat_vec_.end();
-#endif
+    data::bow_feature_vector::const_iterator itr_1 = keyfrm_1->bow_feat_vec_.begin();
+    data::bow_feature_vector::const_iterator itr_2 = keyfrm_2->bow_feat_vec_.begin();
+    const data::bow_feature_vector::const_iterator itr_1_end = keyfrm_1->bow_feat_vec_.end();
+    const data::bow_feature_vector::const_iterator itr_2_end = keyfrm_2->bow_feat_vec_.end();
 
     while (itr_1 != itr_1_end && itr_2 != itr_2_end) {
         // Check if the node numbers of BoW tree match

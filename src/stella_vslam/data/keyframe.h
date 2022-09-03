@@ -8,6 +8,7 @@
 #include "stella_vslam/data/bow_vocabulary.h"
 #include "stella_vslam/data/frame_observation.h"
 #include "stella_vslam/data/marker2d.h"
+#include "stella_vslam/data/bow_vocabulary_fwd.h"
 
 #include <set>
 #include <mutex>
@@ -16,14 +17,6 @@
 
 #include <g2o/types/sba/types_six_dof_expmap.h>
 #include <nlohmann/json_fwd.hpp>
-
-#ifdef USE_DBOW2
-#include <DBoW2/BowVector.h>
-#include <DBoW2/FeatureVector.h>
-#else
-#include <fbow/bow_vector.h>
-#include <fbow/bow_feat_vector.h>
-#endif
 
 namespace stella_vslam {
 
