@@ -1,6 +1,7 @@
+#include "stella_vslam/data/bow_database.h"
+#include "stella_vslam/data/bow_vocabulary.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
-#include "stella_vslam/data/bow_database.h"
 #include "stella_vslam/match/bow_tree.h"
 #include "stella_vslam/match/projection.h"
 #include "stella_vslam/match/robust.h"
@@ -276,11 +277,7 @@ float loop_detector::compute_min_score_in_covisibilities(const std::shared_ptr<d
         }
         const auto& bow_vec_2 = covisibility->bow_vec_;
 
-#ifdef USE_DBOW2
-        const float score = bow_vocab_->score(bow_vec_1, bow_vec_2);
-#else
-        const float score = fbow::BoWVector::score(bow_vec_1, bow_vec_2);
-#endif
+        const auto score = data::bow_vocabulary_util::score(bow_vocab_, bow_vec_1, bow_vec_2);
         if (score < min_score) {
             min_score = score;
         }
