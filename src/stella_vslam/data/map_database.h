@@ -301,14 +301,27 @@ private:
     void register_association(const unsigned int keyfrm_id, const nlohmann::json& json_keyfrm);
 
     bool load_keyframes_from_db(sqlite3* db,
+                                const std::string& table_name,
                                 camera_database* cam_db,
                                 orb_params_database* orb_params_db,
                                 bow_vocabulary* bow_vocab);
-    bool load_landmarks_from_db(sqlite3* db);
-    bool load_associations_from_db(sqlite3* db);
-    bool save_keyframes_to_db(sqlite3* db) const;
-    bool save_landmarks_to_db(sqlite3* db) const;
-    bool save_associations_to_db(sqlite3* db) const;
+    bool load_landmarks_from_db(sqlite3* db, const std::string& table_name);
+    void load_association_from_stmt(sqlite3_stmt* stmt);
+    bool load_associations_from_db(sqlite3* db, const std::string& table_name);
+    bool save_keyframes_to_db(sqlite3* db, const std::string& table_name) const;
+    bool save_landmarks_to_db(sqlite3* db, const std::string& table_name) const;
+    static std::vector<std::pair<std::string, std::string>> association_columns() {
+        return std::vector<std::pair<std::string, std::string>>{
+            {"lm_ids", "BLOB"},
+            {"span_parent", "INTEGER"},
+            {"n_spanning_children", "INTEGER"},
+            {"spanning_children", "BLOB"},
+            {"n_loop_edges", "INTEGER"},
+            {"loop_edges", "BLOB"}};
+    };
+    bool bind_association_to_stmt(sqlite3_stmt* stmt,
+                                  const std::shared_ptr<keyframe>& keyfrm) const;
+    bool save_associations_to_db(sqlite3* db, const std::string& table_name) const;
 
     //! mutex for mutual exclusion controll between class methods
     mutable std::mutex mtx_map_access_;
