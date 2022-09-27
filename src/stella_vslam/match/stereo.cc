@@ -30,7 +30,7 @@ void stereo::compute(std::vector<float>& stereo_x_right, std::vector<float>& dep
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
-    for (unsigned int idx_left = 0; idx_left < num_keypts_; ++idx_left) {
+    for (int64_t idx_left = 0; idx_left < num_keypts_; ++idx_left) {
         const auto& keypt_left = keypts_left_.at(idx_left);
         const auto scale_level_left = keypt_left.octave;
         const float y_left = keypt_left.pt.y;
