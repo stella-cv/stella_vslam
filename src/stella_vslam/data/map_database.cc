@@ -252,42 +252,46 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
     // If the object does not exist at this step, the corresponding pointer is set as nullptr.
     spdlog::info("decoding {} keyframes to load", json_keyfrms.size());
     for (const auto& json_id_keyfrm : json_keyfrms.items()) {
-        const auto id = std::stoi(json_id_keyfrm.key()) + next_keyframe_id_;
-        assert(0 <= id);
+        const auto keyfrm_id_in_storage = std::stoi(json_id_keyfrm.key());
+        assert(0 <= keyfrm_id_in_storage);
+        const auto keyfrm_id = keyfrm_id_in_storage + next_keyframe_id_;
         const auto json_keyfrm = json_id_keyfrm.value();
 
-        register_keyframe(cam_db, orb_params_db, bow_vocab, id, json_keyfrm);
+        register_keyframe(cam_db, orb_params_db, bow_vocab, keyfrm_id, json_keyfrm);
     }
 
     // Step 3. Register 3D landmark point
     // If the object does not exist at this step, the corresponding pointer is set as nullptr.
     spdlog::info("decoding {} landmarks to load", json_landmarks.size());
     for (const auto& json_id_landmark : json_landmarks.items()) {
-        const auto id = std::stoi(json_id_landmark.key()) + next_landmark_id_;
-        assert(0 <= id);
+        const auto landmark_id_in_storage = std::stoi(json_id_landmark.key());
+        assert(0 <= landmark_id_in_storage);
+        const auto landmark_id = landmark_id_in_storage + next_landmark_id_;
         const auto json_landmark = json_id_landmark.value();
 
-        register_landmark(id, json_landmark);
+        register_landmark(landmark_id, json_landmark);
     }
 
     // Step 4. Register graph information
     spdlog::info("registering essential graph");
     for (const auto& json_id_keyfrm : json_keyfrms.items()) {
-        const auto id = std::stoi(json_id_keyfrm.key()) + next_keyframe_id_;
-        assert(0 <= id);
+        const auto keyfrm_id_in_storage = std::stoi(json_id_keyfrm.key());
+        assert(0 <= keyfrm_id_in_storage);
+        const auto keyfrm_id = keyfrm_id_in_storage + next_keyframe_id_;
         const auto json_keyfrm = json_id_keyfrm.value();
 
-        register_graph(id, json_keyfrm);
+        register_graph(keyfrm_id, json_keyfrm);
     }
 
     // Step 5. Register association between keyframs and 3D points
     spdlog::info("registering keyframe-landmark association");
     for (const auto& json_id_keyfrm : json_keyfrms.items()) {
-        const auto id = std::stoi(json_id_keyfrm.key()) + next_keyframe_id_;
-        assert(0 <= id);
+        const auto keyfrm_id_in_storage = std::stoi(json_id_keyfrm.key());
+        assert(0 <= keyfrm_id_in_storage);
+        const auto keyfrm_id = keyfrm_id_in_storage + next_keyframe_id_;
         const auto json_keyfrm = json_id_keyfrm.value();
 
-        register_association(id, json_keyfrm);
+        register_association(keyfrm_id, json_keyfrm);
     }
 
     // find root node
@@ -307,11 +311,12 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
     // Step 6. Update graph
     spdlog::info("updating covisibility graph");
     for (const auto& json_id_keyfrm : json_keyfrms.items()) {
-        const auto id = std::stoi(json_id_keyfrm.key()) + next_keyframe_id_;
-        assert(0 <= id);
+        const auto keyfrm_id_in_storage = std::stoi(json_id_keyfrm.key());
+        assert(0 <= keyfrm_id_in_storage);
+        const auto keyfrm_id = keyfrm_id_in_storage + next_keyframe_id_;
 
-        assert(keyframes_.count(id));
-        auto keyfrm = keyframes_.at(id);
+        assert(keyframes_.count(keyfrm_id));
+        auto keyfrm = keyframes_.at(keyfrm_id);
 
         keyfrm->graph_node_->update_connections(min_num_shared_lms_);
         keyfrm->graph_node_->update_covisibility_orders();
@@ -320,11 +325,12 @@ void map_database::from_json(camera_database* cam_db, orb_params_database* orb_p
     // Step 7. Update geometry
     spdlog::info("updating landmark geometry");
     for (const auto& json_id_landmark : json_landmarks.items()) {
-        const auto id = std::stoi(json_id_landmark.key()) + next_landmark_id_;
-        assert(0 <= id);
+        const auto landmark_id_in_storage = std::stoi(json_id_landmark.key());
+        assert(0 <= landmark_id_in_storage);
+        const auto landmark_id = landmark_id_in_storage + next_landmark_id_;
 
-        assert(landmarks_.count(id));
-        const auto& lm = landmarks_.at(id);
+        assert(landmarks_.count(landmark_id));
+        const auto& lm = landmarks_.at(landmark_id);
 
         if (!lm->has_valid_prediction_parameters()) {
             lm->update_mean_normal_and_obs_scale_variance();
@@ -675,7 +681,6 @@ bool map_database::save_keyframes_to_db(sqlite3* db, const std::string& table_na
     if (!stmt) {
         return false;
     }
-    int ret = SQLITE_ERROR;
     for (const auto& id_keyfrm : keyframes_) {
         const auto keyfrm = id_keyfrm.second;
         assert(keyfrm);
@@ -701,7 +706,6 @@ bool map_database::save_landmarks_to_db(sqlite3* db, const std::string& table_na
     if (!stmt) {
         return false;
     }
-    int ret = SQLITE_ERROR;
     for (const auto& id_landmark : landmarks_) {
         const auto lm = id_landmark.second;
         assert(lm);
@@ -782,7 +786,6 @@ bool map_database::save_associations_to_db(sqlite3* db, const std::string& table
     if (!stmt) {
         return false;
     }
-    int ret = SQLITE_ERROR;
     for (const auto& id_keyfrm : keyframes_) {
         const auto keyfrm = id_keyfrm.second;
         assert(keyfrm);
