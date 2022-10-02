@@ -38,8 +38,8 @@ inline bool graph_opt_edge::read(std::istream& is) {
     }
     const g2o::Sim3 Sim3_wc(sim3_wc);
     setMeasurement(Sim3_wc.inverse());
-    for (unsigned int i = 0; i < 7; ++i) {
-        for (unsigned int j = i; j < 7; ++j) {
+    for (int i = 0; i < information().rows(); ++i) {
+        for (int j = i; j < information().cols(); ++j) {
             is >> information()(i, j);
             if (i != j) {
                 information()(j, i) = information()(i, j);
@@ -55,8 +55,8 @@ inline bool graph_opt_edge::write(std::ostream& os) const {
     for (unsigned int i = 0; i < 7; ++i) {
         os << sim3_wc(i) << " ";
     }
-    for (unsigned int i = 0; i < 7; ++i) {
-        for (unsigned int j = i; j < 7; ++j) {
+    for (int i = 0; i < information().rows(); ++i) {
+        for (int j = i; j < information().cols(); ++j) {
             os << " " << information()(i, j);
         }
     }
