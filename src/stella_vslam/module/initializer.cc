@@ -72,7 +72,9 @@ bool initializer::initialize(const camera::setup_type_t setup_type,
             }
 
             // create new map if succeeded
-            create_map_for_monocular(bow_vocab, curr_frm);
+            if (!create_map_for_monocular(bow_vocab, curr_frm)) {
+                return false;
+            }
             break;
         }
         case camera::setup_type_t::Stereo:
@@ -170,14 +172,21 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
         const auto is_triangulated = initializer_->get_triangulated_flags();
 
         // make invalid the matchings which have not been triangulated
+        bool have_triangulated_pts = false;
         for (unsigned int i = 0; i < init_matches_.size(); ++i) {
             if (init_matches_.at(i) < 0) {
                 continue;
             }
             if (is_triangulated.at(i)) {
+                have_triangulated_pts = true;
                 continue;
             }
             init_matches_.at(i) = -1;
+        }
+
+        if (!have_triangulated_pts) {
+            spdlog::info("cannot initialize with no triangulated points");
+            return false;
         }
 
         // set the camera poses

@@ -434,6 +434,7 @@ float keyframe::compute_median_depth(const bool abs) const {
         depths.push_back(abs ? std::abs(pos_c_z) : pos_c_z);
     }
 
+    assert(!depths.empty());
     std::sort(depths.begin(), depths.end());
 
     return depths.at((depths.size() - 1) / 2);
