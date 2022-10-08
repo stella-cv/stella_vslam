@@ -139,7 +139,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
-    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
+    for (int64_t level = 0; level < orb_params_->num_levels_; ++level) {
         const float scale_factor = orb_params_->scale_factors_.at(level);
 
         constexpr unsigned int min_border_x = orb_patch_radius_;
@@ -158,7 +158,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
-        for (unsigned int i = 0; i < num_rows; ++i) {
+        for (int64_t i = 0; i < num_rows; ++i) {
             const unsigned int min_y = min_border_y + i * cell_size;
             if (max_border_y - overlap <= min_y) {
                 continue;
@@ -171,7 +171,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
-            for (unsigned int j = 0; j < num_cols; ++j) {
+            for (int64_t j = 0; j < num_cols; ++j) {
                 const unsigned int min_x = min_border_x + j * cell_size;
                 if (max_border_x - overlap <= min_x) {
                     continue;

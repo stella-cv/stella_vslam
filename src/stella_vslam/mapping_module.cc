@@ -313,7 +313,7 @@ void mapping_module::triangulate_with_two_keyframes(const std::shared_ptr<data::
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
-    for (unsigned int i = 0; i < matches.size(); ++i) {
+    for (int64_t i = 0; i < matches.size(); ++i) {
         const auto idx_1 = matches.at(i).first;
         const auto idx_2 = matches.at(i).second;
 
