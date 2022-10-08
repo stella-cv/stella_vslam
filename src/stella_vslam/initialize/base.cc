@@ -76,7 +76,7 @@ bool base::find_most_plausible_pose(const eigen_alloc_vector<Mat33_t>& init_rots
     }
 
     // reject if the parallax is too small
-    if (init_parallax.at(max_num_valid_index) < parallax_deg_thr_) {
+    if (init_parallax.at(max_num_valid_index) > std::cos(parallax_deg_thr_ / 180.0 * M_PI)) {
         return false;
     }
 
@@ -99,7 +99,7 @@ unsigned int base::triangulate(const Mat33_t& rot_ref_to_cur, const Vec3_t& tran
                                eigen_alloc_vector<Vec3_t>& triangulated_pts,
                                std::vector<bool>& is_triangulated,
                                unsigned int& num_triangulated_pts,
-                               float& parallax_deg) {
+                               float& parallax_cos) {
     // = cos(0.5deg)
     constexpr float cos_parallax_thr = 0.99996192306;
     const float reproj_err_thr_sq = reproj_err_thr_ * reproj_err_thr_;
@@ -201,10 +201,10 @@ unsigned int base::triangulate(const Mat33_t& rot_ref_to_cur, const Vec3_t& tran
         // return the 50th smallest parallax
         std::sort(cos_parallaxes.begin(), cos_parallaxes.end());
         const auto idx = std::min(50, static_cast<int>(cos_parallaxes.size() - 1));
-        parallax_deg = std::acos(cos_parallaxes.at(idx)) * 180.0 / M_PI;
+        parallax_cos = cos_parallaxes.at(idx);
     }
     else {
-        parallax_deg = 0.0;
+        parallax_cos = 1.0;
     }
 
     return num_valid_pts;
