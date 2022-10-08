@@ -19,6 +19,7 @@ initializer::initializer(data::map_database* map_db, data::bow_database* bow_db,
                          const YAML::Node& yaml_node)
     : map_db_(map_db), bow_db_(bow_db),
       num_ransac_iters_(yaml_node["num_ransac_iterations"].as<unsigned int>(100)),
+      min_num_valid_pts_(yaml_node["min_num_valid_pts"].as<unsigned int>(50)),
       min_num_triangulated_(yaml_node["num_min_triangulated_pts"].as<unsigned int>(50)),
       parallax_deg_thr_(yaml_node["parallax_deg_threshold"].as<float>(1.0)),
       reproj_err_thr_(yaml_node["reprojection_error_threshold"].as<float>(4.0)),
@@ -124,17 +125,17 @@ void initializer::create_initializer(data::frame& curr_frm) {
         case camera::model_type_t::Perspective:
         case camera::model_type_t::Fisheye:
         case camera::model_type_t::RadialDivision: {
-            initializer_ = std::unique_ptr<initialize::perspective>(new initialize::perspective(init_frm_,
-                                                                                                num_ransac_iters_, min_num_triangulated_,
-                                                                                                parallax_deg_thr_, reproj_err_thr_,
-                                                                                                use_fixed_seed_));
+            initializer_ = std::unique_ptr<initialize::perspective>(
+                new initialize::perspective(
+                    init_frm_, num_ransac_iters_, min_num_triangulated_, min_num_valid_pts_,
+                    parallax_deg_thr_, reproj_err_thr_, use_fixed_seed_));
             break;
         }
         case camera::model_type_t::Equirectangular: {
-            initializer_ = std::unique_ptr<initialize::bearing_vector>(new initialize::bearing_vector(init_frm_,
-                                                                                                      num_ransac_iters_, min_num_triangulated_,
-                                                                                                      parallax_deg_thr_, reproj_err_thr_,
-                                                                                                      use_fixed_seed_));
+            initializer_ = std::unique_ptr<initialize::bearing_vector>(
+                new initialize::bearing_vector(
+                    init_frm_, num_ransac_iters_, min_num_triangulated_, min_num_valid_pts_,
+                    parallax_deg_thr_, reproj_err_thr_, use_fixed_seed_));
             break;
         }
     }
@@ -148,7 +149,7 @@ bool initializer::try_initialize_for_monocular(data::frame& curr_frm) {
     match::area matcher(0.9, true);
     const auto num_matches = matcher.match_in_consistent_area(init_frm_, curr_frm, prev_matched_coords_, init_matches_, 100);
 
-    if (num_matches < min_num_triangulated_) {
+    if (num_matches < min_num_valid_pts_) {
         // rebuild the initializer with the next frame
         reset();
         return false;

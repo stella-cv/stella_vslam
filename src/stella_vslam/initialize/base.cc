@@ -6,10 +6,14 @@ namespace stella_vslam {
 namespace initialize {
 
 base::base(const data::frame& ref_frm,
-           const unsigned int num_ransac_iters, const unsigned int min_num_triangulated,
-           const float parallax_deg_thr, const float reproj_err_thr)
+           const unsigned int num_ransac_iters,
+           const unsigned int min_num_triangulated,
+           const unsigned int min_num_valid_pts,
+           const float parallax_deg_thr,
+           const float reproj_err_thr)
     : ref_camera_(ref_frm.camera_), ref_undist_keypts_(ref_frm.frm_obs_.undist_keypts_), ref_bearings_(ref_frm.frm_obs_.bearings_),
       num_ransac_iters_(num_ransac_iters), min_num_triangulated_(min_num_triangulated),
+      min_num_valid_pts_(min_num_valid_pts),
       parallax_deg_thr_(parallax_deg_thr), reproj_err_thr_(reproj_err_thr) {}
 
 Mat33_t base::get_rotation_ref_to_cur() const {
@@ -41,22 +45,24 @@ bool base::find_most_plausible_pose(const eigen_alloc_vector<Mat33_t>& init_rots
     std::vector<float> init_parallax(num_hypothesis);
     // number of valid 3D points
     std::vector<unsigned int> nums_valid_pts(num_hypothesis);
+    // number of triangulated 3D points
+    std::vector<unsigned int> num_triangulated_pts(num_hypothesis);
 
     for (unsigned int i = 0; i < num_hypothesis; ++i) {
-        nums_valid_pts.at(i) = check_pose(init_rots.at(i), init_transes.at(i), is_inlier_match, depth_is_positive,
-                                          init_triangulated_pts.at(i), init_is_triangulated.at(i), init_parallax.at(i));
+        nums_valid_pts.at(i) = triangulate(init_rots.at(i), init_transes.at(i), is_inlier_match, depth_is_positive,
+                                           init_triangulated_pts.at(i), init_is_triangulated.at(i), num_triangulated_pts.at(i), init_parallax.at(i));
     }
 
     rot_ref_to_cur_ = Mat33_t::Zero();
     trans_ref_to_cur_ = Vec3_t::Zero();
 
-    // find the maximum number of the triangulated 3D points among all of the hypothesis
+    // find the maximum number of the valid points among all of the hypothesis
     const auto max_num_valid_pts_iter = std::max_element(nums_valid_pts.begin(), nums_valid_pts.end());
     // get the index of the hypothesis
     const unsigned int max_num_valid_index = std::distance(nums_valid_pts.begin(), max_num_valid_pts_iter);
 
-    // reject if the number of 3D points does not fulfill the threshold
-    if (*max_num_valid_pts_iter < min_num_triangulated_) {
+    // reject if the number of valid points does not fulfill the threshold
+    if (*max_num_valid_pts_iter < min_num_valid_pts_) {
         return false;
     }
 
@@ -74,6 +80,11 @@ bool base::find_most_plausible_pose(const eigen_alloc_vector<Mat33_t>& init_rots
         return false;
     }
 
+    // reject if the number of 3D points does not fulfill the threshold
+    if (num_triangulated_pts.at(max_num_valid_index) < min_num_triangulated_) {
+        return false;
+    }
+
     // store the reconstructed map
     rot_ref_to_cur_ = init_rots.at(max_num_valid_index);
     trans_ref_to_cur_ = init_transes.at(max_num_valid_index);
@@ -83,10 +94,12 @@ bool base::find_most_plausible_pose(const eigen_alloc_vector<Mat33_t>& init_rots
     return true;
 }
 
-unsigned int base::check_pose(const Mat33_t& rot_ref_to_cur, const Vec3_t& trans_ref_to_cur,
-                              const std::vector<bool>& is_inlier_match, const bool depth_is_positive,
-                              eigen_alloc_vector<Vec3_t>& triangulated_pts, std::vector<bool>& is_triangulated,
-                              float& parallax_deg) {
+unsigned int base::triangulate(const Mat33_t& rot_ref_to_cur, const Vec3_t& trans_ref_to_cur,
+                               const std::vector<bool>& is_inlier_match, const bool depth_is_positive,
+                               eigen_alloc_vector<Vec3_t>& triangulated_pts,
+                               std::vector<bool>& is_triangulated,
+                               unsigned int& num_triangulated_pts,
+                               float& parallax_deg) {
     // = cos(0.5deg)
     constexpr float cos_parallax_thr = 0.99996192306;
     const float reproj_err_thr_sq = reproj_err_thr_ * reproj_err_thr_;
@@ -103,6 +116,7 @@ unsigned int base::check_pose(const Mat33_t& rot_ref_to_cur, const Vec3_t& trans
     const Vec3_t cur_cam_center = -rot_ref_to_cur.transpose() * trans_ref_to_cur;
 
     unsigned int num_valid_pts = 0;
+    num_triangulated_pts = 0;
 
     // for each matching, triangulate a 3D point and compute a parallax and a reprojection error
     for (unsigned int i = 0; i < ref_cur_matches_.size(); ++i) {
@@ -171,12 +185,15 @@ unsigned int base::check_pose(const Mat33_t& rot_ref_to_cur, const Vec3_t& trans
             continue;
         }
 
-        // triangulation is valid!
+        // triangulation is valid
         ++num_valid_pts;
         cos_parallaxes.push_back(cos_parallax);
+
         if (!parallax_is_small) {
+            // triangulated
             triangulated_pts.at(ref_cur_matches_.at(i).first) = pos_c_in_ref;
             is_triangulated.at(ref_cur_matches_.at(i).first) = true;
+            num_triangulated_pts++;
         }
     }
 
