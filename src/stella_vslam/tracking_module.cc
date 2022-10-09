@@ -25,6 +25,7 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, camera::bas
       reloc_angle_threshold_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["reloc_angle_threshold"].as<double>(0.45)),
       enable_auto_relocalization_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["enable_auto_relocalization"].as<bool>(true)),
       use_robust_matcher_for_relocalization_request_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["use_robust_matcher_for_relocalization_request"].as<bool>(false)),
+      max_num_local_keyfrms_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["max_num_local_keyfrms"].as<unsigned int>(60)),
       map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
       frame_tracker_(camera_, 10, initializer_.get_use_fixed_seed()),
@@ -449,8 +450,7 @@ void tracking_module::update_local_map() {
     }
 
     // acquire the current local map
-    constexpr unsigned int max_num_local_keyfrms = 60;
-    auto local_map_updater = module::local_map_updater(curr_frm_, max_num_local_keyfrms);
+    auto local_map_updater = module::local_map_updater(curr_frm_, max_num_local_keyfrms_);
     if (!local_map_updater.acquire_local_map()) {
         return;
     }
