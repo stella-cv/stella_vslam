@@ -78,7 +78,7 @@ private:
     //! min number of valid pts (It should be greater than or equal to min_num_triangulated_)
     const unsigned int min_num_valid_pts_;
     //! min number of triangulated pts
-    const unsigned int min_num_triangulated_;
+    const unsigned int min_num_triangulated_pts_;
     //! min parallax (only for monocular initializer)
     const float parallax_deg_thr_;
     //! reprojection error threshold (only for monocular initializer)

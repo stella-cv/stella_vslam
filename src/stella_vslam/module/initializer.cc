@@ -20,7 +20,7 @@ initializer::initializer(data::map_database* map_db, data::bow_database* bow_db,
     : map_db_(map_db), bow_db_(bow_db),
       num_ransac_iters_(yaml_node["num_ransac_iterations"].as<unsigned int>(100)),
       min_num_valid_pts_(yaml_node["min_num_valid_pts"].as<unsigned int>(50)),
-      min_num_triangulated_(yaml_node["num_min_triangulated_pts"].as<unsigned int>(50)),
+      min_num_triangulated_pts_(yaml_node["min_num_triangulated_pts"].as<unsigned int>(50)),
       parallax_deg_thr_(yaml_node["parallax_deg_threshold"].as<float>(1.0)),
       reproj_err_thr_(yaml_node["reprojection_error_threshold"].as<float>(4.0)),
       num_ba_iters_(yaml_node["num_ba_iterations"].as<unsigned int>(20)),
@@ -127,14 +127,14 @@ void initializer::create_initializer(data::frame& curr_frm) {
         case camera::model_type_t::RadialDivision: {
             initializer_ = std::unique_ptr<initialize::perspective>(
                 new initialize::perspective(
-                    init_frm_, num_ransac_iters_, min_num_triangulated_, min_num_valid_pts_,
+                    init_frm_, num_ransac_iters_, min_num_triangulated_pts_, min_num_valid_pts_,
                     parallax_deg_thr_, reproj_err_thr_, use_fixed_seed_));
             break;
         }
         case camera::model_type_t::Equirectangular: {
             initializer_ = std::unique_ptr<initialize::bearing_vector>(
                 new initialize::bearing_vector(
-                    init_frm_, num_ransac_iters_, min_num_triangulated_, min_num_valid_pts_,
+                    init_frm_, num_ransac_iters_, min_num_triangulated_pts_, min_num_valid_pts_,
                     parallax_deg_thr_, reproj_err_thr_, use_fixed_seed_));
             break;
         }
@@ -281,7 +281,7 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
         // scale the map so that the median of depths is 1.0
         const auto median_depth = init_keyfrm->compute_median_depth(init_keyfrm->camera_->model_type_ == camera::model_type_t::Equirectangular);
         const auto inv_median_depth = 1.0 / median_depth;
-        if (curr_keyfrm->get_num_tracked_landmarks(1) < min_num_triangulated_ && median_depth < 0) {
+        if (curr_keyfrm->get_num_tracked_landmarks(1) < min_num_triangulated_pts_ && median_depth < 0) {
             spdlog::info("seems to be wrong initialization, resetting");
             state_ = initializer_state_t::Wrong;
             return false;
@@ -321,7 +321,7 @@ bool initializer::try_initialize_for_stereo(data::frame& curr_frm) {
                                                   [](const float depth) {
                                                       return 0 < depth;
                                                   });
-    return min_num_triangulated_ <= num_valid_depths;
+    return min_num_triangulated_pts_ <= num_valid_depths;
 }
 
 bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::frame& curr_frm) {
