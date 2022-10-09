@@ -121,6 +121,9 @@ public:
     //! If true, use robust_matcher for relocalization request
     bool use_robust_matcher_for_relocalization_request_ = false;
 
+    //! Max number of local keyframes for tracking
+    unsigned int max_num_local_keyfrms_ = 60;
+
     //-----------------------------------------
     // variables
 
