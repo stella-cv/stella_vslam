@@ -18,8 +18,13 @@ std::string data_serializer::serialized_reset_signal_{};
 
 data_serializer::data_serializer(const std::shared_ptr<stella_vslam::publish::frame_publisher>& frame_publisher,
                                  const std::shared_ptr<stella_vslam::publish::map_publisher>& map_publisher,
+                                 unsigned int max_num_keyframes,
+                                 unsigned int max_num_landmarks,
                                  bool publish_points)
-    : frame_publisher_(frame_publisher), map_publisher_(map_publisher), publish_points_(publish_points),
+    : frame_publisher_(frame_publisher), map_publisher_(map_publisher),
+      max_num_keyframes_(max_num_keyframes),
+      max_num_landmarks_(max_num_landmarks),
+      publish_points_(publish_points),
       keyframe_hash_map_(new std::unordered_map<unsigned int, double>), point_hash_map_(new std::unordered_map<unsigned int, double>) {
     const auto tags = std::vector<std::string>{"RESET_ALL"};
     const auto messages = std::vector<std::string>{"reset all data"};
@@ -56,13 +61,6 @@ std::string data_serializer::serialize_map_diff() {
 
     const auto current_camera_pose = map_publisher_->get_current_cam_pose();
 
-    const double pose_hash = get_mat_hash(current_camera_pose);
-    if (pose_hash == current_pose_hash_) {
-        current_pose_hash_ = pose_hash;
-        return "";
-    }
-    current_pose_hash_ = pose_hash;
-
     return serialize_as_protobuf(keyframes, all_landmarks, local_landmarks, current_camera_pose);
 }
 
@@ -89,6 +87,7 @@ std::string data_serializer::serialize_as_protobuf(const std::vector<std::shared
 
     // 1. keyframe registration
 
+    unsigned int num_added_keyfrms = 0;
     std::unordered_map<unsigned int, double> next_keyframe_hash_map;
     for (const auto& keyfrm : keyfrms) {
         if (!keyfrm || keyfrm->will_be_erased()) {
@@ -121,6 +120,10 @@ std::string data_serializer::serialize_as_protobuf(const std::vector<std::shared
         }
         keyfrm_obj->set_allocated_pose(pose_obj);
         allocated_keyframes.push_front(keyfrm_obj);
+        num_added_keyfrms++;
+        if (num_added_keyfrms < max_num_keyframes_) {
+            break;
+        }
     }
     // add removed keyframes.
     for (const auto& itr : *keyframe_hash_map_) {
@@ -181,6 +184,7 @@ std::string data_serializer::serialize_as_protobuf(const std::vector<std::shared
 
     // 3. landmark registration
 
+    unsigned int num_added_landmarks = 0;
     std::unordered_map<unsigned int, double> next_point_hash_map;
     for (const auto& landmark : all_landmarks) {
         if (!landmark || landmark->will_be_erased()) {
@@ -212,6 +216,10 @@ std::string data_serializer::serialize_as_protobuf(const std::vector<std::shared
         }
         for (int i = 0; i < 3; i++) {
             landmark_obj->add_color(rgb[i]);
+        }
+        num_added_landmarks++;
+        if (num_added_landmarks < max_num_landmarks_) {
+            break;
         }
     }
     // removed points are remaining in "point_zips".
