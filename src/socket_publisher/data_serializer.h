@@ -30,8 +30,6 @@ class data_serializer {
 public:
     data_serializer(const std::shared_ptr<stella_vslam::publish::frame_publisher>& frame_publisher,
                     const std::shared_ptr<stella_vslam::publish::map_publisher>& map_publisher,
-                    unsigned int max_num_keyframes,
-                    unsigned int max_num_landmarks,
                     bool publish_points);
 
     std::string serialize_messages(const std::vector<std::string>& tags, const std::vector<std::string>& messages);
@@ -45,16 +43,7 @@ public:
 private:
     const std::shared_ptr<stella_vslam::publish::frame_publisher> frame_publisher_;
     const std::shared_ptr<stella_vslam::publish::map_publisher> map_publisher_;
-
-    // Limit the number of keyframes transferred at one time. This avoids disconnections when loading large maps.
-    unsigned int max_num_keyframes_ = 100;
-
-    // Limit the number of landmarks transferred at one time. This avoids disconnections when loading large maps.
-    unsigned int max_num_landmarks_ = 100;
-
-    // If true, pointcloud transfer is enabled. The default is true. Pointcloud transfer is slow, so disabling pointcloud transfer may be useful to improve performance of SocketViewer.
     bool publish_points_ = true;
-
     std::unique_ptr<std::unordered_map<unsigned int, double>> keyframe_hash_map_;
     std::unique_ptr<std::unordered_map<unsigned int, double>> point_hash_map_;
 
