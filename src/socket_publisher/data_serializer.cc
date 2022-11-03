@@ -121,7 +121,7 @@ std::string data_serializer::serialize_as_protobuf(const std::vector<std::shared
         keyfrm_obj->set_allocated_pose(pose_obj);
         allocated_keyframes.push_front(keyfrm_obj);
         num_added_keyfrms++;
-        if (num_added_keyfrms < max_num_keyframes_) {
+        if (num_added_keyfrms > max_num_keyframes_) {
             break;
         }
     }
@@ -218,7 +218,7 @@ std::string data_serializer::serialize_as_protobuf(const std::vector<std::shared
             landmark_obj->add_color(rgb[i]);
         }
         num_added_landmarks++;
-        if (num_added_landmarks < max_num_landmarks_) {
+        if (num_added_landmarks > max_num_landmarks_) {
             break;
         }
     }
