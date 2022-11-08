@@ -317,9 +317,9 @@ bool relocalizer::refine_pose_by_local_map(data::frame& curr_frm,
 
         if (i == margins.size() - 1) {
             const auto num_tracked_lms = candidate_keyfrm->get_num_tracked_landmarks(0);
-            const double ratio = 0.8;
+            const double ratio = 0.2;
             SPDLOG_TRACE("refine_pose_by_local_map: num_valid_obs={:4}, num_tracked_lms={:4}", num_valid_obs, num_tracked_lms);
-            if (num_valid_obs > num_tracked_lms * ratio) {
+            if (num_valid_obs < num_tracked_lms * ratio) {
                 return false;
             }
         }
