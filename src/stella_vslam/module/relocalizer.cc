@@ -4,6 +4,7 @@
 #include "stella_vslam/data/bow_database.h"
 #include "stella_vslam/module/local_map_updater.h"
 #include "stella_vslam/module/relocalizer.h"
+#include "stella_vslam/optimize/pose_optimizer_g2o.h"
 #include "stella_vslam/util/fancy_index.h"
 
 #include <spdlog/spdlog.h>
@@ -11,19 +12,21 @@
 namespace stella_vslam {
 namespace module {
 
-relocalizer::relocalizer(const double bow_match_lowe_ratio, const double proj_match_lowe_ratio,
+relocalizer::relocalizer(const std::shared_ptr<optimize::pose_optimizer>& pose_optimizer,
+                         const double bow_match_lowe_ratio, const double proj_match_lowe_ratio,
                          const double robust_match_lowe_ratio,
                          const unsigned int min_num_bow_matches, const unsigned int min_num_valid_obs,
                          const bool use_fixed_seed)
     : min_num_bow_matches_(min_num_bow_matches), min_num_valid_obs_(min_num_valid_obs),
       bow_matcher_(bow_match_lowe_ratio, false), proj_matcher_(proj_match_lowe_ratio, false),
       robust_matcher_(robust_match_lowe_ratio, false),
-      pose_optimizer_(), use_fixed_seed_(use_fixed_seed) {
+      pose_optimizer_(pose_optimizer), use_fixed_seed_(use_fixed_seed) {
     spdlog::debug("CONSTRUCT: module::relocalizer");
 }
 
-relocalizer::relocalizer(const YAML::Node& yaml_node)
-    : relocalizer(yaml_node["bow_match_lowe_ratio"].as<double>(0.75),
+relocalizer::relocalizer(const std::shared_ptr<optimize::pose_optimizer>& pose_optimizer, const YAML::Node& yaml_node)
+    : relocalizer(pose_optimizer,
+                  yaml_node["bow_match_lowe_ratio"].as<double>(0.75),
                   yaml_node["proj_match_lowe_ratio"].as<double>(0.9),
                   yaml_node["robust_match_lowe_ratio"].as<double>(0.8),
                   yaml_node["min_num_bow_matches"].as<unsigned int>(20),
@@ -151,8 +154,8 @@ bool relocalizer::optimize_pose(data::frame& curr_frm,
                                 const std::shared_ptr<stella_vslam::data::keyframe>& candidate_keyfrm,
                                 std::vector<bool>& outlier_flags) const {
     // Pose optimization
-    g2o::SE3Quat optimized_pose;
-    auto num_valid_obs = pose_optimizer_.optimize(curr_frm, optimized_pose, outlier_flags);
+    Mat44_t optimized_pose;
+    auto num_valid_obs = pose_optimizer_->optimize(curr_frm, optimized_pose, outlier_flags);
     curr_frm.set_pose_cw(optimized_pose);
 
     // Discard the candidate if the number of the inliers is less than the threshold
@@ -187,9 +190,9 @@ bool relocalizer::refine_pose(data::frame& curr_frm,
         return false;
     }
 
-    g2o::SE3Quat optimized_pose1;
+    Mat44_t optimized_pose1;
     std::vector<bool> outlier_flags1;
-    auto num_valid_obs1 = pose_optimizer_.optimize(curr_frm, optimized_pose1, outlier_flags1);
+    auto num_valid_obs1 = pose_optimizer_->optimize(curr_frm, optimized_pose1, outlier_flags1);
     SPDLOG_TRACE("refine_pose: num_valid_obs1={}", num_valid_obs1);
     curr_frm.set_pose_cw(optimized_pose1);
 
@@ -212,9 +215,9 @@ bool relocalizer::refine_pose(data::frame& curr_frm,
     }
 
     // Perform optimization again
-    g2o::SE3Quat optimized_pose2;
+    Mat44_t optimized_pose2;
     std::vector<bool> outlier_flags2;
-    auto num_valid_obs2 = pose_optimizer_.optimize(curr_frm, optimized_pose2, outlier_flags2);
+    auto num_valid_obs2 = pose_optimizer_->optimize(curr_frm, optimized_pose2, outlier_flags2);
     SPDLOG_TRACE("refine_pose: num_valid_obs2={}", num_valid_obs2);
     curr_frm.set_pose_cw(optimized_pose2);
 
@@ -301,9 +304,9 @@ bool relocalizer::refine_pose_by_local_map(data::frame& curr_frm,
         auto num_additional_matches = projection_matcher.match_frame_and_landmarks(curr_frm, local_landmarks, lm_to_reproj, lm_to_x_right, lm_to_scale, margin);
 
         // optimize the pose
-        g2o::SE3Quat optimized_pose;
+        Mat44_t optimized_pose;
         std::vector<bool> outlier_flags;
-        auto num_valid_obs = pose_optimizer_.optimize(curr_frm, optimized_pose, outlier_flags);
+        auto num_valid_obs = pose_optimizer_->optimize(curr_frm, optimized_pose, outlier_flags);
         curr_frm.set_pose_cw(optimized_pose);
 
         // Reject outliers

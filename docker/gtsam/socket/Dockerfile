@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:18.04
 ENV DEBIAN_FRONTEND noninteractive
 
 # install dependencies via apt
@@ -25,10 +25,8 @@ RUN set -x && \
   apt-get install -y -qq \
     libboost-all-dev \
     libtbb-dev && \
-  apt-mark manual libboost-* && \
   : "OpenCV dependencies" && \
   apt-get install -y -qq \
-    libgtk-3-dev \
     libjpeg-dev \
     libpng++-dev \
     libtiff-dev \
@@ -59,9 +57,6 @@ ENV C_INCLUDE_PATH=${CMAKE_INSTALL_PREFIX}/include:${C_INCLUDE_PATH}
 ENV CPLUS_INCLUDE_PATH=${CMAKE_INSTALL_PREFIX}/include:${CPLUS_INCLUDE_PATH}
 ENV LIBRARY_PATH=${CMAKE_INSTALL_PREFIX}/lib:${LIBRARY_PATH}
 ENV LD_LIBRARY_PATH=${CMAKE_INSTALL_PREFIX}/lib:${LD_LIBRARY_PATH}
-
-ENV NVIDIA_VISIBLE_DEVICES ${NVIDIA_VISIBLE_DEVICES:-all}
-ENV NVIDIA_DRIVER_CAPABILITIES ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}graphics
 
 # Eigen
 ARG EIGEN3_VERSION=3.3.7
@@ -174,68 +169,6 @@ RUN set -x && \
   rm -rf *
 ENV OpenCV_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/opencv4
 
-# FBoW
-ARG FBoW_COMMIT=30f45f1d97314145f81b49617bb37846a861dfe7
-WORKDIR /tmp
-RUN set -x && \
-  git clone https://github.com/stella-cv/FBoW.git && \
-  cd FBoW && \
-  git checkout ${FBoW_COMMIT} && \
-  mkdir -p build && \
-  cd build && \
-  cmake \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
-    .. && \
-  make -j${NUM_THREADS} && \
-  make install && \
-  cd /tmp && \
-  rm -rf *
-ENV FBoW_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/FBoW
-
-# Pangolin
-ARG PANGOLIN_COMMIT=ad8b5f83222291c51b4800d5a5873b0e90a0cf81
-WORKDIR /tmp
-RUN set -x && \
-  git clone https://github.com/stevenlovegrove/Pangolin.git && \
-  cd Pangolin && \
-  git checkout ${PANGOLIN_COMMIT} && \
-  sed -i -e "193,198d" ./src/utils/file_utils.cpp && \
-  mkdir -p build && \
-  cd build && \
-  cmake \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
-    -DBUILD_EXAMPLES=OFF \
-    -DBUILD_PANGOLIN_DEPTHSENSE=OFF \
-    -DBUILD_PANGOLIN_FFMPEG=OFF \
-    -DBUILD_PANGOLIN_LIBDC1394=OFF \
-    -DBUILD_PANGOLIN_LIBJPEG=OFF \
-    -DBUILD_PANGOLIN_LIBOPENEXR=OFF \
-    -DBUILD_PANGOLIN_LIBPNG=OFF \
-    -DBUILD_PANGOLIN_LIBREALSENSE=OFF \
-    -DBUILD_PANGOLIN_LIBREALSENSE2=OFF \
-    -DBUILD_PANGOLIN_LIBTIFF=OFF \
-    -DBUILD_PANGOLIN_LIBUVC=OFF \
-    -DBUILD_PANGOLIN_LZ4=OFF \
-    -DBUILD_PANGOLIN_OPENNI=OFF \
-    -DBUILD_PANGOLIN_OPENNI2=OFF \
-    -DBUILD_PANGOLIN_PLEORA=OFF \
-    -DBUILD_PANGOLIN_PYTHON=OFF \
-    -DBUILD_PANGOLIN_TELICAM=OFF \
-    -DBUILD_PANGOLIN_TOON=OFF \
-    -DBUILD_PANGOLIN_UVC_MEDIAFOUNDATION=OFF \
-    -DBUILD_PANGOLIN_V4L=OFF \
-    -DBUILD_PANGOLIN_VIDEO=OFF \
-    -DBUILD_PANGOLIN_ZSTD=OFF \
-    -DBUILD_PYPANGOLIN_MODULE=OFF \
-    .. && \
-  make -j${NUM_THREADS} && \
-  make install && \
-  cd /tmp && \
-  rm -rf *
-ENV Pangolin_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/Pangolin
-
 # socket.io-client-cpp
 ARG SIOCLIENT_COMMIT=ff6ef08e45c594e33aa6bc19ebdd07954914efe0
 WORKDIR /tmp
@@ -276,28 +209,6 @@ RUN set -x && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 
-RUN set -x && \
-  apt-get update -y -qq && \
-  : "ci dependencies" && \
-  apt-get install -y -qq \
-    ccache \
-    clang-format-6.0 \ 
-    datamash && \
-  apt-get autoremove -y -qq && \
-  rm -rf /var/lib/apt/lists/*
-
-# evaluation tools
-RUN set -x && \
-  apt-get update -y -qq && \
-  : "install evo" && \
-  apt-get install -y -qq \
-    python3-pip && \
-  pip3 install evo gdown --upgrade --no-binary evo && \
-  : "remove cache"  && \
-  rm -rf ~/.cache/pip && \
-  apt-get autoremove -y -qq && \
-  rm -rf /var/lib/apt/lists/*
-
 # backward-cpp
 ARG BACKWARD_CPP_COMMIT=5ffb2c879ebdbea3bdb8477c671e32b1c984beaa
 WORKDIR /tmp
@@ -316,8 +227,21 @@ RUN set -x && \
   cd /tmp && \
   rm -rf *
 
-RUN mkdir -p /datasets/
-COPY orb_vocab /datasets/orb_vocab
-RUN mkdir -p /datasets/EuRoC
-COPY MH_01 /datasets/EuRoC/MH_01
-COPY MH_04 /datasets/EuRoC/MH_04
+# stella_vslam
+COPY . /stella_vslam/
+WORKDIR /stella_vslam/
+RUN set -x && \
+  mkdir -p build && \
+  cd build && \
+  cmake \
+    -DUSE_SOCKET_PUBLISHER=ON \
+    -DBUILD_EXAMPLES=ON \
+    -DUSE_STACK_TRACE_LOGGER=ON \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    .. && \
+  make -j${NUM_THREADS} && \
+  rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \
+  chmod -R 777 ./*
+
+WORKDIR /stella_vslam/build/
+ENTRYPOINT ["/bin/bash"]

@@ -75,8 +75,23 @@ Feature:
 #====================#
 
 Mapping:
+  backend: "g2o"
   baseline_dist_thr: 0.11007784219
   redundant_obs_ratio_thr: 0.9
+
+#=====================#
+# Tracking Parameters #
+#=====================#
+
+Tracking:
+  backend: "g2o"
+
+#=========================#
+# LoopDetector Parameters #
+#=========================#
+
+LoopDetector:
+  backend: "g2o"
 
 #========================#
 # Initializer Parameters #

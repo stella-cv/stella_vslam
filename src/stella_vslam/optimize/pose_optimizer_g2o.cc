@@ -1,7 +1,7 @@
 #include "stella_vslam/data/frame.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
-#include "stella_vslam/optimize/pose_optimizer.h"
+#include "stella_vslam/optimize/pose_optimizer_g2o.h"
 #include "stella_vslam/optimize/terminate_action.h"
 #include "stella_vslam/optimize/internal/se3/pose_opt_edge_wrapper.h"
 #include "stella_vslam/util/converter.h"
@@ -20,27 +20,27 @@
 namespace stella_vslam {
 namespace optimize {
 
-pose_optimizer::pose_optimizer(const unsigned int num_trials, const unsigned int num_each_iter)
+pose_optimizer_g2o::pose_optimizer_g2o(const unsigned int num_trials, const unsigned int num_each_iter)
     : num_trials_(num_trials), num_each_iter_(num_each_iter) {}
 
-unsigned int pose_optimizer::optimize(const data::frame& frm, g2o::SE3Quat& optimized_pose, std::vector<bool>& outlier_flags) const {
+unsigned int pose_optimizer_g2o::optimize(const data::frame& frm, Mat44_t& optimized_pose, std::vector<bool>& outlier_flags) const {
     auto num_valid_obs = optimize(frm.get_pose_cw(), frm.frm_obs_, frm.orb_params_, frm.camera_,
                                   frm.get_landmarks(), optimized_pose, outlier_flags);
     return num_valid_obs;
 }
 
-unsigned int pose_optimizer::optimize(const data::keyframe* keyfrm, g2o::SE3Quat& optimized_pose, std::vector<bool>& outlier_flags) const {
+unsigned int pose_optimizer_g2o::optimize(const data::keyframe* keyfrm, Mat44_t& optimized_pose, std::vector<bool>& outlier_flags) const {
     auto num_valid_obs = optimize(keyfrm->get_pose_cw(), keyfrm->frm_obs_, keyfrm->orb_params_, keyfrm->camera_,
                                   keyfrm->get_landmarks(), optimized_pose, outlier_flags);
     return num_valid_obs;
 }
 
-unsigned int pose_optimizer::optimize(const Mat44_t& cam_pose_cw, const data::frame_observation& frm_obs,
-                                      const feature::orb_params* orb_params,
-                                      const camera::base* camera,
-                                      const std::vector<std::shared_ptr<data::landmark>>& landmarks,
-                                      g2o::SE3Quat& optimized_pose,
-                                      std::vector<bool>& outlier_flags) const {
+unsigned int pose_optimizer_g2o::optimize(const Mat44_t& cam_pose_cw, const data::frame_observation& frm_obs,
+                                          const feature::orb_params* orb_params,
+                                          const camera::base* camera,
+                                          const std::vector<std::shared_ptr<data::landmark>>& landmarks,
+                                          Mat44_t& optimized_pose,
+                                          std::vector<bool>& outlier_flags) const {
     // 1. Construct an optimizer
 
     auto linear_solver = g2o::make_unique<g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>>();
@@ -164,7 +164,7 @@ unsigned int pose_optimizer::optimize(const Mat44_t& cam_pose_cw, const data::fr
 
     // 5. Update the information
 
-    optimized_pose = frm_vtx->estimate();
+    optimized_pose = util::converter::to_eigen_mat(frm_vtx->estimate());
 
     return num_init_obs - num_bad_obs;
 }

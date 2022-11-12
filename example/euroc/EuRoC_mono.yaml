@@ -49,10 +49,25 @@ Feature:
 #====================#
 
 Mapping:
+  backend: "g2o"
   baseline_dist_thr_ratio: 0.02
   redundant_obs_ratio_thr: 0.9
   num_covisibilities_for_landmark_generation: 20
   num_covisibilities_for_landmark_fusion: 20
+
+#=====================#
+# Tracking Parameters #
+#=====================#
+
+Tracking:
+  backend: "g2o"
+
+#=========================#
+# LoopDetector Parameters #
+#=========================#
+
+LoopDetector:
+  backend: "g2o"
 
 #===========================#
 # PangolinViewer Parameters #

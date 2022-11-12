@@ -26,6 +26,18 @@ find_package(g2o REQUIRED
              OPTIONAL_COMPONENTS
              g2o::csparse)
 
+# gtsam
+set(USE_GTSAM ON CACHE BOOL "Enable gtsam")
+unset(GTSAM_INCLUDE_DIRS CACHE)
+find_path(GTSAM_INCLUDE_DIRS NAMES gtsam
+          PATHS /usr/local/include/)
+if(USE_GTSAM AND GTSAM_INCLUDE_DIRS)
+    message(STATUS "gtsam: enabled (Found in ${GTSAM_INCLUDE_DIRS})")
+else()
+    set(USE_GTSAM OFF)
+    message(STATUS "gtsam: disabled")
+endif()
+
 # Check first if CSparse is built from g2o
 if(TARGET g2o::csparse)
     set(${CXSPARSE_LIBRARIES} g2o::csparse)
@@ -80,6 +92,11 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 
 # ----- Compile configuration -----
+
+# gtsam
+if (USE_GTSAM)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC USE_GTSAM)
+endif()
 
 # OpenMP
 set(USE_OPENMP OFF CACHE BOOL "Use OpenMP")
@@ -186,6 +203,7 @@ target_link_libraries(${PROJECT_NAME}
                       g2o::solver_eigen
                       g2o::solver_csparse
                       g2o::csparse_extension
+                      "$<$<BOOL:${USE_GTSAM}>:gtsam>"
                       ${CXSPARSE_LIBRARIES}
                       ${SUITESPARSE_LIBRARIES}
                       ${BoW_LIBRARY}

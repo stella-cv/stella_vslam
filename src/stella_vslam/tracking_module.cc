@@ -9,6 +9,7 @@
 #include "stella_vslam/data/bow_database.h"
 #include "stella_vslam/match/projection.h"
 #include "stella_vslam/module/local_map_updater.h"
+#include "stella_vslam/optimize/pose_optimizer_factory.h"
 #include "stella_vslam/util/yaml.h"
 
 #include <chrono>
@@ -28,9 +29,9 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, camera::bas
       max_num_local_keyfrms_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["max_num_local_keyfrms"].as<unsigned int>(60)),
       map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
-      frame_tracker_(camera_, 10, initializer_.get_use_fixed_seed()),
-      relocalizer_(util::yaml_optional_ref(cfg->yaml_node_, "Relocalizer")),
-      pose_optimizer_(),
+      pose_optimizer_(optimize::pose_optimizer_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
+      frame_tracker_(camera_, pose_optimizer_, 10, initializer_.get_use_fixed_seed()),
+      relocalizer_(pose_optimizer_, util::yaml_optional_ref(cfg->yaml_node_, "Relocalizer")),
       keyfrm_inserter_(util::yaml_optional_ref(cfg->yaml_node_, "KeyframeInserter")) {
     spdlog::debug("CONSTRUCT: tracking_module");
 }
@@ -381,9 +382,9 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
     search_local_landmarks();
 
     // optimize the pose
-    g2o::SE3Quat optimized_pose;
+    Mat44_t optimized_pose;
     std::vector<bool> outlier_flags;
-    pose_optimizer_.optimize(curr_frm_, optimized_pose, outlier_flags);
+    pose_optimizer_->optimize(curr_frm_, optimized_pose, outlier_flags);
     curr_frm_.set_pose_cw(optimized_pose);
 
     // Reject outliers
