@@ -59,7 +59,7 @@ TEST(pnp_solver, without_ransac) {
     EXPECT_LT(trans_err, 1e-4);
 }
 
-TEST(pnp_solver, without_noise) {
+TEST(pnp_solver, without_outlier) {
     // Create landmarks
     const unsigned int num_landmarks = 100;
     const auto landmarks = create_random_landmarks_in_space(num_landmarks, 100);
@@ -97,7 +97,7 @@ TEST(pnp_solver, without_noise) {
     EXPECT_LT(trans_err, 1e-4);
 }
 
-TEST(pnp_solver, with_noise) {
+TEST(pnp_solver, with_outlier) {
     // Create landmarks
     const unsigned int num_landmarks = 100;
     const auto landmarks = create_random_landmarks_in_space(num_landmarks, 100);
@@ -108,7 +108,9 @@ TEST(pnp_solver, with_noise) {
 
     // Create bearing vectors containing observation noise
     eigen_alloc_vector<Vec3_t> bearings;
-    create_bearing_vectors(rot_gt, trans_gt, landmarks, bearings, 0.0005);
+    create_bearing_vectors(rot_gt, trans_gt, landmarks, bearings);
+    const double outlier_ratio = 0.3;
+    add_noise(bearings, 0.1, outlier_ratio);
 
     // keypts and scale_factor are required of solver
     // In this test, octave is 0 and scale factor is 1 for each keypoint
@@ -120,7 +122,7 @@ TEST(pnp_solver, with_noise) {
 
     // Compute the camera pose by pnp_solver
     auto solver = std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(bearings, keypts, landmarks, scale_factor, 10, true));
-    solver->find_via_ransac(30);
+    solver->find_via_ransac(50, false);
     EXPECT_TRUE(solver->solution_is_valid());
 
     const auto estimated_pose = solver->get_best_cam_pose();

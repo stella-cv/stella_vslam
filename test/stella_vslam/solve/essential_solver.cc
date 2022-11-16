@@ -92,7 +92,7 @@ TEST(essential_solver, ransac_solve_without_noise) {
     EXPECT_LT((true_E_21 - E_21).norm(), 1e-4);
 }
 
-TEST(essential_solver, ransac_solve_with_noise) {
+TEST(essential_solver, ransac_solve_with_outlier) {
     // create 3D points
     const unsigned int num_landmarks = 200;
     const auto landmarks = create_random_landmarks_in_space(num_landmarks, 100);
@@ -106,8 +106,10 @@ TEST(essential_solver, ransac_solve_with_noise) {
     // create bearing vectors from two-view poses and 3D points
     eigen_alloc_vector<Vec3_t> bearings_1;
     eigen_alloc_vector<Vec3_t> bearings_2;
-    create_bearing_vectors(rot_1, trans_1, landmarks, bearings_1, 0.001);
-    create_bearing_vectors(rot_2, trans_2, landmarks, bearings_2, 0.001);
+    create_bearing_vectors(rot_1, trans_1, landmarks, bearings_1);
+    add_noise(bearings_1, 0.05, 0.2);
+    create_bearing_vectors(rot_2, trans_2, landmarks, bearings_2);
+    add_noise(bearings_2, 0.05, 0.2);
 
     // create a true essential matrix
     Mat33_t true_E_21 = solve::essential_solver::create_E_21(rot_1, trans_1, rot_2, trans_2);
@@ -121,7 +123,7 @@ TEST(essential_solver, ransac_solve_with_noise) {
 
     // solve via RANSAC
     solve::essential_solver solver(bearings_1, bearings_2, matches_12);
-    solver.find_via_ransac(100);
+    solver.find_via_ransac(100, false);
     Mat33_t E_21 = solver.get_best_E_21();
 
     // check that solution is valid
