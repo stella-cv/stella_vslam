@@ -409,7 +409,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
                                                                                    cur_keyfrm_->orb_params_->scale_factors_,
                                                                                    use_fixed_seed_));
 
-        pnp_solver->find_via_ransac(30);
+        pnp_solver->find_via_ransac(30, false);
         if (!pnp_solver->solution_is_valid()) {
             spdlog::debug("solution is not valid.");
             continue;

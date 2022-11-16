@@ -52,18 +52,18 @@ bool perspective::initialize(const data::frame& cur_frm, const std::vector<int>&
     const float sigma = 1.0f;
     auto homography_solver = solve::homography_solver(ref_undist_keypts_, cur_undist_keypts_, ref_cur_matches_, sigma, use_fixed_seed_);
     auto fundamental_solver = solve::fundamental_solver(ref_undist_keypts_, cur_undist_keypts_, ref_cur_matches_, sigma, use_fixed_seed_);
-    std::thread thread_for_H(&solve::homography_solver::find_via_ransac, &homography_solver, num_ransac_iters_, true);
-    std::thread thread_for_F(&solve::fundamental_solver::find_via_ransac, &fundamental_solver, num_ransac_iters_, true);
+    std::thread thread_for_H(&solve::homography_solver::find_via_ransac, &homography_solver, num_ransac_iters_, false);
+    std::thread thread_for_F(&solve::fundamental_solver::find_via_ransac, &fundamental_solver, num_ransac_iters_, false);
     thread_for_H.join();
     thread_for_F.join();
 
-    // compute a score
-    const auto score_H = homography_solver.get_best_score();
-    const auto score_F = fundamental_solver.get_best_score();
-    const float rel_score_H = score_H / (score_H + score_F);
+    // compute a cost
+    const auto cost_H = homography_solver.get_best_cost();
+    const auto cost_F = fundamental_solver.get_best_cost();
+    const float rel_cost_H = cost_H / (cost_H + cost_F);
 
-    // select a case according to the score
-    if (0.40 < rel_score_H && homography_solver.solution_is_valid()) {
+    // select a case according to the cost
+    if (0.5 > rel_cost_H && homography_solver.solution_is_valid()) {
         spdlog::debug("reconstruct_with_H");
         const Mat33_t H_ref_to_cur = homography_solver.get_best_H_21();
         const auto is_inlier_match = homography_solver.get_inlier_matches();

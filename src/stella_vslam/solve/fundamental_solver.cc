@@ -3,6 +3,7 @@
 #include "stella_vslam/solve/fundamental_solver.h"
 #include "stella_vslam/util/converter.h"
 #include "stella_vslam/util/random_array.h"
+#include "stella_vslam/util/trigonometric.h"
 
 namespace stella_vslam {
 namespace solve {
@@ -35,7 +36,7 @@ void fundamental_solver::find_via_ransac(const unsigned int max_num_iter, const 
     }
 
     // RANSAC variables
-    best_score_ = 0.0;
+    best_cost_ = std::numeric_limits<float>::max();
     is_inlier_match_ = std::vector<bool>(num_matches, false);
 
     // minimum set of keypoint matches
@@ -47,8 +48,6 @@ void fundamental_solver::find_via_ransac(const unsigned int max_num_iter, const 
     Mat33_t F_21_in_sac;
     // inlier/outlier flags
     std::vector<bool> is_inlier_match_in_sac(num_matches, false);
-    // score of fundamental matrix
-    float score_in_sac;
 
     // 2. RANSAC loop
 
@@ -65,19 +64,19 @@ void fundamental_solver::find_via_ransac(const unsigned int max_num_iter, const 
         const Mat33_t normalized_F_21 = compute_F_21(min_set_keypts_1, min_set_keypts_2);
         F_21_in_sac = transform_2_t * normalized_F_21 * transform_1;
 
-        // 2-3. Check inliers and compute a score
-        score_in_sac = check_inliers(F_21_in_sac, is_inlier_match_in_sac);
+        // 2-3. Check inliers and compute a cost
+        float cost_in_sac;
+        unsigned int num_inliers = check_inliers(F_21_in_sac, is_inlier_match_in_sac, cost_in_sac);
 
         // 2-4. Update the best model
-        if (best_score_ < score_in_sac) {
-            best_score_ = score_in_sac;
+        if (num_inliers > min_set_size && best_cost_ > cost_in_sac) {
+            best_cost_ = cost_in_sac;
             best_F_21_ = F_21_in_sac;
             is_inlier_match_ = is_inlier_match_in_sac;
         }
     }
 
-    const auto num_inliers = std::count(is_inlier_match_.begin(), is_inlier_match_.end(), true);
-    solution_is_valid_ = (best_score_ > 0.0) && (num_inliers >= min_set_size);
+    solution_is_valid_ = best_cost_ < std::numeric_limits<float>::max();
 
     if (!recompute || !solution_is_valid_) {
         return;
@@ -97,7 +96,7 @@ void fundamental_solver::find_via_ransac(const unsigned int max_num_iter, const 
     }
     const Mat33_t normalized_F_21 = solve::fundamental_solver::compute_F_21(inlier_normalized_keypts_1, inlier_normalized_keypts_2);
     best_F_21_ = transform_2_t * normalized_F_21 * transform_1;
-    best_score_ = check_inliers(best_F_21_, is_inlier_match_);
+    check_inliers(best_F_21_, is_inlier_match_, best_cost_);
 }
 
 Mat33_t fundamental_solver::compute_F_21(const std::vector<cv::Point2f>& keypts_1, const std::vector<cv::Point2f>& keypts_2) {
@@ -146,21 +145,18 @@ Mat33_t fundamental_solver::create_F_21(const Mat33_t& rot_1w, const Vec3_t& tra
     return cam_matrix_2.transpose().inverse() * E_21 * cam_matrix_1.inverse();
 }
 
-float fundamental_solver::check_inliers(const Mat33_t& F_21, std::vector<bool>& is_inlier_match) {
+unsigned int fundamental_solver::check_inliers(const Mat33_t& F_21, std::vector<bool>& is_inlier_match, float& cost) {
+    unsigned int num_inliers = 0;
     const auto num_points = matches_12_.size();
 
-    // chi-squared value (p=0.05, n=1)
-    constexpr float chi_sq_thr = 3.841;
     // chi-squared value (p=0.05, n=2)
-    constexpr float score_thr = 5.991;
+    constexpr float chi_sq = 5.991;
 
     is_inlier_match.resize(num_points);
 
-    const Mat33_t F_12 = F_21.transpose();
+    const float sigma_sq = sigma_ * sigma_;
 
-    float score = 0;
-
-    const float inv_sigma_sq = 1.0 / (sigma_ * sigma_);
+    cost = 0.0;
 
     for (unsigned int i = 0; i < num_points; ++i) {
         const auto& keypt_1 = undist_keypts_1_.at(matches_12_.at(i).first);
@@ -171,52 +167,26 @@ float fundamental_solver::check_inliers(const Mat33_t& F_21, std::vector<bool>& 
         const Vec3_t pt_1 = util::converter::to_homogeneous(keypt_1.pt);
         const Vec3_t pt_2 = util::converter::to_homogeneous(keypt_2.pt);
 
-        // 2. Compute symmetric transfer error
+        // 2. Compute sampson error
 
-        // 2-1. Transform a point in shot 1 to the epipolar line in shot 2,
-        //      then compute a transfer error (= dot product)
+        const Vec3_t F_21_pt_1 = F_21 * pt_1;
+        const MatRC_t<1, 3> pt_2_F_21 = pt_2.transpose() * F_21;
+        const double pt_2_F_21_pt_1 = pt_2_F_21 * pt_1;
+        const double dist_sq = pt_2_F_21_pt_1 * pt_2_F_21_pt_1 / (F_21_pt_1.block<2, 1>(0, 0).squaredNorm() + pt_2_F_21.block<1, 2>(0, 0).squaredNorm());
 
-        const Vec3_t epiline_in_2 = F_21 * pt_1;
-
-        const float residual_in_2 = epiline_in_2.dot(pt_2);
-        const float dist_sq_2 = residual_in_2 * residual_in_2 / epiline_in_2.block<2, 1>(0, 0).squaredNorm();
-
-        // standardization
-        const float chi_sq_2 = dist_sq_2 * inv_sigma_sq;
-
-        // if a match is inlier, accumulate the score
-        if (chi_sq_thr < chi_sq_2) {
-            is_inlier_match.at(i) = false;
-            continue;
+        const float thr = chi_sq * sigma_sq;
+        if (thr > dist_sq) {
+            is_inlier_match.at(i) = true;
+            cost += dist_sq;
+            num_inliers++;
         }
         else {
-            is_inlier_match.at(i) = true;
-            score += score_thr - chi_sq_2;
-        }
-
-        // 2. Transform a point in shot 2 to the epipolar line in shot 1,
-        //    then compute a transfer error (= dot product)
-
-        const Vec3_t epiline_in_1 = F_12 * pt_2;
-
-        const float residual_in_1 = epiline_in_1.dot(pt_1);
-        const float dist_sq_1 = residual_in_1 * residual_in_1 / epiline_in_1.block<2, 1>(0, 0).squaredNorm();
-
-        // standardization
-        const float chi_sq_1 = dist_sq_1 * inv_sigma_sq;
-
-        // if a match is inlier, accumulate the score
-        if (chi_sq_thr < chi_sq_1) {
             is_inlier_match.at(i) = false;
-            continue;
-        }
-        else {
-            is_inlier_match.at(i) = true;
-            score += score_thr - chi_sq_1;
+            cost += thr;
         }
     }
 
-    return score;
+    return num_inliers;
 }
 
 } // namespace solve

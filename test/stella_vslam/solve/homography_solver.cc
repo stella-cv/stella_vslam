@@ -149,8 +149,8 @@ TEST(homography_solver, ransac_solve_with_outlier) {
     std::vector<cv::KeyPoint> keypts_2;
     create_keypoints(rot_1, trans_1, cam_matrix_1, landmarks, keypts_1);
     create_keypoints(rot_2, trans_2, cam_matrix_2, landmarks, keypts_2);
-    add_noise(keypts_1, 1.0, 0.2);
-    add_noise(keypts_2, 1.0, 0.2);
+    add_noise(keypts_1, 5.0, 0.2);
+    add_noise(keypts_2, 5.0, 0.2);
 
     // create matching information
     std::vector<std::pair<int, int>> matches_12(num_landmarks);
