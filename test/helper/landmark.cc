@@ -43,3 +43,57 @@ eigen_alloc_vector<Vec3_t> create_random_landmarks_on_plane(const unsigned int n
 
     return landmarks;
 }
+
+eigen_alloc_vector<Vec3_t> create_landmarks_on_plane(const Mat33_t& rot_cw, const Vec3_t& trans_cw, const Mat33_t& cam_matrix,
+                                                     const std::vector<cv::Point2f>& keypts, const Vec4_t& plane_coeffs) {
+    const auto a = plane_coeffs(0);
+    const auto b = plane_coeffs(1);
+    const auto c = plane_coeffs(2);
+    const auto d = plane_coeffs(3);
+
+    Vec3_t n_w(a, b, c);
+    Vec3_t n_c = rot_cw * n_w;
+    Vec3_t p_w(0, 0, -d / c);
+    Vec3_t p_c = rot_cw * p_w + trans_cw;
+
+    eigen_alloc_vector<Vec3_t> landmarks(keypts.size());
+    for (unsigned int i = 0; i < keypts.size(); ++i) {
+        Vec3_t pos_c;
+        double u = (keypts.at(i).x - cam_matrix(0, 2)) / cam_matrix(0, 0);
+        double v = (keypts.at(i).y - cam_matrix(1, 2)) / cam_matrix(1, 1);
+        pos_c(2) = (p_c(2) + n_c(0) / n_c(2) * p_c(0) + n_c(1) / n_c(2) * p_c(1)) / (1 + n_c(1) / n_c(2) * v + n_c(0) / n_c(2) * u);
+        pos_c(0) = pos_c(2) * u;
+        pos_c(1) = pos_c(2) * v;
+
+        landmarks.at(i) = rot_cw.transpose() * (pos_c - trans_cw);
+    }
+
+    return landmarks;
+}
+
+eigen_alloc_vector<Vec3_t> create_landmarks_on_plane(const Mat33_t& rot_cw, const Vec3_t& trans_cw, const Mat33_t& cam_matrix,
+                                                     const std::vector<cv::KeyPoint>& keypts, const Vec4_t& plane_coeffs) {
+    const auto a = plane_coeffs(0);
+    const auto b = plane_coeffs(1);
+    const auto c = plane_coeffs(2);
+    const auto d = plane_coeffs(3);
+
+    Vec3_t n_w(a, b, c);
+    Vec3_t n_c = rot_cw * n_w;
+    Vec3_t p_w(0, 0, -d / c);
+    Vec3_t p_c = rot_cw * p_w + trans_cw;
+
+    eigen_alloc_vector<Vec3_t> landmarks(keypts.size());
+    for (unsigned int i = 0; i < keypts.size(); ++i) {
+        Vec3_t pos_c;
+        double u = (keypts.at(i).pt.x - cam_matrix(0, 2)) / cam_matrix(0, 0);
+        double v = (keypts.at(i).pt.y - cam_matrix(1, 2)) / cam_matrix(1, 1);
+        pos_c(2) = (p_c(2) + n_c(0) / n_c(2) * p_c(0) + n_c(1) / n_c(2) * p_c(1)) / (1 + n_c(1) / n_c(2) * v + n_c(0) / n_c(2) * u);
+        pos_c(0) = pos_c(2) * u;
+        pos_c(1) = pos_c(2) * v;
+
+        landmarks.at(i) = rot_cw.transpose() * (pos_c - trans_cw);
+    }
+
+    return landmarks;
+}
