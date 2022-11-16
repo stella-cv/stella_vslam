@@ -8,12 +8,17 @@
 namespace stella_vslam {
 namespace solve {
 
-pnp_solver::pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings, const std::vector<cv::KeyPoint>& valid_keypts,
-                       const eigen_alloc_vector<Vec3_t>& valid_landmarks, const std::vector<float>& scale_factors,
-                       const unsigned int min_num_inliers, bool use_fixed_seed)
+pnp_solver::pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings,
+                       const std::vector<cv::KeyPoint>& valid_keypts,
+                       const eigen_alloc_vector<Vec3_t>& valid_landmarks,
+                       const std::vector<float>& scale_factors,
+                       const unsigned int min_num_inliers,
+                       const bool use_fixed_seed,
+                       const unsigned int gauss_newton_num_iter)
     : num_matches_(valid_bearings.size()), valid_bearings_(valid_bearings),
       valid_landmarks_(valid_landmarks), min_num_inliers_(min_num_inliers),
-      random_engine_(util::create_random_engine(use_fixed_seed)) {
+      random_engine_(util::create_random_engine(use_fixed_seed)),
+      gauss_newton_num_iter_(gauss_newton_num_iter) {
     spdlog::trace("CONSTRUCT: solve::pnp_solver");
 
     max_cos_errors_.clear();
@@ -80,7 +85,7 @@ void pnp_solver::find_via_ransac(const unsigned int max_num_iter, const bool rec
         }
 
         // 2-2. Compute a camera pose
-        compute_pose(min_set_bearings, min_set_pos_ws, rot_cw_in_sac, trans_cw_in_sac);
+        compute_pose(min_set_bearings, min_set_pos_ws, rot_cw_in_sac, trans_cw_in_sac, gauss_newton_num_iter_);
 
         // 2-3. Check inliers and compute a score
         double cost = 0.0;
@@ -115,7 +120,7 @@ void pnp_solver::find_via_ransac(const unsigned int max_num_iter, const bool rec
         inlier_pos_ws.push_back(pos_w);
     }
 
-    compute_pose(inlier_bearings, inlier_pos_ws, best_rot_cw_, best_trans_cw_);
+    compute_pose(inlier_bearings, inlier_pos_ws, best_rot_cw_, best_trans_cw_, gauss_newton_num_iter_);
 }
 
 unsigned int pnp_solver::check_inliers(const Mat33_t& rot_cw, const Vec3_t& trans_cw, std::vector<bool>& is_inlier, double& cost) {

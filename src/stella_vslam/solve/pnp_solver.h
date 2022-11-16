@@ -15,9 +15,13 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     //! Constructor
-    pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings, const std::vector<cv::KeyPoint>& valid_keypts,
-               const eigen_alloc_vector<Vec3_t>& valid_landmarks, const std::vector<float>& scale_factors,
-               const unsigned int min_num_inliers = 10, bool use_fixed_seed = false);
+    pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings,
+               const std::vector<cv::KeyPoint>& valid_keypts,
+               const eigen_alloc_vector<Vec3_t>& valid_landmarks,
+               const std::vector<float>& scale_factors,
+               unsigned int min_num_inliers = 10,
+               bool use_fixed_seed = false,
+               unsigned int gauss_newton_num_iter = 10);
 
     //! Destructor
     virtual ~pnp_solver();
@@ -79,6 +83,9 @@ private:
     std::vector<bool> is_inlier_match;
     //! random engine for RANSAC
     std::mt19937 random_engine_;
+
+    //! Number of iterations of Gauss-Newton method in EPnP
+    const unsigned int gauss_newton_num_iter_;
 
     //-----------------------------------------
     // quoted from EPnP implementation
