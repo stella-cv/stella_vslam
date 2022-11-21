@@ -41,7 +41,7 @@ bool bearing_vector::initialize(const data::frame& cur_frm, const std::vector<in
 
     // compute an E matrix
     auto essential_solver = solve::essential_solver(ref_bearings_, cur_bearings_, ref_cur_matches_, use_fixed_seed_);
-    essential_solver.find_via_ransac(num_ransac_iters_);
+    essential_solver.find_via_ransac(num_ransac_iters_, false);
 
     // reconstruct map if the solution is valid
     if (essential_solver.solution_is_valid()) {

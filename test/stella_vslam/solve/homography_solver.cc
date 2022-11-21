@@ -57,7 +57,7 @@ TEST(homography_solver, linear_solve) {
     }
 }
 
-TEST(homography_solver, ransac_solve_without_noise) {
+TEST(homography_solver, ransac_solve_without_outlier) {
     // create 3D points
     const unsigned int num_landmarks = 200;
     const Vec4_t plane_coeffs{4.0, -3.0, 9.0, -34.0};
@@ -121,7 +121,7 @@ TEST(homography_solver, ransac_solve_without_noise) {
     }
 }
 
-TEST(homography_solver, ransac_solve_with_noise) {
+TEST(homography_solver, ransac_solve_with_outlier) {
     // create 3D points
     const unsigned int num_landmarks = 200;
     const Vec4_t plane_coeffs{-9.0, 2.0, -6.0, 11.0};
@@ -147,8 +147,10 @@ TEST(homography_solver, ransac_solve_with_noise) {
     // create keypoints from two-view poses and 3D points
     std::vector<cv::KeyPoint> keypts_1;
     std::vector<cv::KeyPoint> keypts_2;
-    create_keypoints(rot_1, trans_1, cam_matrix_1, landmarks, keypts_1, 1.0);
-    create_keypoints(rot_2, trans_2, cam_matrix_2, landmarks, keypts_2, 1.0);
+    create_keypoints(rot_1, trans_1, cam_matrix_1, landmarks, keypts_1);
+    create_keypoints(rot_2, trans_2, cam_matrix_2, landmarks, keypts_2);
+    add_noise(keypts_1, 5.0, 0.2);
+    add_noise(keypts_2, 5.0, 0.2);
 
     // create matching information
     std::vector<std::pair<int, int>> matches_12(num_landmarks);
@@ -159,7 +161,7 @@ TEST(homography_solver, ransac_solve_with_noise) {
 
     // solve via RANSAC
     solve::homography_solver solver(keypts_1, keypts_2, matches_12, 1.0);
-    solver.find_via_ransac(100);
+    solver.find_via_ransac(100, false);
     const Mat33_t H_21 = solver.get_best_H_21();
     const Mat33_t H_12 = H_21.inverse();
 

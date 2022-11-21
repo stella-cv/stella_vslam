@@ -28,9 +28,9 @@ public:
         return solution_is_valid_;
     }
 
-    //! Get the best score
-    double get_best_score() const {
-        return best_score_;
+    //! Get the best cost
+    float get_best_cost() const {
+        return best_cost_;
     }
 
     //! Get the most reliable essential matrix
@@ -54,8 +54,8 @@ public:
 
 private:
     //! Check inliers of the epipolar constraint
-    //! (Note: inlier flags are set to `inlier_match` and a score is returned)
-    float check_inliers(const Mat33_t& E_21, std::vector<bool>& is_inlier_match);
+    //! (Note: inlier flags are set to `inlier_match`)
+    unsigned int check_inliers(const Mat33_t& E_21, std::vector<bool>& is_inlier_match, float& cost);
 
     //! bearing vectors of shot 1
     const eigen_alloc_vector<Vec3_t>& bearings_1_;
@@ -66,8 +66,8 @@ private:
 
     //! solution is valid or not
     bool solution_is_valid_ = false;
-    //! best score of RANSAC
-    double best_score_ = 0.0;
+    //! best cost of RANSAC
+    float best_cost_ = 0.0;
     //! most reliable essential matrix
     Mat33_t best_E_21_;
     //! inlier matches computed via RANSAC

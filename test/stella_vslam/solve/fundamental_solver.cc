@@ -53,7 +53,7 @@ TEST(fundamental_solver, linear_solve) {
     EXPECT_LT((true_F_21 - F_21).norm(), 1e-4);
 }
 
-TEST(fundamental_solver, ransac_solve_without_noise) {
+TEST(fundamental_solver, ransac_solve_without_outlier) {
     // create 3D points
     const unsigned int num_landmarks = 200;
     const auto landmarks = create_random_landmarks_in_space(num_landmarks, 100);
@@ -114,7 +114,7 @@ TEST(fundamental_solver, ransac_solve_without_noise) {
     EXPECT_LT((true_F_21 - F_21).norm(), 1e-4);
 }
 
-TEST(fundamental_solver, ransac_solve_with_noise) {
+TEST(fundamental_solver, ransac_solve_with_outlier) {
     // create 3D points
     const unsigned int num_landmarks = 200;
     const auto landmarks = create_random_landmarks_in_space(num_landmarks, 100);
@@ -139,8 +139,10 @@ TEST(fundamental_solver, ransac_solve_with_noise) {
     // create keypoints from two-view poses and 3D points
     std::vector<cv::KeyPoint> keypts_1;
     std::vector<cv::KeyPoint> keypts_2;
-    create_keypoints(rot_1, trans_1, cam_matrix_1, landmarks, keypts_1, 1.0);
-    create_keypoints(rot_2, trans_2, cam_matrix_2, landmarks, keypts_2, 1.0);
+    create_keypoints(rot_1, trans_1, cam_matrix_1, landmarks, keypts_1);
+    add_noise(keypts_1, 5.0, 0.2);
+    create_keypoints(rot_2, trans_2, cam_matrix_2, landmarks, keypts_2);
+    add_noise(keypts_2, 5.0, 0.2);
 
     // create a true fundamental matrix
     Mat33_t true_F_21 = solve::fundamental_solver::create_F_21(rot_1, trans_1, cam_matrix_1, rot_2, trans_2, cam_matrix_2);
@@ -154,7 +156,7 @@ TEST(fundamental_solver, ransac_solve_with_noise) {
 
     // solve via RANSAC
     solve::fundamental_solver solver(keypts_1, keypts_2, matches_12, 1.0);
-    solver.find_via_ransac(100);
+    solver.find_via_ransac(100, false);
     Mat33_t F_21 = solver.get_best_F_21();
 
     // check that solution is valid

@@ -133,7 +133,7 @@ bool relocalizer::relocalize_by_pnp_solver(data::frame& curr_frm,
 
     // 1. Estimate the camera pose using EPnP (+ RANSAC)
 
-    pnp_solver->find_via_ransac(30);
+    pnp_solver->find_via_ransac(30, false);
     if (!pnp_solver->solution_is_valid()) {
         spdlog::debug("solution is not valid. candidate keyframe id is {}", candidate_keyfrm->id_);
         return false;

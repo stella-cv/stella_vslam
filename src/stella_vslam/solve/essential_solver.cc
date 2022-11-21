@@ -1,6 +1,7 @@
 #include "stella_vslam/solve/essential_solver.h"
 #include "stella_vslam/util/converter.h"
 #include "stella_vslam/util/random_array.h"
+#include "stella_vslam/util/trigonometric.h"
 
 namespace stella_vslam {
 namespace solve {
@@ -23,7 +24,7 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
     }
 
     // RANSAC variables
-    best_score_ = 0.0;
+    best_cost_ = std::numeric_limits<float>::max();
     is_inlier_match_ = std::vector<bool>(num_matches, false);
 
     // minimum set of keypoint matches
@@ -35,8 +36,6 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
     Mat33_t E_21_in_sac;
     // inlier/outlier flags
     std::vector<bool> is_inlier_match_in_sac(num_matches, false);
-    // score of essential matrix
-    float score_in_sac;
 
     // 2. RANSAC loop
 
@@ -52,19 +51,19 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
         // 2-2. Compute an essential matrix
         E_21_in_sac = compute_E_21(min_set_bearings_1, min_set_bearings_2);
 
-        // 2-3. Check inliers and compute a score
-        score_in_sac = check_inliers(E_21_in_sac, is_inlier_match_in_sac);
+        // 2-3. Check inliers and compute a cost
+        float cost_in_sac;
+        unsigned int num_inliers = check_inliers(E_21_in_sac, is_inlier_match_in_sac, cost_in_sac);
 
         // 2-4. Update the best model
-        if (best_score_ < score_in_sac) {
-            best_score_ = score_in_sac;
+        if (num_inliers > min_set_size && best_cost_ > cost_in_sac) {
+            best_cost_ = cost_in_sac;
             best_E_21_ = E_21_in_sac;
             is_inlier_match_ = is_inlier_match_in_sac;
         }
     }
 
-    const auto num_inliers = std::count(is_inlier_match_.begin(), is_inlier_match_.end(), true);
-    solution_is_valid_ = (best_score_ > 0.0) && (num_inliers >= min_set_size);
+    solution_is_valid_ = best_cost_ < std::numeric_limits<float>::max();
 
     if (!recompute || !solution_is_valid_) {
         return;
@@ -83,7 +82,7 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
         }
     }
     best_E_21_ = solve::essential_solver::compute_E_21(inlier_bearing_1, inlier_bearing_2);
-    best_score_ = check_inliers(best_E_21_, is_inlier_match_);
+    check_inliers(best_E_21_, is_inlier_match_, best_cost_);
 }
 
 Mat33_t essential_solver::compute_E_21(const eigen_alloc_vector<Vec3_t>& bearings_1, const eigen_alloc_vector<Vec3_t>& bearings_2) {
@@ -155,57 +154,43 @@ Mat33_t essential_solver::create_E_21(const Mat33_t& rot_1w, const Vec3_t& trans
     return trans_21_x * rot_21;
 }
 
-float essential_solver::check_inliers(const Mat33_t& E_21, std::vector<bool>& is_inlier_match) {
+unsigned int essential_solver::check_inliers(const Mat33_t& E_21, std::vector<bool>& is_inlier_match, float& cost) {
+    unsigned int num_inliers = 0;
     const auto num_points = matches_12_.size();
 
     is_inlier_match.resize(num_points);
 
     const Mat33_t E_12 = E_21.transpose();
 
-    float score = 0;
+    cost = 0.0;
 
-    // outlier threshold as cosine value between a bearing vector and a normal vector of the epipolar plane
-    constexpr float residual_cos_thr = 0.01745240643;
+    // outlier threshold of cosine between a bearing vector and the epipolar plane
+    const float cos_angle_thr = util::cos(1.0 * M_PI / 180.0);
 
     for (unsigned int i = 0; i < num_points; ++i) {
         const auto& bearing_1 = bearings_1_.at(matches_12_.at(i).first);
         const auto& bearing_2 = bearings_2_.at(matches_12_.at(i).second);
 
-        // 1. Transform a point in shot 1 to the epipolar plane in shot 2,
-        //    then compute a transfer error (= dot product)
-
         const Vec3_t epiplane_in_2 = E_21 * bearing_1;
-        const float residual_in_2 = std::abs(epiplane_in_2.dot(bearing_2) / epiplane_in_2.norm());
-
-        // if a match is inlier, accumulate the score
-        if (residual_cos_thr < residual_in_2) {
-            is_inlier_match.at(i) = false;
-            continue;
-        }
-        else {
-            is_inlier_match.at(i) = true;
-            score += residual_in_2;
-        }
-
-        // 2. Transform a point in shot 2 to the epipolar plane in shot 1,
-        //    then compute a transfer error (= dot product)
+        const float cos_in_2 = epiplane_in_2.cross(bearing_2).norm() / epiplane_in_2.norm();
 
         const Vec3_t epiplane_in_1 = E_12 * bearing_2;
+        const float cos_in_1 = epiplane_in_1.cross(bearing_1).norm() / epiplane_in_1.norm();
 
-        const float residual_in_1 = std::abs(epiplane_in_1.dot(bearing_1) / epiplane_in_1.norm());
+        float worst_cos_angle = std::min(cos_in_1, cos_in_2);
 
-        // if a match is inlier, accumulate the score
-        if (residual_cos_thr < residual_in_1) {
-            is_inlier_match.at(i) = false;
-            continue;
+        if (cos_angle_thr < worst_cos_angle) {
+            is_inlier_match.at(i) = true;
+            cost += 1.0 - worst_cos_angle;
+            num_inliers++;
         }
         else {
-            is_inlier_match.at(i) = true;
-            score += residual_in_1;
+            is_inlier_match.at(i) = false;
+            cost += 1.0 - cos_angle_thr;
         }
     }
 
-    return score;
+    return num_inliers;
 }
 
 } // namespace solve
