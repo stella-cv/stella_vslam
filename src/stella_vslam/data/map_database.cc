@@ -231,6 +231,7 @@ void map_database::clear() {
     keyframes_.clear();
     last_inserted_keyfrm_ = nullptr;
     local_landmarks_.clear();
+    spanning_roots_.clear();
 
     frm_stats_.clear();
 
