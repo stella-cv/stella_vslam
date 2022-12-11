@@ -154,7 +154,7 @@ jobs:
           mv track_times.txt ../artifact/track_times_MH_04_mono_localization.txt
       - name: download openvslam_test_dataset
         run: |
-          gdown "https://drive.google.com/uc?id=1bdkqaR99GKjg4orhqHxQkwqyi227tfCd" -q
+          curl -sL "https://github.com/stella-cv/openvslam_test_dataset/raw/main/openvslam_test_dataset.zip" -o openvslam_test_dataset.zip
           unzip openvslam_test_dataset.zip
           rm openvslam_test_dataset.zip
       - name: make config for openvslam_test_dataset
