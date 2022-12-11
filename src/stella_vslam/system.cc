@@ -274,6 +274,9 @@ void system::abort_loop_BA() {
 
 data::frame system::create_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     // color conversion
+    if (!camera_->is_valid_shape(img)) {
+        spdlog::warn("preprocess: Input image size is invalid");
+    }
     cv::Mat img_gray = img;
     util::convert_to_grayscale(img_gray, camera_->color_order_);
 
@@ -307,6 +310,12 @@ data::frame system::create_monocular_frame(const cv::Mat& img, const double time
 
 data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
     // color conversion
+    if (!camera_->is_valid_shape(left_img)) {
+        spdlog::warn("preprocess: Input image size is invalid");
+    }
+    if (!camera_->is_valid_shape(right_img)) {
+        spdlog::warn("preprocess: Input image size is invalid");
+    }
     cv::Mat img_gray = left_img;
     cv::Mat right_img_gray = right_img;
     util::convert_to_grayscale(img_gray, camera_->color_order_);
@@ -360,6 +369,12 @@ data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& 
 
 data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask) {
     // color and depth scale conversion
+    if (!camera_->is_valid_shape(rgb_img)) {
+        spdlog::warn("preprocess: Input image size is invalid");
+    }
+    if (!camera_->is_valid_shape(depthmap)) {
+        spdlog::warn("preprocess: Input image size is invalid");
+    }
     cv::Mat img_gray = rgb_img;
     cv::Mat img_depth = depthmap;
     util::convert_to_grayscale(img_gray, camera_->color_order_);
