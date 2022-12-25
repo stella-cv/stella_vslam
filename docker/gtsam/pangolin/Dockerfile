@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:18.04
 ENV DEBIAN_FRONTEND noninteractive
 
 # install dependencies via apt
@@ -25,7 +25,6 @@ RUN set -x && \
   apt-get install -y -qq \
     libboost-all-dev \
     libtbb-dev && \
-  apt-mark manual libboost-* && \
   : "OpenCV dependencies" && \
   apt-get install -y -qq \
     libgtk-3-dev \
@@ -174,25 +173,6 @@ RUN set -x && \
   rm -rf *
 ENV OpenCV_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/opencv4
 
-# FBoW
-ARG FBoW_COMMIT=30f45f1d97314145f81b49617bb37846a861dfe7
-WORKDIR /tmp
-RUN set -x && \
-  git clone https://github.com/stella-cv/FBoW.git && \
-  cd FBoW && \
-  git checkout ${FBoW_COMMIT} && \
-  mkdir -p build && \
-  cd build && \
-  cmake \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
-    .. && \
-  make -j${NUM_THREADS} && \
-  make install && \
-  cd /tmp && \
-  rm -rf *
-ENV FBoW_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/FBoW
-
 # Pangolin
 ARG PANGOLIN_COMMIT=ad8b5f83222291c51b4800d5a5873b0e90a0cf81
 WORKDIR /tmp
@@ -236,68 +216,6 @@ RUN set -x && \
   rm -rf *
 ENV Pangolin_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/Pangolin
 
-# socket.io-client-cpp
-ARG SIOCLIENT_COMMIT=ff6ef08e45c594e33aa6bc19ebdd07954914efe0
-WORKDIR /tmp
-RUN set -x && \
-  git clone https://github.com/shinsumicco/socket.io-client-cpp.git && \
-  cd socket.io-client-cpp && \
-  git checkout ${SIOCLIENT_COMMIT} && \
-  git submodule init && \
-  git submodule update && \
-  mkdir -p build && \
-  cd build && \
-  cmake \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
-    -DBUILD_UNIT_TESTS=OFF \
-    .. && \
-  make -j${NUM_THREADS} && \
-  make install && \
-  cd /tmp && \
-  rm -rf *
-ENV sioclient_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/sioclient
-
-# protobuf
-WORKDIR /tmp
-RUN set -x && \
-  apt-get update -y -qq && \
-  apt-get install -y -qq autogen libtool && \
-  wget -q https://github.com/google/protobuf/archive/v3.6.1.tar.gz && \
-  tar xf v3.6.1.tar.gz && \
-  cd protobuf-3.6.1 && \
-  ./autogen.sh && \
-  ./configure --prefix=${CMAKE_INSTALL_PREFIX} --enable-static=no && \
-  make -j${NUM_THREADS} && \
-  make install && \
-  cd /tmp && \
-  rm -rf * && \
-  apt-get purge -y -qq autogen libtool && \
-  apt-get autoremove -y -qq && \
-  rm -rf /var/lib/apt/lists/*
-
-RUN set -x && \
-  apt-get update -y -qq && \
-  : "ci dependencies" && \
-  apt-get install -y -qq \
-    ccache \
-    clang-format-6.0 \ 
-    datamash && \
-  apt-get autoremove -y -qq && \
-  rm -rf /var/lib/apt/lists/*
-
-# evaluation tools
-RUN set -x && \
-  apt-get update -y -qq && \
-  : "install evo" && \
-  apt-get install -y -qq \
-    python3-pip && \
-  pip3 install evo gdown --upgrade --no-binary evo && \
-  : "remove cache"  && \
-  rm -rf ~/.cache/pip && \
-  apt-get autoremove -y -qq && \
-  rm -rf /var/lib/apt/lists/*
-
 # backward-cpp
 ARG BACKWARD_CPP_COMMIT=5ffb2c879ebdbea3bdb8477c671e32b1c984beaa
 WORKDIR /tmp
@@ -316,8 +234,21 @@ RUN set -x && \
   cd /tmp && \
   rm -rf *
 
-RUN mkdir -p /datasets/
-COPY orb_vocab /datasets/orb_vocab
-RUN mkdir -p /datasets/EuRoC
-COPY MH_01 /datasets/EuRoC/MH_01
-COPY MH_04 /datasets/EuRoC/MH_04
+# stella_vslam
+COPY . /stella_vslam/
+WORKDIR /stella_vslam/
+RUN set -x && \
+  mkdir -p build && \
+  cd build && \
+  cmake \
+    -DUSE_PANGOLIN_VIEWER=ON \
+    -DBUILD_EXAMPLES=ON \
+    -DUSE_STACK_TRACE_LOGGER=ON \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    .. && \
+  make -j${NUM_THREADS} && \
+  rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \
+  chmod -R 777 ./*
+
+WORKDIR /stella_vslam/build/
+ENTRYPOINT ["/bin/bash"]

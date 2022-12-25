@@ -24,38 +24,19 @@ namespace optimize {
 class pose_optimizer {
 public:
     /**
-     * Constructor
-     * @param num_trials
-     * @param num_each_iter
-     */
-    explicit pose_optimizer(const unsigned int num_trials = 4, const unsigned int num_each_iter = 10);
-
-    /**
-     * Destructor
-     */
-    virtual ~pose_optimizer() = default;
-
-    /**
      * Perform pose optimization
      * @param frm
      * @return
      */
-    unsigned int optimize(const data::frame& frm, g2o::SE3Quat& optimized_pose, std::vector<bool>& outlier_flags) const;
-    unsigned int optimize(const data::keyframe* keyfrm, g2o::SE3Quat& optimized_pose, std::vector<bool>& outlier_flags) const;
+    virtual unsigned int optimize(const data::frame& frm, Mat44_t& optimized_pose, std::vector<bool>& outlier_flags) const = 0;
+    virtual unsigned int optimize(const data::keyframe* keyfrm, Mat44_t& optimized_pose, std::vector<bool>& outlier_flags) const = 0;
 
-    unsigned int optimize(const Mat44_t& cam_pose_cw, const data::frame_observation& frm_obs,
-                          const feature::orb_params* orb_params,
-                          const camera::base* camera,
-                          const std::vector<std::shared_ptr<data::landmark>>& landmarks,
-                          g2o::SE3Quat& optimized_pose,
-                          std::vector<bool>& outlier_flags) const;
-
-private:
-    //! robust optimizationの試行回数
-    const unsigned int num_trials_ = 4;
-
-    //! 毎回のoptimizationのiteration回数
-    const unsigned int num_each_iter_ = 10;
+    virtual unsigned int optimize(const Mat44_t& cam_pose_cw, const data::frame_observation& frm_obs,
+                                  const feature::orb_params* orb_params,
+                                  const camera::base* camera,
+                                  const std::vector<std::shared_ptr<data::landmark>>& landmarks,
+                                  Mat44_t& optimized_pose,
+                                  std::vector<bool>& outlier_flags) const = 0;
 };
 
 } // namespace optimize

@@ -21,12 +21,13 @@ namespace module {
 class relocalizer {
 public:
     //! Constructor
-    explicit relocalizer(const double bow_match_lowe_ratio = 0.75, const double proj_match_lowe_ratio = 0.9,
+    explicit relocalizer(const std::shared_ptr<optimize::pose_optimizer>& pose_optimizer,
+                         const double bow_match_lowe_ratio = 0.75, const double proj_match_lowe_ratio = 0.9,
                          const double robust_match_lowe_ratio = 0.8,
                          const unsigned int min_num_bow_matches = 20, const unsigned int min_num_valid_obs = 50,
                          const bool use_fixed_seed = false);
 
-    explicit relocalizer(const YAML::Node& yaml_node);
+    explicit relocalizer(const std::shared_ptr<optimize::pose_optimizer>& pose_optimizer, const YAML::Node& yaml_node);
 
     //! Destructor
     virtual ~relocalizer();
@@ -78,7 +79,7 @@ private:
     //! robust matcher
     const match::robust robust_matcher_;
     //! pose optimizer
-    const optimize::pose_optimizer pose_optimizer_;
+    std::shared_ptr<optimize::pose_optimizer> pose_optimizer_ = nullptr;
 
     //! Use fixed random seed for RANSAC if true
     const bool use_fixed_seed_;

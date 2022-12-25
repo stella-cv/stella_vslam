@@ -6,14 +6,16 @@
 #include "stella_vslam/match/projection.h"
 #include "stella_vslam/match/robust.h"
 #include "stella_vslam/module/frame_tracker.h"
+#include "stella_vslam/optimize/pose_optimizer_g2o.h"
 
 #include <spdlog/spdlog.h>
 
 namespace stella_vslam {
 namespace module {
 
-frame_tracker::frame_tracker(camera::base* camera, const unsigned int num_matches_thr, bool use_fixed_seed)
-    : camera_(camera), num_matches_thr_(num_matches_thr), use_fixed_seed_(use_fixed_seed), pose_optimizer_() {}
+frame_tracker::frame_tracker(camera::base* camera, const std::shared_ptr<optimize::pose_optimizer>& pose_optimizer,
+                             const unsigned int num_matches_thr, bool use_fixed_seed)
+    : camera_(camera), num_matches_thr_(num_matches_thr), use_fixed_seed_(use_fixed_seed), pose_optimizer_(pose_optimizer) {}
 
 bool frame_tracker::motion_based_track(data::frame& curr_frm, const data::frame& last_frm, const Mat44_t& velocity) const {
     match::projection projection_matcher(0.9, true);
@@ -40,9 +42,9 @@ bool frame_tracker::motion_based_track(data::frame& curr_frm, const data::frame&
     }
 
     // Pose optimization
-    g2o::SE3Quat optimized_pose;
+    Mat44_t optimized_pose;
     std::vector<bool> outlier_flags;
-    pose_optimizer_.optimize(curr_frm, optimized_pose, outlier_flags);
+    pose_optimizer_->optimize(curr_frm, optimized_pose, outlier_flags);
     curr_frm.set_pose_cw(optimized_pose);
 
     // Discard the outliers
@@ -76,9 +78,9 @@ bool frame_tracker::bow_match_based_track(data::frame& curr_frm, const data::fra
     // Pose optimization
     // The initial value is the pose of the previous frame
     curr_frm.set_pose_cw(last_frm.get_pose_cw());
-    g2o::SE3Quat optimized_pose;
+    Mat44_t optimized_pose;
     std::vector<bool> outlier_flags;
-    pose_optimizer_.optimize(curr_frm, optimized_pose, outlier_flags);
+    pose_optimizer_->optimize(curr_frm, optimized_pose, outlier_flags);
     curr_frm.set_pose_cw(optimized_pose);
 
     // Discard the outliers
@@ -112,9 +114,9 @@ bool frame_tracker::robust_match_based_track(data::frame& curr_frm, const data::
     // Pose optimization
     // The initial value is the pose of the previous frame
     curr_frm.set_pose_cw(last_frm.get_pose_cw());
-    g2o::SE3Quat optimized_pose;
+    Mat44_t optimized_pose;
     std::vector<bool> outlier_flags;
-    pose_optimizer_.optimize(curr_frm, optimized_pose, outlier_flags);
+    pose_optimizer_->optimize(curr_frm, optimized_pose, outlier_flags);
     curr_frm.set_pose_cw(optimized_pose);
 
     // Discard the outliers

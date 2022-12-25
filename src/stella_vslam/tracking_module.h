@@ -194,14 +194,14 @@ protected:
     //! initializer
     module::initializer initializer_;
 
+    //! pose optimizer
+    std::shared_ptr<optimize::pose_optimizer> pose_optimizer_ = nullptr;
+
     //! frame tracker for current frame
     const module::frame_tracker frame_tracker_;
 
     //! relocalizer
     module::relocalizer relocalizer_;
-
-    //! pose optimizer
-    const optimize::pose_optimizer pose_optimizer_;
 
     //! keyframe inserter
     module::keyframe_inserter keyfrm_inserter_;

@@ -3,7 +3,7 @@
 #include "stella_vslam/data/marker.h"
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/marker_model/base.h"
-#include "stella_vslam/optimize/local_bundle_adjuster.h"
+#include "stella_vslam/optimize/local_bundle_adjuster_g2o.h"
 #include "stella_vslam/optimize/terminate_action.h"
 #include "stella_vslam/optimize/internal/landmark_vertex_container.h"
 #include "stella_vslam/optimize/internal/marker_vertex_container.h"
@@ -27,14 +27,14 @@
 namespace stella_vslam {
 namespace optimize {
 
-local_bundle_adjuster::local_bundle_adjuster(const YAML::Node& yaml_node,
-                                             const unsigned int num_first_iter,
-                                             const unsigned int num_second_iter)
+local_bundle_adjuster_g2o::local_bundle_adjuster_g2o(const YAML::Node& yaml_node,
+                                                     const unsigned int num_first_iter,
+                                                     const unsigned int num_second_iter)
     : num_first_iter_(num_first_iter), num_second_iter_(num_second_iter),
       use_additional_keyframes_for_monocular_(yaml_node["use_additional_keyframes_for_monocular"].as<bool>(false)) {}
 
-void local_bundle_adjuster::optimize(data::map_database* map_db,
-                                     const std::shared_ptr<stella_vslam::data::keyframe>& curr_keyfrm, bool* const force_stop_flag) const {
+void local_bundle_adjuster_g2o::optimize(data::map_database* map_db,
+                                         const std::shared_ptr<stella_vslam::data::keyframe>& curr_keyfrm, bool* const force_stop_flag) const {
     // 1. Aggregate the local and fixed keyframes, and local landmarks
 
     // Correct the local keyframes of the current keyframe
