@@ -34,7 +34,8 @@ RUN set -x && \
     libavformat-dev \
     libavutil-dev \
     libswscale-dev \
-    libavresample-dev && \
+    libavresample-dev \
+    libtbb-dev && \
   : "backward-cpp dependencies" && \
   apt install -y -qq binutils-dev && \
   : "other dependencies" && \
@@ -140,6 +141,7 @@ RUN set -x && \
     -DENABLE_FAST_MATH=ON \
     -DWITH_EIGEN=ON \
     -DWITH_FFMPEG=ON \
+    -DWITH_TBB=ON \
     -DWITH_OPENMP=ON \
     -DOPENCV_EXTRA_MODULES_PATH=/tmp/extra \
     .. && \

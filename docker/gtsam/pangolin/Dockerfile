@@ -164,6 +164,7 @@ RUN set -x && \
     -DENABLE_FAST_MATH=ON \
     -DWITH_EIGEN=ON \
     -DWITH_FFMPEG=ON \
+    -DWITH_TBB=ON \
     -DWITH_OPENMP=ON \
     -DOPENCV_EXTRA_MODULES_PATH=/tmp/extra \
     .. && \
