@@ -175,13 +175,12 @@ RUN set -x && \
 ENV OpenCV_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/opencv4
 
 # Pangolin
-ARG PANGOLIN_COMMIT=ad8b5f83222291c51b4800d5a5873b0e90a0cf81
+ARG PANGOLIN_COMMIT=eab3d3449a33a042b1ee7225e1b8b593b1b21e3e
 WORKDIR /tmp
 RUN set -x && \
   git clone https://github.com/stevenlovegrove/Pangolin.git && \
   cd Pangolin && \
   git checkout ${PANGOLIN_COMMIT} && \
-  sed -i -e "193,198d" ./src/utils/file_utils.cpp && \
   mkdir -p build && \
   cd build && \
   cmake \
@@ -194,8 +193,6 @@ RUN set -x && \
     -DBUILD_PANGOLIN_LIBJPEG=OFF \
     -DBUILD_PANGOLIN_LIBOPENEXR=OFF \
     -DBUILD_PANGOLIN_LIBPNG=OFF \
-    -DBUILD_PANGOLIN_LIBREALSENSE=OFF \
-    -DBUILD_PANGOLIN_LIBREALSENSE2=OFF \
     -DBUILD_PANGOLIN_LIBTIFF=OFF \
     -DBUILD_PANGOLIN_LIBUVC=OFF \
     -DBUILD_PANGOLIN_LZ4=OFF \
@@ -204,12 +201,9 @@ RUN set -x && \
     -DBUILD_PANGOLIN_PLEORA=OFF \
     -DBUILD_PANGOLIN_PYTHON=OFF \
     -DBUILD_PANGOLIN_TELICAM=OFF \
-    -DBUILD_PANGOLIN_TOON=OFF \
     -DBUILD_PANGOLIN_UVC_MEDIAFOUNDATION=OFF \
     -DBUILD_PANGOLIN_V4L=OFF \
-    -DBUILD_PANGOLIN_VIDEO=OFF \
     -DBUILD_PANGOLIN_ZSTD=OFF \
-    -DBUILD_PYPANGOLIN_MODULE=OFF \
     .. && \
   make -j${NUM_THREADS} && \
   make install && \
