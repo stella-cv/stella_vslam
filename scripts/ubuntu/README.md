@@ -7,9 +7,7 @@
 Probablly you already run git clone, but I redisplay the procedure to show you complete steps.
 
 ```shell
-git clone https://github.com/stella-cv/stella_vslam.git
-cd stella_vslam
-git submodule update -i --recursive
+git clone --recursive https://github.com/stella-cv/stella_vslam.git
 ```
 
 ## Install docker
