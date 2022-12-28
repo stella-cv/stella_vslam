@@ -15,16 +15,29 @@ set_target_properties(pangolin_viewer PROPERTIES
                       OUTPUT_NAME pangolin_viewer
                       ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib
                       LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+if(${Pangolin_VERSION} VERSION_GREATER 0.5)
+    message(STATUS "Build pangolin_viewer with c++17")
+    set_property(TARGET pangolin_viewer PROPERTY CXX_STANDARD 17)
+endif()
 
 target_include_directories(pangolin_viewer 
                            PUBLIC
                            ${Pangolin_INCLUDE_DIR})
 
-target_link_libraries(pangolin_viewer
-                      PUBLIC
-                      ${PROJECT_NAME}
-                      opencv_highgui
-                      pangolin)
+if(${Pangolin_VERSION} VERSION_GREATER 0.5)
+    target_link_libraries(pangolin_viewer
+                          PUBLIC
+                          ${PROJECT_NAME}
+                          opencv_highgui
+                          pango_display
+                          pango_opengl)
+else()
+    target_link_libraries(pangolin_viewer
+                    PUBLIC
+                    ${PROJECT_NAME}
+                    opencv_highgui
+                    pangolin)
+endif()
 
 # ----- Install configuration -----
 
