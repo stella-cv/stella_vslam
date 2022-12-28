@@ -99,7 +99,7 @@ color_order_t base::load_color_order(const std::string& color_order_str) {
 }
 
 bool base::is_valid_shape(const cv::Mat& img) const {
-    return cols_ == img.cols && rows_ == img.rows;
+    return static_cast<int>(cols_) == img.cols && static_cast<int>(rows_) == img.rows;
 }
 
 void base::show_common_parameters() const {
