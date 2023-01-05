@@ -49,6 +49,24 @@ std::shared_ptr<keyframe> map_database::get_keyframe(unsigned int id) const {
     return keyframes_.at(id);
 }
 
+void map_database::add_image(unsigned int keyfrm_id, const cv::Mat& image) {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    images_[keyfrm_id] = image;
+}
+
+void map_database::erase_image(unsigned int keyfrm_id) {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    images_.erase(keyfrm_id);
+}
+
+cv::Mat map_database::get_image(unsigned int keyfrm_id) const {
+    std::lock_guard<std::mutex> lock(mtx_map_access_);
+    if (!images_.count(keyfrm_id)) {
+        return cv::Mat();
+    }
+    return images_.at(keyfrm_id);
+}
+
 void map_database::add_landmark(std::shared_ptr<landmark>& lm) {
     std::lock_guard<std::mutex> lock(mtx_map_access_);
     landmarks_[lm->id_] = lm;

@@ -40,6 +40,8 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
 
     const auto system_params = util::yaml_optional_ref(cfg->yaml_node_, "System");
 
+    save_keyframe_images_ = system_params["save_keyframe_images"].as<bool>(true);
+
     camera_ = camera::camera_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Camera"));
     orb_params_ = new feature::orb_params(util::yaml_optional_ref(cfg->yaml_node_, "Feature"));
     spdlog::info("load orb_params \"{}\"", orb_params_->name_);
@@ -214,6 +216,23 @@ void system::save_map_database(const std::string& path) const {
     resume_other_threads();
 }
 
+std::vector<std::tuple<cv::Mat, double, Mat44_t>> system::get_keyframe_images() const {
+    pause_other_threads();
+    auto keyfrms = map_db_->get_all_keyframes();
+    std::sort(keyfrms.begin(), keyfrms.end(), [&](const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2) {
+        return *keyfrm_1 < *keyfrm_2;
+    });
+    std::vector<std::tuple<cv::Mat, double, Mat44_t>> images;
+    for (const auto& keyfrm : keyfrms) {
+        auto image = map_db_->get_image(keyfrm->id_);
+        if (!image.empty()) {
+            images.push_back(std::make_tuple(image, keyfrm->timestamp_, keyfrm->get_pose_wc()));
+        }
+    }
+    resume_other_threads();
+    return images;
+}
+
 const std::shared_ptr<publish::map_publisher> system::get_map_publisher() const {
     return map_publisher_;
 }
@@ -305,7 +324,12 @@ data::frame system::create_monocular_frame(const cv::Mat& img, const double time
         marker_detector_->detect(img_gray, markers_2d);
     }
 
-    return data::frame(timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    if (save_keyframe_images_) {
+        return data::frame(img, timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    }
+    else {
+        return data::frame(timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    }
 }
 
 data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
@@ -364,7 +388,12 @@ data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& 
         marker_detector_->detect(img_gray, markers_2d);
     }
 
-    return data::frame(timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    if (save_keyframe_images_) {
+        return data::frame(left_img, timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    }
+    else {
+        return data::frame(timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    }
 }
 
 data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask) {
@@ -427,7 +456,12 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
         marker_detector_->detect(img_gray, markers_2d);
     }
 
-    return data::frame(timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    if (save_keyframe_images_) {
+        return data::frame(rgb_img, timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    }
+    else {
+        return data::frame(timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    }
 }
 
 std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {

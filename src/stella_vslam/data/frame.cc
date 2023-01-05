@@ -21,6 +21,13 @@ frame::frame(const double timestamp, camera::base* camera, feature::orb_params* 
       // Initialize association with 3D points
       landmarks_(std::vector<std::shared_ptr<landmark>>(frm_obs_.num_keypts_, nullptr)) {}
 
+frame::frame(const cv::Mat& image, const double timestamp, camera::base* camera, feature::orb_params* orb_params,
+             const frame_observation frm_obs, const std::unordered_map<unsigned int, marker2d>& markers_2d)
+    : id_(next_id_++), image_(image), timestamp_(timestamp), camera_(camera), orb_params_(orb_params), frm_obs_(frm_obs),
+      markers_2d_(markers_2d),
+      // Initialize association with 3D points
+      landmarks_(std::vector<std::shared_ptr<landmark>>(frm_obs_.num_keypts_, nullptr)) {}
+
 void frame::set_pose_cw(const Mat44_t& pose_cw) {
     pose_is_valid_ = true;
     pose_cw_ = pose_cw;

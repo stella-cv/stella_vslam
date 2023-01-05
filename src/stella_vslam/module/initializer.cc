@@ -200,14 +200,16 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     init_keyfrm->graph_node_->set_spanning_root(init_keyfrm);
     curr_keyfrm->graph_node_->set_spanning_root(init_keyfrm);
     map_db_->add_spanning_root(init_keyfrm);
+    if (!init_frm_.image_.empty()) {
+        map_db_->add_image(init_keyfrm->id_, init_frm_.image_);
+    }
+    if (!curr_frm.image_.empty()) {
+        map_db_->add_image(curr_keyfrm->id_, curr_frm.image_);
+    }
 
     // compute BoW representations
     init_keyfrm->compute_bow(bow_vocab);
     curr_keyfrm->compute_bow(bow_vocab);
-
-    // add the keyframes to the map DB
-    map_db_->add_keyframe(init_keyfrm);
-    map_db_->add_keyframe(curr_keyfrm);
 
     // update the frame statistics
     init_frm_.ref_keyfrm_ = init_keyfrm;
@@ -332,12 +334,12 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
     auto curr_keyfrm = data::keyframe::make_keyframe(map_db_->next_keyframe_id_++, curr_frm);
     curr_keyfrm->graph_node_->set_spanning_root(curr_keyfrm);
     map_db_->add_spanning_root(curr_keyfrm);
+    if (!curr_frm.image_.empty()) {
+        map_db_->add_image(curr_keyfrm->id_, curr_frm.image_);
+    }
 
     // compute BoW representation
     curr_keyfrm->compute_bow(bow_vocab);
-
-    // add to the map DB
-    map_db_->add_keyframe(curr_keyfrm);
 
     // update the frame statistics
     curr_frm.ref_keyfrm_ = curr_keyfrm;

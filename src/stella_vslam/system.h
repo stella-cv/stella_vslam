@@ -85,6 +85,8 @@ public:
     //! Save the map database to file
     void save_map_database(const std::string& path) const;
 
+    std::vector<std::tuple<cv::Mat, double, Mat44_t>> get_keyframe_images() const;
+
     //! Get the map publisher
     const std::shared_ptr<publish::map_publisher> get_map_publisher() const;
 
@@ -186,6 +188,9 @@ public:
 
     //! depthmap factor (pixel_value / depthmap_factor = true_depth)
     double depthmap_factor_ = 1.0;
+
+    //! If true, save keyframe images to the database
+    bool save_keyframe_images_ = true;
 
 private:
     //! Check reset request of the system
