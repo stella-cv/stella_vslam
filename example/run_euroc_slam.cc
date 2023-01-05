@@ -23,11 +23,12 @@
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
 #include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 #include <spdlog/spdlog.h>
 #include <popl.hpp>
-
 #include <ghc/filesystem.hpp>
 namespace fs = ghc::filesystem;
+#include <nlohmann/json.hpp>
 
 #ifdef USE_STACK_TRACE_LOGGER
 #include <backward.hpp>
@@ -45,6 +46,7 @@ void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                    const bool wait_loop_ba,
                    const bool auto_term,
                    const std::string& eval_log_dir,
+                   const std::string& keyframe_image_dir,
                    const std::string& map_db_path,
                    const bool equal_hist) {
     const euroc_sequence sequence(sequence_dir_path);
@@ -141,15 +143,53 @@ void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
     slam->shutdown();
 
     if (!eval_log_dir.empty()) {
+        const auto dir_path = fs::path(eval_log_dir);
+        fs::create_directories(dir_path);
         // output the trajectories for evaluation
-        slam->save_frame_trajectory(eval_log_dir + "/frame_trajectory.txt", "TUM");
-        slam->save_keyframe_trajectory(eval_log_dir + "/keyframe_trajectory.txt", "TUM");
+        slam->save_frame_trajectory(dir_path / "frame_trajectory.txt", "TUM");
+        slam->save_keyframe_trajectory(dir_path / "keyframe_trajectory.txt", "TUM");
         // output the tracking times for evaluation
-        std::ofstream ofs(eval_log_dir + "/track_times.txt", std::ios::out);
+        std::ofstream ofs(dir_path / "track_times.txt", std::ios::out);
         if (ofs.is_open()) {
             for (const auto track_time : track_times) {
                 ofs << track_time << std::endl;
             }
+            ofs.close();
+        }
+    }
+
+    if (!keyframe_image_dir.empty()) {
+        const auto dir_path = fs::path(keyframe_image_dir);
+        fs::create_directories(dir_path / "images");
+
+        auto image_infos = slam->get_keyframe_images();
+        nlohmann::json transforms;
+        for (const auto& image_info : image_infos) {
+            const auto filepath = fs::path("images") / (std::to_string(std::get<1>(image_info)) + std::string(".png"));
+            cv::Mat image = std::get<0>(image_info);
+            if (image.channels() < 3) {
+                cv::cvtColor(image, image, cv::COLOR_GRAY2BGR);
+            }
+            cv::imwrite(dir_path / filepath, image);
+            nlohmann::json frame;
+            frame["file_path"] = filepath;
+            Eigen::Matrix4d rot_to_opengl;
+            rot_to_opengl << 1, 0, 0, 0,
+                0, -1, 0, 0,
+                0, 0, -1, 0,
+                0, 0, 0, 1;
+            Eigen::Matrix4d t = rot_to_opengl * std::get<2>(image_info) * rot_to_opengl;
+            frame["transform_matrix"] = {
+                {t(0, 0), t(0, 1), t(0, 2), t(0, 3)},
+                {t(1, 0), t(1, 1), t(1, 2), t(1, 3)},
+                {t(2, 0), t(2, 1), t(2, 2), t(2, 3)},
+                {t(3, 0), t(3, 1), t(3, 2), t(3, 3)},
+            };
+            transforms["frames"].push_back(frame);
+        }
+        std::ofstream ofs(dir_path / "transforms.json", std::ios::out);
+        if (ofs.is_open()) {
+            ofs << transforms.dump(4) << std::endl;
             ofs.close();
         }
     }
@@ -173,6 +213,7 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                      const bool wait_loop_ba,
                      const bool auto_term,
                      const std::string& eval_log_dir,
+                     const std::string& keyframe_image_dir,
                      const std::string& map_db_path,
                      const bool equal_hist) {
     const euroc_sequence sequence(sequence_dir_path);
@@ -323,6 +364,7 @@ int main(int argc, char* argv[]) {
     auto auto_term = op.add<popl::Switch>("", "auto-term", "automatically terminate the viewer");
     auto log_level = op.add<popl::Value<std::string>>("", "log-level", "log level", "info");
     auto eval_log_dir = op.add<popl::Value<std::string>>("", "eval-log-dir", "store trajectory and tracking times at this path (Specify the directory where it exists.)", "");
+    auto keyframe_image_dir = op.add<popl::Value<std::string>>("", "keyframe-image-dir", "save keyframe images to this path", "");
     auto map_db_path_in = op.add<popl::Value<std::string>>("i", "map-db-in", "load a map from this path", "");
     auto map_db_path_out = op.add<popl::Value<std::string>>("o", "map-db-out", "store a map database at this path after slam", "");
     auto disable_mapping = op.add<popl::Switch>("", "disable-mapping", "disable mapping");
@@ -408,6 +450,7 @@ int main(int argc, char* argv[]) {
                       wait_loop_ba->is_set(),
                       auto_term->is_set(),
                       eval_log_dir->value(),
+                      keyframe_image_dir->value(),
                       map_db_path_out->value(),
                       equal_hist->is_set());
     }
@@ -420,6 +463,7 @@ int main(int argc, char* argv[]) {
                         wait_loop_ba->is_set(),
                         auto_term->is_set(),
                         eval_log_dir->value(),
+                        keyframe_image_dir->value(),
                         map_db_path_out->value(),
                         equal_hist->is_set());
     }
