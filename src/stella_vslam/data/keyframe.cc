@@ -198,9 +198,7 @@ bool keyframe::bind_to_stmt(sqlite3* db, sqlite3_stmt* stmt) const {
     ret = sqlite3_bind_int64(stmt, column_id++, id_);
     // NOTE: src_frm_id is removed
     column_id++;
-    if (ret == SQLITE_OK) {
-        ret = sqlite3_bind_double(stmt, column_id++, timestamp_);
-    }
+    ret = sqlite3_bind_double(stmt, column_id++, timestamp_);
     if (ret == SQLITE_OK) {
         const auto& camera_name = camera_->name_;
         ret = sqlite3_bind_blob(stmt, column_id++, camera_name.c_str(), camera_name.size(), SQLITE_TRANSIENT);

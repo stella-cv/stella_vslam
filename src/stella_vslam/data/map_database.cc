@@ -725,9 +725,7 @@ bool map_database::bind_association_to_stmt(sqlite3_stmt* stmt,
                                             const std::shared_ptr<keyframe>& keyfrm) const {
     int ret = SQLITE_ERROR;
     int column_id = 1;
-    if (ret == SQLITE_OK || ret == SQLITE_DONE) {
-        ret = sqlite3_bind_int64(stmt, column_id++, keyfrm->id_);
-    }
+    ret = sqlite3_bind_int64(stmt, column_id++, keyfrm->id_);
     if (ret == SQLITE_OK) {
         // extract landmark IDs
         auto lms = keyfrm->get_landmarks();
