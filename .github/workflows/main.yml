@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
   workflow_dispatch:
 
@@ -28,9 +28,9 @@ jobs:
       - uses: actions/checkout@v3
       - uses: DoozyX/clang-format-lint-action@v0.12
         with:
-          source: '.'
-          exclude: './3rd'
-          extensions: 'h,cc'
+          source: "."
+          exclude: "./3rd"
+          extensions: "h,cc"
           clangFormatVersion: 6
           style: file
           inplace: False
@@ -120,6 +120,9 @@ jobs:
         run: |
           sed -e 's/backend: "g2o"/backend: "gtsam"/g' example/euroc/EuRoC_mono.yaml > EuRoC_mono_gtsam.yaml
           sed -e 's/backend: "g2o"/backend: "gtsam"/g' example/euroc/EuRoC_stereo.yaml > EuRoC_stereo_gtsam.yaml
+      - name: make config for sqlite3 map format
+        run: |
+          sed -e 's/map_format: "msgpack"/map_format: "sqlite3"/g' example/euroc/EuRoC_mono.yaml > EuRoC_mono_sqlite3.yaml
       - name: SLAM test (monocular) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
@@ -129,6 +132,7 @@ jobs:
           ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_gtsam.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_01_mono_gtsam.msg
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_mono_gtsam_slam.txt
           mv track_times.txt ../artifact/track_times_MH_01_mono_gtsam_slam.txt
+          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_sqlite3.yaml --frame-skip 2 --no-sleep --log-level=debug --map-db-out MH_01_mono_sqlite3.db
       - name: SLAM test (stereo) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
@@ -144,6 +148,7 @@ jobs:
           ./run_euroc_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_01_mono.msg
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_mono_localization.txt
           mv track_times.txt ../artifact/track_times_MH_01_mono_localization.txt
+          ./run_euroc_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_sqlite3.yaml --frame-skip 2 --no-sleep --log-level=debug --map-db-in MH_01_mono_sqlite3.db
       - name: SLAM test (monocular) with EuRoC MAV dataset (MH_04)
         run: |
           cd build
