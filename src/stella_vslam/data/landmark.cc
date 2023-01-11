@@ -57,9 +57,7 @@ std::shared_ptr<landmark> landmark::from_stmt(sqlite3_stmt* stmt,
 bool landmark::bind_to_stmt(sqlite3* db, sqlite3_stmt* stmt) const {
     int ret = SQLITE_ERROR;
     int column_id = 1;
-    if (ret == SQLITE_OK || ret == SQLITE_DONE) {
-        ret = sqlite3_bind_int64(stmt, column_id++, id_);
-    }
+    ret = sqlite3_bind_int64(stmt, column_id++, id_);
     if (ret == SQLITE_OK) {
         ret = sqlite3_bind_int64(stmt, column_id++, first_keyfrm_id_);
     }
