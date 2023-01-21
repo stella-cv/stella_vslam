@@ -80,7 +80,7 @@ RUN set -x && \
 ENV Eigen3_DIR=${CMAKE_INSTALL_PREFIX}/share/eigen3/cmake
 
 # g2o
-ARG G2O_COMMIT=9b41a4ea5ade8e1250b9c1b279f3a9c098811b5a
+ARG G2O_COMMIT=ed40a5bb028566fd56a78fd7b04921b613492d6f
 WORKDIR /tmp
 RUN set -x && \
   git clone https://github.com/RainerKuemmerle/g2o.git && \
