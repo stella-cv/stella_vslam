@@ -127,18 +127,12 @@ RUN set -x && \
 ENV gtsam_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/gtsam
 
 # OpenCV
-ARG OPENCV_VERSION=4.5.5
+ARG OPENCV_VERSION=4.7.0
 WORKDIR /tmp
 RUN set -x && \
   wget -q https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip && \
   unzip -q ${OPENCV_VERSION}.zip && \
   rm -rf ${OPENCV_VERSION}.zip && \
-  wget -q https://github.com/opencv/opencv_contrib/archive/refs/tags/${OPENCV_VERSION}.zip -O opencv_contrib-${OPENCV_VERSION}.zip && \
-  unzip -q opencv_contrib-${OPENCV_VERSION}.zip && \
-  rm -rf opencv_contrib-${OPENCV_VERSION}.zip && \
-  mkdir extra && \
-  mv opencv_contrib-${OPENCV_VERSION}/modules/aruco extra && \
-  rm -rf opencv_contrib-${OPENCV_VERSION} && \
   cd opencv-${OPENCV_VERSION} && \
   mkdir -p build && \
   cd build && \
@@ -162,7 +156,6 @@ RUN set -x && \
     -DWITH_FFMPEG=ON \
     -DWITH_TBB=ON \
     -DWITH_OPENMP=ON \
-    -DOPENCV_EXTRA_MODULES_PATH=/tmp/extra \
     .. && \
   make -j${NUM_THREADS} && \
   make install && \
