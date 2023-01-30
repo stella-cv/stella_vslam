@@ -15,7 +15,8 @@ unsigned int fuse::detect_duplication(const std::shared_ptr<data::keyframe>& key
                                       const T& landmarks_to_check,
                                       const float margin,
                                       std::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>& duplicated_lms_in_keyfrm,
-                                      std::unordered_map<unsigned int, std::shared_ptr<data::landmark>>& new_connections) const {
+                                      std::unordered_map<unsigned int, std::shared_ptr<data::landmark>>& new_connections,
+                                      bool do_reprojection_matching) const {
     const Vec3_t trans_wc = -rot_cw.transpose() * trans_cw;
     unsigned int num_fused = 0;
     std::unordered_set<unsigned int> already_matched_idx_in_keyfrm;
@@ -93,7 +94,7 @@ unsigned int fuse::detect_duplication(const std::shared_ptr<data::keyframe>& key
                 continue;
             }
 
-            if (do_reprojection_matching_) {
+            if (do_reprojection_matching) {
                 if (!keyfrm->frm_obs_.stereo_x_right_.empty() && keyfrm->frm_obs_.stereo_x_right_.at(idx) >= 0) {
                     // Compute reprojection error with 3 degrees of freedom if a stereo match exists
                     const auto e_x = reproj(0) - undist_keypt.pt.x;
@@ -162,20 +163,23 @@ template unsigned int fuse::detect_duplication(const std::shared_ptr<data::keyfr
                                                const std::vector<std::shared_ptr<data::landmark>>&,
                                                const float,
                                                std::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>&,
-                                               std::unordered_map<unsigned int, std::shared_ptr<data::landmark>>&) const;
+                                               std::unordered_map<unsigned int, std::shared_ptr<data::landmark>>&,
+                                               bool) const;
 template unsigned int fuse::detect_duplication(const std::shared_ptr<data::keyframe>&,
                                                const Mat33_t&,
                                                const Vec3_t&,
                                                const id_ordered_set<std::shared_ptr<data::landmark>>&,
                                                const float,
                                                std::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>&,
-                                               std::unordered_map<unsigned int, std::shared_ptr<data::landmark>>&) const;
+                                               std::unordered_map<unsigned int, std::shared_ptr<data::landmark>>&,
+                                               bool) const;
 template unsigned int fuse::detect_duplication(const std::shared_ptr<data::keyframe>&,
                                                const Mat33_t&,
                                                const Vec3_t&,
                                                const std::unordered_set<std::shared_ptr<data::landmark>>&,
                                                const float,
                                                std::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>&,
-                                               std::unordered_map<unsigned int, std::shared_ptr<data::landmark>>&) const;
+                                               std::unordered_map<unsigned int, std::shared_ptr<data::landmark>>&,
+                                               bool) const;
 } // namespace match
 } // namespace stella_vslam

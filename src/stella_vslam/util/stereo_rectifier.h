@@ -6,13 +6,15 @@
 
 #include <memory>
 
+#include <opencv2/core/mat.hpp>
+
 namespace stella_vslam {
 namespace util {
 
 class stereo_rectifier {
 public:
     //! Constructor
-    explicit stereo_rectifier(const std::shared_ptr<config>& cfg);
+    explicit stereo_rectifier(const std::shared_ptr<config>& cfg, camera::base* camera);
 
     //! Constructor
     stereo_rectifier(camera::base* camera, const YAML::Node& yaml_node);

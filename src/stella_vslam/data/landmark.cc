@@ -11,10 +11,8 @@
 namespace stella_vslam {
 namespace data {
 
-std::atomic<unsigned int> landmark::next_id_{0};
-
-landmark::landmark(const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm)
-    : id_(next_id_++), first_keyfrm_id_(ref_keyfrm->id_), pos_w_(pos_w),
+landmark::landmark(unsigned int id, const Vec3_t& pos_w, const std::shared_ptr<keyframe>& ref_keyfrm)
+    : id_(id), first_keyfrm_id_(ref_keyfrm->id_), pos_w_(pos_w),
       ref_keyfrm_(ref_keyfrm) {}
 
 landmark::landmark(const unsigned int id, const unsigned int first_keyfrm_id,
@@ -25,6 +23,61 @@ landmark::landmark(const unsigned int id, const unsigned int first_keyfrm_id,
 
 landmark::~landmark() {
     SPDLOG_TRACE("landmark::~landmark: {}", id_);
+}
+
+std::shared_ptr<landmark> landmark::from_stmt(sqlite3_stmt* stmt,
+                                              std::unordered_map<unsigned int, std::shared_ptr<stella_vslam::data::keyframe>>& keyframes,
+                                              unsigned int next_landmark_id,
+                                              unsigned int next_keyframe_id) {
+    const char* p;
+    int column_id = 0;
+    auto id = sqlite3_column_int64(stmt, column_id);
+    column_id++;
+    auto first_keyfrm_id = sqlite3_column_int64(stmt, column_id);
+    column_id++;
+    Vec3_t pos_w;
+    p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
+    std::memcpy(pos_w.data(), p, sqlite3_column_bytes(stmt, column_id));
+    column_id++;
+    auto ref_keyfrm_id = sqlite3_column_int64(stmt, column_id);
+    column_id++;
+    auto num_visible = sqlite3_column_int64(stmt, column_id);
+    column_id++;
+    auto num_found = sqlite3_column_int64(stmt, column_id);
+    column_id++;
+
+    auto ref_keyfrm = keyframes.at(ref_keyfrm_id + next_keyframe_id);
+
+    auto lm = std::make_shared<data::landmark>(
+        id + next_landmark_id, first_keyfrm_id + next_keyframe_id, pos_w, ref_keyfrm,
+        num_visible, num_found);
+    return lm;
+}
+
+bool landmark::bind_to_stmt(sqlite3* db, sqlite3_stmt* stmt) const {
+    int ret = SQLITE_ERROR;
+    int column_id = 1;
+    ret = sqlite3_bind_int64(stmt, column_id++, id_);
+    if (ret == SQLITE_OK) {
+        ret = sqlite3_bind_int64(stmt, column_id++, first_keyfrm_id_);
+    }
+    if (ret == SQLITE_OK) {
+        const Vec3_t pos_w = get_pos_in_world();
+        ret = sqlite3_bind_blob(stmt, column_id++, pos_w.data(), pos_w.rows() * pos_w.cols() * sizeof(decltype(pos_w)::Scalar), SQLITE_TRANSIENT);
+    }
+    if (ret == SQLITE_OK) {
+        ret = sqlite3_bind_int64(stmt, column_id++, get_ref_keyframe()->id_);
+    }
+    if (ret == SQLITE_OK) {
+        ret = sqlite3_bind_int64(stmt, column_id++, get_num_observable());
+    }
+    if (ret == SQLITE_OK) {
+        ret = sqlite3_bind_int64(stmt, column_id++, get_num_observed());
+    }
+    if (ret != SQLITE_OK) {
+        spdlog::error("SQLite error (bind): {}", sqlite3_errmsg(db));
+    }
+    return ret == SQLITE_OK;
 }
 
 void landmark::set_pos_in_world(const Vec3_t& pos_w) {

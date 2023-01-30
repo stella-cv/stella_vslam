@@ -2,7 +2,9 @@
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
 #include "stella_vslam/data/bow_database.h"
+#include "stella_vslam/module/local_map_updater.h"
 #include "stella_vslam/module/relocalizer.h"
+#include "stella_vslam/optimize/pose_optimizer_g2o.h"
 #include "stella_vslam/util/fancy_index.h"
 
 #include <spdlog/spdlog.h>
@@ -10,19 +12,21 @@
 namespace stella_vslam {
 namespace module {
 
-relocalizer::relocalizer(const double bow_match_lowe_ratio, const double proj_match_lowe_ratio,
+relocalizer::relocalizer(const std::shared_ptr<optimize::pose_optimizer>& pose_optimizer,
+                         const double bow_match_lowe_ratio, const double proj_match_lowe_ratio,
                          const double robust_match_lowe_ratio,
                          const unsigned int min_num_bow_matches, const unsigned int min_num_valid_obs,
                          const bool use_fixed_seed)
     : min_num_bow_matches_(min_num_bow_matches), min_num_valid_obs_(min_num_valid_obs),
-      bow_matcher_(bow_match_lowe_ratio, true), proj_matcher_(proj_match_lowe_ratio, true),
+      bow_matcher_(bow_match_lowe_ratio, false), proj_matcher_(proj_match_lowe_ratio, false),
       robust_matcher_(robust_match_lowe_ratio, false),
-      pose_optimizer_(), use_fixed_seed_(use_fixed_seed) {
+      pose_optimizer_(pose_optimizer), use_fixed_seed_(use_fixed_seed) {
     spdlog::debug("CONSTRUCT: module::relocalizer");
 }
 
-relocalizer::relocalizer(const YAML::Node& yaml_node)
-    : relocalizer(yaml_node["bow_match_lowe_ratio"].as<double>(0.75),
+relocalizer::relocalizer(const std::shared_ptr<optimize::pose_optimizer>& pose_optimizer, const YAML::Node& yaml_node)
+    : relocalizer(pose_optimizer,
+                  yaml_node["bow_match_lowe_ratio"].as<double>(0.75),
                   yaml_node["proj_match_lowe_ratio"].as<double>(0.9),
                   yaml_node["robust_match_lowe_ratio"].as<double>(0.8),
                   yaml_node["min_num_bow_matches"].as<unsigned int>(20),
@@ -61,7 +65,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
 
         bool ok = reloc_by_candidate(curr_frm, candidate_keyfrm, use_robust_matcher);
         if (ok) {
-            spdlog::info("relocalization succeeded");
+            spdlog::info("relocalization succeeded (id={})", candidate_keyfrm->id_);
             // TODO: should set the reference keyframe of the current frame
             return true;
         }
@@ -104,6 +108,11 @@ bool relocalizer::reloc_by_candidate(data::frame& curr_frm,
     }
 
     ok = refine_pose(curr_frm, candidate_keyfrm, already_found_landmarks);
+    if (!ok) {
+        return false;
+    }
+
+    ok = refine_pose_by_local_map(curr_frm, candidate_keyfrm);
     return ok;
 }
 
@@ -127,7 +136,7 @@ bool relocalizer::relocalize_by_pnp_solver(data::frame& curr_frm,
 
     // 1. Estimate the camera pose using EPnP (+ RANSAC)
 
-    pnp_solver->find_via_ransac(30);
+    pnp_solver->find_via_ransac(30, false);
     if (!pnp_solver->solution_is_valid()) {
         spdlog::debug("solution is not valid. candidate keyframe id is {}", candidate_keyfrm->id_);
         return false;
@@ -145,8 +154,8 @@ bool relocalizer::optimize_pose(data::frame& curr_frm,
                                 const std::shared_ptr<stella_vslam::data::keyframe>& candidate_keyfrm,
                                 std::vector<bool>& outlier_flags) const {
     // Pose optimization
-    g2o::SE3Quat optimized_pose;
-    auto num_valid_obs = pose_optimizer_.optimize(curr_frm, optimized_pose, outlier_flags);
+    Mat44_t optimized_pose;
+    auto num_valid_obs = pose_optimizer_->optimize(curr_frm, optimized_pose, outlier_flags);
     curr_frm.set_pose_cw(optimized_pose);
 
     // Discard the candidate if the number of the inliers is less than the threshold
@@ -181,9 +190,10 @@ bool relocalizer::refine_pose(data::frame& curr_frm,
         return false;
     }
 
-    g2o::SE3Quat optimized_pose1;
+    Mat44_t optimized_pose1;
     std::vector<bool> outlier_flags1;
-    auto num_valid_obs1 = pose_optimizer_.optimize(curr_frm, optimized_pose1, outlier_flags1);
+    auto num_valid_obs1 = pose_optimizer_->optimize(curr_frm, optimized_pose1, outlier_flags1);
+    SPDLOG_TRACE("refine_pose: num_valid_obs1={}", num_valid_obs1);
     curr_frm.set_pose_cw(optimized_pose1);
 
     // Exclude the already-associated landmarks
@@ -205,9 +215,10 @@ bool relocalizer::refine_pose(data::frame& curr_frm,
     }
 
     // Perform optimization again
-    g2o::SE3Quat optimized_pose2;
+    Mat44_t optimized_pose2;
     std::vector<bool> outlier_flags2;
-    auto num_valid_obs2 = pose_optimizer_.optimize(curr_frm, optimized_pose2, outlier_flags2);
+    auto num_valid_obs2 = pose_optimizer_->optimize(curr_frm, optimized_pose2, outlier_flags2);
+    SPDLOG_TRACE("refine_pose: num_valid_obs2={}", num_valid_obs2);
     curr_frm.set_pose_cw(optimized_pose2);
 
     // Discard if falling below the threshold
@@ -222,6 +233,99 @@ bool relocalizer::refine_pose(data::frame& curr_frm,
             continue;
         }
         curr_frm.erase_landmark_with_index(idx);
+    }
+
+    return true;
+}
+
+bool relocalizer::refine_pose_by_local_map(data::frame& curr_frm,
+                                           const std::shared_ptr<stella_vslam::data::keyframe>& candidate_keyfrm) const {
+    // Create local map
+    constexpr unsigned int max_num_local_keyfrms = 10;
+    auto local_map_updater = module::local_map_updater(curr_frm, max_num_local_keyfrms);
+    if (!local_map_updater.acquire_local_map()) {
+        return false;
+    }
+    auto local_keyfrms = local_map_updater.get_local_keyframes();
+    auto local_landmarks = local_map_updater.get_local_landmarks();
+    auto nearest_covisibility = local_map_updater.get_nearest_covisibility();
+    SPDLOG_TRACE("refine_pose_by_local_map: keyfrms={}, lms={} nearest_covisibility id={}", local_keyfrms.size(), local_landmarks.size(), nearest_covisibility->id_);
+
+    std::vector<int> margins{5, 15, 5};
+    for (size_t i = 0; i < margins.size(); ++i) {
+        // select the landmarks which can be reprojected from the ones observed in the current frame
+        std::unordered_set<unsigned int> curr_landmark_ids;
+        for (const auto& lm : curr_frm.get_landmarks()) {
+            if (!lm) {
+                continue;
+            }
+            if (lm->will_be_erased()) {
+                continue;
+            }
+
+            // this landmark cannot be reprojected
+            // because already observed in the current frame
+            curr_landmark_ids.insert(lm->id_);
+        }
+
+        bool found_proj_candidate = false;
+        // temporary variables
+        Vec2_t reproj;
+        float x_right;
+        unsigned int pred_scale_level;
+        eigen_alloc_unord_map<unsigned int, Vec2_t> lm_to_reproj;
+        std::unordered_map<unsigned int, float> lm_to_x_right;
+        std::unordered_map<unsigned int, int> lm_to_scale;
+        for (const auto& lm : local_landmarks) {
+            if (curr_landmark_ids.count(lm->id_)) {
+                continue;
+            }
+            if (lm->will_be_erased()) {
+                continue;
+            }
+
+            // check the observability
+            if (curr_frm.can_observe(lm, 0.5, reproj, x_right, pred_scale_level)) {
+                lm_to_reproj[lm->id_] = reproj;
+                lm_to_x_right[lm->id_] = x_right;
+                lm_to_scale[lm->id_] = pred_scale_level;
+
+                found_proj_candidate = true;
+            }
+        }
+
+        if (!found_proj_candidate) {
+            return false;
+        }
+
+        // acquire more 2D-3D matches by projecting the local landmarks to the current frame
+        match::projection projection_matcher(0.8);
+        const float margin = margins[i];
+        auto num_additional_matches = projection_matcher.match_frame_and_landmarks(curr_frm, local_landmarks, lm_to_reproj, lm_to_x_right, lm_to_scale, margin);
+
+        // optimize the pose
+        Mat44_t optimized_pose;
+        std::vector<bool> outlier_flags;
+        auto num_valid_obs = pose_optimizer_->optimize(curr_frm, optimized_pose, outlier_flags);
+        curr_frm.set_pose_cw(optimized_pose);
+
+        // Reject outliers
+        for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
+            if (!outlier_flags.at(idx)) {
+                continue;
+            }
+            curr_frm.erase_landmark_with_index(idx);
+        }
+        SPDLOG_TRACE("refine_pose_by_local_map: iter={:2}, margin={:2}, num_additional_matches={:4}, num_valid_obs={:4}", i, margin, num_additional_matches, num_valid_obs);
+
+        if (i == margins.size() - 1) {
+            const auto num_tracked_lms = candidate_keyfrm->get_num_tracked_landmarks(0);
+            const double ratio = 0.2;
+            SPDLOG_TRACE("refine_pose_by_local_map: num_valid_obs={:4}, num_tracked_lms={:4}", num_valid_obs, num_tracked_lms);
+            if (num_valid_obs < num_tracked_lms * ratio) {
+                return false;
+            }
+        }
     }
 
     return true;

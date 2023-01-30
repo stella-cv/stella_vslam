@@ -55,8 +55,6 @@ private:
     //! Find the local landmarks
     bool find_local_landmarks();
 
-    // frame ID
-    const unsigned int frm_id_;
     // landmark associations
     const std::vector<std::shared_ptr<data::landmark>> frm_lms_;
     // the number of keypoints

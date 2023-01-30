@@ -19,7 +19,8 @@ initializer::initializer(data::map_database* map_db, data::bow_database* bow_db,
                          const YAML::Node& yaml_node)
     : map_db_(map_db), bow_db_(bow_db),
       num_ransac_iters_(yaml_node["num_ransac_iterations"].as<unsigned int>(100)),
-      min_num_triangulated_(yaml_node["num_min_triangulated_pts"].as<unsigned int>(50)),
+      min_num_valid_pts_(yaml_node["min_num_valid_pts"].as<unsigned int>(50)),
+      min_num_triangulated_pts_(yaml_node["min_num_triangulated_pts"].as<unsigned int>(50)),
       parallax_deg_thr_(yaml_node["parallax_deg_threshold"].as<float>(1.0)),
       reproj_err_thr_(yaml_node["reprojection_error_threshold"].as<float>(4.0)),
       num_ba_iters_(yaml_node["num_ba_iterations"].as<unsigned int>(20)),
@@ -124,17 +125,17 @@ void initializer::create_initializer(data::frame& curr_frm) {
         case camera::model_type_t::Perspective:
         case camera::model_type_t::Fisheye:
         case camera::model_type_t::RadialDivision: {
-            initializer_ = std::unique_ptr<initialize::perspective>(new initialize::perspective(init_frm_,
-                                                                                                num_ransac_iters_, min_num_triangulated_,
-                                                                                                parallax_deg_thr_, reproj_err_thr_,
-                                                                                                use_fixed_seed_));
+            initializer_ = std::unique_ptr<initialize::perspective>(
+                new initialize::perspective(
+                    init_frm_, num_ransac_iters_, min_num_triangulated_pts_, min_num_valid_pts_,
+                    parallax_deg_thr_, reproj_err_thr_, use_fixed_seed_));
             break;
         }
         case camera::model_type_t::Equirectangular: {
-            initializer_ = std::unique_ptr<initialize::bearing_vector>(new initialize::bearing_vector(init_frm_,
-                                                                                                      num_ransac_iters_, min_num_triangulated_,
-                                                                                                      parallax_deg_thr_, reproj_err_thr_,
-                                                                                                      use_fixed_seed_));
+            initializer_ = std::unique_ptr<initialize::bearing_vector>(
+                new initialize::bearing_vector(
+                    init_frm_, num_ransac_iters_, min_num_triangulated_pts_, min_num_valid_pts_,
+                    parallax_deg_thr_, reproj_err_thr_, use_fixed_seed_));
             break;
         }
     }
@@ -148,7 +149,7 @@ bool initializer::try_initialize_for_monocular(data::frame& curr_frm) {
     match::area matcher(0.9, true);
     const auto num_matches = matcher.match_in_consistent_area(init_frm_, curr_frm, prev_matched_coords_, init_matches_, 100);
 
-    if (num_matches < min_num_triangulated_) {
+    if (num_matches < min_num_valid_pts_) {
         // rebuild the initializer with the next frame
         reset();
         return false;
@@ -192,8 +193,13 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     }
 
     // create initial keyframes
-    auto init_keyfrm = data::keyframe::make_keyframe(init_frm_);
-    auto curr_keyfrm = data::keyframe::make_keyframe(curr_frm);
+    auto init_keyfrm = data::keyframe::make_keyframe(map_db_->next_keyframe_id_++, init_frm_);
+    auto curr_keyfrm = data::keyframe::make_keyframe(map_db_->next_keyframe_id_++, curr_frm);
+    curr_keyfrm->graph_node_->set_spanning_parent(init_keyfrm);
+    init_keyfrm->graph_node_->add_spanning_child(curr_keyfrm);
+    init_keyfrm->graph_node_->set_spanning_root(init_keyfrm);
+    curr_keyfrm->graph_node_->set_spanning_root(init_keyfrm);
+    map_db_->add_spanning_root(init_keyfrm);
 
     // compute BoW representations
     init_keyfrm->compute_bow(bow_vocab);
@@ -210,6 +216,7 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     map_db_->update_frame_statistics(curr_frm, false);
 
     // assign 2D-3D associations
+    std::vector<std::shared_ptr<data::landmark>> lms;
     for (unsigned int init_idx = 0; init_idx < init_matches_.size(); init_idx++) {
         const auto curr_idx = init_matches_.at(init_idx);
         if (curr_idx < 0) {
@@ -217,7 +224,7 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
         }
 
         // construct a landmark
-        auto lm = std::make_shared<data::landmark>(init_triangulated_pts.at(init_idx), curr_keyfrm);
+        auto lm = std::make_shared<data::landmark>(map_db_->next_landmark_id_++, init_triangulated_pts.at(init_idx), curr_keyfrm);
 
         // set the assocications to the new keyframes
         lm->connect_to_keyframe(init_keyfrm, init_idx);
@@ -233,6 +240,7 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
 
         // add the landmark to the map DB
         map_db_->add_landmark(lm);
+        lms.push_back(lm);
     }
 
     bool indefinite_scale = true;
@@ -244,7 +252,8 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     }
 
     // assign marker associations
-    const auto assign_marker_associations = [this](const std::shared_ptr<data::keyframe>& keyfrm) {
+    std::vector<std::shared_ptr<data::marker>> markers;
+    const auto assign_marker_associations = [this, &markers](const std::shared_ptr<data::keyframe>& keyfrm) {
         for (const auto& id_mkr2d : keyfrm->markers_2d_) {
             auto marker = map_db_->get_marker(id_mkr2d.first);
             if (!marker) {
@@ -253,6 +262,7 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
                 marker = std::make_shared<data::marker>(corners_pos_w, id_mkr2d.first, mkr2d.marker_model_);
                 // add the marker to the map DB
                 map_db_->add_marker(marker);
+                markers.push_back(marker);
             }
             // Set the association to the new marker
             keyfrm->add_marker(marker);
@@ -263,14 +273,15 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     assign_marker_associations(curr_keyfrm);
 
     // global bundle adjustment
-    const auto global_bundle_adjuster = optimize::global_bundle_adjuster(map_db_, num_ba_iters_, true);
-    global_bundle_adjuster.optimize_for_initialization();
+    const auto global_bundle_adjuster = optimize::global_bundle_adjuster(num_ba_iters_, true);
+    std::vector<std::shared_ptr<data::keyframe>> keyfrms{init_keyfrm, curr_keyfrm};
+    global_bundle_adjuster.optimize_for_initialization(keyfrms, lms, markers);
 
     if (indefinite_scale) {
         // scale the map so that the median of depths is 1.0
         const auto median_depth = init_keyfrm->compute_median_depth(init_keyfrm->camera_->model_type_ == camera::model_type_t::Equirectangular);
         const auto inv_median_depth = 1.0 / median_depth;
-        if (curr_keyfrm->get_num_tracked_landmarks(1) < min_num_triangulated_ && median_depth < 0) {
+        if (curr_keyfrm->get_num_tracked_landmarks(1) < min_num_triangulated_pts_ && median_depth < 0) {
             spdlog::info("seems to be wrong initialization, resetting");
             state_ = initializer_state_t::Wrong;
             return false;
@@ -280,9 +291,6 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
 
     // update the current frame pose
     curr_frm.set_pose_cw(curr_keyfrm->get_pose_cw());
-
-    // set the origin keyframe
-    map_db_->origin_keyfrm_ = init_keyfrm;
 
     spdlog::info("new map created with {} points: frame {} - frame {}", map_db_->get_num_landmarks(), init_frm_.id_, curr_frm.id_);
     state_ = initializer_state_t::Succeeded;
@@ -313,7 +321,7 @@ bool initializer::try_initialize_for_stereo(data::frame& curr_frm) {
                                                   [](const float depth) {
                                                       return 0 < depth;
                                                   });
-    return min_num_triangulated_ <= num_valid_depths;
+    return min_num_triangulated_pts_ <= num_valid_depths;
 }
 
 bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::frame& curr_frm) {
@@ -321,7 +329,9 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
 
     // create an initial keyframe
     curr_frm.set_pose_cw(Mat44_t::Identity());
-    auto curr_keyfrm = data::keyframe::make_keyframe(curr_frm);
+    auto curr_keyfrm = data::keyframe::make_keyframe(map_db_->next_keyframe_id_++, curr_frm);
+    curr_keyfrm->graph_node_->set_spanning_root(curr_keyfrm);
+    map_db_->add_spanning_root(curr_keyfrm);
 
     // compute BoW representation
     curr_keyfrm->compute_bow(bow_vocab);
@@ -342,7 +352,7 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
 
         // build a landmark
         const Vec3_t pos_w = curr_frm.triangulate_stereo(idx);
-        auto lm = std::make_shared<data::landmark>(pos_w, curr_keyfrm);
+        auto lm = std::make_shared<data::landmark>(map_db_->next_landmark_id_++, pos_w, curr_keyfrm);
 
         // set the associations to the new keyframe
         lm->connect_to_keyframe(curr_keyfrm, idx);
@@ -358,9 +368,6 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
         // add the landmark to the map DB
         map_db_->add_landmark(lm);
     }
-
-    // set the origin keyframe
-    map_db_->origin_keyfrm_ = curr_keyfrm;
 
     spdlog::info("new map created with {} points: frame {}", map_db_->get_num_landmarks(), curr_frm.id_);
     state_ = initializer_state_t::Succeeded;

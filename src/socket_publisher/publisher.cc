@@ -6,7 +6,8 @@
 
 namespace socket_publisher {
 
-publisher::publisher(const YAML::Node& yaml_node, stella_vslam::system* system,
+publisher::publisher(const YAML::Node& yaml_node,
+                     const std::shared_ptr<stella_vslam::system>& system,
                      const std::shared_ptr<stella_vslam::publish::frame_publisher>& frame_publisher,
                      const std::shared_ptr<stella_vslam::publish::map_publisher>& map_publisher)
     : system_(system),

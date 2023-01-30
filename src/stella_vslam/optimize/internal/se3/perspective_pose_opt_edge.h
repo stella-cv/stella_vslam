@@ -42,8 +42,8 @@ inline bool mono_perspective_pose_opt_edge::read(std::istream& is) {
     for (unsigned int i = 0; i < 2; ++i) {
         is >> _measurement(i);
     }
-    for (unsigned int i = 0; i < 2; ++i) {
-        for (unsigned int j = i; j < 2; ++j) {
+    for (int i = 0; i < information().rows(); ++i) {
+        for (int j = i; j < information().cols(); ++j) {
             is >> information()(i, j);
             if (i != j) {
                 information()(j, i) = information()(i, j);
@@ -57,8 +57,8 @@ inline bool mono_perspective_pose_opt_edge::write(std::ostream& os) const {
     for (unsigned int i = 0; i < 2; ++i) {
         os << measurement()(i) << " ";
     }
-    for (unsigned int i = 0; i < 2; ++i) {
-        for (unsigned int j = i; j < 2; ++j) {
+    for (int i = 0; i < information().rows(); ++i) {
+        for (int j = i; j < information().cols(); ++j) {
             os << " " << information()(i, j);
         }
     }

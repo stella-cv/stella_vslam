@@ -1,14 +1,9 @@
+#include "stella_vslam/data/bow_vocabulary.h"
 #include "stella_vslam/data/frame.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
 #include "stella_vslam/match/bow_tree.h"
-#include "stella_vslam/match/angle_checker.h"
-
-#ifdef USE_DBOW2
-#include <DBoW2/FeatureVector.h>
-#else
-#include <fbow/bow_feat_vector.h>
-#endif
+#include "stella_vslam/util/angle.h"
 
 namespace stella_vslam {
 namespace match {
@@ -16,23 +11,14 @@ namespace match {
 unsigned int bow_tree::match_frame_and_keyframe(const std::shared_ptr<data::keyframe>& keyfrm, data::frame& frm, std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm) const {
     unsigned int num_matches = 0;
 
-    angle_checker<int> angle_checker;
-
     matched_lms_in_frm = std::vector<std::shared_ptr<data::landmark>>(frm.frm_obs_.num_keypts_, nullptr);
 
     const auto keyfrm_lms = keyfrm->get_landmarks();
 
-#ifdef USE_DBOW2
-    DBoW2::FeatureVector::const_iterator keyfrm_itr = keyfrm->bow_feat_vec_.begin();
-    DBoW2::FeatureVector::const_iterator frm_itr = frm.bow_feat_vec_.begin();
-    const DBoW2::FeatureVector::const_iterator kryfrm_end = keyfrm->bow_feat_vec_.end();
-    const DBoW2::FeatureVector::const_iterator frm_end = frm.bow_feat_vec_.end();
-#else
-    fbow::BoWFeatVector::const_iterator keyfrm_itr = keyfrm->bow_feat_vec_.begin();
-    fbow::BoWFeatVector::const_iterator frm_itr = frm.bow_feat_vec_.begin();
-    const fbow::BoWFeatVector::const_iterator kryfrm_end = keyfrm->bow_feat_vec_.end();
-    const fbow::BoWFeatVector::const_iterator frm_end = frm.bow_feat_vec_.end();
-#endif
+    data::bow_feature_vector::const_iterator keyfrm_itr = keyfrm->bow_feat_vec_.begin();
+    data::bow_feature_vector::const_iterator frm_itr = frm.bow_feat_vec_.begin();
+    const data::bow_feature_vector::const_iterator kryfrm_end = keyfrm->bow_feat_vec_.end();
+    const data::bow_feature_vector::const_iterator frm_end = frm.bow_feat_vec_.end();
 
     while (keyfrm_itr != kryfrm_end && frm_itr != frm_end) {
         // Check if the node numbers of BoW tree match
@@ -63,6 +49,10 @@ unsigned int bow_tree::match_frame_and_keyframe(const std::shared_ptr<data::keyf
                         continue;
                     }
 
+                    if (check_orientation_ && std::abs(util::angle::diff(keyfrm->frm_obs_.undist_keypts_.at(keyfrm_idx).angle, frm.frm_obs_.undist_keypts_.at(frm_idx).angle)) > 30.0) {
+                        continue;
+                    }
+
                     const auto& frm_desc = frm.frm_obs_.descriptors_.row(frm_idx);
 
                     const auto hamm_dist = compute_descriptor_distance_32(keyfrm_desc, frm_desc);
@@ -88,12 +78,6 @@ unsigned int bow_tree::match_frame_and_keyframe(const std::shared_ptr<data::keyf
 
                 matched_lms_in_frm.at(best_frm_idx) = lm;
 
-                if (check_orientation_) {
-                    const auto delta_angle
-                        = keyfrm->frm_obs_.undist_keypts_.at(keyfrm_idx).angle - frm.frm_obs_.undist_keypts_.at(best_frm_idx).angle;
-                    angle_checker.append_delta_angle(delta_angle, best_frm_idx);
-                }
-
                 ++num_matches;
             }
 
@@ -110,21 +94,11 @@ unsigned int bow_tree::match_frame_and_keyframe(const std::shared_ptr<data::keyf
         }
     }
 
-    if (check_orientation_) {
-        const auto invalid_matches = angle_checker.get_invalid_matches();
-        for (const auto invalid_idx : invalid_matches) {
-            matched_lms_in_frm.at(invalid_idx) = nullptr;
-            --num_matches;
-        }
-    }
-
     return num_matches;
 }
 
 unsigned int bow_tree::match_keyframes(const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2, std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_keyfrm_1) const {
     unsigned int num_matches = 0;
-
-    angle_checker<int> angle_checker;
 
     const auto keyfrm_1_lms = keyfrm_1->get_landmarks();
     const auto keyfrm_2_lms = keyfrm_2->get_landmarks();
@@ -135,17 +109,10 @@ unsigned int bow_tree::match_keyframes(const std::shared_ptr<data::keyframe>& ke
     // NOTE: the size matches the number of the keypoints in keyframe 2
     std::vector<bool> is_already_matched_in_keyfrm_2(keyfrm_2_lms.size(), false);
 
-#ifdef USE_DBOW2
-    DBoW2::FeatureVector::const_iterator itr_1 = keyfrm_1->bow_feat_vec_.begin();
-    DBoW2::FeatureVector::const_iterator itr_2 = keyfrm_2->bow_feat_vec_.begin();
-    const DBoW2::FeatureVector::const_iterator itr_1_end = keyfrm_1->bow_feat_vec_.end();
-    const DBoW2::FeatureVector::const_iterator itr_2_end = keyfrm_2->bow_feat_vec_.end();
-#else
-    fbow::BoWFeatVector::const_iterator itr_1 = keyfrm_1->bow_feat_vec_.begin();
-    fbow::BoWFeatVector::const_iterator itr_2 = keyfrm_2->bow_feat_vec_.begin();
-    const fbow::BoWFeatVector::const_iterator itr_1_end = keyfrm_1->bow_feat_vec_.end();
-    const fbow::BoWFeatVector::const_iterator itr_2_end = keyfrm_2->bow_feat_vec_.end();
-#endif
+    data::bow_feature_vector::const_iterator itr_1 = keyfrm_1->bow_feat_vec_.begin();
+    data::bow_feature_vector::const_iterator itr_2 = keyfrm_2->bow_feat_vec_.begin();
+    const data::bow_feature_vector::const_iterator itr_1_end = keyfrm_1->bow_feat_vec_.end();
+    const data::bow_feature_vector::const_iterator itr_2_end = keyfrm_2->bow_feat_vec_.end();
 
     while (itr_1 != itr_1_end && itr_2 != itr_2_end) {
         // Check if the node numbers of BoW tree match
@@ -187,6 +154,10 @@ unsigned int bow_tree::match_keyframes(const std::shared_ptr<data::keyframe>& ke
                         continue;
                     }
 
+                    if (check_orientation_ && std::abs(util::angle::diff(keyfrm_1->frm_obs_.undist_keypts_.at(idx_1).angle, keyfrm_2->frm_obs_.undist_keypts_.at(idx_2).angle)) > 30.0) {
+                        continue;
+                    }
+
                     const auto& desc_2 = keyfrm_2->frm_obs_.descriptors_.row(idx_2);
 
                     const auto hamm_dist = compute_descriptor_distance_32(desc_1, desc_2);
@@ -217,12 +188,6 @@ unsigned int bow_tree::match_keyframes(const std::shared_ptr<data::keyframe>& ke
                 is_already_matched_in_keyfrm_2.at(best_idx_2) = true;
 
                 num_matches++;
-
-                if (check_orientation_) {
-                    const auto delta_angle
-                        = keyfrm_1->frm_obs_.undist_keypts_.at(idx_1).angle - keyfrm_2->frm_obs_.undist_keypts_.at(best_idx_2).angle;
-                    angle_checker.append_delta_angle(delta_angle, idx_1);
-                }
             }
 
             ++itr_1;
@@ -235,14 +200,6 @@ unsigned int bow_tree::match_keyframes(const std::shared_ptr<data::keyframe>& ke
         else {
             // Since the node number of keyframe 2 is smaller, increment the iterator until the node numbers match
             itr_2 = keyfrm_2->bow_feat_vec_.lower_bound(itr_1->first);
-        }
-    }
-
-    if (check_orientation_) {
-        const auto invalid_matches = angle_checker.get_invalid_matches();
-        for (const auto invalid_idx : invalid_matches) {
-            matched_lms_in_keyfrm_1.at(invalid_idx) = nullptr;
-            --num_matches;
         }
     }
 

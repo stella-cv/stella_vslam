@@ -20,10 +20,9 @@ class graph_optimizer {
 public:
     /**
      * Constructor
-     * @param map_db
      * @param fix_scale
      */
-    explicit graph_optimizer(data::map_database* map_db, const bool fix_scale);
+    explicit graph_optimizer(const bool fix_scale);
 
     /**
      * Destructor
@@ -45,9 +44,6 @@ public:
                   std::unordered_map<unsigned int, unsigned int>& found_lm_to_ref_keyfrm_id) const;
 
 private:
-    //! map database
-    const data::map_database* map_db_;
-
     //! SE3 optimization or Sim3 optimization
     const bool fix_scale_;
 };

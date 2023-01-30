@@ -29,7 +29,7 @@ bool loop_bundle_adjuster::is_running() const {
     return loop_BA_is_running_;
 }
 
-void loop_bundle_adjuster::optimize() {
+void loop_bundle_adjuster::optimize(const std::shared_ptr<data::keyframe>& curr_keyfrm) {
     spdlog::info("start loop bundle adjustment");
 
     {
@@ -42,8 +42,9 @@ void loop_bundle_adjuster::optimize() {
     std::unordered_set<unsigned int> optimized_landmark_ids;
     eigen_alloc_unord_map<unsigned int, Vec3_t> lm_to_pos_w_after_global_BA;
     eigen_alloc_unord_map<unsigned int, Mat44_t> keyfrm_to_pose_cw_after_global_BA;
-    const auto global_BA = optimize::global_bundle_adjuster(map_db_, num_iter_, false);
-    bool ok = global_BA.optimize(optimized_keyfrm_ids, optimized_landmark_ids,
+    const auto global_BA = optimize::global_bundle_adjuster(num_iter_, false);
+    bool ok = global_BA.optimize(curr_keyfrm->graph_node_->get_keyframes_from_root(),
+                                 optimized_keyfrm_ids, optimized_landmark_ids,
                                  lm_to_pos_w_after_global_BA,
                                  keyfrm_to_pose_cw_after_global_BA, &abort_loop_BA_);
 
@@ -68,10 +69,10 @@ void loop_bundle_adjuster::optimize() {
 
         std::lock_guard<std::mutex> lock2(data::map_database::mtx_database_);
 
-        spdlog::debug("update the camera pose along the spanning tree from the origin");
+        spdlog::debug("update the camera pose along the spanning tree from the root");
         eigen_alloc_unord_map<unsigned int, Mat44_t> keyfrm_to_cam_pose_cw_before_BA;
         std::list<std::shared_ptr<data::keyframe>> keyfrms_to_check;
-        keyfrms_to_check.push_back(map_db_->origin_keyfrm_);
+        keyfrms_to_check.push_back(curr_keyfrm->graph_node_->get_spanning_root());
         while (!keyfrms_to_check.empty()) {
             auto parent = keyfrms_to_check.front();
             const Mat44_t cam_pose_wp = parent->get_pose_wc();
@@ -103,8 +104,27 @@ void loop_bundle_adjuster::optimize() {
         }
 
         spdlog::debug("update the positions of the landmarks");
-        const auto landmarks = map_db_->get_all_landmarks();
-        for (const auto& lm : landmarks) {
+        auto keyfrms = curr_keyfrm->graph_node_->get_keyframes_from_root();
+        std::unordered_set<unsigned int> already_found_landmark_ids;
+        std::vector<std::shared_ptr<data::landmark>> lms;
+        for (const auto& keyfrm : keyfrms) {
+            for (const auto& lm : keyfrm->get_landmarks()) {
+                if (!lm) {
+                    continue;
+                }
+                if (lm->will_be_erased()) {
+                    continue;
+                }
+                if (already_found_landmark_ids.count(lm->id_)) {
+                    continue;
+                }
+
+                already_found_landmark_ids.insert(lm->id_);
+                lms.push_back(lm);
+            }
+        }
+
+        for (const auto& lm : lms) {
             if (lm->will_be_erased()) {
                 continue;
             }

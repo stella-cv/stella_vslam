@@ -1,17 +1,12 @@
 #include "stella_vslam/camera/base.h"
+#include "stella_vslam/data/bow_vocabulary.h"
 #include "stella_vslam/data/frame.h"
 #include "stella_vslam/data/frame_observation.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
 #include "stella_vslam/match/robust.h"
-#include "stella_vslam/match/angle_checker.h"
 #include "stella_vslam/solve/essential_solver.h"
-
-#ifdef USE_DBOW2
-#include <DBoW2/FeatureVector.h>
-#else
-#include <fbow/bow_feat_vector.h>
-#endif
+#include "stella_vslam/util/angle.h"
 
 namespace stella_vslam {
 namespace match {
@@ -19,8 +14,6 @@ namespace match {
 unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2, const Mat33_t& E_12,
                                              std::vector<std::pair<unsigned int, unsigned int>>& matched_idx_pairs) const {
     unsigned int num_matches = 0;
-
-    angle_checker<int> angle_checker;
 
     // Project the center of keyframe 1 to keyframe 2
     // to acquire the epipole coordinates of the candidate keyframe
@@ -41,17 +34,10 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
     // Save the keypoint idx in keyframe 2 which is already associated to the keypoint idx in keyframe 1
     std::vector<int> matched_indices_2_in_keyfrm_1(keyfrm_1->frm_obs_.num_keypts_, -1);
 
-#ifdef USE_DBOW2
-    DBoW2::FeatureVector::const_iterator itr_1 = keyfrm_1->bow_feat_vec_.begin();
-    DBoW2::FeatureVector::const_iterator itr_2 = keyfrm_2->bow_feat_vec_.begin();
-    const DBoW2::FeatureVector::const_iterator itr_1_end = keyfrm_1->bow_feat_vec_.end();
-    const DBoW2::FeatureVector::const_iterator itr_2_end = keyfrm_2->bow_feat_vec_.end();
-#else
-    fbow::BoWFeatVector::const_iterator itr_1 = keyfrm_1->bow_feat_vec_.begin();
-    fbow::BoWFeatVector::const_iterator itr_2 = keyfrm_2->bow_feat_vec_.begin();
-    const fbow::BoWFeatVector::const_iterator itr_1_end = keyfrm_1->bow_feat_vec_.end();
-    const fbow::BoWFeatVector::const_iterator itr_2_end = keyfrm_2->bow_feat_vec_.end();
-#endif
+    data::bow_feature_vector::const_iterator itr_1 = keyfrm_1->bow_feat_vec_.begin();
+    data::bow_feature_vector::const_iterator itr_2 = keyfrm_2->bow_feat_vec_.begin();
+    const data::bow_feature_vector::const_iterator itr_1_end = keyfrm_1->bow_feat_vec_.end();
+    const data::bow_feature_vector::const_iterator itr_2_end = keyfrm_2->bow_feat_vec_.end();
 
     while (itr_1 != itr_1_end && itr_2 != itr_2_end) {
         // Check if the node numbers of BoW tree match
@@ -90,6 +76,10 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
 
                     // Ignore if matches are already aquired
                     if (is_already_matched_in_keyfrm_2.at(idx_2)) {
+                        continue;
+                    }
+
+                    if (check_orientation_ && std::abs(util::angle::diff(keypt_1.angle, keyfrm_2->frm_obs_.undist_keypts_.at(idx_2).angle)) > 30.0) {
                         continue;
                     }
 
@@ -135,12 +125,6 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
                 is_already_matched_in_keyfrm_2.at(best_idx_2) = true;
                 matched_indices_2_in_keyfrm_1.at(idx_1) = best_idx_2;
                 ++num_matches;
-
-                if (check_orientation_) {
-                    const auto delta_angle
-                        = keypt_1.angle - keyfrm_2->frm_obs_.undist_keypts_.at(best_idx_2).angle;
-                    angle_checker.append_delta_angle(delta_angle, idx_1);
-                }
             }
 
             ++itr_1;
@@ -153,14 +137,6 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
         else {
             // Since the node number of keyframe 2 is smaller, increment the iterator until the node numbers match
             itr_2 = keyfrm_2->bow_feat_vec_.lower_bound(itr_1->first);
-        }
-    }
-
-    if (check_orientation_) {
-        const auto invalid_matches = angle_checker.get_invalid_matches();
-        for (const auto invalid_idx : invalid_matches) {
-            matched_indices_2_in_keyfrm_1.at(invalid_idx) = -1;
-            --num_matches;
         }
     }
 
@@ -264,8 +240,6 @@ unsigned int robust::match_frame_and_keyframe(data::frame& frm, const std::share
 unsigned int robust::brute_force_match(const data::frame_observation& frm_obs, const std::shared_ptr<data::keyframe>& keyfrm, std::vector<std::pair<int, int>>& matches) const {
     unsigned int num_matches = 0;
 
-    angle_checker<int> angle_checker;
-
     // 1. Acquire the frame and keyframe information
 
     const auto num_keypts_1 = frm_obs.num_keypts_;
@@ -308,6 +282,10 @@ unsigned int robust::brute_force_match(const data::frame_observation& frm_obs, c
                 continue;
             }
 
+            if (check_orientation_ && std::abs(util::angle::diff(keypts_1.at(idx_1).angle, keypts_2.at(idx_2).angle)) > 30.0) {
+                continue;
+            }
+
             const auto& desc_1 = descs_1.row(idx_1);
 
             const auto hamm_dist = compute_descriptor_distance_32(desc_2, desc_1);
@@ -339,21 +317,7 @@ unsigned int robust::brute_force_match(const data::frame_observation& frm_obs, c
         // Avoid duplication
         already_matched_indices_1.insert(best_idx_1);
 
-        if (check_orientation_) {
-            const auto delta_angle
-                = keypts_1.at(best_idx_1).angle - keypts_2.at(idx_2).angle;
-            angle_checker.append_delta_angle(delta_angle, best_idx_1);
-        }
-
         ++num_matches;
-    }
-
-    if (check_orientation_) {
-        const auto invalid_matches = angle_checker.get_invalid_matches();
-        for (const auto invalid_idx_1 : invalid_matches) {
-            matched_indices_2_in_1.at(invalid_idx_1) = -1;
-            --num_matches;
-        }
     }
 
     matches.clear();

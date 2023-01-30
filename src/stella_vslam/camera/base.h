@@ -94,6 +94,8 @@ public:
     //! Load color order from string
     static color_order_t load_color_order(const std::string& color_order_str);
 
+    //! Return whether the image size specified by the camera matches the size of the input image
+    bool is_valid_shape(const cv::Mat& img) const;
     //! Show common parameters along camera models
     void show_common_parameters() const;
 

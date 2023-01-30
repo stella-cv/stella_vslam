@@ -107,7 +107,7 @@ std::string data_serializer::serialize_as_protobuf(const std::vector<std::shared
     // 1. keyframe registration
 
     std::unordered_map<unsigned int, double> next_keyframe_hash_map;
-    for (const auto keyfrm : keyfrms) {
+    for (const auto& keyfrm : keyfrms) {
         if (!keyfrm || keyfrm->will_be_erased()) {
             continue;
         }
@@ -150,7 +150,7 @@ std::string data_serializer::serialize_as_protobuf(const std::vector<std::shared
     *keyframe_hash_map_ = next_keyframe_hash_map;
 
     // 2. graph registration
-    for (const auto keyfrm : keyfrms) {
+    for (const auto& keyfrm : keyfrms) {
         if (!keyfrm || keyfrm->will_be_erased()) {
             continue;
         }
@@ -160,7 +160,7 @@ std::string data_serializer::serialize_as_protobuf(const std::vector<std::shared
         // covisibility graph
         const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(100);
         if (!covisibilities.empty()) {
-            for (const auto covisibility : covisibilities) {
+            for (const auto& covisibility : covisibilities) {
                 if (!covisibility || covisibility->will_be_erased()) {
                     continue;
                 }
@@ -183,7 +183,7 @@ std::string data_serializer::serialize_as_protobuf(const std::vector<std::shared
 
         // loop edges
         const auto loop_edges = keyfrm->graph_node_->get_loop_edges();
-        for (const auto loop_edge : loop_edges) {
+        for (const auto& loop_edge : loop_edges) {
             if (!loop_edge) {
                 continue;
             }

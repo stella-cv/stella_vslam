@@ -9,6 +9,7 @@
 #include "stella_vslam/data/bow_database.h"
 #include "stella_vslam/match/projection.h"
 #include "stella_vslam/module/local_map_updater.h"
+#include "stella_vslam/optimize/pose_optimizer_factory.h"
 #include "stella_vslam/util/yaml.h"
 
 #include <chrono>
@@ -18,18 +19,19 @@
 
 namespace stella_vslam {
 
-tracking_module::tracking_module(const std::shared_ptr<config>& cfg, data::map_database* map_db,
+tracking_module::tracking_module(const std::shared_ptr<config>& cfg, camera::base* camera, data::map_database* map_db,
                                  data::bow_vocabulary* bow_vocab, data::bow_database* bow_db)
-    : camera_(cfg->camera_),
+    : camera_(camera),
       reloc_distance_threshold_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["reloc_distance_threshold"].as<double>(0.2)),
       reloc_angle_threshold_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["reloc_angle_threshold"].as<double>(0.45)),
       enable_auto_relocalization_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["enable_auto_relocalization"].as<bool>(true)),
       use_robust_matcher_for_relocalization_request_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["use_robust_matcher_for_relocalization_request"].as<bool>(false)),
+      max_num_local_keyfrms_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["max_num_local_keyfrms"].as<unsigned int>(60)),
       map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
-      frame_tracker_(camera_, 10, initializer_.get_use_fixed_seed()),
-      relocalizer_(util::yaml_optional_ref(cfg->yaml_node_, "Relocalizer")),
-      pose_optimizer_(),
+      pose_optimizer_(optimize::pose_optimizer_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
+      frame_tracker_(camera_, pose_optimizer_, 10, initializer_.get_use_fixed_seed()),
+      relocalizer_(pose_optimizer_, util::yaml_optional_ref(cfg->yaml_node_, "Relocalizer")),
       keyfrm_inserter_(util::yaml_optional_ref(cfg->yaml_node_, "KeyframeInserter")) {
     spdlog::debug("CONSTRUCT: tracking_module");
 }
@@ -47,7 +49,7 @@ void tracking_module::set_global_optimization_module(global_optimization_module*
     global_optimizer_ = global_optimizer;
 }
 
-bool tracking_module::request_relocalize_by_pose(const Mat44_t& pose) {
+bool tracking_module::request_relocalize_by_pose(const Mat44_t& pose_cw) {
     std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
     if (relocalize_by_pose_is_requested_) {
         spdlog::warn("Can not process new pose update request while previous was not finished");
@@ -55,11 +57,11 @@ bool tracking_module::request_relocalize_by_pose(const Mat44_t& pose) {
     }
     relocalize_by_pose_is_requested_ = true;
     relocalize_by_pose_request_.mode_2d_ = false;
-    relocalize_by_pose_request_.pose_ = pose;
+    relocalize_by_pose_request_.pose_cw_ = pose_cw;
     return true;
 }
 
-bool tracking_module::request_relocalize_by_pose_2d(const Mat44_t& pose, const Vec3_t& normal_vector) {
+bool tracking_module::request_relocalize_by_pose_2d(const Mat44_t& pose_cw, const Vec3_t& normal_vector) {
     std::lock_guard<std::mutex> lock(mtx_relocalize_by_pose_request_);
     if (relocalize_by_pose_is_requested_) {
         spdlog::warn("Can not process new pose update request while previous was not finished");
@@ -67,7 +69,7 @@ bool tracking_module::request_relocalize_by_pose_2d(const Mat44_t& pose, const V
     }
     relocalize_by_pose_is_requested_ = true;
     relocalize_by_pose_request_.mode_2d_ = true;
-    relocalize_by_pose_request_.pose_ = pose;
+    relocalize_by_pose_request_.pose_cw_ = pose_cw;
     relocalize_by_pose_request_.normal_vector_ = normal_vector;
     return true;
 }
@@ -102,8 +104,6 @@ void tracking_module::reset() {
     map_db_->clear();
 
     data::frame::next_id_ = 0;
-    data::keyframe::next_id_ = 0;
-    data::landmark::next_id_ = 0;
 
     last_reloc_frm_id_ = 0;
     last_reloc_frm_timestamp_ = 0.0;
@@ -263,8 +263,7 @@ bool tracking_module::initialize() {
 
     // pass all of the keyframes to the mapping module
     assert(!is_stopped_keyframe_insertion_);
-    const auto keyfrms = map_db_->get_all_keyframes();
-    for (const auto& keyfrm : keyfrms) {
+    for (const auto& keyfrm : curr_frm_.ref_keyfrm_->graph_node_->get_keyframes_from_root()) {
         mapper_->queue_keyframe(keyfrm);
     }
 
@@ -296,12 +295,15 @@ bool tracking_module::track_current_frame() {
 
 bool tracking_module::relocalize_by_pose(const pose_request& request) {
     bool succeeded = false;
-    curr_frm_.set_pose_cw(request.pose_);
+    curr_frm_.set_pose_cw(request.pose_cw_);
 
     if (!curr_frm_.bow_is_available()) {
         curr_frm_.compute_bow(bow_vocab_);
     }
     const auto candidates = get_close_keyframes(request);
+    for (const auto& candidate : candidates) {
+        spdlog::debug("relocalize_by_pose: candidate = {}", candidate->id_);
+    }
 
     if (!candidates.empty()) {
         succeeded = relocalizer_.reloc_by_candidates(curr_frm_, candidates, use_robust_matcher_for_relocalization_request_);
@@ -320,14 +322,14 @@ bool tracking_module::relocalize_by_pose(const pose_request& request) {
 std::vector<std::shared_ptr<data::keyframe>> tracking_module::get_close_keyframes(const pose_request& request) {
     if (request.mode_2d_) {
         return map_db_->get_close_keyframes_2d(
-            request.pose_,
+            request.pose_cw_,
             request.normal_vector_,
             reloc_distance_threshold_,
             reloc_angle_threshold_);
     }
     else {
         return map_db_->get_close_keyframes(
-            request.pose_,
+            request.pose_cw_,
             reloc_distance_threshold_,
             reloc_angle_threshold_);
     }
@@ -380,9 +382,9 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
     search_local_landmarks();
 
     // optimize the pose
-    g2o::SE3Quat optimized_pose;
+    Mat44_t optimized_pose;
     std::vector<bool> outlier_flags;
-    pose_optimizer_.optimize(curr_frm_, optimized_pose, outlier_flags);
+    pose_optimizer_->optimize(curr_frm_, optimized_pose, outlier_flags);
     curr_frm_.set_pose_cw(optimized_pose);
 
     // Reject outliers
@@ -449,8 +451,7 @@ void tracking_module::update_local_map() {
     }
 
     // acquire the current local map
-    constexpr unsigned int max_num_local_keyfrms = 60;
-    auto local_map_updater = module::local_map_updater(curr_frm_, max_num_local_keyfrms);
+    auto local_map_updater = module::local_map_updater(curr_frm_, max_num_local_keyfrms_);
     if (!local_map_updater.acquire_local_map()) {
         return;
     }

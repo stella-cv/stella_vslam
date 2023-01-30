@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
   workflow_dispatch:
 
@@ -12,7 +12,7 @@ jobs:
   # build_macos:
   #   runs-on: macos-latest
   #   steps:
-  #     - uses: actions/checkout@v2
+  #     - uses: actions/checkout@v3
   #     - name: brew install
   #       run: |
   #         brew update
@@ -25,12 +25,12 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: DoozyX/clang-format-lint-action@v0.12
         with:
-          source: '.'
-          exclude: './3rd'
-          extensions: 'h,cc'
+          source: "."
+          exclude: "./3rd"
+          extensions: "h,cc"
           clangFormatVersion: 6
           style: file
           inplace: False
@@ -43,7 +43,7 @@ jobs:
     container:
       image: ghcr.io/ymd-stella/stella-cv/stella_vslam:cv-4.x
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: cmake and make with pangolin viewer
@@ -66,7 +66,7 @@ jobs:
     container:
       image: ghcr.io/ymd-stella/stella-cv/stella_vslam:cv-3.x
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: cmake and make
@@ -89,7 +89,7 @@ jobs:
     container:
       image: ghcr.io/ymd-stella/stella-cv/stella_vslam:cv-4.x
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: Create artifact directory
@@ -116,66 +116,87 @@ jobs:
           mv data.tum MH_01.tum
           evo_traj euroc --transform_right tf.json /datasets/EuRoC/MH_04/state_groundtruth_estimate0/data.csv --save_as_tum
           mv data.tum MH_04.tum
+      - name: make config for gtsam backend
+        run: |
+          sed -e 's/backend: "g2o"/backend: "gtsam"/g' example/euroc/EuRoC_mono.yaml > EuRoC_mono_gtsam.yaml
+          sed -e 's/backend: "g2o"/backend: "gtsam"/g' example/euroc/EuRoC_stereo.yaml > EuRoC_stereo_gtsam.yaml
+      - name: make config for sqlite3 map format
+        run: |
+          sed -e 's/map_format: "msgpack"/map_format: "sqlite3"/g' example/euroc/EuRoC_mono.yaml > EuRoC_mono_sqlite3.yaml
       - name: SLAM test (monocular) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
-          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db MH_01_mono.msg
+          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_01_mono.msg
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_mono_slam.txt
           mv track_times.txt ../artifact/track_times_MH_01_mono_slam.txt
+          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_gtsam.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_01_mono_gtsam.msg
+          mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_mono_gtsam_slam.txt
+          mv track_times.txt ../artifact/track_times_MH_01_mono_gtsam_slam.txt
+          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_sqlite3.yaml --frame-skip 2 --no-sleep --log-level=debug --map-db-out MH_01_mono_sqlite3.db
       - name: SLAM test (stereo) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
-          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db MH_01_stereo.msg
+          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_01_stereo.msg
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_stereo_slam.txt
           mv track_times.txt ../artifact/track_times_MH_01_stereo_slam.txt
+          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_stereo_gtsam.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_01_stereo_gtsam.msg
+          mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_stereo_gtsam_slam.txt
+          mv track_times.txt ../artifact/track_times_MH_01_stereo_gtsam_slam.txt
       - name: Localization test (monocular) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
-          ./run_euroc_slam --load-map --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db MH_01_mono.msg
+          ./run_euroc_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_01_mono.msg
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_mono_localization.txt
           mv track_times.txt ../artifact/track_times_MH_01_mono_localization.txt
+          ./run_euroc_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_sqlite3.yaml --frame-skip 2 --no-sleep --log-level=debug --map-db-in MH_01_mono_sqlite3.db
       - name: SLAM test (monocular) with EuRoC MAV dataset (MH_04)
         run: |
           cd build
-          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db MH_04_mono.msg
+          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_04_mono.msg
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_04_mono_slam.txt
           mv track_times.txt ../artifact/track_times_MH_04_mono_slam.txt
       - name: SLAM test (stereo) with EuRoC MAV dataset (MH_04)
         run: |
           cd build
-          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db MH_04_stereo.msg
+          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_04_stereo.msg
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_04_stereo_slam.txt
           mv track_times.txt ../artifact/track_times_MH_04_stereo_slam.txt
       - name: Localization test (monocular) with EuRoC MAV dataset (MH_04)
         run: |
           cd build
-          ./run_euroc_slam --load-map --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db MH_04_mono.msg
+          ./run_euroc_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_04_mono.msg
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_04_mono_localization.txt
           mv track_times.txt ../artifact/track_times_MH_04_mono_localization.txt
       - name: download openvslam_test_dataset
         run: |
-          gdown "https://drive.google.com/uc?id=1bdkqaR99GKjg4orhqHxQkwqyi227tfCd" -q
+          curl -sL "https://github.com/stella-cv/openvslam_test_dataset/raw/main/openvslam_test_dataset.zip" -o openvslam_test_dataset.zip
           unzip openvslam_test_dataset.zip
           rm openvslam_test_dataset.zip
       - name: make config for openvslam_test_dataset
         run: |
           sed -e 's/fps: .*/fps: 24.0/g' example/aist/equirectangular.yaml > equirectangular.yaml
+      - name: make config for gtsam backend
+        run: |
+          sed -e 's/backend: "g2o"/backend: "gtsam"/g' equirectangular.yaml > equirectangular_gtsam.yaml
       - name: SLAM test with equirectangular dataset (1)
         run: |
           cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/1/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db equirectangular_map.msg
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/1/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db-out equirectangular_map.msg -t 0.0
           mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_1.txt
           mv track_times.txt ../artifact/track_times_equirectangular_1.txt
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/1/equirectangular/video.mp4 -c ../equirectangular_gtsam.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db-out equirectangular_gtsam_map.msg -t 0.0
+          mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_gtsam_1.txt
+          mv track_times.txt ../artifact/track_times_equirectangular_gtsam_1.txt
       - name: SLAM test with equirectangular dataset (2)
         run: |
           cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/2/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db equirectangular_map.msg
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/2/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db-out equirectangular_map.msg -t 0.0
           mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_2.txt
           mv track_times.txt ../artifact/track_times_equirectangular_2.txt
       - name: SLAM test with equirectangular dataset (3)
         run: |
           cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/3/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db equirectangular_map.msg
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/3/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db-out equirectangular_map.msg -t 0.0
           mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_3.txt
           mv track_times.txt ../artifact/track_times_equirectangular_3.txt
       - name: Evaluation
@@ -191,9 +212,17 @@ jobs:
             bash track_time_print_row.bash artifact/track_times_MH_01_mono_slam.txt
             bash evo_rpe_print_row.bash tum MH_01.tum artifact/frame_trajectory_MH_01_mono_slam.txt -as
             echo '|'
+            echo -n '| EuRoC MH_01 (SLAM, perspective, mono, gtsam)'
+            bash track_time_print_row.bash artifact/track_times_MH_01_mono_gtsam_slam.txt
+            bash evo_rpe_print_row.bash tum MH_01.tum artifact/frame_trajectory_MH_01_mono_gtsam_slam.txt -as
+            echo '|'
             echo -n '| EuRoC MH_01 (SLAM, perspective, stereo)'
             bash track_time_print_row.bash artifact/track_times_MH_01_stereo_slam.txt
             bash evo_rpe_print_row.bash tum MH_01.tum artifact/frame_trajectory_MH_01_stereo_slam.txt -a
+            echo '|'
+            echo -n '| EuRoC MH_01 (SLAM, perspective, stereo, gtsam)'
+            bash track_time_print_row.bash artifact/track_times_MH_01_stereo_gtsam_slam.txt
+            bash evo_rpe_print_row.bash tum MH_01.tum artifact/frame_trajectory_MH_01_stereo_gtsam_slam.txt -a
             echo '|'
             echo -n '| EuRoC MH_01 (Localization, perspective, mono)'
             bash track_time_print_row.bash artifact/track_times_MH_01_mono_localization.txt
@@ -215,6 +244,10 @@ jobs:
             bash track_time_print_row.bash artifact/track_times_equirectangular_1.txt
             bash evo_rpe_print_row.bash tum openvslam_test_dataset/1/gt.tum artifact/frame_trajectory_equirectangular_1.txt -as
             echo '|'
+            echo -n '| openvslam_test_dataset 1 (SLAM, equirectangular, mono, gtsam)'
+            bash track_time_print_row.bash artifact/track_times_equirectangular_gtsam_1.txt
+            bash evo_rpe_print_row.bash tum openvslam_test_dataset/1/gt.tum artifact/frame_trajectory_equirectangular_gtsam_1.txt -as
+            echo '|'
             echo -n '| openvslam_test_dataset 2 (SLAM, equirectangular, mono)'
             bash track_time_print_row.bash artifact/track_times_equirectangular_2.txt
             bash evo_rpe_print_row.bash tum openvslam_test_dataset/2/gt.tum artifact/frame_trajectory_equirectangular_2.txt -as
@@ -225,7 +258,7 @@ jobs:
             echo '|'
             echo '</details>'
           ) >> artifact/result.md
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: artifact
           path: artifact
@@ -238,7 +271,7 @@ jobs:
     container:
       image: ghcr.io/ymd-stella/stella-cv/stella_vslam:cv-4.x
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: cmake and make
@@ -256,11 +289,11 @@ jobs:
       - name: mapping test with the tutorial
         run: |
           cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --log-level=debug --eval-log-dir . --map-db map.msg
+          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --log-level=debug --eval-log-dir . --map-db-out map.msg
       - name: localization test with the tutorial
         run: |
           cd build
-          ./run_video_slam --load-map --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --log-level=debug --eval-log-dir . --map-db map.msg
+          ./run_video_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --log-level=debug --eval-log-dir . --map-db-in map.msg
 
   rosdep_foxy:
     runs-on: ubuntu-latest
@@ -270,7 +303,7 @@ jobs:
     container:
       image: ghcr.io/ymd-stella/stella-cv/ros:foxy-ros-base
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
       - name: build ros2 packages

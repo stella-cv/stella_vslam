@@ -20,8 +20,12 @@ public:
 
     //! Constructor
     perspective(const data::frame& ref_frm,
-                const unsigned int num_ransac_iters, const unsigned int min_num_triangulated,
-                const float parallax_deg_thr, const float reproj_err_thr, bool use_fixed_seed = false);
+                const unsigned int num_ransac_iters,
+                const unsigned int min_num_triangulated,
+                const unsigned int min_num_valid_pts,
+                const float parallax_deg_thr,
+                const float reproj_err_thr,
+                bool use_fixed_seed = false);
 
     //! Destructor
     ~perspective() override;

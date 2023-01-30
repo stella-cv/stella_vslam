@@ -1,9 +1,5 @@
 # EuRoC stereo model
 
-#==============#
-# Camera Model #
-#==============#
-
 # intrinsic parameters after stereo-rectification are written
 Camera:
   name: "EuRoC stereo"
@@ -37,10 +33,6 @@ Camera:
 
   color_order: "Gray"
 
-#======================#
-# Stereo Rectification #
-#======================#
-
 # original intrinsic parameters (K, D) and stereo-recitification parameters (R)
 # matrices (K, R) are written in row-major order
 
@@ -52,16 +44,8 @@ StereoRectifier:
   D_right: [-0.28368365, 0.07451284, -0.00010473, -3.555907e-05, 0.0]
   R_right: [0.9999633526194376, -0.003625811871560086, 0.007755443660172947, 0.003680398547259526, 0.9999684752771629, -0.007035845251224894, -0.007729688520722713, 0.007064130529506649, 0.999945173484644]
 
-#=====================#
-# Tracking Parameters #
-#=====================#
-
 Preprocessing:
   min_size: 800
-
-#================#
-# ORB Parameters #
-#================#
 
 Feature:
   name: "default ORB feature extraction setting"
@@ -70,24 +54,22 @@ Feature:
   ini_fast_threshold: 20
   min_fast_threshold: 7
 
-#====================#
-# Mapping Parameters #
-#====================#
-
 Mapping:
+  backend: "g2o"
   baseline_dist_thr: 0.11007784219
   redundant_obs_ratio_thr: 0.9
 
-#========================#
-# Initializer Parameters #
-#========================#
+Tracking:
+  backend: "g2o"
+
+LoopDetector:
+  backend: "g2o"
 
 Initializer:
   num_min_triangulated_pts: 100
 
-#===========================#
-# PangolinViewer Parameters #
-#===========================#
+System:
+  map_format: "msgpack"
 
 PangolinViewer:
   keyframe_size: 0.07

@@ -116,7 +116,12 @@ void trajectory_io::save_keyframe_trajectory(const std::string& path, const std:
     // 1. acquire keyframes and sort them
 
     assert(map_db_);
-    auto keyfrms = map_db_->get_all_keyframes();
+    auto roots = map_db_->get_spanning_roots();
+    if (roots.empty()) {
+        spdlog::warn("empty map");
+        return;
+    }
+    auto keyfrms = roots.back()->graph_node_->get_keyframes_from_root();
     std::sort(keyfrms.begin(), keyfrms.end(), [&](const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2) {
         return *keyfrm_1 < *keyfrm_2;
     });

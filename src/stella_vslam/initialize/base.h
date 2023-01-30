@@ -25,8 +25,11 @@ public:
 
     //! Constructor
     base(const data::frame& ref_frm,
-         const unsigned int num_ransac_iters, const unsigned int min_num_triangulated,
-         const float parallax_deg_thr, const float reproj_err_thr);
+         const unsigned int num_ransac_iters,
+         const unsigned int min_num_valid_pts,
+         const unsigned int min_num_triangulated,
+         const float parallax_deg_thr,
+         const float reproj_err_thr);
 
     //! Destructor
     virtual ~base() = default;
@@ -51,11 +54,13 @@ protected:
     bool find_most_plausible_pose(const eigen_alloc_vector<Mat33_t>& init_rots, const eigen_alloc_vector<Vec3_t>& init_transes,
                                   const std::vector<bool>& is_inlier_match, const bool depth_is_positive);
 
-    //! Check the reconstructed camera poses via triangulation-based verification
-    unsigned int check_pose(const Mat33_t& rot_ref_to_cur, const Vec3_t& trans_ref_to_cur,
-                            const std::vector<bool>& is_inlier_match, const bool depth_is_positive,
-                            eigen_alloc_vector<Vec3_t>& triangulated_pts, std::vector<bool>& is_triangulated,
-                            float& parallax_deg);
+    //! Generate 3D points from matches with valid and sufficient parallax
+    unsigned int triangulate(const Mat33_t& rot_ref_to_cur, const Vec3_t& trans_ref_to_cur,
+                             const std::vector<bool>& is_inlier_match, const bool depth_is_positive,
+                             eigen_alloc_vector<Vec3_t>& triangulated_pts,
+                             std::vector<bool>& is_triangulated,
+                             unsigned int& num_triangulated_pts,
+                             float& parallax_deg);
 
     //-----------------------------------------
     // reference frame information
@@ -90,6 +95,8 @@ protected:
     const unsigned int num_ransac_iters_;
     //! min number of triangulated pts
     const unsigned int min_num_triangulated_;
+    //! min number of valid pts
+    const unsigned int min_num_valid_pts_;
     //! min parallax
     const float parallax_deg_thr_;
     //! reprojection error threshold

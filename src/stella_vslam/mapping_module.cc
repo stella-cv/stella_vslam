@@ -8,6 +8,7 @@
 #include "stella_vslam/match/fuse.h"
 #include "stella_vslam/match/robust.h"
 #include "stella_vslam/module/two_view_triangulator.h"
+#include "stella_vslam/optimize/local_bundle_adjuster_factory.h"
 #include "stella_vslam/solve/essential_solver.h"
 
 #include <thread>
@@ -19,12 +20,13 @@ namespace stella_vslam {
 mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* map_db, data::bow_database* bow_db, data::bow_vocabulary* bow_vocab)
     : local_map_cleaner_(new module::local_map_cleaner(yaml_node, map_db, bow_db)),
       map_db_(map_db), bow_db_(bow_db), bow_vocab_(bow_vocab),
-      local_bundle_adjuster_(new optimize::local_bundle_adjuster(yaml_node)),
+      local_bundle_adjuster_(optimize::local_bundle_adjuster_factory::create(yaml_node)),
       enable_interruption_of_landmark_generation_(yaml_node["enable_interruption_of_landmark_generation"].as<bool>(true)),
       enable_interruption_before_local_BA_(yaml_node["enable_interruption_before_local_BA"].as<bool>(true)),
       num_covisibilities_for_landmark_generation_(yaml_node["num_covisibilities_for_landmark_generation"].as<unsigned int>(10)),
       num_covisibilities_for_landmark_fusion_(yaml_node["num_covisibilities_for_landmark_fusion"].as<unsigned int>(10)) {
     spdlog::debug("CONSTRUCT: mapping_module");
+
     spdlog::debug("load mapping parameters");
 
     spdlog::debug("load monocular mappping parameters");
@@ -110,7 +112,9 @@ void mapping_module::run() {
         // create and extend the map with the new keyframe
         mapping_with_new_keyframe();
         // send the new keyframe to the global optimization module
-        global_optimizer_->queue_keyframe(cur_keyfrm_);
+        if (!cur_keyfrm_->graph_node_->is_spanning_root()) {
+            global_optimizer_->queue_keyframe(cur_keyfrm_);
+        }
     }
 
     spdlog::info("terminate mapping module");
@@ -311,7 +315,7 @@ void mapping_module::triangulate_with_two_keyframes(const std::shared_ptr<data::
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
-    for (unsigned int i = 0; i < matches.size(); ++i) {
+    for (int64_t i = 0; i < static_cast<int64_t>(matches.size()); ++i) {
         const auto idx_1 = matches.at(i).first;
         const auto idx_2 = matches.at(i).second;
 
@@ -324,7 +328,7 @@ void mapping_module::triangulate_with_two_keyframes(const std::shared_ptr<data::
         // succeeded
 
         // create a landmark object
-        auto lm = std::make_shared<data::landmark>(pos_w, keyfrm_1);
+        auto lm = std::make_shared<data::landmark>(map_db_->next_landmark_id_++, pos_w, keyfrm_1);
 
         lm->connect_to_keyframe(keyfrm_1, idx_1);
         lm->connect_to_keyframe(keyfrm_2, idx_2);
@@ -379,7 +383,7 @@ void mapping_module::update_new_keyframe() {
 
 void mapping_module::fuse_landmark_duplication(const std::vector<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms,
                                                nondeterministic::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>& replaced_lms) {
-    match::fuse fuse_matcher(0.6, true, true);
+    match::fuse fuse_matcher(0.6);
 
     {
         // reproject the landmarks observed in the current keyframe to each of the targets, and acquire
@@ -392,7 +396,7 @@ void mapping_module::fuse_landmark_duplication(const std::vector<std::shared_ptr
             std::unordered_map<unsigned int, std::shared_ptr<data::landmark>> new_connections;
             const Mat33_t rot_cw = fuse_tgt_keyfrm->get_rot_cw();
             const Vec3_t trans_cw = fuse_tgt_keyfrm->get_trans_cw();
-            fuse_matcher.detect_duplication(fuse_tgt_keyfrm, rot_cw, trans_cw, cur_landmarks, 3.0, duplicated_lms_in_keyfrm, new_connections);
+            fuse_matcher.detect_duplication(fuse_tgt_keyfrm, rot_cw, trans_cw, cur_landmarks, 3.0, duplicated_lms_in_keyfrm, new_connections, true);
 
             // There is association between the 3D point and the keyframe
             // -> Duplication exists
@@ -460,7 +464,7 @@ void mapping_module::fuse_landmark_duplication(const std::vector<std::shared_ptr
         std::unordered_map<unsigned int, std::shared_ptr<data::landmark>> new_connections;
         const Mat33_t rot_cw = cur_keyfrm_->get_rot_cw();
         const Vec3_t trans_cw = cur_keyfrm_->get_trans_cw();
-        fuse_matcher.detect_duplication(cur_keyfrm_, rot_cw, trans_cw, candidate_landmarks_to_fuse, 3.0, duplicated_lms_in_keyfrm, new_connections);
+        fuse_matcher.detect_duplication(cur_keyfrm_, rot_cw, trans_cw, candidate_landmarks_to_fuse, 3.0, duplicated_lms_in_keyfrm, new_connections, true);
 
         // There is association between the 3D point and the keyframe
         // -> Duplication exists

@@ -15,9 +15,13 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     //! Constructor
-    pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings, const std::vector<cv::KeyPoint>& valid_keypts,
-               const eigen_alloc_vector<Vec3_t>& valid_landmarks, const std::vector<float>& scale_factors,
-               const unsigned int min_num_inliers = 10, bool use_fixed_seed = false);
+    pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings,
+               const std::vector<cv::KeyPoint>& valid_keypts,
+               const eigen_alloc_vector<Vec3_t>& valid_landmarks,
+               const std::vector<float>& scale_factors,
+               unsigned int min_num_inliers = 10,
+               bool use_fixed_seed = false,
+               unsigned int gauss_newton_num_iter = 10);
 
     //! Destructor
     virtual ~pnp_solver();
@@ -53,7 +57,7 @@ public:
 private:
     //! Check inliers of 2D-3D matches
     //! (Note: inlier flags are set to_inlier_match and the number of inliers is returned)
-    unsigned int check_inliers(const Mat33_t& rot_cw, const Vec3_t& trans_cw, std::vector<bool>& is_inlier);
+    unsigned int check_inliers(const Mat33_t& rot_cw, const Vec3_t& trans_cw, std::vector<bool>& is_inlier, double& cost);
 
     //! the number of 2D-3D matches
     const unsigned int num_matches_;
@@ -79,6 +83,9 @@ private:
     std::vector<bool> is_inlier_match;
     //! random engine for RANSAC
     std::mt19937 random_engine_;
+
+    //! Number of iterations of Gauss-Newton method in EPnP
+    const unsigned int gauss_newton_num_iter_;
 
     //-----------------------------------------
     // quoted from EPnP implementation
@@ -132,9 +139,6 @@ private:
 
     //! Estimate R and t by the local 3D points and the world 3D points
     static void estimate_R_and_t(const eigen_alloc_vector<Vec3_t>& pws, const eigen_alloc_vector<Vec3_t>& pcs, Mat33_t& rot, Vec3_t& trans);
-
-    // A camera model to utilize bearing vector as a pixel coordinate
-    static constexpr float fx_ = 1.0, fy_ = 1.0, cx_ = 0.0, cy_ = 0.0;
 };
 
 } // namespace solve

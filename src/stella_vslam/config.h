@@ -1,7 +1,6 @@
 #ifndef STELLA_VSLAM_CONFIG_H
 #define STELLA_VSLAM_CONFIG_H
 
-#include "stella_vslam/camera/base.h"
 #include "stella_vslam/feature/orb_params.h"
 
 #include <yaml-cpp/yaml.h>
@@ -28,12 +27,6 @@ public:
 
     //! YAML node
     const YAML::Node yaml_node_;
-
-    //! Camera model
-    camera::base* camera_ = nullptr;
-
-    //! ORB feature extraction model
-    feature::orb_params* orb_params_ = nullptr;
 
     //! Marker model
     std::shared_ptr<marker_model::base> marker_model_ = nullptr;

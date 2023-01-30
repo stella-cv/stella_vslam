@@ -1,10 +1,12 @@
+#include "stella_vslam/data/bow_database.h"
+#include "stella_vslam/data/bow_vocabulary.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
-#include "stella_vslam/data/bow_database.h"
 #include "stella_vslam/match/bow_tree.h"
 #include "stella_vslam/match/projection.h"
 #include "stella_vslam/match/robust.h"
 #include "stella_vslam/module/loop_detector.h"
+#include "stella_vslam/optimize/pose_optimizer_factory.h"
 #include "stella_vslam/solve/pnp_solver.h"
 #include "stella_vslam/util/converter.h"
 #include "stella_vslam/util/fancy_index.h"
@@ -15,7 +17,7 @@ namespace stella_vslam {
 namespace module {
 
 loop_detector::loop_detector(data::bow_database* bow_db, data::bow_vocabulary* bow_vocab, const YAML::Node& yaml_node, const bool fix_scale_in_Sim3_estimation)
-    : bow_db_(bow_db), bow_vocab_(bow_vocab), transform_optimizer_(fix_scale_in_Sim3_estimation), pose_optimizer_(),
+    : bow_db_(bow_db), bow_vocab_(bow_vocab), transform_optimizer_(fix_scale_in_Sim3_estimation), pose_optimizer_(optimize::pose_optimizer_factory::create(yaml_node)),
       loop_detector_is_enabled_(yaml_node["enabled"].as<bool>(true)),
       fix_scale_in_Sim3_estimation_(fix_scale_in_Sim3_estimation),
       num_final_matches_thr_(yaml_node["num_final_matches_threshold"].as<unsigned int>(40)),
@@ -240,7 +242,7 @@ bool loop_detector::validate_candidates_impl() {
     // then, acquire the extra 2D-3D matches
     // however, landmarks in `curr_match_lms_observed_in_cand_` are already matched with keypoints in the current keyframe,
     // thus they are excluded from the reprojection
-    match::projection projection_matcher(0.75, true);
+    match::projection projection_matcher(0.75);
     projection_matcher.match_by_Sim3_transform(cur_keyfrm_, Sim3_world_to_curr_, curr_match_lms_observed_in_cand_covis_,
                                                curr_match_lms_observed_in_cand_, 10);
 
@@ -276,11 +278,7 @@ float loop_detector::compute_min_score_in_covisibilities(const std::shared_ptr<d
         }
         const auto& bow_vec_2 = covisibility->bow_vec_;
 
-#ifdef USE_DBOW2
-        const float score = bow_vocab_->score(bow_vec_1, bow_vec_2);
-#else
-        const float score = fbow::BoWVector::score(bow_vec_1, bow_vec_2);
-#endif
+        const auto score = data::bow_vocabulary_util::score(bow_vocab_, bow_vec_1, bow_vec_2);
         if (score < min_score) {
             min_score = score;
         }
@@ -355,9 +353,9 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
     // the Sim3 is estimated both in linear and non-linear ways
     // if the inlier after the estimation is lower than the threshold, discard tha candidate
 
-    match::robust robust_matcher(0.75, true);
-    match::bow_tree bow_matcher(0.75, true);
-    match::projection projection_matcher(0.75, true);
+    match::robust robust_matcher(0.75, false);
+    match::bow_tree bow_matcher(0.75, false);
+    match::projection projection_matcher(0.75, false);
 
     for (const auto& candidate : loop_candidates) {
         if (candidate->will_be_erased()) {
@@ -412,7 +410,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
                                                                                    cur_keyfrm_->orb_params_->scale_factors_,
                                                                                    use_fixed_seed_));
 
-        pnp_solver->find_via_ransac(30);
+        pnp_solver->find_via_ransac(30, false);
         if (!pnp_solver->solution_is_valid()) {
             spdlog::debug("solution is not valid.");
             continue;
@@ -430,9 +428,9 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
 
         // Pose optimization
         std::vector<bool> outlier_flags;
-        g2o::SE3Quat optimized_pose;
-        auto num_valid_obs = pose_optimizer_.optimize(pnp_solver->get_best_cam_pose(), cur_keyfrm_->frm_obs_, cur_keyfrm_->orb_params_, cur_keyfrm_->camera_,
-                                                      curr_match_lms_observed_in_cand, optimized_pose, outlier_flags);
+        Mat44_t optimized_pose;
+        auto num_valid_obs = pose_optimizer_->optimize(pnp_solver->get_best_cam_pose(), cur_keyfrm_->frm_obs_, cur_keyfrm_->orb_params_, cur_keyfrm_->camera_,
+                                                       curr_match_lms_observed_in_cand, optimized_pose, outlier_flags);
 
         // Discard the candidate if the number of the inliers is less than the threshold
         const int min_num_matches_after_pose_optimize = 10;
@@ -459,7 +457,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
         }
 
         // Projection match based on the pre-optimized camera pose
-        auto num_found = projection_matcher.match_frame_and_keyframe(util::converter::to_eigen_mat(optimized_pose), cur_keyfrm_->camera_, cur_keyfrm_->frm_obs_,
+        auto num_found = projection_matcher.match_frame_and_keyframe(optimized_pose, cur_keyfrm_->camera_, cur_keyfrm_->frm_obs_,
                                                                      cur_keyfrm_->orb_params_, curr_match_lms_observed_in_cand,
                                                                      candidate, already_found_landmarks, 10, 100);
         // Discard the candidate if the number of the inliers is less than the threshold
@@ -470,11 +468,11 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
             continue;
         }
 
-        g2o::SE3Quat optimized_pose1;
+        Mat44_t optimized_pose1;
         std::vector<bool> outlier_flags1;
-        auto num_valid_obs1 = pose_optimizer_.optimize(util::converter::to_eigen_mat(optimized_pose),
-                                                       cur_keyfrm_->frm_obs_, cur_keyfrm_->orb_params_, cur_keyfrm_->camera_,
-                                                       curr_match_lms_observed_in_cand, optimized_pose1, outlier_flags1);
+        auto num_valid_obs1 = pose_optimizer_->optimize(optimized_pose,
+                                                        cur_keyfrm_->frm_obs_, cur_keyfrm_->orb_params_, cur_keyfrm_->camera_,
+                                                        curr_match_lms_observed_in_cand, optimized_pose1, outlier_flags1);
 
         if (num_valid_obs1 < min_num_valid_obs1) {
             spdlog::debug("2. Number of inliers ({}) < threshold ({})", num_valid_obs1, min_num_valid_obs1);
@@ -490,7 +488,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
             already_found_landmarks1.insert(curr_match_lms_observed_in_cand.at(idx));
         }
         // Apply projection match again, then set the 2D-3D matches
-        auto num_additional = projection_matcher.match_frame_and_keyframe(util::converter::to_eigen_mat(optimized_pose1), cur_keyfrm_->camera_, cur_keyfrm_->frm_obs_,
+        auto num_additional = projection_matcher.match_frame_and_keyframe(optimized_pose1, cur_keyfrm_->camera_, cur_keyfrm_->frm_obs_,
                                                                           cur_keyfrm_->orb_params_, curr_match_lms_observed_in_cand,
                                                                           candidate, already_found_landmarks, 3, 64);
 
@@ -502,11 +500,11 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
         }
 
         // Perform optimization again
-        g2o::SE3Quat optimized_pose2;
+        Mat44_t optimized_pose2;
         std::vector<bool> outlier_flags2;
-        auto num_valid_obs2 = pose_optimizer_.optimize(util::converter::to_eigen_mat(optimized_pose1),
-                                                       cur_keyfrm_->frm_obs_, cur_keyfrm_->orb_params_, cur_keyfrm_->camera_,
-                                                       curr_match_lms_observed_in_cand, optimized_pose2, outlier_flags2);
+        auto num_valid_obs2 = pose_optimizer_->optimize(optimized_pose1,
+                                                        cur_keyfrm_->frm_obs_, cur_keyfrm_->orb_params_, cur_keyfrm_->camera_,
+                                                        curr_match_lms_observed_in_cand, optimized_pose2, outlier_flags2);
 
         // Discard if falling below the threshold
         if (num_valid_obs2 < min_num_valid_obs2) {
@@ -522,7 +520,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
             curr_match_lms_observed_in_cand.at(idx) = nullptr;
         }
 
-        const Mat44_t pose_1w_in_cand = util::converter::to_eigen_mat(optimized_pose2);
+        const Mat44_t pose_1w_in_cand = optimized_pose2;
         const Mat33_t rot_1w_in_cand = pose_1w_in_cand.block<3, 3>(0, 0);
         const Vec3_t trans_1w_in_cand = pose_1w_in_cand.block<3, 1>(0, 3);
         auto lms_curr = cur_keyfrm_->get_landmarks();

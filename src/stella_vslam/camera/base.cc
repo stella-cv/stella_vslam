@@ -1,6 +1,7 @@
 #include "stella_vslam/camera/base.h"
 
 #include <iostream>
+#include <opencv2/core/mat.hpp>
 
 #include <spdlog/spdlog.h>
 
@@ -95,6 +96,10 @@ color_order_t base::load_color_order(const std::string& color_order_str) {
         throw std::runtime_error("Invalid color order: " + color_order_str);
     }
     return static_cast<color_order_t>(std::distance(color_order_to_string.begin(), itr));
+}
+
+bool base::is_valid_shape(const cv::Mat& img) const {
+    return static_cast<int>(cols_) == img.cols && static_cast<int>(rows_) == img.rows;
 }
 
 void base::show_common_parameters() const {

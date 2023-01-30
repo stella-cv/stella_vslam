@@ -32,29 +32,29 @@ void run(const std::shared_ptr<stella_vslam::config>& cfg,
          const bool eval_log,
          const std::string& map_db_path) {
     // build a SLAM system
-    stella_vslam::system SLAM(cfg, vocab_file_path);
+    auto slam = std::make_shared<stella_vslam::system>(cfg, vocab_file_path);
     bool need_initialize = false;
     // load the prebuilt map
-    SLAM.load_map_database(map_db_path);
-    SLAM.startup(need_initialize);
-    SLAM.disable_mapping_module();
+    slam->load_map_database(map_db_path);
+    slam->startup(need_initialize);
+    slam->disable_mapping_module();
 
     // create a viewer object
     // and pass the frame_publisher and the map_publisher
 #ifdef USE_PANGOLIN_VIEWER
     pangolin_viewer::viewer viewer(
-        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "PangolinViewer"), slam, slam->get_frame_publisher(), slam->get_map_publisher());
 #elif USE_SOCKET_PUBLISHER
     socket_publisher::publisher publisher(
-        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), &SLAM, SLAM.get_frame_publisher(), SLAM.get_map_publisher());
+        stella_vslam::util::yaml_optional_ref(cfg->yaml_node_, "SocketPublisher"), slam, slam->get_frame_publisher(), slam->get_map_publisher());
 #endif
 
-    SLAM.request_loop_closure(keyfrm1_id, keyfrm2_id);
+    slam->request_loop_closure(keyfrm1_id, keyfrm2_id);
 
     // run the SLAM in another thread
     std::thread thread([&]() {
         // wait until the loop BA is finished
-        while (SLAM.loop_BA_is_running()) {
+        while (slam->loop_BA_is_running()) {
             std::this_thread::sleep_for(std::chrono::microseconds(5000));
         }
 
@@ -80,17 +80,17 @@ void run(const std::shared_ptr<stella_vslam::config>& cfg,
     thread.join();
 
     // shutdown the SLAM process
-    SLAM.shutdown();
+    slam->shutdown();
 
     if (eval_log) {
         // output the trajectories for evaluation
-        SLAM.save_frame_trajectory("frame_trajectory.txt", "TUM");
-        SLAM.save_keyframe_trajectory("keyframe_trajectory.txt", "TUM");
+        slam->save_frame_trajectory("frame_trajectory.txt", "TUM");
+        slam->save_keyframe_trajectory("keyframe_trajectory.txt", "TUM");
     }
 
     if (!map_db_path.empty()) {
         // output the map database
-        SLAM.save_map_database(map_db_path);
+        slam->save_map_database(map_db_path);
     }
 }
 
@@ -122,6 +122,13 @@ int main(int argc, char* argv[]) {
 
     // check validness of options
     if (help->is_set()) {
+        std::cerr << op << std::endl;
+        return EXIT_FAILURE;
+    }
+    if (!op.unknown_options().empty()) {
+        for (const auto& unknown_option : op.unknown_options()) {
+            std::cerr << "unknown_options: " << unknown_option << std::endl;
+        }
         std::cerr << op << std::endl;
         return EXIT_FAILURE;
     }

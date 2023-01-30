@@ -30,7 +30,7 @@ void stereo::compute(std::vector<float>& stereo_x_right, std::vector<float>& dep
 #ifdef USE_OPENMP
 #pragma omp parallel for
 #endif
-    for (unsigned int idx_left = 0; idx_left < num_keypts_; ++idx_left) {
+    for (int64_t idx_left = 0; idx_left < num_keypts_; ++idx_left) {
         const auto& keypt_left = keypts_left_.at(idx_left);
         const auto scale_level_left = keypt_left.octave;
         const float y_left = keypt_left.pt.y;
@@ -64,7 +64,7 @@ void stereo::compute(std::vector<float>& stereo_x_right, std::vector<float>& dep
         // Compute the parallax of the subpixel order by patch correlation
         float best_x_right = -1.0f;
         float best_disp = -1.0f;
-        float best_correlation = UINT_MAX;
+        float best_correlation = std::numeric_limits<float>::max();
         const auto is_valid = compute_subpixel_disparity(keypt_left, keypt_right, best_x_right, best_disp, best_correlation);
         // Discard if it's not found
         if (!is_valid) {
@@ -197,7 +197,7 @@ bool stereo::compute_subpixel_disparity(const cv::KeyPoint& keypt_left, const cv
     }
 
     // Compute the pixel correlation surrounding the keypoint, and compute the parallax in subpixel precision by parabolic fitting
-    best_correlation = UINT_MAX;
+    best_correlation = std::numeric_limits<float>::max();
     int best_offset = 0;
     std::vector<float> correlations(2 * slide_width + 1, -1);
 

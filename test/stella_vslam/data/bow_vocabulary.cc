@@ -29,19 +29,10 @@ float get_score(data::bow_vocabulary* bow_vocab, const std::string& file1, const
     data::bow_vector bow_vec_1, bow_vec_2;
     data::bow_feature_vector bow_feat_vec_1, bow_feat_vec_2;
 
-#ifdef USE_DBOW2
-    bow_vocab->transform(util::converter::to_desc_vec(desc1), bow_vec_1, bow_feat_vec_1, 4);
-    bow_vocab->transform(util::converter::to_desc_vec(desc2), bow_vec_2, bow_feat_vec_2, 4);
-#else
-    bow_vocab->transform(desc1, 4, bow_vec_1, bow_feat_vec_1);
-    bow_vocab->transform(desc2, 4, bow_vec_2, bow_feat_vec_2);
-#endif
+    data::bow_vocabulary_util::compute_bow(bow_vocab, desc1, bow_vec_1, bow_feat_vec_1);
+    data::bow_vocabulary_util::compute_bow(bow_vocab, desc2, bow_vec_2, bow_feat_vec_2);
 
-#ifdef USE_DBOW2
-    const float score = bow_vocab->score(bow_vec_1, bow_vec_2);
-#else
-    const float score = fbow::BoWVector::score(bow_vec_1, bow_vec_2);
-#endif
+    const auto score = data::bow_vocabulary_util::score(bow_vocab, bow_vec_1, bow_vec_2);
     return score;
 }
 
@@ -52,27 +43,7 @@ TEST(bow_vocabulary, match_near_scene) {
         return;
     }
 
-#ifdef USE_DBOW2
-    auto bow_vocab = new data::bow_vocabulary();
-    try {
-        bow_vocab->loadFromBinaryFile(vocab_file_path);
-    }
-    catch (const std::exception&) {
-        std::cerr << "wrong path to vocabulary" << std::endl;
-        delete bow_vocab;
-        bow_vocab = nullptr;
-        exit(EXIT_FAILURE);
-    }
-#else
-    auto bow_vocab = new fbow::Vocabulary();
-    bow_vocab->readFromFile(vocab_file_path);
-    if (!bow_vocab->isValid()) {
-        std::cerr << "wrong path to vocabulary" << std::endl;
-        delete bow_vocab;
-        bow_vocab = nullptr;
-        exit(EXIT_FAILURE);
-    }
-#endif
+    auto bow_vocab = data::bow_vocabulary_util::load(vocab_file_path);
 
     auto score = get_score(bow_vocab,
                            std::string(TEST_DATA_DIR) + "./equirectangular_image_001.jpg",

@@ -1,6 +1,7 @@
 #include "stella_vslam/data/frame.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/bow_database.h"
+#include "stella_vslam/data/bow_vocabulary.h"
 
 #include <spdlog/spdlog.h>
 
@@ -141,11 +142,7 @@ bow_database::compute_scores(const std::unordered_map<std::shared_ptr<keyframe>,
         if (min_num_common_words_thr < keyfrm_num_common_words_pair.second) {
             // Calculate similarity score with query keyframe
             // for the keyframes which have more shared words than minimum common words
-#ifdef USE_DBOW2
-            const float score = bow_vocab_->score(bow_vec, keyfrm->bow_vec_);
-#else
-            const float score = fbow::BoWVector::score(bow_vec, keyfrm->bow_vec_);
-#endif
+            const auto score = data::bow_vocabulary_util::score(bow_vocab_, bow_vec, keyfrm->bow_vec_);
             if (min_score > score) {
                 continue;
             }

@@ -3,7 +3,7 @@
 #include "stella_vslam/tracking_module.h"
 #include "stella_vslam/mapping_module.h"
 #include "stella_vslam/global_optimization_module.h"
-#include "stella_vslam/camera/base.h"
+#include "stella_vslam/camera/camera_factory.h"
 #include "stella_vslam/data/camera_database.h"
 #include "stella_vslam/data/common.h"
 #include "stella_vslam/data/frame_observation.h"
@@ -16,8 +16,7 @@
 #include "stella_vslam/match/stereo.h"
 #include "stella_vslam/feature/orb_extractor.h"
 #include "stella_vslam/io/trajectory_io.h"
-#include "stella_vslam/io/map_database_io_msgpack.h"
-#include "stella_vslam/io/map_database_io_sqlite3.h"
+#include "stella_vslam/io/map_database_io_factory.h"
 #include "stella_vslam/publish/map_publisher.h"
 #include "stella_vslam/publish/frame_publisher.h"
 #include "stella_vslam/util/converter.h"
@@ -28,79 +27,30 @@
 
 #include <spdlog/spdlog.h>
 
-namespace {
-using namespace stella_vslam;
-
-double get_depthmap_factor(const camera::base* camera, const YAML::Node& yaml_node) {
-    spdlog::debug("load depthmap factor");
-    double depthmap_factor = 1.0;
-    if (camera->setup_type_ == camera::setup_type_t::RGBD) {
-        depthmap_factor = yaml_node["depthmap_factor"].as<double>(depthmap_factor);
-    }
-    if (depthmap_factor < 0.) {
-        throw std::runtime_error("depthmap_factor must be greater than 0");
-    }
-    return depthmap_factor;
-}
-} // namespace
-
 namespace stella_vslam {
 
 system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file_path)
-    : cfg_(cfg), camera_(cfg->camera_), orb_params_(cfg->orb_params_) {
+    : cfg_(cfg) {
     spdlog::debug("CONSTRUCT: system");
-
-    std::ostringstream message_stream;
-
-    message_stream << std::endl;
-    message_stream << "original version of OpenVSLAM," << std::endl;
-    message_stream << "Copyright (C) 2019," << std::endl;
-    message_stream << "National Institute of Advanced Industrial Science and Technology (AIST)" << std::endl;
-    message_stream << "All rights reserved." << std::endl;
-    message_stream << "stella_vslam (the changes after forking from OpenVSLAM)," << std::endl;
-    message_stream << "Copyright (C) 2022, stella-cv, All rights reserved." << std::endl;
-    message_stream << std::endl;
-    message_stream << "This is free software," << std::endl;
-    message_stream << "and you are welcome to redistribute it under certain conditions." << std::endl;
-    message_stream << "See the LICENSE file." << std::endl;
-    message_stream << std::endl;
-    message_stream << "MOVVO FORK" << std::endl;
-
-    // show configuration
-    message_stream << *cfg_ << std::endl;
-
-    spdlog::info(message_stream.str());
+    print_info();
 
     // load ORB vocabulary
     spdlog::info("loading ORB vocabulary: {}", vocab_file_path);
-#ifdef USE_DBOW2
-    bow_vocab_ = new data::bow_vocabulary();
-    try {
-        bow_vocab_->loadFromBinaryFile(vocab_file_path);
-    }
-    catch (const std::exception&) {
-        spdlog::critical("wrong path to vocabulary");
-        delete bow_vocab_;
-        bow_vocab_ = nullptr;
-        exit(EXIT_FAILURE);
-    }
-#else
-    bow_vocab_ = new fbow::Vocabulary();
-    bow_vocab_->readFromFile(vocab_file_path);
-    if (!bow_vocab_->isValid()) {
-        spdlog::critical("wrong path to vocabulary");
-        delete bow_vocab_;
-        bow_vocab_ = nullptr;
-        exit(EXIT_FAILURE);
-    }
-#endif
+    bow_vocab_ = data::bow_vocabulary_util::load(vocab_file_path);
 
     const auto system_params = util::yaml_optional_ref(cfg->yaml_node_, "System");
 
+    camera_ = camera::camera_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Camera"));
+    orb_params_ = new feature::orb_params(util::yaml_optional_ref(cfg->yaml_node_, "Feature"));
+    spdlog::info("load orb_params \"{}\"", orb_params_->name_);
+
     // database
-    cam_db_ = new data::camera_database(camera_);
+    cam_db_ = new data::camera_database();
+    cam_db_->add_camera(camera_);
     map_db_ = new data::map_database(system_params["min_num_shared_lms"].as<unsigned int>(15));
     bow_db_ = new data::bow_database(bow_vocab_);
+    orb_params_db_ = new data::orb_params_database();
+    orb_params_db_->add_orb_params(orb_params_);
 
     // frame and map publisher
     frame_publisher_ = std::shared_ptr<publish::frame_publisher>(new publish::frame_publisher(cfg_, map_db_));
@@ -108,18 +58,10 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
 
     // map I/O
     auto map_format = system_params["map_format"].as<std::string>("msgpack");
-    if (map_format == "sqlite3") {
-        map_database_io_ = std::make_shared<io::map_database_io_sqlite3>();
-    }
-    else if (map_format == "msgpack") {
-        map_database_io_ = std::make_shared<io::map_database_io_msgpack>();
-    }
-    else {
-        throw std::runtime_error("Invalid map format: " + map_format);
-    }
+    map_database_io_ = io::map_database_io_factory::create(map_format);
 
     // tracking module
-    tracker_ = new tracking_module(cfg_, map_db_, bow_vocab_, bow_db_);
+    tracker_ = new tracking_module(cfg_, camera_, map_db_, bow_vocab_, bow_db_);
     // mapping module
     mapper_ = new mapping_module(cfg_->yaml_node_["Mapping"], map_db_, bow_db_, bow_vocab_);
     // global optimization module
@@ -127,21 +69,13 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
 
     // preprocessing modules
     const auto preprocessing_params = util::yaml_optional_ref(cfg->yaml_node_, "Preprocessing");
-    depthmap_factor_ = get_depthmap_factor(camera_, preprocessing_params);
-    auto mask_rectangles = preprocessing_params["mask_rectangles"].as<std::vector<std::vector<float>>>(std::vector<std::vector<float>>());
-    for (const auto& v : mask_rectangles) {
-        if (v.size() != 4) {
-            throw std::runtime_error("mask rectangle must contain four parameters");
-        }
-        if (v.at(0) >= v.at(1)) {
-            throw std::runtime_error("x_max must be greater than x_min");
-        }
-        if (v.at(2) >= v.at(3)) {
-            throw std::runtime_error("y_max must be greater than x_min");
+    if (camera_->setup_type_ == camera::setup_type_t::RGBD) {
+        depthmap_factor_ = preprocessing_params["depthmap_factor"].as<double>(depthmap_factor_);
+        if (depthmap_factor_ < 0.) {
+            throw std::runtime_error("depthmap_factor must be greater than 0");
         }
     }
-
-    orb_params_db_ = new data::orb_params_database(orb_params_);
+    auto mask_rectangles = util::get_rectangles(preprocessing_params["mask_rectangles"]);
 
     const auto min_size = preprocessing_params["min_size"].as<unsigned int>(800);
     extractor_left_ = new feature::orb_extractor(orb_params_, min_size, mask_rectangles);
@@ -203,6 +137,28 @@ system::~system() {
     spdlog::debug("DESTRUCT: system");
 }
 
+void system::print_info() {
+    std::ostringstream message_stream;
+
+    message_stream << std::endl;
+    message_stream << "original version of OpenVSLAM," << std::endl;
+    message_stream << "Copyright (C) 2019," << std::endl;
+    message_stream << "National Institute of Advanced Industrial Science and Technology (AIST)" << std::endl;
+    message_stream << "All rights reserved." << std::endl;
+    message_stream << "stella_vslam (the changes after forking from OpenVSLAM)," << std::endl;
+    message_stream << "Copyright (C) 2022, stella-cv, All rights reserved." << std::endl;
+    message_stream << std::endl;
+    message_stream << "This is free software," << std::endl;
+    message_stream << "and you are welcome to redistribute it under certain conditions." << std::endl;
+    message_stream << "See the LICENSE file." << std::endl;
+    message_stream << std::endl;
+
+    // show configuration
+    message_stream << *cfg_ << std::endl;
+
+    spdlog::info(message_stream.str());
+}
+
 void system::startup(const bool need_initialize) {
     spdlog::info("startup SLAM system");
     system_is_running_ = true;
@@ -246,12 +202,14 @@ void system::save_keyframe_trajectory(const std::string& path, const std::string
 
 void system::load_map_database(const std::string& path) const {
     pause_other_threads();
+    spdlog::debug("load_map_database: {}", path);
     map_database_io_->load(path, cam_db_, orb_params_db_, map_db_, bow_db_, bow_vocab_);
     resume_other_threads();
 }
 
 void system::save_map_database(const std::string& path) const {
     pause_other_threads();
+    spdlog::debug("save_map_database: {}", path);
     map_database_io_->save(path, cam_db_, orb_params_db_, map_db_);
     resume_other_threads();
 }
@@ -320,6 +278,9 @@ void system::abort_loop_BA() {
 
 data::frame system::create_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     // color conversion
+    if (!camera_->is_valid_shape(img)) {
+        spdlog::warn("preprocess: Input image size is invalid");
+    }
     cv::Mat img_gray = img;
     util::convert_to_grayscale(img_gray, camera_->color_order_);
 
@@ -353,6 +314,12 @@ data::frame system::create_monocular_frame(const cv::Mat& img, const double time
 
 data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
     // color conversion
+    if (!camera_->is_valid_shape(left_img)) {
+        spdlog::warn("preprocess: Input image size is invalid");
+    }
+    if (!camera_->is_valid_shape(right_img)) {
+        spdlog::warn("preprocess: Input image size is invalid");
+    }
     cv::Mat img_gray = left_img;
     cv::Mat right_img_gray = right_img;
     util::convert_to_grayscale(img_gray, camera_->color_order_);
@@ -406,6 +373,12 @@ data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& 
 
 data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask) {
     // color and depth scale conversion
+    if (!camera_->is_valid_shape(rgb_img)) {
+        spdlog::warn("preprocess: Input image size is invalid");
+    }
+    if (!camera_->is_valid_shape(depthmap)) {
+        spdlog::warn("preprocess: Input image size is invalid");
+    }
     cv::Mat img_gray = rgb_img;
     cv::Mat img_depth = depthmap;
     util::convert_to_grayscale(img_gray, camera_->color_order_);
@@ -463,16 +436,28 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
 
 std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     assert(camera_->setup_type_ == camera::setup_type_t::Monocular);
+    if (img.empty()) {
+        spdlog::warn("preprocess: empty image");
+        return nullptr;
+    }
     return feed_frame(create_monocular_frame(img, timestamp, mask), img);
 }
 
 std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
     assert(camera_->setup_type_ == camera::setup_type_t::Stereo);
+    if (left_img.empty() || right_img.empty()) {
+        spdlog::warn("preprocess: empty image");
+        return nullptr;
+    }
     return feed_frame(create_stereo_frame(left_img, right_img, timestamp, mask), left_img);
 }
 
 std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask) {
     assert(camera_->setup_type_ == camera::setup_type_t::RGBD);
+    if (rgb_img.empty() || depthmap.empty()) {
+        spdlog::warn("preprocess: empty image");
+        return nullptr;
+    }
     return feed_frame(create_RGBD_frame(rgb_img, depthmap, timestamp, mask), rgb_img);
 }
 
@@ -564,6 +549,10 @@ bool system::terminate_is_requested() const {
 
 void system::reset_tracker() {
     tracker_->reset();
+}
+
+camera::base* system::get_camera() const {
+    return camera_;
 }
 
 void system::check_reset_request() {

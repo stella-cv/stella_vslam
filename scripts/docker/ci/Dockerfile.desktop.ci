@@ -21,6 +21,11 @@ RUN set -x && \
     libatlas-base-dev \
     libsuitesparse-dev \
     libglew-dev && \
+  : "gtsam dependencies" && \
+  apt-get install -y -qq \
+    libboost-all-dev \
+    libtbb-dev && \
+  apt-mark manual libboost-* && \
   : "OpenCV dependencies" && \
   apt-get install -y -qq \
     libgtk-3-dev \
@@ -79,7 +84,7 @@ RUN set -x && \
 ENV Eigen3_DIR=${CMAKE_INSTALL_PREFIX}/share/eigen3/cmake
 
 # g2o
-ARG G2O_COMMIT=9b41a4ea5ade8e1250b9c1b279f3a9c098811b5a
+ARG G2O_COMMIT=ed40a5bb028566fd56a78fd7b04921b613492d6f
 WORKDIR /tmp
 RUN set -x && \
   git clone https://github.com/RainerKuemmerle/g2o.git && \
@@ -106,19 +111,33 @@ RUN set -x && \
   rm -rf *
 ENV g2o_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/g2o
 
+# gtsam
+ARG GTSAM_TAG=4.2a7
+WORKDIR /tmp
+RUN set -x && \
+  git clone https://github.com/borglab/gtsam.git && \
+  cd gtsam && \
+  git checkout ${GTSAM_TAG} && \
+  mkdir -p build && \
+  cd build && \
+  cmake \
+    -DGTSAM_USE_SYSTEM_EIGEN=ON \
+    -DGTSAM_BUILD_WITH_MARCH_NATIVE=OFF \
+    -DGTSAM_BUILD_UNSTABLE=OFF \
+    .. && \
+  make -j${NUM_THREADS} && \
+  make install && \
+  cd /tmp && \
+  rm -rf *
+ENV gtsam_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/gtsam
+
 # OpenCV
-ARG OPENCV_VERSION=4.5.5
+ARG OPENCV_VERSION=4.7.0
 WORKDIR /tmp
 RUN set -x && \
   wget -q https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip && \
   unzip -q ${OPENCV_VERSION}.zip && \
   rm -rf ${OPENCV_VERSION}.zip && \
-  wget -q https://github.com/opencv/opencv_contrib/archive/refs/tags/${OPENCV_VERSION}.zip -O opencv_contrib-${OPENCV_VERSION}.zip && \
-  unzip -q opencv_contrib-${OPENCV_VERSION}.zip && \
-  rm -rf opencv_contrib-${OPENCV_VERSION}.zip && \
-  mkdir extra && \
-  mv opencv_contrib-${OPENCV_VERSION}/modules/aruco extra && \
-  rm -rf opencv_contrib-${OPENCV_VERSION} && \
   cd opencv-${OPENCV_VERSION} && \
   mkdir -p build && \
   cd build && \
@@ -140,8 +159,8 @@ RUN set -x && \
     -DENABLE_FAST_MATH=ON \
     -DWITH_EIGEN=ON \
     -DWITH_FFMPEG=ON \
+    -DWITH_TBB=ON \
     -DWITH_OPENMP=ON \
-    -DOPENCV_EXTRA_MODULES_PATH=/tmp/extra \
     .. && \
   make -j${NUM_THREADS} && \
   make install && \
@@ -169,27 +188,25 @@ RUN set -x && \
 ENV FBoW_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/FBoW
 
 # Pangolin
-ARG PANGOLIN_COMMIT=ad8b5f83222291c51b4800d5a5873b0e90a0cf81
+ARG PANGOLIN_COMMIT=eab3d3449a33a042b1ee7225e1b8b593b1b21e3e
 WORKDIR /tmp
 RUN set -x && \
   git clone https://github.com/stevenlovegrove/Pangolin.git && \
   cd Pangolin && \
   git checkout ${PANGOLIN_COMMIT} && \
-  sed -i -e "193,198d" ./src/utils/file_utils.cpp && \
   mkdir -p build && \
   cd build && \
   cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
     -DBUILD_EXAMPLES=OFF \
+    -DBUILD_TOOLS=OFF \
     -DBUILD_PANGOLIN_DEPTHSENSE=OFF \
     -DBUILD_PANGOLIN_FFMPEG=OFF \
     -DBUILD_PANGOLIN_LIBDC1394=OFF \
     -DBUILD_PANGOLIN_LIBJPEG=OFF \
     -DBUILD_PANGOLIN_LIBOPENEXR=OFF \
     -DBUILD_PANGOLIN_LIBPNG=OFF \
-    -DBUILD_PANGOLIN_LIBREALSENSE=OFF \
-    -DBUILD_PANGOLIN_LIBREALSENSE2=OFF \
     -DBUILD_PANGOLIN_LIBTIFF=OFF \
     -DBUILD_PANGOLIN_LIBUVC=OFF \
     -DBUILD_PANGOLIN_LZ4=OFF \
@@ -198,12 +215,9 @@ RUN set -x && \
     -DBUILD_PANGOLIN_PLEORA=OFF \
     -DBUILD_PANGOLIN_PYTHON=OFF \
     -DBUILD_PANGOLIN_TELICAM=OFF \
-    -DBUILD_PANGOLIN_TOON=OFF \
     -DBUILD_PANGOLIN_UVC_MEDIAFOUNDATION=OFF \
     -DBUILD_PANGOLIN_V4L=OFF \
-    -DBUILD_PANGOLIN_VIDEO=OFF \
     -DBUILD_PANGOLIN_ZSTD=OFF \
-    -DBUILD_PYPANGOLIN_MODULE=OFF \
     .. && \
   make -j${NUM_THREADS} && \
   make install && \
@@ -237,8 +251,7 @@ ENV sioclient_DIR=${CMAKE_INSTALL_PREFIX}/lib/cmake/sioclient
 WORKDIR /tmp
 RUN set -x && \
   apt-get update -y -qq && \
-  apt-get upgrade -y -qq --no-install-recommends && \
-  apt-get install -y -qq autogen autoconf libtool && \
+  apt-get install -y -qq autogen libtool && \
   wget -q https://github.com/google/protobuf/archive/v3.6.1.tar.gz && \
   tar xf v3.6.1.tar.gz && \
   cd protobuf-3.6.1 && \
@@ -248,7 +261,7 @@ RUN set -x && \
   make install && \
   cd /tmp && \
   rm -rf * && \
-  apt-get purge -y -qq autogen autoconf libtool && \
+  apt-get purge -y -qq autogen libtool && \
   apt-get autoremove -y -qq && \
   rm -rf /var/lib/apt/lists/*
 

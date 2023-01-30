@@ -22,7 +22,7 @@ namespace module {
 
 class frame_tracker {
 public:
-    explicit frame_tracker(camera::base* camera, const unsigned int num_matches_thr = 20, bool use_fixed_seed = false);
+    explicit frame_tracker(camera::base* camera, const std::shared_ptr<optimize::pose_optimizer>& pose_optimizer, const unsigned int num_matches_thr = 20, bool use_fixed_seed = false);
 
     bool motion_based_track(data::frame& curr_frm, const data::frame& last_frm, const Mat44_t& velocity) const;
 
@@ -38,7 +38,7 @@ private:
     //! Use fixed random seed for RANSAC if true
     const bool use_fixed_seed_;
 
-    const optimize::pose_optimizer pose_optimizer_;
+    std::shared_ptr<optimize::pose_optimizer> pose_optimizer_ = nullptr;
 };
 
 } // namespace module

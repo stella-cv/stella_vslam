@@ -5,20 +5,20 @@
 #include "stella_vslam/data/marker.h"
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/data/bow_database.h"
+#include "stella_vslam/data/camera_database.h"
+#include "stella_vslam/data/orb_params_database.h"
+#include "stella_vslam/data/bow_vocabulary.h"
 #include "stella_vslam/feature/orb_params.h"
 #include "stella_vslam/util/converter.h"
 
 #include <nlohmann/json.hpp>
-
 #include <spdlog/spdlog.h>
 
 namespace stella_vslam {
 namespace data {
 
-std::atomic<unsigned int> keyframe::next_id_{0};
-
-keyframe::keyframe(const frame& frm)
-    : id_(next_id_++), src_frm_id_(frm.id_), timestamp_(frm.timestamp_),
+keyframe::keyframe(unsigned int id, const frame& frm)
+    : id_(id), timestamp_(frm.timestamp_),
       camera_(frm.camera_), orb_params_(frm.orb_params_),
       frm_obs_(frm.frm_obs_), markers_2d_(frm.markers_2d_),
       bow_vec_(frm.bow_vec_), bow_feat_vec_(frm.bow_feat_vec_),
@@ -27,11 +27,11 @@ keyframe::keyframe(const frame& frm)
     set_pose_cw(frm.get_pose_cw());
 }
 
-keyframe::keyframe(const unsigned int id, const unsigned int src_frm_id, const double timestamp,
+keyframe::keyframe(const unsigned int id, const double timestamp,
                    const Mat44_t& pose_cw, camera::base* camera,
                    const feature::orb_params* orb_params, const frame_observation& frm_obs,
                    const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec)
-    : id_(id), src_frm_id_(src_frm_id),
+    : id_(id),
       timestamp_(timestamp), camera_(camera),
       orb_params_(orb_params), frm_obs_(frm_obs),
       bow_vec_(bow_vec), bow_feat_vec_(bow_feat_vec),
@@ -51,26 +51,99 @@ keyframe::~keyframe() {
     SPDLOG_TRACE("keyframe::~keyframe: {}", id_);
 }
 
-std::shared_ptr<keyframe> keyframe::make_keyframe(const frame& frm) {
-    auto ptr = std::allocate_shared<keyframe>(Eigen::aligned_allocator<keyframe>(), frm);
+std::shared_ptr<keyframe> keyframe::make_keyframe(unsigned int id, const frame& frm) {
+    auto ptr = std::allocate_shared<keyframe>(Eigen::aligned_allocator<keyframe>(), id, frm);
     // covisibility graph node (connections is not assigned yet)
     ptr->graph_node_ = stella_vslam::make_unique<graph_node>(ptr);
     return ptr;
 }
 
 std::shared_ptr<keyframe> keyframe::make_keyframe(
-    const unsigned int id, const unsigned int src_frm_id, const double timestamp,
+    const unsigned int id, const double timestamp,
     const Mat44_t& pose_cw, camera::base* camera,
     const feature::orb_params* orb_params, const frame_observation& frm_obs,
     const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec) {
     auto ptr = std::allocate_shared<keyframe>(
         Eigen::aligned_allocator<keyframe>(),
-        id, src_frm_id, timestamp,
+        id, timestamp,
         pose_cw, camera, orb_params,
         frm_obs, bow_vec, bow_feat_vec);
     // covisibility graph node (connections is not assigned yet)
     ptr->graph_node_ = stella_vslam::make_unique<graph_node>(ptr);
     return ptr;
+}
+
+std::shared_ptr<keyframe> keyframe::from_stmt(sqlite3_stmt* stmt,
+                                              camera_database* cam_db,
+                                              orb_params_database* orb_params_db,
+                                              bow_vocabulary* bow_vocab,
+                                              unsigned int next_keyframe_id) {
+    const char* p;
+    int column_id = 0;
+    auto id = sqlite3_column_int64(stmt, column_id);
+    column_id++;
+    // NOTE: src_frm_id is removed
+    column_id++;
+    auto timestamp = sqlite3_column_double(stmt, column_id);
+    column_id++;
+    p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
+    std::string camera_name(p, p + sqlite3_column_bytes(stmt, column_id));
+    const auto camera = cam_db->get_camera(camera_name);
+    assert(camera != nullptr);
+    column_id++;
+    p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
+    std::string orb_params_name(p, p + sqlite3_column_bytes(stmt, column_id));
+    const auto orb_params = orb_params_db->get_orb_params(orb_params_name);
+    assert(orb_params != nullptr);
+    column_id++;
+    Mat44_t pose_cw;
+    p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
+    std::memcpy(pose_cw.data(), p, sqlite3_column_bytes(stmt, column_id));
+    column_id++;
+    unsigned int num_keypts = sqlite3_column_int64(stmt, column_id);
+    column_id++;
+    std::vector<cv::KeyPoint> undist_keypts(num_keypts);
+    p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
+    std::memcpy(undist_keypts.data(), p, sqlite3_column_bytes(stmt, column_id));
+    column_id++;
+    std::vector<float> stereo_x_right;
+    std::vector<float> depths;
+    if (camera->setup_type_ != stella_vslam::camera::setup_type_t::Monocular) {
+        stereo_x_right.resize(num_keypts);
+        p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
+        std::memcpy(stereo_x_right.data(), p, sqlite3_column_bytes(stmt, column_id));
+        column_id++;
+        depths.resize(num_keypts);
+        p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
+        std::memcpy(depths.data(), p, sqlite3_column_bytes(stmt, column_id));
+        column_id++;
+    }
+    else {
+        column_id += 2;
+    }
+    cv::Mat descriptors(num_keypts, 32, CV_8U);
+    p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
+    std::memcpy(descriptors.data, p, sqlite3_column_bytes(stmt, column_id));
+    column_id++;
+
+    auto bearings = eigen_alloc_vector<Vec3_t>();
+    camera->convert_keypoints_to_bearings(undist_keypts, bearings);
+    assert(bearings.size() == num_keypts);
+
+    // Construct a new object
+    data::bow_vector bow_vec;
+    data::bow_feature_vector bow_feat_vec;
+    // Assign all the keypoints into grid
+    std::vector<std::vector<std::vector<unsigned int>>> keypt_indices_in_cells;
+    data::assign_keypoints_to_grid(camera, undist_keypts, keypt_indices_in_cells);
+    // Construct frame_observation
+    frame_observation frm_obs{num_keypts, descriptors, undist_keypts, bearings, stereo_x_right, depths, keypt_indices_in_cells};
+    // Compute BoW
+    data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
+    auto keyfrm = data::keyframe::make_keyframe(
+        id + next_keyframe_id, timestamp, pose_cw, camera, orb_params,
+        frm_obs, bow_vec, bow_feat_vec);
+    return keyfrm;
 }
 
 nlohmann::json keyframe::to_json() const {
@@ -100,8 +173,7 @@ nlohmann::json keyframe::to_json() const {
         loop_edge_ids.push_back(loop_edge->id_);
     }
 
-    return {{"src_frm_id", src_frm_id_},
-            {"ts", timestamp_},
+    return {{"ts", timestamp_},
             {"cam", camera_->name_},
             {"orb_params", orb_params_->name_},
             // camera pose
@@ -118,6 +190,58 @@ nlohmann::json keyframe::to_json() const {
             {"span_parent", spanning_parent ? spanning_parent->id_ : -1},
             {"span_children", spanning_child_ids},
             {"loop_edges", loop_edge_ids}};
+}
+
+bool keyframe::bind_to_stmt(sqlite3* db, sqlite3_stmt* stmt) const {
+    int ret = SQLITE_ERROR;
+    int column_id = 1;
+    ret = sqlite3_bind_int64(stmt, column_id++, id_);
+    // NOTE: src_frm_id is removed
+    column_id++;
+    ret = sqlite3_bind_double(stmt, column_id++, timestamp_);
+    if (ret == SQLITE_OK) {
+        const auto& camera_name = camera_->name_;
+        ret = sqlite3_bind_blob(stmt, column_id++, camera_name.c_str(), camera_name.size(), SQLITE_TRANSIENT);
+    }
+    if (ret == SQLITE_OK) {
+        const auto& orb_params_name = orb_params_->name_;
+        ret = sqlite3_bind_blob(stmt, column_id++, orb_params_name.c_str(), orb_params_name.size(), SQLITE_TRANSIENT);
+    }
+    if (ret == SQLITE_OK) {
+        const Mat44_t pose_cw = get_pose_cw();
+        ret = sqlite3_bind_blob(stmt, column_id++, pose_cw.data(), pose_cw.rows() * pose_cw.cols() * sizeof(decltype(pose_cw)::Scalar), SQLITE_TRANSIENT);
+    }
+    size_t num_keypts = 0;
+    if (ret == SQLITE_OK) {
+        num_keypts = frm_obs_.undist_keypts_.size();
+        ret = sqlite3_bind_int64(stmt, column_id++, num_keypts);
+    }
+    if (ret == SQLITE_OK) {
+        const auto& undist_keypts = frm_obs_.undist_keypts_;
+        assert(undist_keypts.size() == num_keypts);
+        ret = sqlite3_bind_blob(stmt, column_id++, undist_keypts.data(), undist_keypts.size() * sizeof(std::remove_reference<decltype(undist_keypts)>::type::value_type), SQLITE_TRANSIENT);
+    }
+    if (ret == SQLITE_OK) {
+        const auto& stereo_x_right = frm_obs_.stereo_x_right_;
+        ret = sqlite3_bind_blob(stmt, column_id++, stereo_x_right.data(), stereo_x_right.size() * sizeof(std::remove_reference<decltype(stereo_x_right)>::type::value_type), SQLITE_TRANSIENT);
+    }
+    if (ret == SQLITE_OK) {
+        const auto& depths = frm_obs_.depths_;
+        ret = sqlite3_bind_blob(stmt, column_id++, depths.data(), depths.size() * sizeof(std::remove_reference<decltype(depths)>::type::value_type), SQLITE_TRANSIENT);
+    }
+    if (ret == SQLITE_OK) {
+        const auto& descriptors = frm_obs_.descriptors_;
+        assert(descriptors.dims == 2);
+        assert(descriptors.channels() == 1);
+        assert(descriptors.cols == 32);
+        assert(descriptors.rows > 0 && static_cast<size_t>(descriptors.rows) == num_keypts);
+        assert(descriptors.elemSize() == 1);
+        ret = sqlite3_bind_blob(stmt, column_id++, descriptors.data, descriptors.total() * descriptors.elemSize(), SQLITE_TRANSIENT);
+    }
+    if (ret != SQLITE_OK) {
+        spdlog::error("SQLite error (bind): {}", sqlite3_errmsg(db));
+    }
+    return ret == SQLITE_OK;
 }
 
 void keyframe::set_pose_cw(const Mat44_t& pose_cw) {
@@ -326,7 +450,7 @@ std::vector<std::shared_ptr<marker>> keyframe::get_markers() const {
     std::lock_guard<std::mutex> lock(mtx_observations_);
     std::vector<std::shared_ptr<marker>> markers;
     markers.reserve(markers_.size());
-    for (const auto id_marker : markers_) {
+    for (const auto& id_marker : markers_) {
         markers.push_back(id_marker.second);
     }
     return markers;
@@ -343,8 +467,8 @@ void keyframe::set_to_be_erased() {
 }
 
 void keyframe::prepare_for_erasing(map_database* map_db, bow_database* bow_db) {
-    // cannot erase the origin
-    if (*this == *(map_db->origin_keyfrm_)) {
+    if (graph_node_->is_spanning_root()) {
+        spdlog::warn("cannot erase the root node: {}", id_);
         return;
     }
 

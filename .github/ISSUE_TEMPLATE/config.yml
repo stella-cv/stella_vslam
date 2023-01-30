@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question
+    url: https://github.com/stella-cv/stella_vslam/discussions
+    about: Go to https://github.com/stella-cv/stella_vslam/discussions for questions

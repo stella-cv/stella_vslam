@@ -8,6 +8,7 @@
 #include "stella_vslam/data/bow_vocabulary.h"
 #include "stella_vslam/data/frame_observation.h"
 #include "stella_vslam/data/marker2d.h"
+#include "stella_vslam/data/bow_vocabulary_fwd.h"
 
 #include <set>
 #include <mutex>
@@ -16,14 +17,7 @@
 
 #include <g2o/types/sba/types_six_dof_expmap.h>
 #include <nlohmann/json_fwd.hpp>
-
-#ifdef USE_DBOW2
-#include <DBoW2/BowVector.h>
-#include <DBoW2/FeatureVector.h>
-#else
-#include <fbow/bow_vector.h>
-#include <fbow/bow_feat_vector.h>
-#endif
+#include <sqlite3.h>
 
 namespace stella_vslam {
 
@@ -39,6 +33,8 @@ class marker;
 class marker2d;
 class map_database;
 class bow_database;
+class camera_database;
+class orb_params_database;
 
 class keyframe : public std::enable_shared_from_this<keyframe> {
 public:
@@ -47,25 +43,30 @@ public:
     /**
      * Constructor for building from a frame
      */
-    explicit keyframe(const frame& frm);
+    explicit keyframe(unsigned int id, const frame& frm);
 
     /**
      * Constructor for map loading
      * (NOTE: some variables must be recomputed after the construction. See the definition.)
      */
-    keyframe(const unsigned int id, const unsigned int src_frm_id,
+    keyframe(const unsigned int id,
              const double timestamp, const Mat44_t& pose_cw, camera::base* camera,
              const feature::orb_params* orb_params, const frame_observation& frm_obs,
              const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec);
     virtual ~keyframe();
 
     // Factory method for create keyframe
-    static std::shared_ptr<keyframe> make_keyframe(const frame& frm);
+    static std::shared_ptr<keyframe> make_keyframe(unsigned int id, const frame& frm);
     static std::shared_ptr<keyframe> make_keyframe(
-        const unsigned int id, const unsigned int src_frm_id,
+        const unsigned int id,
         const double timestamp, const Mat44_t& pose_cw, camera::base* camera,
         const feature::orb_params* orb_params, const frame_observation& frm_obs,
         const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec);
+    static std::shared_ptr<keyframe> from_stmt(sqlite3_stmt* stmt,
+                                               camera_database* cam_db,
+                                               orb_params_database* orb_params_db,
+                                               bow_vocabulary* bow_vocab,
+                                               unsigned int next_keyframe_id);
 
     // operator overrides
     bool operator==(const keyframe& keyfrm) const { return id_ == keyfrm.id_; }
@@ -79,6 +80,24 @@ public:
      * Encode this keyframe information as JSON
      */
     nlohmann::json to_json() const;
+
+    /**
+     * Save this keyframe information to db
+     */
+    static std::vector<std::pair<std::string, std::string>> columns() {
+        return std::vector<std::pair<std::string, std::string>>{
+            {"src_frm_id", "INTEGER"}, // removed
+            {"ts", "REAL"},
+            {"cam", "BLOB"},
+            {"orb_params", "BLOB"},
+            {"pose_cw", "BLOB"},
+            {"n_keypts", "INTEGER"},
+            {"undist_keypts", "BLOB"},
+            {"x_rights", "BLOB"},
+            {"depths", "BLOB"},
+            {"descs", "BLOB"}};
+    };
+    bool bind_to_stmt(sqlite3* db, sqlite3_stmt* stmt) const;
 
     //-----------------------------------------
     // camera pose
@@ -232,11 +251,6 @@ public:
 
     //! keyframe ID
     unsigned int id_;
-    //! next keyframe ID
-    static std::atomic<unsigned int> next_id_;
-
-    //! source frame ID
-    const unsigned int src_frm_id_;
 
     //! timestamp in seconds
     const double timestamp_;

@@ -103,6 +103,7 @@ public:
 
     /**
      * Get all of the keyframes in the database
+     * NOTE: Access multiple spanning trees. Used only to read and write databases.
      * @return
      */
     std::vector<std::shared_ptr<keyframe>> get_all_keyframes() const;
@@ -115,7 +116,7 @@ public:
      * @param angle_threshold Maximum angle between given pose and close keyframes
      * @return Vector closest keyframes
      */
-    std::vector<std::shared_ptr<keyframe>> get_close_keyframes_2d(const Mat44_t& pose,
+    std::vector<std::shared_ptr<keyframe>> get_close_keyframes_2d(const Mat44_t& pose_cw,
                                                                   const Vec3_t& normal_vector,
                                                                   const double distance_threshold,
                                                                   const double angle_threshold) const;
@@ -127,7 +128,7 @@ public:
      * @param angle_threshold Maximum angle between given pose and close keyframes
      * @return Vector closest keyframes
      */
-    std::vector<std::shared_ptr<keyframe>> get_close_keyframes(const Mat44_t& pose,
+    std::vector<std::shared_ptr<keyframe>> get_close_keyframes(const Mat44_t& pose_cw,
                                                                const double distance_threshold,
                                                                const double angle_threshold) const;
 
@@ -166,6 +167,16 @@ public:
      * @return marker
      */
     std::shared_ptr<marker> get_marker(unsigned int id) const;
+
+    /**
+     * Add spanning root
+     */
+    void add_spanning_root(std::shared_ptr<keyframe>& keyframe);
+
+    /**
+     * Get spanning roots
+     */
+    std::vector<std::shared_ptr<keyframe>> get_spanning_roots();
 
     /**
      * Get the number of landmarks
@@ -244,12 +255,13 @@ public:
      */
     bool to_db(sqlite3* db) const;
 
-    //! origin keyframe
-    std::shared_ptr<keyframe> origin_keyfrm_ = nullptr;
-
     //! mutex for locking ALL access to the database
     //! (NOTE: cannot used in map_database class)
     static std::mutex mtx_database_;
+
+    //! next ID
+    std::atomic<unsigned int> next_keyframe_id_{0};
+    std::atomic<unsigned int> next_landmark_id_{0};
 
 private:
     /**
@@ -289,14 +301,27 @@ private:
     void register_association(const unsigned int keyfrm_id, const nlohmann::json& json_keyfrm);
 
     bool load_keyframes_from_db(sqlite3* db,
+                                const std::string& table_name,
                                 camera_database* cam_db,
                                 orb_params_database* orb_params_db,
                                 bow_vocabulary* bow_vocab);
-    bool load_landmarks_from_db(sqlite3* db);
-    bool load_associations_from_db(sqlite3* db);
-    bool save_keyframes_to_db(sqlite3* db) const;
-    bool save_landmarks_to_db(sqlite3* db) const;
-    bool save_associations_to_db(sqlite3* db) const;
+    bool load_landmarks_from_db(sqlite3* db, const std::string& table_name);
+    void load_association_from_stmt(sqlite3_stmt* stmt);
+    bool load_associations_from_db(sqlite3* db, const std::string& table_name);
+    bool save_keyframes_to_db(sqlite3* db, const std::string& table_name) const;
+    bool save_landmarks_to_db(sqlite3* db, const std::string& table_name) const;
+    static std::vector<std::pair<std::string, std::string>> association_columns() {
+        return std::vector<std::pair<std::string, std::string>>{
+            {"lm_ids", "BLOB"},
+            {"span_parent", "INTEGER"},
+            {"n_spanning_children", "INTEGER"},
+            {"spanning_children", "BLOB"},
+            {"n_loop_edges", "INTEGER"},
+            {"loop_edges", "BLOB"}};
+    };
+    bool bind_association_to_stmt(sqlite3_stmt* stmt,
+                                  const std::shared_ptr<keyframe>& keyfrm) const;
+    bool save_associations_to_db(sqlite3* db, const std::string& table_name) const;
 
     //! mutex for mutual exclusion controll between class methods
     mutable std::mutex mtx_map_access_;
@@ -310,6 +335,9 @@ private:
     std::unordered_map<unsigned int, std::shared_ptr<landmark>> landmarks_;
     //! IDs and markers
     std::unordered_map<unsigned int, std::shared_ptr<marker>> markers_;
+
+    //! spanning roots
+    std::vector<std::shared_ptr<keyframe>> spanning_roots_;
 
     //! The last keyframe added to the database
     std::shared_ptr<keyframe> last_inserted_keyfrm_ = nullptr;

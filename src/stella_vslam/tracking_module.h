@@ -37,7 +37,7 @@ struct pose_request {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     bool mode_2d_;
-    Mat44_t pose_;
+    Mat44_t pose_cw_;
     Vec3_t normal_vector_;
 };
 
@@ -46,7 +46,7 @@ public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     //! Constructor
-    tracking_module(const std::shared_ptr<config>& cfg, data::map_database* map_db,
+    tracking_module(const std::shared_ptr<config>& cfg, camera::base* camera, data::map_database* map_db,
                     data::bow_vocabulary* bow_vocab, data::bow_database* bow_db);
 
     //! Destructor
@@ -72,8 +72,8 @@ public:
 
     //! Request to update the pose to a given one.
     //! Return failure in case if previous request was not finished yet.
-    bool request_relocalize_by_pose(const Mat44_t& pose);
-    bool request_relocalize_by_pose_2d(const Mat44_t& pose, const Vec3_t& normal_vector);
+    bool request_relocalize_by_pose(const Mat44_t& pose_cw);
+    bool request_relocalize_by_pose_2d(const Mat44_t& pose_cw, const Vec3_t& normal_vector);
 
     //-----------------------------------------
     // management for reset process
@@ -120,6 +120,9 @@ public:
 
     //! If true, use robust_matcher for relocalization request
     bool use_robust_matcher_for_relocalization_request_ = false;
+
+    //! Max number of local keyframes for tracking
+    unsigned int max_num_local_keyfrms_ = 60;
 
     //-----------------------------------------
     // variables
@@ -191,14 +194,14 @@ protected:
     //! initializer
     module::initializer initializer_;
 
+    //! pose optimizer
+    std::shared_ptr<optimize::pose_optimizer> pose_optimizer_ = nullptr;
+
     //! frame tracker for current frame
     const module::frame_tracker frame_tracker_;
 
     //! relocalizer
     module::relocalizer relocalizer_;
-
-    //! pose optimizer
-    const optimize::pose_optimizer pose_optimizer_;
 
     //! keyframe inserter
     module::keyframe_inserter keyfrm_inserter_;

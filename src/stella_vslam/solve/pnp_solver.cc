@@ -8,12 +8,17 @@
 namespace stella_vslam {
 namespace solve {
 
-pnp_solver::pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings, const std::vector<cv::KeyPoint>& valid_keypts,
-                       const eigen_alloc_vector<Vec3_t>& valid_landmarks, const std::vector<float>& scale_factors,
-                       const unsigned int min_num_inliers, bool use_fixed_seed)
+pnp_solver::pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings,
+                       const std::vector<cv::KeyPoint>& valid_keypts,
+                       const eigen_alloc_vector<Vec3_t>& valid_landmarks,
+                       const std::vector<float>& scale_factors,
+                       const unsigned int min_num_inliers,
+                       const bool use_fixed_seed,
+                       const unsigned int gauss_newton_num_iter)
     : num_matches_(valid_bearings.size()), valid_bearings_(valid_bearings),
       valid_landmarks_(valid_landmarks), min_num_inliers_(min_num_inliers),
-      random_engine_(util::create_random_engine(use_fixed_seed)) {
+      random_engine_(util::create_random_engine(use_fixed_seed)),
+      gauss_newton_num_iter_(gauss_newton_num_iter) {
     spdlog::trace("CONSTRUCT: solve::pnp_solver");
 
     max_cos_errors_.clear();
@@ -47,7 +52,6 @@ void pnp_solver::find_via_ransac(const unsigned int max_num_iter, const bool rec
     }
 
     // RANSAC variables
-    unsigned int max_num_inliers = 0;
     is_inlier_match = std::vector<bool>(num_matches_, false);
 
     // shared variables in RANSAC loop
@@ -63,6 +67,7 @@ void pnp_solver::find_via_ransac(const unsigned int max_num_iter, const bool rec
 
     // 2. RANSAC loop
 
+    double min_cost = std::numeric_limits<double>::max();
     for (unsigned int iter = 0; iter < max_num_iter; ++iter) {
         // 2-1. Create a minimum set
         const auto random_indices = util::create_random_array(min_set_size, 0U, num_matches_ - 1, random_engine_);
@@ -80,23 +85,22 @@ void pnp_solver::find_via_ransac(const unsigned int max_num_iter, const bool rec
         }
 
         // 2-2. Compute a camera pose
-        compute_pose(min_set_bearings, min_set_pos_ws, rot_cw_in_sac, trans_cw_in_sac);
+        compute_pose(min_set_bearings, min_set_pos_ws, rot_cw_in_sac, trans_cw_in_sac, gauss_newton_num_iter_);
 
         // 2-3. Check inliers and compute a score
-        const auto num_inliers = check_inliers(rot_cw_in_sac, trans_cw_in_sac, is_inlier_match_in_sac);
+        double cost = 0.0;
+        const auto num_inliers = check_inliers(rot_cw_in_sac, trans_cw_in_sac, is_inlier_match_in_sac, cost);
 
         // 2-4. Update the best model
-        if (max_num_inliers < num_inliers) {
-            max_num_inliers = num_inliers;
+        if (num_inliers > min_num_inliers_ && min_cost > cost) {
+            min_cost = cost;
             best_rot_cw_ = rot_cw_in_sac;
             best_trans_cw_ = trans_cw_in_sac;
             is_inlier_match = is_inlier_match_in_sac;
         }
     }
 
-    if (max_num_inliers > min_num_inliers_) {
-        solution_is_valid_ = true;
-    }
+    solution_is_valid_ = min_cost < std::numeric_limits<double>::max();
 
     if (!recompute || !solution_is_valid_) {
         return;
@@ -116,12 +120,13 @@ void pnp_solver::find_via_ransac(const unsigned int max_num_iter, const bool rec
         inlier_pos_ws.push_back(pos_w);
     }
 
-    compute_pose(inlier_bearings, inlier_pos_ws, best_rot_cw_, best_trans_cw_);
+    compute_pose(inlier_bearings, inlier_pos_ws, best_rot_cw_, best_trans_cw_, gauss_newton_num_iter_);
 }
 
-unsigned int pnp_solver::check_inliers(const Mat33_t& rot_cw, const Vec3_t& trans_cw, std::vector<bool>& is_inlier) {
+unsigned int pnp_solver::check_inliers(const Mat33_t& rot_cw, const Vec3_t& trans_cw, std::vector<bool>& is_inlier, double& cost) {
     unsigned int num_inliers = 0;
 
+    cost = 0.0;
     is_inlier.resize(num_matches_);
     for (unsigned int i = 0; i < num_matches_; ++i) {
         const Vec3_t& pos_w = valid_landmarks_.at(i);
@@ -130,14 +135,16 @@ unsigned int pnp_solver::check_inliers(const Mat33_t& rot_cw, const Vec3_t& tran
         const Vec3_t pos_c = rot_cw * pos_w + trans_cw;
 
         // Compute cosine similarity between the bearing vector and the position of the 3D point
-        const auto cos = pos_c.dot(bearing) / pos_c.norm();
+        const auto cos_angle = pos_c.dot(bearing) / pos_c.norm();
 
         // The match is inlier if the cosine similarity is less than or equal to the threshold
-        if (max_cos_errors_.at(i) < cos) {
+        if (max_cos_errors_.at(i) < cos_angle) {
             is_inlier.at(i) = true;
+            cost += 1 - cos_angle;
             ++num_inliers;
         }
         else {
+            cost += 1 - max_cos_errors_.at(i);
             is_inlier.at(i) = false;
         }
     }
@@ -169,7 +176,7 @@ double pnp_solver::compute_pose(const eigen_alloc_vector<Vec3_t>& bearing_vector
 
     Mat33_t rot_cand;
     Vec3_t trans_cand;
-    double reproj_minimum = 1e20;
+    double reproj_minimum = std::numeric_limits<double>::max();
     for (unsigned int N = 2; N <= 4; N++) {
         // Solve rotation and translation from the Case N = 2 to the Case N = 4
         // The result which achieved the lowest reprojection error will be chosen
@@ -280,13 +287,13 @@ MatX_t pnp_solver::compute_M(const eigen_alloc_vector<Vec3_t>& bearings,
         const auto u = bearing(0) / bearing(2);
         const auto v = bearing(1) / bearing(2);
         for (unsigned int i = 0; i < 4; i++) {
-            M(j * 2, 3 * i) = alpha(i) * fx_;
+            M(j * 2, 3 * i) = alpha(i);
             M(j * 2, 3 * i + 1) = 0.0;
-            M(j * 2, 3 * i + 2) = alpha(i) * (cx_ - u);
+            M(j * 2, 3 * i + 2) = -alpha(i) * u;
 
             M(j * 2 + 1, 3 * i) = 0.0;
-            M(j * 2 + 1, 3 * i + 1) = alpha(i) * fy_;
-            M(j * 2 + 1, 3 * i + 2) = alpha(i) * (cy_ - v);
+            M(j * 2 + 1, 3 * i + 1) = alpha(i);
+            M(j * 2 + 1, 3 * i + 2) = -alpha(i) * v;
         }
     }
 
@@ -328,22 +335,16 @@ eigen_alloc_vector<Vec3_t> pnp_solver::compute_pcs(const eigen_alloc_vector<Vec4
 
 double pnp_solver::reprojection_error(const eigen_alloc_vector<Vec3_t>& pws, const eigen_alloc_vector<Vec3_t>& bearings, const Mat33_t& rot, const Vec3_t& trans) {
     const unsigned int num_correspondences = pws.size();
-    double sum2 = 0.0;
+    double error_sum = 0.0;
 
     for (unsigned int i = 0; i < num_correspondences; ++i) {
-        // Calculate reprojection errors on the virtual camera projection surface
         const Vec3_t pw = pws.at(i);
         const Vec3_t pc = rot * pw + trans;
-        const double x = fx_ * pc(0) / pc(2) + cx_;
-        const double y = fy_ * pc(1) / pc(2) + cy_;
 
-        const Vec3_t bearing = bearings.at(i);
-        const double ux = bearing(0) / bearing(2);
-        const double uy = bearing(1) / bearing(2);
-
-        sum2 += std::sqrt((x - ux) * (x - ux) + (y - uy) * (y - uy));
+        const auto cos_angle = pc.dot(bearings.at(i)) / pc.norm();
+        error_sum += 1.0 - cos_angle;
     }
-    return sum2 / num_correspondences;
+    return error_sum / num_correspondences;
 }
 
 void pnp_solver::estimate_R_and_t(const eigen_alloc_vector<Vec3_t>& pws, const eigen_alloc_vector<Vec3_t>& pcs, Mat33_t& rot, Vec3_t& trans) {
