@@ -26,6 +26,8 @@ find_package(g2o REQUIRED
              OPTIONAL_COMPONENTS
              g2o::csparse)
 
+find_package(spdlog REQUIRED)
+
 # gtsam
 set(USE_GTSAM ON CACHE BOOL "Enable gtsam")
 unset(GTSAM_INCLUDE_DIRS CACHE)
