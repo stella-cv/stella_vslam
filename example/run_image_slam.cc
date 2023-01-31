@@ -168,7 +168,7 @@ int main(int argc, char* argv[]) {
     popl::OptionParser op("Allowed options");
     auto help = op.add<popl::Switch>("h", "help", "produce help message");
     auto vocab_file_path = op.add<popl::Value<std::string>>("v", "vocab", "vocabulary file path");
-    auto img_dir_path = op.add<popl::Value<std::string>>("i", "img-dir", "directory path which contains images");
+    auto img_dir_path = op.add<popl::Value<std::string>>("d", "img-dir", "directory path which contains images");
     auto config_file_path = op.add<popl::Value<std::string>>("c", "config", "config file path");
     auto mask_img_path = op.add<popl::Value<std::string>>("", "mask", "mask image path", "");
     auto frame_skip = op.add<popl::Value<unsigned int>>("", "frame-skip", "interval of frame skip", 1);
