@@ -2,7 +2,6 @@
 #define STELLA_VSLAM_SYSTEM_H
 
 #include "stella_vslam/type.h"
-#include "stella_vslam/tracking_module.h"
 #include "stella_vslam/data/bow_vocabulary_fwd.h"
 
 #include <string>

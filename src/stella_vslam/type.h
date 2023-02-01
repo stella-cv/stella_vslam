@@ -20,6 +20,13 @@
 
 namespace stella_vslam {
 
+// tracker state
+enum class tracker_state_t {
+    Initializing,
+    Tracking,
+    Lost
+};
+
 // helper function for creating an object in a unique_ptr.
 
 template<typename T, typename... ArgTs>

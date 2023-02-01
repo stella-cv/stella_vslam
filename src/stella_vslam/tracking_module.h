@@ -26,13 +26,6 @@ class map_database;
 class bow_database;
 } // namespace data
 
-// tracker state
-enum class tracker_state_t {
-    Initializing,
-    Tracking,
-    Lost
-};
-
 struct pose_request {
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
