@@ -1,7 +1,7 @@
 # ----- Find dependencies -----
 
 # spdlog
-# set(spdlog_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/spdlog/include)
+set(spdlog_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/spdlog/include)
 
 # json
 set(json_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/json/include)
@@ -25,8 +25,6 @@ find_package(g2o REQUIRED
              g2o::csparse_extension
              OPTIONAL_COMPONENTS
              g2o::csparse)
-
-find_package(spdlog REQUIRED)
 
 # gtsam
 set(USE_GTSAM ON CACHE BOOL "Enable gtsam")
@@ -181,8 +179,10 @@ target_include_directories(${PROJECT_NAME}
                            PUBLIC
                            "$<BUILD_INTERFACE:${json_INCLUDE_DIR}>"
                            "$<BUILD_INTERFACE:${tinycolormap_INCLUDE_DIR}>"
+                           "$<BUILD_INTERFACE:${spdlog_INCLUDE_DIR}>"
                            "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>"
                            "$<INSTALL_INTERFACE:include/stella_vslam/3rd/json/include>"
+                           "$<INSTALL_INTERFACE:include/stella_vslam/3rd/spdlog/include>"
                            "$<INSTALL_INTERFACE:include/>")
 
 # Link to required libraries
@@ -210,8 +210,7 @@ target_link_libraries(${PROJECT_NAME}
                       ${SUITESPARSE_LIBRARIES}
                       ${BoW_LIBRARY}
                       PRIVATE
-                      ${LAPACK_LIBRARIES}
-                      spdlog::spdlog)
+                      ${LAPACK_LIBRARIES})
 
 # ----- Install configuration -----
 
@@ -234,8 +233,8 @@ install(FILES ${json_INCLUDE_DIR}/nlohmann/json.hpp ${json_INCLUDE_DIR}/nlohmann
         DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/json/include/nlohmann)
 install(DIRECTORY ${tinycolormap_INCLUDE_DIR}
         DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/tinycolormap)
-# install(DIRECTORY ${spdlog_INCLUDE_DIR}
-#         DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/spdlog)
+install(DIRECTORY ${spdlog_INCLUDE_DIR}
+        DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/spdlog)
 
 # ----- Append subdirectory -----
 
