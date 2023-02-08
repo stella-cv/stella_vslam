@@ -41,6 +41,7 @@ void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                    const bool no_sleep,
                    const bool wait_loop_ba,
                    const bool auto_term,
+                   const bool visualize,
                    const std::string& eval_log_dir,
                    const std::string& map_db_path,
                    const double start_timestamp) {
@@ -118,7 +119,7 @@ void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
         while (slam->loop_BA_is_running()) {
             std::this_thread::sleep_for(std::chrono::microseconds(5000));
         }
-
+if (visualize) {
         // automatically close the viewer
 #ifdef USE_PANGOLIN_VIEWER
         if (auto_term) {
@@ -129,14 +130,16 @@ void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
             publisher.request_terminate();
         }
 #endif
+}
     });
-
+if (visualize) {
     // run the viewer in the current thread
 #ifdef USE_PANGOLIN_VIEWER
     viewer.run();
 #elif USE_SOCKET_PUBLISHER
     publisher.run();
 #endif
+}
 
     thread.join();
 
@@ -191,6 +194,7 @@ int main(int argc, char* argv[]) {
     auto map_db_path_out = op.add<popl::Value<std::string>>("o", "map-db-out", "store a map database at this path after slam", "");
     auto disable_mapping = op.add<popl::Switch>("", "disable-mapping", "disable mapping");
     auto start_timestamp = op.add<popl::Value<double>>("t", "start-timestamp", "timestamp of the start of the video capture");
+    auto visualize_pangolin = op.add<popl::Switch>("", "visualize", "Visualize in Pangolin Viewer");
     try {
         op.parse(argc, argv);
     }
@@ -289,6 +293,7 @@ int main(int argc, char* argv[]) {
                       auto_term->is_set(),
                       eval_log_dir->value(),
                       map_db_path_out->value(),
+                      visualize_pangolin->value(),
                       timestamp);
     }
     else {
