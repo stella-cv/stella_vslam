@@ -60,6 +60,25 @@ public:
     std::shared_ptr<keyframe> get_keyframe(unsigned int id) const;
 
     /**
+     * Add image to the database
+     * @param keyfrm_id
+     * @param image
+     */
+    void add_image(unsigned int keyfrm_id, const cv::Mat& image);
+
+    /**
+     * Erase image from the database
+     * @param keyfrm_id
+     */
+    void erase_image(unsigned int keyfrm_id);
+
+    /**
+     * Get image from the database
+     * @param keyfrm_id
+     */
+    cv::Mat get_image(unsigned int keyfrm_id) const;
+
+    /**
      * Add landmark to the database
      * @param lm
      */
@@ -335,6 +354,8 @@ private:
     std::unordered_map<unsigned int, std::shared_ptr<landmark>> landmarks_;
     //! IDs and markers
     std::unordered_map<unsigned int, std::shared_ptr<marker>> markers_;
+    //! IDs and images
+    std::unordered_map<unsigned int, cv::Mat> images_;
 
     //! spanning roots
     std::vector<std::shared_ptr<keyframe>> spanning_roots_;

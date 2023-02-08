@@ -54,6 +54,18 @@ public:
           const frame_observation frm_obs, const std::unordered_map<unsigned int, marker2d>& markers_2d);
 
     /**
+     * Constructor for monocular frame
+     * @param image
+     * @param timestamp
+     * @param camera
+     * @param orb_params
+     * @param frm_obs
+     * @param markers_2d
+     */
+    frame(const cv::Mat& image, const double timestamp, camera::base* camera, feature::orb_params* orb_params,
+          const frame_observation frm_obs, const std::unordered_map<unsigned int, marker2d>& markers_2d);
+
+    /**
      * Set camera pose and refresh rotation and translation
      * @param pose_cw
      */
@@ -167,6 +179,9 @@ public:
 
     //! current frame ID
     unsigned int id_;
+
+    //! image
+    cv::Mat image_;
 
     //! next frame ID
     static std::atomic<unsigned int> next_id_;

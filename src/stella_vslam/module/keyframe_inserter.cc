@@ -107,6 +107,9 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
                                                                        data::frame& curr_frm) {
     auto keyfrm = data::keyframe::make_keyframe(map_db->next_keyframe_id_++, curr_frm);
     keyfrm->update_landmarks();
+    if (!curr_frm.image_.empty()) {
+        map_db->add_image(keyfrm->id_, curr_frm.image_);
+    }
 
     for (const auto& id_mkr2d : keyfrm->markers_2d_) {
         auto marker = map_db->get_marker(id_mkr2d.first);
