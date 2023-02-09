@@ -73,22 +73,20 @@ sqlite3_stmt* create_select_stmt(sqlite3* db, const std::string& table_name) {
 sqlite3_stmt* create_insert_stmt(sqlite3* db,
                                  const std::string& name,
                                  const std::vector<std::pair<std::string, std::string>>& columns) {
-    int ret = SQLITE_ERROR;
     sqlite3_stmt* stmt = nullptr;
-    if (ret == SQLITE_OK) {
-        std::string insert_stmt_str = "INSERT INTO " + name + "(id";
-        for (const auto& column : columns) {
-            insert_stmt_str += ", " + column.first;
-        }
-        insert_stmt_str += ") VALUES(?";
-        for (size_t i = 0; i < columns.size(); ++i) {
-            insert_stmt_str += ", ?";
-        }
-        insert_stmt_str += ")";
-        ret = sqlite3_prepare_v2(db, insert_stmt_str.c_str(), -1, &stmt, nullptr);
+    std::string insert_stmt_str = "INSERT INTO " + name + "(id";
+    for (const auto& column : columns) {
+        insert_stmt_str += ", " + column.first;
     }
-    if (!stmt) {
+    insert_stmt_str += ") VALUES(?";
+    for (size_t i = 0; i < columns.size(); ++i) {
+        insert_stmt_str += ", ?";
+    }
+    insert_stmt_str += ")";
+    int ret = sqlite3_prepare_v2(db, insert_stmt_str.c_str(), -1, &stmt, nullptr);
+    if (!stmt || ret != SQLITE_OK) {
         spdlog::error("SQLite error (prepare): {}", sqlite3_errmsg(db));
+        return nullptr;
     }
     return stmt;
 }
