@@ -37,17 +37,17 @@ namespace fs = ghc::filesystem;
 #include <gperftools/profiler.h>
 #endif
 
-void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
-                   const std::shared_ptr<stella_vslam::config>& cfg,
-                   const std::string& sequence_dir_path,
-                   const unsigned int frame_skip,
-                   const bool no_sleep,
-                   const bool wait_loop_ba,
-                   const bool auto_term,
-                   const std::string& eval_log_dir,
-                   const std::string& map_db_path,
-                   const bool equal_hist,
-                   const bool disable_gui) {
+int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
+                  const std::shared_ptr<stella_vslam::config>& cfg,
+                  const std::string& sequence_dir_path,
+                  const unsigned int frame_skip,
+                  const bool no_sleep,
+                  const bool wait_loop_ba,
+                  const bool auto_term,
+                  const std::string& eval_log_dir,
+                  const std::string& map_db_path,
+                  const bool equal_hist,
+                  const bool disable_gui) {
     const euroc_sequence sequence(sequence_dir_path);
     const auto frames = sequence.get_frames();
 
@@ -159,28 +159,31 @@ void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
         }
     }
 
-    if (!map_db_path.empty()) {
-        // output the map database
-        slam->save_map_database(map_db_path);
-    }
-
     std::sort(track_times.begin(), track_times.end());
     const auto total_track_time = std::accumulate(track_times.begin(), track_times.end(), 0.0);
     std::cout << "median tracking time: " << track_times.at(track_times.size() / 2) << "[s]" << std::endl;
     std::cout << "mean tracking time: " << total_track_time / track_times.size() << "[s]" << std::endl;
+
+    if (!map_db_path.empty()) {
+        if (!slam->save_map_database(map_db_path)) {
+            return EXIT_FAILURE;
+        }
+    }
+
+    return EXIT_SUCCESS;
 }
 
-void stereo_tracking(const std::shared_ptr<stella_vslam::system>& slam,
-                     const std::shared_ptr<stella_vslam::config>& cfg,
-                     const std::string& sequence_dir_path,
-                     const unsigned int frame_skip,
-                     const bool no_sleep,
-                     const bool wait_loop_ba,
-                     const bool auto_term,
-                     const std::string& eval_log_dir,
-                     const std::string& map_db_path,
-                     const bool equal_hist,
-                     const bool disable_gui) {
+int stereo_tracking(const std::shared_ptr<stella_vslam::system>& slam,
+                    const std::shared_ptr<stella_vslam::config>& cfg,
+                    const std::string& sequence_dir_path,
+                    const unsigned int frame_skip,
+                    const bool no_sleep,
+                    const bool wait_loop_ba,
+                    const bool auto_term,
+                    const std::string& eval_log_dir,
+                    const std::string& map_db_path,
+                    const bool equal_hist,
+                    const bool disable_gui) {
     const euroc_sequence sequence(sequence_dir_path);
     const auto frames = sequence.get_frames();
 
@@ -305,15 +308,18 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::system>& slam,
         }
     }
 
-    if (!map_db_path.empty()) {
-        // output the map database
-        slam->save_map_database(map_db_path);
-    }
-
     std::sort(track_times.begin(), track_times.end());
     const auto total_track_time = std::accumulate(track_times.begin(), track_times.end(), 0.0);
     std::cout << "median tracking time: " << track_times.at(track_times.size() / 2) << "[s]" << std::endl;
     std::cout << "mean tracking time: " << total_track_time / track_times.size() << "[s]" << std::endl;
+
+    if (!map_db_path.empty()) {
+        if (!slam->save_map_database(map_db_path)) {
+            return EXIT_FAILURE;
+        }
+    }
+
+    return EXIT_SUCCESS;
 }
 
 int main(int argc, char* argv[]) {
@@ -395,12 +401,15 @@ int main(int argc, char* argv[]) {
         if (path.extension() == ".yaml") {
             YAML::Node node = YAML::LoadFile(path);
             for (const auto& map_path : node["maps"].as<std::vector<std::string>>()) {
-                slam->load_map_database(path.parent_path() / map_path);
+                if (!slam->load_map_database(path.parent_path() / map_path)) {
+                    return EXIT_FAILURE;
+                }
             }
         }
         else {
-            // load the prebuilt map
-            slam->load_map_database(path);
+            if (!slam->load_map_database(path)) {
+                return EXIT_FAILURE;
+            }
         }
     }
     slam->startup(need_initialize);
@@ -409,31 +418,32 @@ int main(int argc, char* argv[]) {
     }
 
     // run tracking
+    int ret;
     if (slam->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
-        mono_tracking(slam,
-                      cfg,
-                      data_dir_path->value(),
-                      frame_skip->value(),
-                      no_sleep->is_set(),
-                      wait_loop_ba->is_set(),
-                      auto_term->is_set(),
-                      eval_log_dir->value(),
-                      map_db_path_out->value(),
-                      equal_hist->is_set(),
-                      disable_gui->value());
+        ret = mono_tracking(slam,
+                            cfg,
+                            data_dir_path->value(),
+                            frame_skip->value(),
+                            no_sleep->is_set(),
+                            wait_loop_ba->is_set(),
+                            auto_term->is_set(),
+                            eval_log_dir->value(),
+                            map_db_path_out->value(),
+                            equal_hist->is_set(),
+                            disable_gui->value());
     }
     else if (slam->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Stereo) {
-        stereo_tracking(slam,
-                        cfg,
-                        data_dir_path->value(),
-                        frame_skip->value(),
-                        no_sleep->is_set(),
-                        wait_loop_ba->is_set(),
-                        auto_term->is_set(),
-                        eval_log_dir->value(),
-                        map_db_path_out->value(),
-                        equal_hist->is_set(),
-                        disable_gui->value());
+        ret = stereo_tracking(slam,
+                              cfg,
+                              data_dir_path->value(),
+                              frame_skip->value(),
+                              no_sleep->is_set(),
+                              wait_loop_ba->is_set(),
+                              auto_term->is_set(),
+                              eval_log_dir->value(),
+                              map_db_path_out->value(),
+                              equal_hist->is_set(),
+                              disable_gui->value());
     }
     else {
         throw std::runtime_error("Invalid setup type: " + slam->get_camera()->get_setup_type_string());
@@ -443,5 +453,5 @@ int main(int argc, char* argv[]) {
     ProfilerStop();
 #endif
 
-    return EXIT_SUCCESS;
+    return ret;
 }

@@ -15,7 +15,7 @@
 namespace stella_vslam {
 namespace io {
 
-void map_database_io_sqlite3::save(const std::string& path,
+bool map_database_io_sqlite3::save(const std::string& path,
                                    const data::camera_database* const cam_db,
                                    const data::orb_params_database* const orb_params_db,
                                    const data::map_database* const map_db) {
@@ -28,7 +28,7 @@ void map_database_io_sqlite3::save(const std::string& path,
     int ret = sqlite3_open(path.c_str(), &db);
     if (ret != SQLITE_OK) {
         spdlog::error("Failed to open SQL database");
-        return;
+        return false;
     }
 
     // Write data into database
@@ -43,9 +43,10 @@ void map_database_io_sqlite3::save(const std::string& path,
     else {
         spdlog::info("Failed save the map database");
     }
+    return ok;
 }
 
-void map_database_io_sqlite3::load(const std::string& path,
+bool map_database_io_sqlite3::load(const std::string& path,
                                    data::camera_database* cam_db,
                                    data::orb_params_database* orb_params_db,
                                    data::map_database* map_db,
@@ -59,7 +60,7 @@ void map_database_io_sqlite3::load(const std::string& path,
     int ret = sqlite3_open(path.c_str(), &db);
     if (ret != SQLITE_OK) {
         spdlog::error("Failed to open SQL database");
-        return;
+        return false;
     }
 
     // load from database
@@ -76,6 +77,7 @@ void map_database_io_sqlite3::load(const std::string& path,
     }
 
     sqlite3_close(db);
+    return ok;
 }
 
 bool map_database_io_sqlite3::save_stats(sqlite3* db, const data::map_database* map_db) const {

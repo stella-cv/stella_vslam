@@ -200,18 +200,20 @@ void system::save_keyframe_trajectory(const std::string& path, const std::string
     resume_other_threads();
 }
 
-void system::load_map_database(const std::string& path) const {
+bool system::load_map_database(const std::string& path) const {
     pause_other_threads();
     spdlog::debug("load_map_database: {}", path);
-    map_database_io_->load(path, cam_db_, orb_params_db_, map_db_, bow_db_, bow_vocab_);
+    bool ok = map_database_io_->load(path, cam_db_, orb_params_db_, map_db_, bow_db_, bow_vocab_);
     resume_other_threads();
+    return ok;
 }
 
-void system::save_map_database(const std::string& path) const {
+bool system::save_map_database(const std::string& path) const {
     pause_other_threads();
     spdlog::debug("save_map_database: {}", path);
-    map_database_io_->save(path, cam_db_, orb_params_db_, map_db_);
+    bool ok = map_database_io_->save(path, cam_db_, orb_params_db_, map_db_);
     resume_other_threads();
+    return ok;
 }
 
 const std::shared_ptr<publish::map_publisher> system::get_map_publisher() const {

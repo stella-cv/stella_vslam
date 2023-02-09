@@ -24,19 +24,21 @@
 #include <gperftools/profiler.h>
 #endif
 
-void run(const std::shared_ptr<stella_vslam::config>& cfg,
-         const int keyfrm1_id,
-         const int keyfrm2_id,
-         const std::string& vocab_file_path,
-         const bool auto_term,
-         const bool eval_log,
-         const std::string& map_db_path,
-         const bool disable_gui) {
+int run(const std::shared_ptr<stella_vslam::config>& cfg,
+        const int keyfrm1_id,
+        const int keyfrm2_id,
+        const std::string& vocab_file_path,
+        const bool auto_term,
+        const bool eval_log,
+        const std::string& map_db_path,
+        const bool disable_gui) {
     // build a SLAM system
     auto slam = std::make_shared<stella_vslam::system>(cfg, vocab_file_path);
     bool need_initialize = false;
     // load the prebuilt map
-    slam->load_map_database(map_db_path);
+    if (!slam->load_map_database(map_db_path)) {
+        return EXIT_FAILURE;
+    }
     slam->startup(need_initialize);
     slam->disable_mapping_module();
 
@@ -94,9 +96,12 @@ void run(const std::shared_ptr<stella_vslam::config>& cfg,
     }
 
     if (!map_db_path.empty()) {
-        // output the map database
-        slam->save_map_database(map_db_path);
+        if (!slam->save_map_database(map_db_path)) {
+            return EXIT_FAILURE;
+        }
     }
+
+    return EXIT_SUCCESS;
 }
 
 int main(int argc, char* argv[]) {
@@ -164,18 +169,18 @@ int main(int argc, char* argv[]) {
 #endif
 
     // run tracking
-    run(cfg,
-        keyfrm_id1->value(),
-        keyfrm_id2->value(),
-        vocab_file_path->value(),
-        auto_term->is_set(),
-        eval_log->is_set(),
-        map_db_path->value(),
-        disable_gui->value());
+    int ret = run(cfg,
+                  keyfrm_id1->value(),
+                  keyfrm_id2->value(),
+                  vocab_file_path->value(),
+                  auto_term->is_set(),
+                  eval_log->is_set(),
+                  map_db_path->value(),
+                  disable_gui->value());
 
 #ifdef USE_GOOGLE_PERFTOOLS
     ProfilerStop();
 #endif
 
-    return EXIT_SUCCESS;
+    return ret;
 }
