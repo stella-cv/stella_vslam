@@ -38,7 +38,8 @@ void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                    const unsigned int cam_num,
                    const std::string& mask_img_path,
                    const float scale,
-                   const std::string& map_db_path) {
+                   const std::string& map_db_path,
+                   const bool disable_gui) {
     // load the mask image
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
 
@@ -102,12 +103,14 @@ void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
         }
     });
 
-    // run the viewer in the current thread
+    if (!disable_gui) {
+        // run the viewer in the current thread
 #ifdef USE_PANGOLIN_VIEWER
-    viewer.run();
+        viewer.run();
 #elif USE_SOCKET_PUBLISHER
-    publisher.run();
+        publisher.run();
 #endif
+    }
 
     thread.join();
 
@@ -130,7 +133,8 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                      const unsigned int cam_num,
                      const std::string& mask_img_path,
                      const float scale,
-                     const std::string& map_db_path) {
+                     const std::string& map_db_path,
+                     const bool disable_gui) {
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
 
     // create a viewer object
@@ -201,12 +205,14 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::system>& slam,
         }
     });
 
-    // run the viewer in the current thread
+    if (!disable_gui) {
+        // run the viewer in the current thread
 #ifdef USE_PANGOLIN_VIEWER
-    viewer.run();
+        viewer.run();
 #elif USE_SOCKET_PUBLISHER
-    publisher.run();
+        publisher.run();
 #endif
+    }
 
     thread.join();
 
@@ -241,6 +247,7 @@ int main(int argc, char* argv[]) {
     auto map_db_path_out = op.add<popl::Value<std::string>>("o", "map-db-out", "store a map database at this path after slam", "");
     auto log_level = op.add<popl::Value<std::string>>("", "log-level", "log level", "info");
     auto disable_mapping = op.add<popl::Switch>("", "disable-mapping", "disable mapping");
+    auto disable_gui = op.add<popl::Switch>("", "disable-gui", "run without GUI");
     try {
         op.parse(argc, argv);
     }
@@ -318,7 +325,8 @@ int main(int argc, char* argv[]) {
                       cam_num->value(),
                       mask_img_path->value(),
                       scale->value(),
-                      map_db_path_out->value());
+                      map_db_path_out->value(),
+                      disable_gui->value());
     }
     else if (slam->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Stereo) {
         stereo_tracking(slam,
@@ -326,7 +334,8 @@ int main(int argc, char* argv[]) {
                         cam_num->value(),
                         mask_img_path->value(),
                         scale->value(),
-                        map_db_path_out->value());
+                        map_db_path_out->value(),
+                        disable_gui->value());
     }
     else {
         throw std::runtime_error("Invalid setup type: " + slam->get_camera()->get_setup_type_string());

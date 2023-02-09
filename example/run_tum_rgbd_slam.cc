@@ -43,7 +43,8 @@ void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                    const bool wait_loop_ba,
                    const bool auto_term,
                    const std::string& eval_log_dir,
-                   const std::string& map_db_path) {
+                   const std::string& map_db_path,
+                   const bool disable_gui) {
     tum_rgbd_sequence sequence(sequence_dir_path);
     const auto frames = sequence.get_frames();
 
@@ -106,24 +107,28 @@ void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
             std::this_thread::sleep_for(std::chrono::microseconds(5000));
         }
 
-        // automatically close the viewer
+        if (!disable_gui) {
+            // automatically close the viewer
 #ifdef USE_PANGOLIN_VIEWER
-        if (auto_term) {
-            viewer.request_terminate();
-        }
+            if (auto_term) {
+                viewer.request_terminate();
+            }
 #elif USE_SOCKET_PUBLISHER
-        if (auto_term) {
-            publisher.request_terminate();
-        }
+            if (auto_term) {
+                publisher.request_terminate();
+            }
 #endif
+        }
     });
 
-    // run the viewer in the current thread
+    if (!disable_gui) {
+        // run the viewer in the current thread
 #ifdef USE_PANGOLIN_VIEWER
-    viewer.run();
+        viewer.run();
 #elif USE_SOCKET_PUBLISHER
-    publisher.run();
+        publisher.run();
 #endif
+    }
 
     thread.join();
 
@@ -163,7 +168,8 @@ void rgbd_tracking(const std::shared_ptr<stella_vslam::system>& slam,
                    const bool wait_loop_ba,
                    const bool auto_term,
                    const std::string& eval_log_dir,
-                   const std::string& map_db_path) {
+                   const std::string& map_db_path,
+                   const bool disable_gui) {
     tum_rgbd_sequence sequence(sequence_dir_path);
     const auto frames = sequence.get_frames();
 
@@ -227,24 +233,28 @@ void rgbd_tracking(const std::shared_ptr<stella_vslam::system>& slam,
             std::this_thread::sleep_for(std::chrono::microseconds(5000));
         }
 
-        // automatically close the viewer
+        if (!disable_gui) {
+            // automatically close the viewer
 #ifdef USE_PANGOLIN_VIEWER
-        if (auto_term) {
-            viewer.request_terminate();
-        }
+            if (auto_term) {
+                viewer.request_terminate();
+            }
 #elif USE_SOCKET_PUBLISHER
-        if (auto_term) {
-            publisher.request_terminate();
-        }
+            if (auto_term) {
+                publisher.request_terminate();
+            }
 #endif
+        }
     });
 
-    // run the viewer in the current thread
+    if (!disable_gui) {
+        // run the viewer in the current thread
 #ifdef USE_PANGOLIN_VIEWER
-    viewer.run();
+        viewer.run();
 #elif USE_SOCKET_PUBLISHER
-    publisher.run();
+        publisher.run();
 #endif
+    }
 
     thread.join();
 
@@ -296,6 +306,7 @@ int main(int argc, char* argv[]) {
     auto map_db_path_in = op.add<popl::Value<std::string>>("i", "map-db-in", "load a map from this path", "");
     auto map_db_path_out = op.add<popl::Value<std::string>>("o", "map-db-out", "store a map database at this path after slam", "");
     auto disable_mapping = op.add<popl::Switch>("", "disable-mapping", "disable mapping");
+    auto disable_gui = op.add<popl::Switch>("", "disable-gui", "run without GUI");
 
     try {
         op.parse(argc, argv);
@@ -376,7 +387,8 @@ int main(int argc, char* argv[]) {
                       wait_loop_ba->is_set(),
                       auto_term->is_set(),
                       eval_log_dir->value(),
-                      map_db_path_out->value());
+                      map_db_path_out->value(),
+                      disable_gui->value());
     }
     else if (slam->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::RGBD) {
         rgbd_tracking(slam,
@@ -387,7 +399,8 @@ int main(int argc, char* argv[]) {
                       wait_loop_ba->is_set(),
                       auto_term->is_set(),
                       eval_log_dir->value(),
-                      map_db_path_out->value());
+                      map_db_path_out->value(),
+                      disable_gui->value());
     }
     else {
         throw std::runtime_error("Invalid setup type: " + slam->get_camera()->get_setup_type_string());
