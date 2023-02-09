@@ -30,7 +30,8 @@ void run(const std::shared_ptr<stella_vslam::config>& cfg,
          const std::string& vocab_file_path,
          const bool auto_term,
          const bool eval_log,
-         const std::string& map_db_path) {
+         const std::string& map_db_path,
+         const bool disable_gui) {
     // build a SLAM system
     auto slam = std::make_shared<stella_vslam::system>(cfg, vocab_file_path);
     bool need_initialize = false;
@@ -58,24 +59,28 @@ void run(const std::shared_ptr<stella_vslam::config>& cfg,
             std::this_thread::sleep_for(std::chrono::microseconds(5000));
         }
 
-        // automatically close the viewer
+        if (!disable_gui) {
+            // automatically close the viewer
 #ifdef USE_PANGOLIN_VIEWER
-        if (auto_term) {
-            viewer.request_terminate();
-        }
+            if (auto_term) {
+                viewer.request_terminate();
+            }
 #elif USE_SOCKET_PUBLISHER
-        if (auto_term) {
-            publisher.request_terminate();
-        }
+            if (auto_term) {
+                publisher.request_terminate();
+            }
 #endif
+        }
     });
 
-    // run the viewer in the current thread
+    if (!disable_gui) {
+        // run the viewer in the current thread
 #ifdef USE_PANGOLIN_VIEWER
-    viewer.run();
+        viewer.run();
 #elif USE_SOCKET_PUBLISHER
-    publisher.run();
+        publisher.run();
 #endif
+    }
 
     thread.join();
 
@@ -110,6 +115,7 @@ int main(int argc, char* argv[]) {
     auto log_level = op.add<popl::Value<std::string>>("", "log-level", "log level", "info");
     auto eval_log = op.add<popl::Switch>("", "eval-log", "store trajectory for evaluation");
     auto map_db_path = op.add<popl::Value<std::string>>("p", "map-db", "store a map database at this path after SLAM", "");
+    auto disable_gui = op.add<popl::Switch>("", "disable-gui", "run without GUI");
     try {
         op.parse(argc, argv);
     }
@@ -164,7 +170,8 @@ int main(int argc, char* argv[]) {
         vocab_file_path->value(),
         auto_term->is_set(),
         eval_log->is_set(),
-        map_db_path->value());
+        map_db_path->value(),
+        disable_gui->value());
 
 #ifdef USE_GOOGLE_PERFTOOLS
     ProfilerStop();
