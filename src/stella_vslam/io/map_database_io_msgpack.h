@@ -31,7 +31,7 @@ public:
     /**
      * Save the map database as MessagePack
      */
-    void save(const std::string& path,
+    bool save(const std::string& path,
               const data::camera_database* const cam_db,
               const data::orb_params_database* const orb_params_db,
               const data::map_database* const map_db) override;
@@ -39,7 +39,7 @@ public:
     /**
      * Load the map database from MessagePack
      */
-    void load(const std::string& path,
+    bool load(const std::string& path,
               data::camera_database* cam_db,
               data::orb_params_database* orb_params_db,
               data::map_database* map_db,

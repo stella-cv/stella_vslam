@@ -33,13 +33,13 @@ namespace fs = ghc::filesystem;
 #include <gperftools/profiler.h>
 #endif
 
-void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
-                   const std::shared_ptr<stella_vslam::config>& cfg,
-                   const unsigned int cam_num,
-                   const std::string& mask_img_path,
-                   const float scale,
-                   const std::string& map_db_path,
-                   const bool disable_gui) {
+int mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
+                  const std::shared_ptr<stella_vslam::config>& cfg,
+                  const unsigned int cam_num,
+                  const std::string& mask_img_path,
+                  const float scale,
+                  const std::string& map_db_path,
+                  const bool disable_gui) {
     // load the mask image
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
 
@@ -57,7 +57,7 @@ void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
     if (!video.isOpened()) {
         spdlog::critical("cannot open a camera {}", cam_num);
         slam->shutdown();
-        return;
+        return EXIT_FAILURE;
     }
 
     cv::Mat frame;
@@ -117,24 +117,27 @@ void mono_tracking(const std::shared_ptr<stella_vslam::system>& slam,
     // shutdown the slam process
     slam->shutdown();
 
-    if (!map_db_path.empty()) {
-        // output the map database
-        slam->save_map_database(map_db_path);
-    }
-
     std::sort(track_times.begin(), track_times.end());
     const auto total_track_time = std::accumulate(track_times.begin(), track_times.end(), 0.0);
     std::cout << "median tracking time: " << track_times.at(track_times.size() / 2) << "[s]" << std::endl;
     std::cout << "mean tracking time: " << total_track_time / track_times.size() << "[s]" << std::endl;
+
+    if (!map_db_path.empty()) {
+        if (!slam->save_map_database(map_db_path)) {
+            return EXIT_FAILURE;
+        }
+    }
+
+    return EXIT_SUCCESS;
 }
 
-void stereo_tracking(const std::shared_ptr<stella_vslam::system>& slam,
-                     const std::shared_ptr<stella_vslam::config>& cfg,
-                     const unsigned int cam_num,
-                     const std::string& mask_img_path,
-                     const float scale,
-                     const std::string& map_db_path,
-                     const bool disable_gui) {
+int stereo_tracking(const std::shared_ptr<stella_vslam::system>& slam,
+                    const std::shared_ptr<stella_vslam::config>& cfg,
+                    const unsigned int cam_num,
+                    const std::string& mask_img_path,
+                    const float scale,
+                    const std::string& map_db_path,
+                    const bool disable_gui) {
     const cv::Mat mask = mask_img_path.empty() ? cv::Mat{} : cv::imread(mask_img_path, cv::IMREAD_GRAYSCALE);
 
     // create a viewer object
@@ -153,7 +156,7 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::system>& slam,
         if (!videos[i].isOpened()) {
             spdlog::critical("cannot open a camera {}", cam_num + i);
             slam->shutdown();
-            return;
+            return EXIT_FAILURE;
         }
     }
 
@@ -219,15 +222,18 @@ void stereo_tracking(const std::shared_ptr<stella_vslam::system>& slam,
     // shutdown the slam process
     slam->shutdown();
 
-    if (!map_db_path.empty()) {
-        // output the map database
-        slam->save_map_database(map_db_path);
-    }
-
     std::sort(track_times.begin(), track_times.end());
     const auto total_track_time = std::accumulate(track_times.begin(), track_times.end(), 0.0);
     std::cout << "median tracking time: " << track_times.at(track_times.size() / 2) << "[s]" << std::endl;
     std::cout << "mean tracking time: " << total_track_time / track_times.size() << "[s]" << std::endl;
+
+    if (!map_db_path.empty()) {
+        if (!slam->save_map_database(map_db_path)) {
+            return EXIT_FAILURE;
+        }
+    }
+
+    return EXIT_SUCCESS;
 }
 
 int main(int argc, char* argv[]) {
@@ -305,12 +311,15 @@ int main(int argc, char* argv[]) {
         if (path.extension() == ".yaml") {
             YAML::Node node = YAML::LoadFile(path);
             for (const auto& map_path : node["maps"].as<std::vector<std::string>>()) {
-                slam->load_map_database(path.parent_path() / map_path);
+                if (!slam->load_map_database(path.parent_path() / map_path)) {
+                    return EXIT_FAILURE;
+                }
             }
         }
         else {
-            // load the prebuilt map
-            slam->load_map_database(path);
+            if (!slam->load_map_database(path)) {
+                return EXIT_FAILURE;
+            }
         }
     }
     slam->startup(need_initialize);
@@ -319,23 +328,24 @@ int main(int argc, char* argv[]) {
     }
 
     // run tracking
+    int ret;
     if (slam->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Monocular) {
-        mono_tracking(slam,
-                      cfg,
-                      cam_num->value(),
-                      mask_img_path->value(),
-                      scale->value(),
-                      map_db_path_out->value(),
-                      disable_gui->value());
+        ret = mono_tracking(slam,
+                            cfg,
+                            cam_num->value(),
+                            mask_img_path->value(),
+                            scale->value(),
+                            map_db_path_out->value(),
+                            disable_gui->value());
     }
     else if (slam->get_camera()->setup_type_ == stella_vslam::camera::setup_type_t::Stereo) {
-        stereo_tracking(slam,
-                        cfg,
-                        cam_num->value(),
-                        mask_img_path->value(),
-                        scale->value(),
-                        map_db_path_out->value(),
-                        disable_gui->value());
+        ret = stereo_tracking(slam,
+                              cfg,
+                              cam_num->value(),
+                              mask_img_path->value(),
+                              scale->value(),
+                              map_db_path_out->value(),
+                              disable_gui->value());
     }
     else {
         throw std::runtime_error("Invalid setup type: " + slam->get_camera()->get_setup_type_string());
@@ -345,5 +355,5 @@ int main(int argc, char* argv[]) {
     ProfilerStop();
 #endif
 
-    return EXIT_SUCCESS;
+    return ret;
 }

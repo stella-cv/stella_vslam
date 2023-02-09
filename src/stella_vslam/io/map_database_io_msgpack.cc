@@ -15,7 +15,7 @@
 namespace stella_vslam {
 namespace io {
 
-void map_database_io_msgpack::save(const std::string& path,
+bool map_database_io_msgpack::save(const std::string& path,
                                    const data::camera_database* const cam_db,
                                    const data::orb_params_database* const orb_params_db,
                                    const data::map_database* const map_db) {
@@ -42,13 +42,15 @@ void map_database_io_msgpack::save(const std::string& path,
         const auto msgpack = nlohmann::json::to_msgpack(json);
         ofs.write(reinterpret_cast<const char*>(msgpack.data()), msgpack.size() * sizeof(uint8_t));
         ofs.close();
+        return true;
     }
     else {
         spdlog::critical("cannot create a file at {}", path);
+        return false;
     }
 }
 
-void map_database_io_msgpack::load(const std::string& path,
+bool map_database_io_msgpack::load(const std::string& path,
                                    data::camera_database* cam_db,
                                    data::orb_params_database* orb_params_db,
                                    data::map_database* map_db,
@@ -62,7 +64,7 @@ void map_database_io_msgpack::load(const std::string& path,
     std::ifstream ifs(path, std::ios::in | std::ios::binary);
     if (!ifs.is_open()) {
         spdlog::critical("cannot load the file at {}", path);
-        throw std::runtime_error("cannot load the file at " + path);
+        return false;
     }
 
     spdlog::info("load the MessagePack file of database from {}", path);
@@ -98,6 +100,7 @@ void map_database_io_msgpack::load(const std::string& path,
     for (const auto& keyfrm : keyfrms) {
         bow_db->add_keyframe(keyfrm);
     }
+    return true;
 }
 
 } // namespace io
