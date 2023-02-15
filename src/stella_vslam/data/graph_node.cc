@@ -364,9 +364,9 @@ void graph_node::recover_spanning_connections() {
     spanning_parent_.lock()->graph_node_->erase_spanning_child(owner_keyfrm_.lock());
 }
 
-std::set<std::shared_ptr<keyframe>> graph_node::get_spanning_children() const {
+id_ordered_set<std::shared_ptr<keyframe>> graph_node::get_spanning_children() const {
     std::lock_guard<std::mutex> lock(mtx_);
-    std::set<std::shared_ptr<keyframe>> locked_spanning_children;
+    id_ordered_set<std::shared_ptr<keyframe>> locked_spanning_children;
     for (const auto& keyfrm : spanning_children_) {
         locked_spanning_children.insert(keyfrm.lock());
     }
