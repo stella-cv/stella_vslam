@@ -1,7 +1,7 @@
 # ----- Find dependencies -----
 
 # spdlog
-# set(spdlog_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/spdlog/include)
+set(spdlog_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/spdlog/include)
 
 # json
 set(json_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/json/include)
@@ -183,6 +183,7 @@ target_include_directories(${PROJECT_NAME}
                            "$<BUILD_INTERFACE:${tinycolormap_INCLUDE_DIR}>"
                            "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>"
                            "$<INSTALL_INTERFACE:include/stella_vslam/3rd/json/include>"
+                           "$<INSTALL_INTERFACE:include/stella_vslam/3rd/spdlog/include>"
                            "$<INSTALL_INTERFACE:include/>")
 
 # Link to required libraries
@@ -210,8 +211,7 @@ target_link_libraries(${PROJECT_NAME}
                       ${SUITESPARSE_LIBRARIES}
                       ${BoW_LIBRARY}
                       PRIVATE
-                      ${LAPACK_LIBRARIES}
-                      spdlog::spdlog)
+                      ${LAPACK_LIBRARIES})
 
 # ----- Install configuration -----
 
