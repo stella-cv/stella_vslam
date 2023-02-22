@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND noninteractive
 
 # install dependencies via apt
@@ -37,8 +37,7 @@ RUN set -x && \
     libavcodec-dev \
     libavformat-dev \
     libavutil-dev \
-    libswscale-dev \
-    libavresample-dev && \
+    libswscale-dev && \
   : "backward-cpp dependencies" && \
   apt install -y -qq binutils-dev && \
   : "other dependencies" && \
