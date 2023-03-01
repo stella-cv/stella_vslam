@@ -6,7 +6,12 @@
 #include <unordered_map>
 
 #if CV_MAJOR_VERSION <= 4 && CV_MINOR_VERSION < 7
-#include <opencv2/aruco.hpp>
+namespace cv {
+namespace aruco {
+class DetectorParameters;
+class Dictionary;
+} // namespace aruco
+} // namespace cv
 #else
 #include <opencv2/objdetect/aruco_detector.hpp>
 #endif

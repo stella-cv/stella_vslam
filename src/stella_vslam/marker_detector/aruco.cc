@@ -6,6 +6,7 @@
 #include "stella_vslam/solve/pnp_solver.h"
 
 #if CV_MAJOR_VERSION <= 4 && CV_MINOR_VERSION < 7
+#include <opencv2/aruco.hpp>
 using PredefinedDictionaryType = cv::aruco::PREDEFINED_DICTIONARY_NAME;
 using PredefinedDictionaryObjectType = cv::Ptr<cv::aruco::Dictionary>;
 #else
