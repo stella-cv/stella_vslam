@@ -1,5 +1,7 @@
 # This is an easy scripts to run samples from scratch for Ubuntu users
 
+NOTE: These scripts do not support environments without a GPU. Please follow the [documentation](https://stella-cv.readthedocs.io/en/latest/docker.html) and install manually.
+
 # Steps
 
 ## Clone the stella_vslam
