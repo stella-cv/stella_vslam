@@ -116,7 +116,7 @@ public:
     /**
      * Get the children of spanning tree
      */
-    std::set<std::shared_ptr<keyframe>> get_spanning_children() const;
+    id_ordered_set<std::shared_ptr<keyframe>> get_spanning_children() const;
 
     /**
      * Whether this node has the specified child or not

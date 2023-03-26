@@ -408,7 +408,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
         // Setup PnP solver
         auto pnp_solver = std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(valid_bearings, valid_keypts, valid_landmarks,
                                                                                    cur_keyfrm_->orb_params_->scale_factors_,
-                                                                                   use_fixed_seed_));
+                                                                                   10, use_fixed_seed_));
 
         pnp_solver->find_via_ransac(30, false);
         if (!pnp_solver->solution_is_valid()) {

@@ -361,7 +361,7 @@ std::unique_ptr<solve::pnp_solver> relocalizer::setup_pnp_solver(const std::vect
         valid_landmarks.at(i) = valid_assoc_lms.at(i)->get_pos_in_world();
     }
     // Setup PnP solver
-    return std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(valid_bearings, valid_keypts, valid_landmarks, scale_factors, use_fixed_seed_));
+    return std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(valid_bearings, valid_keypts, valid_landmarks, scale_factors, 10, use_fixed_seed_));
 }
 
 } // namespace module
