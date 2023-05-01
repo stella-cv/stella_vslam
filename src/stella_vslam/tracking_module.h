@@ -115,6 +115,9 @@ public:
     double reloc_distance_threshold_ = 0.2;
     double reloc_angle_threshold_ = 0.45;
 
+    //! If tracking is failed within init_retry_threshold_time_ sec after initialization, reset the system
+    double init_retry_threshold_time_ = 5.0;
+
     //! If true, automatically try to relocalize when lost
     bool enable_auto_relocalization_ = true;
 

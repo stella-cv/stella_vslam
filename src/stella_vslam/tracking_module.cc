@@ -24,6 +24,7 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, camera::bas
     : camera_(camera),
       reloc_distance_threshold_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["reloc_distance_threshold"].as<double>(0.2)),
       reloc_angle_threshold_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["reloc_angle_threshold"].as<double>(0.45)),
+      init_retry_threshold_time_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["init_retry_threshold_time"].as<double>(5.0)),
       enable_auto_relocalization_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["enable_auto_relocalization"].as<bool>(true)),
       use_robust_matcher_for_relocalization_request_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["use_robust_matcher_for_relocalization_request"].as<bool>(false)),
       max_num_local_keyfrms_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["max_num_local_keyfrms"].as<unsigned int>(60)),
@@ -146,10 +147,9 @@ std::shared_ptr<Mat44_t> tracking_module::feed_frame(data::frame curr_frm) {
         tracking_state_ = tracker_state_t::Lost;
 
         spdlog::info("tracking lost: frame {}", curr_frm_.id_);
-        // if tracking is failed within 5.0 sec after initialization, reset the system
-        constexpr float init_retry_thr = 5.0;
-        if (!mapper_->is_paused() && curr_frm_.timestamp_ - initializer_.get_initial_frame_timestamp() < init_retry_thr) {
-            spdlog::info("tracking lost within {} sec after initialization", init_retry_thr);
+        // if tracking is failed within init_retry_threshold_time_ sec after initialization, reset the system
+        if (!mapper_->is_paused() && curr_frm_.timestamp_ - initializer_.get_initial_frame_timestamp() < init_retry_threshold_time_) {
+            spdlog::info("tracking lost within {} sec after initialization", init_retry_threshold_time_);
             reset();
             return nullptr;
         }
