@@ -18,7 +18,7 @@ public:
     using keyframe_to_num_shared_lms_t = nondeterministic::unordered_map<std::shared_ptr<data::keyframe>, unsigned int>;
 
     //! Constructor
-    explicit local_map_updater(const data::frame& curr_frm, const unsigned int max_num_local_keyfrms);
+    explicit local_map_updater(const unsigned int max_num_local_keyfrms);
 
     //! Destructor
     ~local_map_updater() = default;
@@ -33,14 +33,20 @@ public:
     std::shared_ptr<data::keyframe> get_nearest_covisibility() const;
 
     //! Acquire the new local map
-    bool acquire_local_map();
+    bool acquire_local_map(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
+                           const unsigned int num_keypts,
+                           unsigned int keyframe_id_threshold = 0);
 
 private:
     //! Find the local keyframes
-    bool find_local_keyframes();
+    bool find_local_keyframes(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
+                              const unsigned int num_keypts,
+                              unsigned int keyframe_id_threshold);
 
     //! Count the number of shared landmarks between the current frame and each of the neighbor keyframes
-    keyframe_to_num_shared_lms_t count_num_shared_lms() const;
+    keyframe_to_num_shared_lms_t count_num_shared_lms(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
+                                                      const unsigned int num_keypts,
+                                                      unsigned int keyframe_id_threshold) const;
 
     //! Find the first-order local keyframes
     auto find_first_local_keyframes(const keyframe_to_num_shared_lms_t& keyfrm_weights,
@@ -53,12 +59,9 @@ private:
         -> std::vector<std::shared_ptr<data::keyframe>>;
 
     //! Find the local landmarks
-    bool find_local_landmarks();
+    bool find_local_landmarks(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
+                              const unsigned int num_keypts);
 
-    // landmark associations
-    const std::vector<std::shared_ptr<data::landmark>> frm_lms_;
-    // the number of keypoints
-    const unsigned int num_keypts_;
     // maximum number of the local keyframes
     const unsigned int max_num_local_keyfrms_;
 

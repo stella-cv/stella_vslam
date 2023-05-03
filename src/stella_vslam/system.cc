@@ -274,6 +274,10 @@ void system::abort_loop_BA() {
     global_optimizer_->abort_loop_BA();
 }
 
+void system::enable_temporal_mapping() {
+    map_db_->set_fixed_keyframe_id_threshold();
+}
+
 data::frame system::create_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
     // color conversion
     if (!camera_->is_valid_shape(img)) {

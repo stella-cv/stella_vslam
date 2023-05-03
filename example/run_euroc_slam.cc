@@ -342,6 +342,7 @@ int main(int argc, char* argv[]) {
     auto map_db_path_in = op.add<popl::Value<std::string>>("i", "map-db-in", "load a map from this path", "");
     auto map_db_path_out = op.add<popl::Value<std::string>>("o", "map-db-out", "store a map database at this path after slam", "");
     auto disable_mapping = op.add<popl::Switch>("", "disable-mapping", "disable mapping");
+    auto temporal_mapping = op.add<popl::Switch>("", "temporal-mapping", "enable temporal mapping");
     auto equal_hist = op.add<popl::Switch>("", "equal-hist", "apply histogram equalization");
     auto disable_gui = op.add<popl::Switch>("", "disable-gui", "run without GUI");
 
@@ -415,6 +416,10 @@ int main(int argc, char* argv[]) {
     slam->startup(need_initialize);
     if (disable_mapping->is_set()) {
         slam->disable_mapping_module();
+    }
+    else if (temporal_mapping->is_set()) {
+        slam->enable_temporal_mapping();
+        slam->disable_loop_detector();
     }
 
     // run tracking

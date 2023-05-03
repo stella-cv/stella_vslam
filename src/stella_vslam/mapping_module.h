@@ -280,6 +280,12 @@ private:
 
     //! Number of keyframes used for landmark fusion
     const unsigned int num_covisibilities_for_landmark_fusion_ = 10;
+
+    //! If true, remove keyframes past num_temporal_keyframes_
+    const bool erase_temporal_keyframes_ = false;
+
+    //! Number of temporal keyframes
+    const unsigned int num_temporal_keyframes_ = 15;
 };
 
 } // namespace stella_vslam

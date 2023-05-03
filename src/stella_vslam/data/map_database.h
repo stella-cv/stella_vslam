@@ -42,6 +42,16 @@ public:
     ~map_database();
 
     /**
+     * Set fixed_keyframe_id_threshold
+     */
+    void set_fixed_keyframe_id_threshold();
+
+    /**
+     * Get fixed_keyframe_id_threshold
+     */
+    unsigned int get_fixed_keyframe_id_threshold();
+
+    /**
      * Add keyframe to the database
      * @param keyfrm
      */
@@ -344,6 +354,9 @@ private:
 
     //! local landmarks
     std::vector<std::shared_ptr<landmark>> local_landmarks_;
+
+    //! keyframes with id less than or equal to fixed_keyframe_id_threshold are not optimized
+    unsigned int fixed_keyframe_id_threshold_ = 0;
 
     //-----------------------------------------
     // parameters for global/local mapping (optimization)

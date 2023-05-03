@@ -253,6 +253,7 @@ int main(int argc, char* argv[]) {
     auto map_db_path_out = op.add<popl::Value<std::string>>("o", "map-db-out", "store a map database at this path after slam", "");
     auto log_level = op.add<popl::Value<std::string>>("", "log-level", "log level", "info");
     auto disable_mapping = op.add<popl::Switch>("", "disable-mapping", "disable mapping");
+    auto temporal_mapping = op.add<popl::Switch>("", "temporal-mapping", "enable temporal mapping");
     auto disable_gui = op.add<popl::Switch>("", "disable-gui", "run without GUI");
     try {
         op.parse(argc, argv);
@@ -325,6 +326,10 @@ int main(int argc, char* argv[]) {
     slam->startup(need_initialize);
     if (disable_mapping->is_set()) {
         slam->disable_mapping_module();
+    }
+    else if (temporal_mapping->is_set()) {
+        slam->enable_temporal_mapping();
+        slam->disable_loop_detector();
     }
 
     // run tracking

@@ -24,7 +24,9 @@ mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* 
       enable_interruption_of_landmark_generation_(yaml_node["enable_interruption_of_landmark_generation"].as<bool>(true)),
       enable_interruption_before_local_BA_(yaml_node["enable_interruption_before_local_BA"].as<bool>(true)),
       num_covisibilities_for_landmark_generation_(yaml_node["num_covisibilities_for_landmark_generation"].as<unsigned int>(10)),
-      num_covisibilities_for_landmark_fusion_(yaml_node["num_covisibilities_for_landmark_fusion"].as<unsigned int>(10)) {
+      num_covisibilities_for_landmark_fusion_(yaml_node["num_covisibilities_for_landmark_fusion"].as<unsigned int>(10)),
+      erase_temporal_keyframes_(yaml_node["erase_temporal_keyframes"].as<bool>(false)),
+      num_temporal_keyframes_(yaml_node["num_temporal_keyframes"].as<unsigned int>(15)) {
     spdlog::debug("CONSTRUCT: mapping_module");
 
     spdlog::debug("load mapping parameters");
@@ -220,6 +222,36 @@ void mapping_module::mapping_with_new_keyframe() {
             local_bundle_adjuster_->optimize(map_db_, cur_keyfrm_, &abort_local_BA_);
         }
     }
+
+    if (erase_temporal_keyframes_) {
+        for (const auto& keyfrm : map_db_->get_all_keyframes()) {
+            if (keyfrm->id_ <= map_db_->get_fixed_keyframe_id_threshold()) {
+                continue;
+            }
+
+            // erase temporal keyframes after a period of time
+            if (keyfrm->id_ > map_db_->get_fixed_keyframe_id_threshold()
+                && cur_keyfrm_->id_ > keyfrm->id_ + num_temporal_keyframes_) {
+                const auto cur_landmarks = keyfrm->get_landmarks();
+                keyfrm->prepare_for_erasing(map_db_, bow_db_);
+                for (const auto& lm : cur_landmarks) {
+                    if (!lm) {
+                        continue;
+                    }
+                    if (lm->will_be_erased()) {
+                        continue;
+                    }
+                    if (!lm->has_representative_descriptor()) {
+                        lm->compute_descriptor();
+                    }
+                    if (!lm->has_valid_prediction_parameters()) {
+                        lm->update_mean_normal_and_obs_scale_variance();
+                    }
+                }
+            }
+        }
+    }
+
     local_map_cleaner_->remove_redundant_keyframes(cur_keyfrm_);
 }
 

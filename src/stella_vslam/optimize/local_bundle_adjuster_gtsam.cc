@@ -50,6 +50,9 @@ void local_bundle_adjuster_gtsam::optimize(data::map_database* map_db,
         if (local_keyfrm->graph_node_->is_spanning_root()) {
             continue;
         }
+        if (local_keyfrm->id_ < map_db->get_fixed_keyframe_id_threshold()) {
+            continue;
+        }
 
         local_keyfrms[local_keyfrm->id_] = local_keyfrm;
         if (local_keyfrm->camera_->setup_type_ != camera::setup_type_t::Monocular) {

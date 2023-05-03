@@ -121,6 +121,9 @@ public:
     //! If true, automatically try to relocalize when lost
     bool enable_auto_relocalization_ = true;
 
+    //! If true, automatically try to relocalize when lost
+    bool enable_temporal_keyframe_only_tracking_ = false;
+
     //! If true, use robust_matcher for relocalization request
     bool use_robust_matcher_for_relocalization_request_ = false;
 
@@ -145,6 +148,13 @@ protected:
 
     //! Main stream of the tracking module
     bool track(bool relocalization_is_needed);
+    bool track_local_map(unsigned int& num_tracked_lms,
+                         unsigned int& num_reliable_lms,
+                         unsigned int min_num_obs_thr);
+    bool track_local_map_without_temporal_keyframes(unsigned int& num_tracked_lms,
+                                                    unsigned int& num_reliable_lms,
+                                                    unsigned int min_num_obs_thr,
+                                                    unsigned int fixed_keyframe_id_threshold);
 
     //! Track the current frame
     bool track_current_frame();
@@ -167,10 +177,10 @@ protected:
                                                const unsigned int min_num_obs_thr);
 
     //! Update the local map
-    void update_local_map();
+    bool update_local_map(unsigned int fixed_keyframe_id_threshold = 0);
 
     //! Acquire more 2D-3D matches using initial camera pose estimation
-    void search_local_landmarks();
+    bool search_local_landmarks();
 
     //! Check the new keyframe is needed or not
     bool new_keyframe_is_needed(unsigned int num_tracked_lms,
@@ -209,8 +219,6 @@ protected:
     //! keyframe inserter
     module::keyframe_inserter keyfrm_inserter_;
 
-    //! local keyframes
-    std::vector<std::shared_ptr<data::keyframe>> local_keyfrms_;
     //! local landmarks
     std::vector<std::shared_ptr<data::landmark>> local_landmarks_;
 
