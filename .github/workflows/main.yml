@@ -120,6 +120,9 @@ jobs:
         run: |
           sed -e 's/backend: "g2o"/backend: "gtsam"/g' example/euroc/EuRoC_mono.yaml > EuRoC_mono_gtsam.yaml
           sed -e 's/backend: "g2o"/backend: "gtsam"/g' example/euroc/EuRoC_stereo.yaml > EuRoC_stereo_gtsam.yaml
+      - name: make config for temporal mapping
+        run: |
+          sed -e 's/erase_temporal_keyframes: false/erase_temporal_keyframes: true/g' -e 's/enable_temporal_keyframe_only_tracking: false/enable_temporal_keyframe_only_tracking: true/g' example/euroc/EuRoC_mono.yaml > EuRoC_mono_temporal_mapping.yaml
       - name: make config for sqlite3 map format
         run: |
           sed -e 's/map_format: "msgpack"/map_format: "sqlite3"/g' example/euroc/EuRoC_mono.yaml > EuRoC_mono_sqlite3.yaml
@@ -148,6 +151,9 @@ jobs:
           ./run_euroc_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_01_mono.msg
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_mono_localization.txt
           mv track_times.txt ../artifact/track_times_MH_01_mono_localization.txt
+          ./run_euroc_slam --temporal-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_temporal_mapping.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_01_mono.msg
+          mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_mono_localization_temporal_mapping.txt
+          mv track_times.txt ../artifact/track_times_MH_01_mono_localization_temporal_mapping.txt
           ./run_euroc_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_sqlite3.yaml --frame-skip 2 --no-sleep --log-level=debug --map-db-in MH_01_mono_sqlite3.db
       - name: SLAM test (monocular) with EuRoC MAV dataset (MH_04)
         run: |
@@ -167,6 +173,9 @@ jobs:
           ./run_euroc_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_04_mono.msg
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_04_mono_localization.txt
           mv track_times.txt ../artifact/track_times_MH_04_mono_localization.txt
+          ./run_euroc_slam --temporal-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../EuRoC_mono_temporal_mapping.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_04_mono.msg
+          mv frame_trajectory.txt ../artifact/frame_trajectory_MH_04_mono_localization_temporal_mapping.txt
+          mv track_times.txt ../artifact/track_times_MH_04_mono_localization_temporal_mapping.txt
       - name: download openvslam_test_dataset
         run: |
           curl -sL "https://github.com/stella-cv/openvslam_test_dataset/raw/main/openvslam_test_dataset.zip" -o openvslam_test_dataset.zip
@@ -228,6 +237,10 @@ jobs:
             bash track_time_print_row.bash artifact/track_times_MH_01_mono_localization.txt
             bash evo_rpe_print_row.bash tum MH_01.tum artifact/frame_trajectory_MH_01_mono_localization.txt -as
             echo '|'
+            echo -n '| EuRoC MH_01 (Localization, perspective, mono, temporal mapping)'
+            bash track_time_print_row.bash artifact/track_times_MH_01_mono_localization_temporal_mapping.txt
+            bash evo_rpe_print_row.bash tum MH_01.tum artifact/frame_trajectory_MH_01_mono_localization_temporal_mapping.txt -as
+            echo '|'
             echo -n '| EuRoC MH_04 (SLAM, perspective, mono)'
             bash track_time_print_row.bash artifact/track_times_MH_04_mono_slam.txt
             bash evo_rpe_print_row.bash tum MH_04.tum artifact/frame_trajectory_MH_04_mono_slam.txt -as
@@ -239,6 +252,10 @@ jobs:
             echo -n '| EuRoC MH_04 (Localization, perspective, mono)'
             bash track_time_print_row.bash artifact/track_times_MH_04_mono_localization.txt
             bash evo_rpe_print_row.bash tum MH_04.tum artifact/frame_trajectory_MH_04_mono_localization.txt -as
+            echo '|'
+            echo -n '| EuRoC MH_04 (Localization, perspective, mono, temporal mapping)'
+            bash track_time_print_row.bash artifact/track_times_MH_04_mono_localization_temporal_mapping.txt
+            bash evo_rpe_print_row.bash tum MH_04.tum artifact/frame_trajectory_MH_04_mono_localization_temporal_mapping.txt -as
             echo '|'
             echo -n '| openvslam_test_dataset 1 (SLAM, equirectangular, mono)'
             bash track_time_print_row.bash artifact/track_times_equirectangular_1.txt
