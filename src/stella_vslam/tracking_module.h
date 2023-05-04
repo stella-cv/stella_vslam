@@ -121,7 +121,7 @@ public:
     //! If true, automatically try to relocalize when lost
     bool enable_auto_relocalization_ = true;
 
-    //! If true, automatically try to relocalize when lost
+    //! If true, tracking with only temporal keyframes will not be treated as Lost
     bool enable_temporal_keyframe_only_tracking_ = false;
 
     //! If true, use robust_matcher for relocalization request
