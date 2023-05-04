@@ -9,14 +9,14 @@ namespace stella_vslam {
 namespace solve {
 
 pnp_solver::pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings,
-                       const std::vector<cv::KeyPoint>& valid_keypts,
-                       const eigen_alloc_vector<Vec3_t>& valid_landmarks,
+                       const std::vector<int>& octaves,
+                       const eigen_alloc_vector<Vec3_t>& valid_points,
                        const std::vector<float>& scale_factors,
                        const unsigned int min_num_inliers,
                        const bool use_fixed_seed,
                        const unsigned int gauss_newton_num_iter)
     : num_matches_(valid_bearings.size()), valid_bearings_(valid_bearings),
-      valid_landmarks_(valid_landmarks), min_num_inliers_(min_num_inliers),
+      valid_points_(valid_points), min_num_inliers_(min_num_inliers),
       random_engine_(util::create_random_engine(use_fixed_seed)),
       gauss_newton_num_iter_(gauss_newton_num_iter) {
     spdlog::trace("CONSTRUCT: solve::pnp_solver");
@@ -27,13 +27,13 @@ pnp_solver::pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings,
     constexpr double max_rad_error = 1.0 * M_PI / 180.0;
     for (unsigned int i = 0; i < num_matches_; ++i) {
         // Calculate radial error threshold from each scale factor
-        const auto max_rad_error_with_scale = scale_factors.at(valid_keypts.at(i).octave) * max_rad_error;
+        const auto max_rad_error_with_scale = scale_factors.at(octaves.at(i)) * max_rad_error;
         max_cos_errors_.at(i) = util::cos(max_rad_error_with_scale);
     }
 
     assert(num_matches_ == valid_bearings_.size());
-    assert(num_matches_ == valid_keypts.size());
-    assert(num_matches_ == valid_landmarks_.size());
+    assert(num_matches_ == octaves.size());
+    assert(num_matches_ == valid_points_.size());
     assert(num_matches_ == max_cos_errors_.size());
 }
 
@@ -78,7 +78,7 @@ void pnp_solver::find_via_ransac(const unsigned int max_num_iter, const bool rec
 
         for (const auto i : random_indices) {
             const Vec3_t& bearing = valid_bearings_.at(i);
-            const Vec3_t& pos_w = valid_landmarks_.at(i);
+            const Vec3_t& pos_w = valid_points_.at(i);
 
             min_set_bearings.push_back(bearing);
             min_set_pos_ws.push_back(pos_w);
@@ -115,7 +115,7 @@ void pnp_solver::find_via_ransac(const unsigned int max_num_iter, const bool rec
             continue;
         }
         const Vec3_t& bearing = valid_bearings_.at(i);
-        const Vec3_t& pos_w = valid_landmarks_.at(i);
+        const Vec3_t& pos_w = valid_points_.at(i);
         inlier_bearings.push_back(bearing);
         inlier_pos_ws.push_back(pos_w);
     }
@@ -129,7 +129,7 @@ unsigned int pnp_solver::check_inliers(const Mat33_t& rot_cw, const Vec3_t& tran
     cost = 0.0;
     is_inlier.resize(num_matches_);
     for (unsigned int i = 0; i < num_matches_; ++i) {
-        const Vec3_t& pos_w = valid_landmarks_.at(i);
+        const Vec3_t& pos_w = valid_points_.at(i);
         const Vec3_t& bearing = valid_bearings_.at(i);
 
         const Vec3_t pos_c = rot_cw * pos_w + trans_cw;
