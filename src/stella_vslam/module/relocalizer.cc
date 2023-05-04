@@ -355,13 +355,17 @@ std::unique_ptr<solve::pnp_solver> relocalizer::setup_pnp_solver(const std::vect
     // Resample valid elements
     const auto valid_bearings = util::resample_by_indices(bearings, valid_indices);
     const auto valid_keypts = util::resample_by_indices(keypts, valid_indices);
-    const auto valid_assoc_lms = util::resample_by_indices(matched_landmarks, valid_indices);
-    eigen_alloc_vector<Vec3_t> valid_landmarks(valid_indices.size());
+    std::vector<int> octaves(valid_indices.size());
     for (unsigned int i = 0; i < valid_indices.size(); ++i) {
-        valid_landmarks.at(i) = valid_assoc_lms.at(i)->get_pos_in_world();
+        octaves.at(i) = valid_keypts.at(i).octave;
+    }
+    const auto valid_assoc_lms = util::resample_by_indices(matched_landmarks, valid_indices);
+    eigen_alloc_vector<Vec3_t> valid_points(valid_indices.size());
+    for (unsigned int i = 0; i < valid_indices.size(); ++i) {
+        valid_points.at(i) = valid_assoc_lms.at(i)->get_pos_in_world();
     }
     // Setup PnP solver
-    return std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(valid_bearings, valid_keypts, valid_landmarks, scale_factors, 10, use_fixed_seed_));
+    return std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(valid_bearings, octaves, valid_points, scale_factors, 10, use_fixed_seed_));
 }
 
 } // namespace module

@@ -400,13 +400,17 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
         // Resample valid elements
         const auto valid_bearings = util::resample_by_indices(cur_keyfrm_->frm_obs_.bearings_, valid_indices);
         const auto valid_keypts = util::resample_by_indices(cur_keyfrm_->frm_obs_.undist_keypts_, valid_indices);
-        const auto valid_assoc_lms = util::resample_by_indices(curr_match_lms_observed_in_cand, valid_indices);
-        eigen_alloc_vector<Vec3_t> valid_landmarks(valid_indices.size());
+        std::vector<int> octaves(valid_indices.size());
         for (unsigned int i = 0; i < valid_indices.size(); ++i) {
-            valid_landmarks.at(i) = valid_assoc_lms.at(i)->get_pos_in_world();
+            octaves.at(i) = valid_keypts.at(i).octave;
+        }
+        const auto valid_assoc_lms = util::resample_by_indices(curr_match_lms_observed_in_cand, valid_indices);
+        eigen_alloc_vector<Vec3_t> valid_points(valid_indices.size());
+        for (unsigned int i = 0; i < valid_indices.size(); ++i) {
+            valid_points.at(i) = valid_assoc_lms.at(i)->get_pos_in_world();
         }
         // Setup PnP solver
-        auto pnp_solver = std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(valid_bearings, valid_keypts, valid_landmarks,
+        auto pnp_solver = std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(valid_bearings, octaves, valid_points,
                                                                                    cur_keyfrm_->orb_params_->scale_factors_,
                                                                                    10, use_fixed_seed_));
 

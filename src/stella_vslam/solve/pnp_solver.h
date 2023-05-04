@@ -16,8 +16,8 @@ public:
 
     //! Constructor
     pnp_solver(const eigen_alloc_vector<Vec3_t>& valid_bearings,
-               const std::vector<cv::KeyPoint>& valid_keypts,
-               const eigen_alloc_vector<Vec3_t>& valid_landmarks,
+               const std::vector<int>& octaves,
+               const eigen_alloc_vector<Vec3_t>& valid_points,
                const std::vector<float>& scale_factors,
                unsigned int min_num_inliers = 10,
                bool use_fixed_seed = false,
@@ -65,7 +65,7 @@ private:
     //! bearing vector
     eigen_alloc_vector<Vec3_t> valid_bearings_;
     //! 3D point
-    eigen_alloc_vector<Vec3_t> valid_landmarks_;
+    eigen_alloc_vector<Vec3_t> valid_points_;
     //! acceptable maximum error
     std::vector<float> max_cos_errors_;
 
