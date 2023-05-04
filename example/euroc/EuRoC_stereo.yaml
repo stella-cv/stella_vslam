@@ -87,6 +87,9 @@ Tracking:
   backend: "g2o"
   enable_temporal_keyframe_only_tracking: false
 
+Relocalizer:
+  search_neighbor: true
+
 LoopDetector:
   backend: "g2o"
 
