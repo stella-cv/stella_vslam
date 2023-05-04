@@ -3,12 +3,13 @@
 #include "stella_vslam/data/landmark.h"
 #include "stella_vslam/module/local_map_updater.h"
 
+#include <spdlog/spdlog.h>
+
 namespace stella_vslam {
 namespace module {
 
-local_map_updater::local_map_updater(const data::frame& curr_frm, const unsigned int max_num_local_keyfrms)
-    : frm_lms_(curr_frm.get_landmarks()), num_keypts_(curr_frm.frm_obs_.num_keypts_),
-      max_num_local_keyfrms_(max_num_local_keyfrms) {}
+local_map_updater::local_map_updater(const unsigned int max_num_local_keyfrms)
+    : max_num_local_keyfrms_(max_num_local_keyfrms) {}
 
 std::vector<std::shared_ptr<data::keyframe>> local_map_updater::get_local_keyframes() const {
     return local_keyfrms_;
@@ -22,15 +23,20 @@ std::shared_ptr<data::keyframe> local_map_updater::get_nearest_covisibility() co
     return nearest_covisibility_;
 }
 
-bool local_map_updater::acquire_local_map() {
-    const auto local_keyfrms_was_found = find_local_keyframes();
-    const auto local_lms_was_found = find_local_landmarks();
+bool local_map_updater::acquire_local_map(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
+                                          const unsigned int num_keypts,
+                                          unsigned int keyframe_id_threshold) {
+    const auto local_keyfrms_was_found = find_local_keyframes(frm_lms, num_keypts, keyframe_id_threshold);
+    const auto local_lms_was_found = find_local_landmarks(frm_lms, num_keypts);
     return local_keyfrms_was_found && local_lms_was_found;
 }
 
-bool local_map_updater::find_local_keyframes() {
-    const auto keyfrm_to_num_shared_lms = count_num_shared_lms();
+bool local_map_updater::find_local_keyframes(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
+                                             const unsigned int num_keypts,
+                                             unsigned int keyframe_id_threshold) {
+    const auto keyfrm_to_num_shared_lms = count_num_shared_lms(frm_lms, num_keypts, keyframe_id_threshold);
     if (keyfrm_to_num_shared_lms.empty()) {
+        SPDLOG_TRACE("find_local_keyframes: empty");
         return false;
     }
     std::unordered_set<unsigned int> already_found_keyfrm_ids;
@@ -41,12 +47,14 @@ bool local_map_updater::find_local_keyframes() {
     return true;
 }
 
-local_map_updater::keyframe_to_num_shared_lms_t local_map_updater::count_num_shared_lms() const {
+local_map_updater::keyframe_to_num_shared_lms_t local_map_updater::count_num_shared_lms(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
+                                                                                        const unsigned int num_keypts,
+                                                                                        unsigned int keyframe_id_threshold) const {
     // count the number of sharing landmarks between the current frame and each of the neighbor keyframes
     // key: keyframe, value: number of sharing landmarks
     keyframe_to_num_shared_lms_t keyfrm_to_num_shared_lms;
-    for (unsigned int idx = 0; idx < num_keypts_; ++idx) {
-        auto& lm = frm_lms_.at(idx);
+    for (unsigned int idx = 0; idx < num_keypts; ++idx) {
+        auto& lm = frm_lms.at(idx);
         if (!lm) {
             continue;
         }
@@ -55,7 +63,11 @@ local_map_updater::keyframe_to_num_shared_lms_t local_map_updater::count_num_sha
         }
         const auto observations = lm->get_observations();
         for (auto obs : observations) {
-            ++keyfrm_to_num_shared_lms[obs.first.lock()];
+            auto keyfrm = obs.first.lock();
+            if (keyframe_id_threshold > 0 && keyfrm->id_ >= keyframe_id_threshold) {
+                continue;
+            }
+            ++keyfrm_to_num_shared_lms[keyfrm];
         }
     }
     return keyfrm_to_num_shared_lms;
@@ -144,13 +156,14 @@ auto local_map_updater::find_second_local_keyframes(const std::vector<std::share
     return second_local_keyfrms;
 }
 
-bool local_map_updater::find_local_landmarks() {
+bool local_map_updater::find_local_landmarks(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
+                                             const unsigned int num_keypts) {
     local_lms_.clear();
     local_lms_.reserve(50 * local_keyfrms_.size());
 
     std::unordered_set<unsigned int> already_found_lms_ids;
-    for (unsigned int idx = 0; idx < num_keypts_; ++idx) {
-        auto& lm = frm_lms_.at(idx);
+    for (unsigned int idx = 0; idx < num_keypts; ++idx) {
+        auto& lm = frm_lms.at(idx);
         if (!lm) {
             continue;
         }

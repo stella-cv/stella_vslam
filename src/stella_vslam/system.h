@@ -121,6 +121,9 @@ public:
     //! Abort the loop BA externally
     void abort_loop_BA();
 
+    //! Enable temporal mapping
+    void enable_temporal_mapping();
+
     //-----------------------------------------
     // data feeding methods
 

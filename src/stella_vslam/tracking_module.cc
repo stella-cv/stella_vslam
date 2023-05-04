@@ -26,6 +26,7 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, camera::bas
       reloc_angle_threshold_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["reloc_angle_threshold"].as<double>(0.45)),
       init_retry_threshold_time_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["init_retry_threshold_time"].as<double>(5.0)),
       enable_auto_relocalization_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["enable_auto_relocalization"].as<bool>(true)),
+      enable_temporal_keyframe_only_tracking_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["enable_temporal_keyframe_only_tracking"].as<bool>(false)),
       use_robust_matcher_for_relocalization_request_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["use_robust_matcher_for_relocalization_request"].as<bool>(false)),
       max_num_local_keyfrms_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["max_num_local_keyfrms"].as<unsigned int>(60)),
       map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
@@ -212,15 +213,18 @@ bool tracking_module::track(bool relocalization_is_needed) {
         }
     }
 
-    // update the local map and optimize the camera pose of the current frames_thr);
-    const unsigned int min_num_obs_thr = (3 <= map_db_->get_num_keyframes()) ? 3 : 2;
+    // update the local map and optimize current camera pose
     unsigned int num_tracked_lms = 0;
     unsigned int num_reliable_lms = 0;
+    const unsigned int min_num_obs_thr = (3 <= map_db_->get_num_keyframes()) ? 3 : 2;
     if (succeeded) {
-        SPDLOG_TRACE("tracking_module: update_local_map (curr_frm_={})", curr_frm_.id_);
-        update_local_map();
-        SPDLOG_TRACE("tracking_module: optimize_current_frame_with_local_map (curr_frm_={})", curr_frm_.id_);
-        succeeded = optimize_current_frame_with_local_map(num_tracked_lms, num_reliable_lms, min_num_obs_thr);
+        succeeded = track_local_map(num_tracked_lms, num_reliable_lms, min_num_obs_thr);
+    }
+
+    // update the local map and optimize current camera pose without temporal keyframes
+    unsigned int fixed_keyframe_id_threshold = map_db_->get_fixed_keyframe_id_threshold();
+    if (fixed_keyframe_id_threshold > 0 && succeeded) {
+        succeeded = track_local_map_without_temporal_keyframes(num_tracked_lms, num_reliable_lms, min_num_obs_thr, fixed_keyframe_id_threshold);
     }
 
     // update the motion model
@@ -239,6 +243,56 @@ bool tracking_module::track(bool relocalization_is_needed) {
     SPDLOG_TRACE("tracking_module: update_frame_statistics (curr_frm_={})", curr_frm_.id_);
     map_db_->update_frame_statistics(curr_frm_, !succeeded);
 
+    return succeeded;
+}
+
+bool tracking_module::track_local_map(unsigned int& num_tracked_lms,
+                                      unsigned int& num_reliable_lms,
+                                      const unsigned int min_num_obs_thr) {
+    bool succeeded = false;
+    SPDLOG_TRACE("tracking_module: update_local_map (curr_frm_={})", curr_frm_.id_);
+    succeeded = update_local_map();
+
+    if (succeeded) {
+        succeeded = search_local_landmarks();
+    }
+
+    if (succeeded) {
+        SPDLOG_TRACE("tracking_module: optimize_current_frame_with_local_map (curr_frm_={})", curr_frm_.id_);
+        succeeded = optimize_current_frame_with_local_map(num_tracked_lms, num_reliable_lms, min_num_obs_thr);
+    }
+
+    if (!succeeded) {
+        spdlog::info("local map tracking failed (curr_frm_={})", curr_frm_.id_);
+    }
+    return succeeded;
+}
+
+bool tracking_module::track_local_map_without_temporal_keyframes(unsigned int& num_tracked_lms,
+                                                                 unsigned int& num_reliable_lms,
+                                                                 const unsigned int min_num_obs_thr,
+                                                                 const unsigned int fixed_keyframe_id_threshold) {
+    bool succeeded = false;
+    SPDLOG_TRACE("tracking_module: update_local_map without temporal keyframes (curr_frm_={})", curr_frm_.id_);
+    succeeded = update_local_map(fixed_keyframe_id_threshold);
+
+    if (succeeded) {
+        succeeded = search_local_landmarks();
+    }
+
+    if (enable_temporal_keyframe_only_tracking_ && !succeeded) {
+        SPDLOG_TRACE("temporal keyframe only tracking (curr_frm_={})", curr_frm_.id_);
+        return true;
+    }
+
+    if (succeeded) {
+        SPDLOG_TRACE("tracking_module: optimize_current_frame_with_local_map without temporal keyframes (curr_frm_={})", curr_frm_.id_);
+        succeeded = optimize_current_frame_with_local_map(num_tracked_lms, num_reliable_lms, min_num_obs_thr);
+    }
+
+    if (!succeeded) {
+        spdlog::info("local map tracking failed (curr_frm_={})", curr_frm_.id_);
+    }
     return succeeded;
 }
 
@@ -378,9 +432,6 @@ void tracking_module::update_last_frame() {
 bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tracked_lms,
                                                             unsigned int& num_reliable_lms,
                                                             const unsigned int min_num_obs_thr) {
-    // acquire more 2D-3D matches by reprojecting the local landmarks to the current frame
-    search_local_landmarks();
-
     // optimize the pose
     Mat44_t optimized_pose;
     std::vector<bool> outlier_flags;
@@ -437,7 +488,7 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
     return true;
 }
 
-void tracking_module::update_local_map() {
+bool tracking_module::update_local_map(unsigned int fixed_keyframe_id_threshold) {
     // clean landmark associations
     for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.num_keypts_; ++idx) {
         const auto& lm = curr_frm_.get_landmark(idx);
@@ -451,12 +502,12 @@ void tracking_module::update_local_map() {
     }
 
     // acquire the current local map
-    auto local_map_updater = module::local_map_updater(curr_frm_, max_num_local_keyfrms_);
-    if (!local_map_updater.acquire_local_map()) {
-        return;
+    local_landmarks_.clear();
+    auto local_map_updater = module::local_map_updater(max_num_local_keyfrms_);
+    if (!local_map_updater.acquire_local_map(curr_frm_.get_landmarks(), curr_frm_.frm_obs_.num_keypts_, fixed_keyframe_id_threshold)) {
+        return false;
     }
     // update the variables
-    local_keyfrms_ = local_map_updater.get_local_keyframes();
     local_landmarks_ = local_map_updater.get_local_landmarks();
     auto nearest_covisibility = local_map_updater.get_nearest_covisibility();
 
@@ -466,9 +517,10 @@ void tracking_module::update_local_map() {
     }
 
     map_db_->set_local_landmarks(local_landmarks_);
+    return true;
 }
 
-void tracking_module::search_local_landmarks() {
+bool tracking_module::search_local_landmarks() {
     // select the landmarks which can be reprojected from the ones observed in the current frame
     std::unordered_set<unsigned int> curr_landmark_ids;
     for (const auto& lm : curr_frm_.get_landmarks()) {
@@ -517,7 +569,8 @@ void tracking_module::search_local_landmarks() {
     }
 
     if (!found_proj_candidate) {
-        return;
+        spdlog::warn("projection candidate not found");
+        return false;
     }
 
     // acquire more 2D-3D matches by projecting the local landmarks to the current frame
@@ -528,6 +581,7 @@ void tracking_module::search_local_landmarks() {
                                     ? 10.0
                                     : 5.0);
     projection_matcher.match_frame_and_landmarks(curr_frm_, local_landmarks_, lm_to_reproj, lm_to_x_right, lm_to_scale, margin);
+    return true;
 }
 
 bool tracking_module::new_keyframe_is_needed(unsigned int num_tracked_lms,

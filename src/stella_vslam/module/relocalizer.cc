@@ -65,7 +65,7 @@ bool relocalizer::reloc_by_candidates(data::frame& curr_frm,
 
         bool ok = reloc_by_candidate(curr_frm, candidate_keyfrm, use_robust_matcher);
         if (ok) {
-            spdlog::info("relocalization succeeded (id={})", candidate_keyfrm->id_);
+            spdlog::info("relocalization succeeded (frame={}, keyframe={})", curr_frm.id_, candidate_keyfrm->id_);
             // TODO: should set the reference keyframe of the current frame
             return true;
         }
@@ -242,8 +242,8 @@ bool relocalizer::refine_pose_by_local_map(data::frame& curr_frm,
                                            const std::shared_ptr<stella_vslam::data::keyframe>& candidate_keyfrm) const {
     // Create local map
     constexpr unsigned int max_num_local_keyfrms = 10;
-    auto local_map_updater = module::local_map_updater(curr_frm, max_num_local_keyfrms);
-    if (!local_map_updater.acquire_local_map()) {
+    auto local_map_updater = module::local_map_updater(max_num_local_keyfrms);
+    if (!local_map_updater.acquire_local_map(curr_frm.get_landmarks(), curr_frm.frm_obs_.num_keypts_)) {
         return false;
     }
     auto local_keyfrms = local_map_updater.get_local_keyframes();
