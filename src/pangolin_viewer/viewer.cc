@@ -228,7 +228,7 @@ void viewer::draw_keyframes(std::vector<std::shared_ptr<stella_vslam::data::keyf
 
     int keyframe_id = parse_int(*menu_kf_id_);
     glLineWidth(keyfrm_line_width_);
-    for (const auto keyfrm : keyfrms) {
+    for (const auto& keyfrm : keyfrms) {
         if (!keyfrm || keyfrm->will_be_erased()) {
             continue;
         }
@@ -247,7 +247,7 @@ void viewer::draw_covisibility_edges(std::vector<std::shared_ptr<stella_vslam::d
 
     glColor4fv(cs_.graph_line_.data());
     std::vector<Eigen::Vector3f> lines;
-    for (const auto keyfrm : keyfrms) {
+    for (const auto& keyfrm : keyfrms) {
         if (!keyfrm || keyfrm->will_be_erased()) {
             continue;
         }
@@ -257,7 +257,7 @@ void viewer::draw_covisibility_edges(std::vector<std::shared_ptr<stella_vslam::d
         // covisibility graph
         const auto covisibilities = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(*menu_min_shared_lms_);
         if (!covisibilities.empty()) {
-            for (const auto covisibility : covisibilities) {
+            for (const auto& covisibility : covisibilities) {
                 if (!covisibility || covisibility->will_be_erased()) {
                     continue;
                 }
@@ -278,7 +278,7 @@ void viewer::draw_spanning_tree_edges(std::vector<std::shared_ptr<stella_vslam::
 
     glColor4fv(cs_.graph_line_spanning_tree_.data());
     std::vector<Eigen::Vector3f> lines;
-    for (const auto keyfrm : keyfrms) {
+    for (const auto& keyfrm : keyfrms) {
         if (!keyfrm || keyfrm->will_be_erased()) {
             continue;
         }
@@ -297,7 +297,7 @@ void viewer::draw_spanning_tree_edges(std::vector<std::shared_ptr<stella_vslam::
 
     glColor4fv(cs_.graph_line_loop_edge_.data());
     lines.clear();
-    for (const auto keyfrm : keyfrms) {
+    for (const auto& keyfrm : keyfrms) {
         if (!keyfrm || keyfrm->will_be_erased()) {
             continue;
         }
@@ -306,7 +306,7 @@ void viewer::draw_spanning_tree_edges(std::vector<std::shared_ptr<stella_vslam::
 
         // loop edges
         const auto loop_edges = keyfrm->graph_node_->get_loop_edges();
-        for (const auto loop_edge : loop_edges) {
+        for (const auto& loop_edge : loop_edges) {
             if (!loop_edge) {
                 continue;
             }
