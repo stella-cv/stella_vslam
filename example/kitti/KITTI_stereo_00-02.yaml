@@ -59,7 +59,7 @@ Mapping:
 #========================#
 
 Initializer:
-  num_min_triangulated_pts: 100
+  min_num_triangulated_pts: 100
 
 #===========================#
 # PangolinViewer Parameters #
