@@ -63,7 +63,6 @@ void mapping_module::run() {
     spdlog::info("start mapping module");
 
     is_terminated_ = false;
-    set_is_idle(true);
 
     while (true) {
         // waiting time for the other threads
@@ -81,7 +80,6 @@ void mapping_module::run() {
         if (reset_is_requested()) {
             // reset and continue
             reset();
-            set_is_idle(true);
             continue;
         }
 
@@ -91,7 +89,6 @@ void mapping_module::run() {
             auto future_stop_keyframe_insertion = tracker_->async_stop_keyframe_insertion();
             future_stop_keyframe_insertion.get();
             if (!keyframe_is_queued()) {
-                set_is_idle(true);
                 pause();
                 SPDLOG_TRACE("mapping_module: waiting");
                 // check if termination or reset is requested during pause
@@ -106,11 +103,9 @@ void mapping_module::run() {
 
         // if the queue is empty, the following process is not needed
         if (!keyframe_is_queued()) {
-            set_is_idle(true);
             continue;
         }
 
-        set_is_idle(false);
         // create and extend the map with the new keyframe
         mapping_with_new_keyframe();
         // send the new keyframe to the global optimization module
@@ -122,10 +117,12 @@ void mapping_module::run() {
     spdlog::info("terminate mapping module");
 }
 
-void mapping_module::queue_keyframe(const std::shared_ptr<data::keyframe>& keyfrm) {
+std::shared_future<void> mapping_module::async_add_keyframe(const std::shared_ptr<data::keyframe>& keyfrm) {
     std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
     keyfrms_queue_.push_back(keyfrm);
     abort_local_BA_ = true;
+    promise_add_keyfrm_queue_.emplace_back();
+    return promise_add_keyfrm_queue_.back().get_future().share();
 }
 
 unsigned int mapping_module::get_num_queued_keyframes() const {
@@ -136,20 +133,6 @@ unsigned int mapping_module::get_num_queued_keyframes() const {
 bool mapping_module::keyframe_is_queued() const {
     std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
     return !keyfrms_queue_.empty();
-}
-
-bool mapping_module::is_idle() const {
-    return is_idle_;
-}
-
-void mapping_module::set_is_idle(const bool is_idle) {
-    is_idle_ = is_idle;
-
-#ifdef DETERMINISTIC
-    // alert the tracker that it can carry on
-    if (is_idle_)
-        processing_cv_.notify_one();
-#endif
 }
 
 bool mapping_module::is_skipping_localBA() const {
@@ -169,11 +152,6 @@ void mapping_module::mapping_with_new_keyframe() {
         cur_keyfrm_ = keyfrms_queue_.front();
         keyfrms_queue_.pop_front();
     }
-
-#ifdef DETERMINISTIC
-    // prevent the tracker running on unprocessed data
-    std::lock_guard<std::mutex> tracking_lock(mtx_processing_);
-#endif
 
     SPDLOG_TRACE("mapping_module: current keyframe is {}", cur_keyfrm_->id_);
 
@@ -206,6 +184,11 @@ void mapping_module::mapping_with_new_keyframe() {
     update_new_keyframe();
 
     if (enable_interruption_before_local_BA_ && (keyframe_is_queued() || pause_is_requested())) {
+        {
+            std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
+            promise_add_keyfrm_queue_.front().set_value();
+            promise_add_keyfrm_queue_.pop_front();
+        }
         return;
     }
 
@@ -253,6 +236,12 @@ void mapping_module::mapping_with_new_keyframe() {
     }
 
     local_map_cleaner_->remove_redundant_keyframes(cur_keyfrm_);
+
+    {
+        std::lock_guard<std::mutex> lock(mtx_keyfrm_queue_);
+        promise_add_keyfrm_queue_.front().set_value();
+        promise_add_keyfrm_queue_.pop_front();
+    }
 }
 
 void mapping_module::store_new_keyframe() {
@@ -646,7 +635,6 @@ void mapping_module::terminate() {
     {
         std::lock_guard<std::mutex> lock_terminate(mtx_terminate_);
         is_terminated_ = true;
-        set_is_idle(true);
         promise_terminate_.set_value();
         promise_terminate_ = std::promise<void>();
         future_terminate_ = std::shared_future<void>();

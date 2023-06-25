@@ -147,7 +147,10 @@ protected:
     bool initialize();
 
     //! Main stream of the tracking module
-    bool track(bool relocalization_is_needed);
+    bool track(bool relocalization_is_needed,
+               unsigned int& num_tracked_lms,
+               unsigned int& num_reliable_lms,
+               const unsigned int min_num_obs_thr);
     bool track_local_map(unsigned int& num_tracked_lms,
                          unsigned int& num_reliable_lms,
                          unsigned int min_num_obs_thr);

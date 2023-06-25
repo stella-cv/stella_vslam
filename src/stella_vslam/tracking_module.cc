@@ -127,18 +127,19 @@ std::shared_ptr<Mat44_t> tracking_module::feed_frame(data::frame curr_frm) {
         succeeded = initialize();
     }
     else {
+        std::lock_guard<std::mutex> lock(mtx_stop_keyframe_insertion_);
         bool relocalization_is_needed = tracking_state_ == tracker_state_t::Lost;
         SPDLOG_TRACE("tracking_module: start tracking");
-        succeeded = track(relocalization_is_needed);
-    }
+        unsigned int num_tracked_lms = 0;
+        unsigned int num_reliable_lms = 0;
+        const unsigned int min_num_obs_thr = (3 <= map_db_->get_num_keyframes()) ? 3 : 2;
+        succeeded = track(relocalization_is_needed, num_tracked_lms, num_reliable_lms, min_num_obs_thr);
 
-#ifdef DETERMINISTIC
-    // make sure the mapper has processed any new keyframes before doing anything else
-    std::unique_lock<std::mutex> mapping_lock(mapper_->mtx_processing_);
-    mapper_->processing_cv_.wait(
-        mapping_lock, [this] { return mapper_->is_idle() && !mapper_->keyframe_is_queued(); });
-    mapping_lock.unlock();
-#endif
+        // check to insert the new keyframe derived from the current frame
+        if (succeeded && !is_stopped_keyframe_insertion_ && new_keyframe_is_needed(num_tracked_lms, num_reliable_lms, min_num_obs_thr)) {
+            insert_new_keyframe();
+        }
+    }
 
     // state transition
     if (succeeded) {
@@ -175,11 +176,13 @@ std::shared_ptr<Mat44_t> tracking_module::feed_frame(data::frame curr_frm) {
     return cam_pose_wc;
 }
 
-bool tracking_module::track(bool relocalization_is_needed) {
+bool tracking_module::track(bool relocalization_is_needed,
+                            unsigned int& num_tracked_lms,
+                            unsigned int& num_reliable_lms,
+                            const unsigned int min_num_obs_thr) {
     // LOCK the map database
     std::lock_guard<std::mutex> lock1(data::map_database::mtx_database_);
     std::lock_guard<std::mutex> lock2(mtx_last_frm_);
-    std::lock_guard<std::mutex> lock3(mtx_stop_keyframe_insertion_);
 
     // update the camera pose of the last frame
     // because the mapping module might optimize the camera pose of the last frame's reference keyframe
@@ -214,9 +217,6 @@ bool tracking_module::track(bool relocalization_is_needed) {
     }
 
     // update the local map and optimize current camera pose
-    unsigned int num_tracked_lms = 0;
-    unsigned int num_reliable_lms = 0;
-    const unsigned int min_num_obs_thr = (3 <= map_db_->get_num_keyframes()) ? 3 : 2;
     if (succeeded) {
         succeeded = track_local_map(num_tracked_lms, num_reliable_lms, min_num_obs_thr);
     }
@@ -231,12 +231,6 @@ bool tracking_module::track(bool relocalization_is_needed) {
     if (succeeded) {
         SPDLOG_TRACE("tracking_module: update_motion_model (curr_frm_={})", curr_frm_.id_);
         update_motion_model();
-    }
-
-    // check to insert the new keyframe derived from the current frame
-    if (succeeded && !is_stopped_keyframe_insertion_ && new_keyframe_is_needed(num_tracked_lms, num_reliable_lms, min_num_obs_thr)) {
-        SPDLOG_TRACE("tracking_module: insert_new_keyframe (curr_frm_={})", curr_frm_.id_);
-        insert_new_keyframe();
     }
 
     // update the frame statistics
@@ -297,12 +291,14 @@ bool tracking_module::track_local_map_without_temporal_keyframes(unsigned int& n
 }
 
 bool tracking_module::initialize() {
-    // LOCK the map database
-    std::lock_guard<std::mutex> lock1(data::map_database::mtx_database_);
-    std::lock_guard<std::mutex> lock2(mtx_stop_keyframe_insertion_);
+    {
+        // LOCK the map database
+        std::lock_guard<std::mutex> lock1(data::map_database::mtx_database_);
+        std::lock_guard<std::mutex> lock2(mtx_stop_keyframe_insertion_);
 
-    // try to initialize with the current frame
-    initializer_.initialize(camera_->setup_type_, bow_vocab_, curr_frm_);
+        // try to initialize with the current frame
+        initializer_.initialize(camera_->setup_type_, bow_vocab_, curr_frm_);
+    }
 
     // if map building was failed -> reset the map database
     if (initializer_.get_state() == module::initializer_state_t::Wrong) {
@@ -318,7 +314,8 @@ bool tracking_module::initialize() {
     // pass all of the keyframes to the mapping module
     assert(!is_stopped_keyframe_insertion_);
     for (const auto& keyfrm : curr_frm_.ref_keyfrm_->graph_node_->get_keyframes_from_root()) {
-        mapper_->queue_keyframe(keyfrm);
+        auto future = mapper_->async_add_keyframe(keyfrm);
+        future.get();
     }
 
     // succeeded
@@ -597,6 +594,7 @@ bool tracking_module::new_keyframe_is_needed(unsigned int num_tracked_lms,
 }
 
 void tracking_module::insert_new_keyframe() {
+    SPDLOG_TRACE("tracking_module: insert_new_keyframe (curr_frm_={})", curr_frm_.id_);
     // insert the new keyframe
     const auto ref_keyfrm = keyfrm_inserter_.insert_new_keyframe(map_db_, curr_frm_);
     // set the reference keyframe with the new keyframe

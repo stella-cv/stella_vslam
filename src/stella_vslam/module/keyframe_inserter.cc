@@ -15,13 +15,15 @@ keyframe_inserter::keyframe_inserter(const double max_interval,
                                      const double max_distance,
                                      const double lms_ratio_thr_almost_all_lms_are_tracked,
                                      const double lms_ratio_thr_view_changed,
-                                     const unsigned int enough_lms_thr)
+                                     const unsigned int enough_lms_thr,
+                                     const bool wait_for_local_bundle_adjustment)
     : max_interval_(max_interval),
       min_interval_(min_interval),
       max_distance_(max_distance),
       lms_ratio_thr_almost_all_lms_are_tracked_(lms_ratio_thr_almost_all_lms_are_tracked),
       lms_ratio_thr_view_changed_(lms_ratio_thr_view_changed),
-      enough_lms_thr_(enough_lms_thr) {}
+      enough_lms_thr_(enough_lms_thr),
+      wait_for_local_bundle_adjustment_(wait_for_local_bundle_adjustment) {}
 
 keyframe_inserter::keyframe_inserter(const YAML::Node& yaml_node)
     : keyframe_inserter(yaml_node["max_interval"].as<double>(1.0),
@@ -29,7 +31,8 @@ keyframe_inserter::keyframe_inserter(const YAML::Node& yaml_node)
                         yaml_node["max_distance"].as<double>(-1.0),
                         yaml_node["lms_ratio_thr_almost_all_lms_are_tracked"].as<double>(0.9),
                         yaml_node["lms_ratio_thr_view_changed"].as<double>(0.5),
-                        yaml_node["enough_lms_thr"].as<unsigned int>(100)) {}
+                        yaml_node["enough_lms_thr"].as<unsigned int>(100),
+                        yaml_node["wait_for_local_bundle_adjustment"].as<bool>(false)) {}
 
 void keyframe_inserter::set_mapping_module(mapping_module* mapper) {
     mapper_ = mapper;
@@ -125,7 +128,7 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
 
     // Queue up the keyframe to the mapping module
     if (!keyfrm->depth_is_available()) {
-        queue_keyframe(keyfrm);
+        add_keyframe(keyfrm);
         return keyfrm;
     }
 
@@ -143,7 +146,7 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
 
     // Queue up the keyframe to the mapping module if any valid depth values don't exist
     if (depth_idx_pairs.empty()) {
-        queue_keyframe(keyfrm);
+        add_keyframe(keyfrm);
         return keyfrm;
     }
 
@@ -185,12 +188,15 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
     }
 
     // Queue up the keyframe to the mapping module
-    queue_keyframe(keyfrm);
+    add_keyframe(keyfrm);
     return keyfrm;
 }
 
-void keyframe_inserter::queue_keyframe(const std::shared_ptr<data::keyframe>& keyfrm) {
-    mapper_->queue_keyframe(keyfrm);
+void keyframe_inserter::add_keyframe(const std::shared_ptr<data::keyframe>& keyfrm) {
+    auto future = mapper_->async_add_keyframe(keyfrm);
+    if (wait_for_local_bundle_adjustment_) {
+        future.get();
+    }
 }
 
 } // namespace module

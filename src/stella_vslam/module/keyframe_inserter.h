@@ -24,7 +24,8 @@ public:
                                const double max_distance = -1.0,
                                const double lms_ratio_thr_almost_all_lms_are_tracked = 0.9,
                                const double lms_ratio_thr_view_changed = 0.8,
-                               const unsigned int enough_lms_thr = 100);
+                               const unsigned int enough_lms_thr = 100,
+                               const bool wait_for_local_bundle_adjustment = false);
 
     explicit keyframe_inserter(const YAML::Node& yaml_node);
 
@@ -53,7 +54,7 @@ private:
     /**
      * Queue the new keyframe to the mapping module
      */
-    void queue_keyframe(const std::shared_ptr<data::keyframe>& keyfrm);
+    void add_keyframe(const std::shared_ptr<data::keyframe>& keyfrm);
 
     //! mapping module
     mapping_module* mapper_ = nullptr;
@@ -68,6 +69,7 @@ private:
     const double lms_ratio_thr_view_changed_ = 0.8;
 
     const unsigned int enough_lms_thr_ = 100;
+    const bool wait_for_local_bundle_adjustment_ = false;
 };
 
 } // namespace module
