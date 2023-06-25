@@ -312,13 +312,13 @@ jobs:
           cd build
           ./run_video_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --log-level=debug --eval-log-dir . --map-db-in map.msg
 
-  rosdep_foxy:
+  rosdep_humble:
     runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
     container:
-      image: ghcr.io/ymd-stella/stella-cv/ros:foxy-ros-base
+      image: ghcr.io/ymd-stella/stella-cv/ros:humble-ros-base
     steps:
       - uses: actions/checkout@v3
         with:
