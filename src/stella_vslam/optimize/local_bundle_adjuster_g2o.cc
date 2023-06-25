@@ -379,7 +379,7 @@ void local_bundle_adjuster_g2o::optimize(data::map_database* map_db,
             const auto& local_keyfrm = id_local_keyfrm_pair.second;
 
             auto keyfrm_vtx = keyfrm_vtx_container.get_vertex(local_keyfrm);
-            local_keyfrm->set_pose_cw(keyfrm_vtx->estimate());
+            local_keyfrm->set_pose_cw(util::converter::to_eigen_mat(keyfrm_vtx->estimate()));
         }
 
         for (const auto& id_local_lm_pair : local_lms) {
