@@ -60,12 +60,6 @@ public:
     void set_pose_cw(const Mat44_t& pose_cw);
 
     /**
-     * Set camera pose and refresh rotation and translation
-     * @param pose_cw
-     */
-    void set_pose_cw(const g2o::SE3Quat& pose_cw);
-
-    /**
      * Get camera pose
      */
     Mat44_t get_pose_cw() const;

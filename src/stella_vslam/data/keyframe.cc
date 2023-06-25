@@ -258,10 +258,6 @@ void keyframe::set_pose_cw(const Mat44_t& pose_cw) {
     pose_wc_.block<3, 1>(0, 3) = trans_wc_;
 }
 
-void keyframe::set_pose_cw(const g2o::SE3Quat& pose_cw) {
-    set_pose_cw(util::converter::to_eigen_mat(pose_cw));
-}
-
 Mat44_t keyframe::get_pose_cw() const {
     std::lock_guard<std::mutex> lock(mtx_pose_);
     return pose_cw_;

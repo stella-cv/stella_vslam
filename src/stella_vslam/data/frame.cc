@@ -31,10 +31,6 @@ void frame::set_pose_cw(const Mat44_t& pose_cw) {
     trans_wc_ = -rot_cw_.transpose() * trans_cw_;
 }
 
-void frame::set_pose_cw(const g2o::SE3Quat& pose_cw) {
-    set_pose_cw(util::converter::to_eigen_mat(pose_cw));
-}
-
 Mat44_t frame::get_pose_cw() const {
     return pose_cw_;
 }
