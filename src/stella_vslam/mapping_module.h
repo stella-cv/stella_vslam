@@ -51,16 +51,13 @@ public:
     void run();
 
     //! Queue a keyframe to process the mapping
-    void queue_keyframe(const std::shared_ptr<data::keyframe>& keyfrm);
+    std::shared_future<void> async_add_keyframe(const std::shared_ptr<data::keyframe>& keyfrm);
 
     //! Check if keyframe is queued
     bool keyframe_is_queued() const;
 
     //! Get the number of queued keyframes
     unsigned int get_num_queued_keyframes() const;
-
-    //! True when no keyframes are being processed
-    bool is_idle() const;
 
     //! If the size of the queue exceeds this threshold, skip the localBA
     bool is_skipping_localBA() const;
@@ -102,17 +99,6 @@ public:
     //! (NOTE: this function does not wait for abort)
     void abort_local_BA();
 
-#ifdef DETERMINISTIC
-    //-----------------------------------------
-    // management for synchronization with tracking
-
-    //! Signal that processing is done
-    std::condition_variable processing_cv_;
-
-    //! Mutex for blocking tracking until we're done
-    std::mutex mtx_processing_;
-#endif
-
 private:
     //-----------------------------------------
     // main process
@@ -136,9 +122,6 @@ private:
     //! Fuse duplicated landmarks between current keyframe and covisibility keyframes
     void fuse_landmark_duplication(const std::vector<std::shared_ptr<data::keyframe>>& fuse_tgt_keyfrms,
                                    nondeterministic::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>& replaced_lms);
-
-    //! Set is_idle (True when no keyframes are being processed.)
-    void set_is_idle(const bool is_idle);
 
     //-----------------------------------------
     // management for reset process
@@ -236,6 +219,9 @@ private:
     //! queue for keyframes
     std::list<std::shared_ptr<data::keyframe>> keyfrms_queue_;
 
+    //! queue for promises
+    std::list<std::promise<void>> promise_add_keyfrm_queue_;
+
     //-----------------------------------------
     // optimizer
 
@@ -247,9 +233,6 @@ private:
 
     //-----------------------------------------
     // others
-
-    //! True when no keyframes are being processed
-    std::atomic<bool> is_idle_{true};
 
     //! current keyframe which is used in the current mapping
     std::shared_ptr<data::keyframe> cur_keyfrm_ = nullptr;

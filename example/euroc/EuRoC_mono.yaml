@@ -45,6 +45,9 @@ Tracking:
   backend: "g2o"
   enable_temporal_keyframe_only_tracking: false
 
+KeyframeInserter:
+  wait_for_local_bundle_adjustment: false
+
 Relocalizer:
   search_neighbor: true
 
