@@ -43,8 +43,8 @@ unsigned int pose_optimizer_g2o::optimize(const Mat44_t& cam_pose_cw, const data
                                           std::vector<bool>& outlier_flags) const {
     // 1. Construct an optimizer
 
-    auto linear_solver = g2o::make_unique<g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>>();
-    auto block_solver = g2o::make_unique<g2o::BlockSolver_6_3>(std::move(linear_solver));
+    auto linear_solver = stella_vslam::make_unique<g2o::LinearSolverEigen<g2o::BlockSolver_6_3::PoseMatrixType>>();
+    auto block_solver = stella_vslam::make_unique<g2o::BlockSolver_6_3>(std::move(linear_solver));
     auto algorithm = new g2o::OptimizationAlgorithmLevenberg(std::move(block_solver));
 
     g2o::SparseOptimizer optimizer;
