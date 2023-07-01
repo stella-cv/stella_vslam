@@ -32,7 +32,7 @@ public:
     Vec2_t cam_project(const Vec3_t& pos_c) const;
 
     Vec3_t pos_w_;
-    number_t fx_, fy_, cx_, cy_;
+    double fx_, fy_, cx_, cy_;
 };
 
 inline mono_perspective_pose_opt_edge::mono_perspective_pose_opt_edge()
@@ -124,7 +124,7 @@ public:
     Vec3_t cam_project(const Vec3_t& pos_c) const;
 
     Vec3_t pos_w_;
-    number_t fx_, fy_, cx_, cy_, focal_x_baseline_;
+    double fx_, fy_, cx_, cy_, focal_x_baseline_;
 };
 
 inline stereo_perspective_pose_opt_edge::stereo_perspective_pose_opt_edge()

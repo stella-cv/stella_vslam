@@ -23,7 +23,7 @@ public:
 
     void setToOriginImpl() override;
 
-    void oplusImpl(const number_t* update_) override;
+    void oplusImpl(const double* update_) override;
 
     bool fix_scale_;
 };
@@ -53,8 +53,8 @@ inline void shot_vertex::setToOriginImpl() {
     _estimate = g2o::Sim3();
 }
 
-inline void shot_vertex::oplusImpl(const number_t* update_) {
-    Eigen::Map<Vec7_t> update(const_cast<number_t*>(update_));
+inline void shot_vertex::oplusImpl(const double* update_) {
+    Eigen::Map<Vec7_t> update(const_cast<double*>(update_));
 
     if (fix_scale_) {
         update(6) = 0;

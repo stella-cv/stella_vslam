@@ -23,7 +23,7 @@ public:
 
     void setToOriginImpl() override;
 
-    void oplusImpl(const number_t* update_) override;
+    void oplusImpl(const double* update_) override;
 };
 
 inline shot_vertex::shot_vertex()
@@ -52,7 +52,7 @@ inline void shot_vertex::setToOriginImpl() {
     _estimate = g2o::SE3Quat();
 }
 
-inline void shot_vertex::oplusImpl(const number_t* update_) {
+inline void shot_vertex::oplusImpl(const double* update_) {
     Eigen::Map<const Vec6_t> update(update_);
     setEstimate(g2o::SE3Quat::exp(update) * estimate());
 }
