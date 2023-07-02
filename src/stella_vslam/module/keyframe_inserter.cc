@@ -106,8 +106,11 @@ bool keyframe_inserter::new_keyframe_is_needed(data::map_database* map_db,
            && !mapper_is_skipping_localBA;
 }
 
-std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map_database* map_db,
-                                                                       data::frame& curr_frm) {
+std::shared_ptr<data::keyframe> keyframe_inserter::create_new_keyframe(
+    data::map_database* map_db,
+    data::frame& curr_frm) {
+    std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
+
     auto keyfrm = data::keyframe::make_keyframe(map_db->next_keyframe_id_++, curr_frm);
     keyfrm->update_landmarks();
 
@@ -128,7 +131,6 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
 
     // Queue up the keyframe to the mapping module
     if (!keyfrm->depth_is_available()) {
-        add_keyframe(keyfrm);
         return keyfrm;
     }
 
@@ -146,7 +148,6 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
 
     // Queue up the keyframe to the mapping module if any valid depth values don't exist
     if (depth_idx_pairs.empty()) {
-        add_keyframe(keyfrm);
         return keyfrm;
     }
 
@@ -188,14 +189,21 @@ std::shared_ptr<data::keyframe> keyframe_inserter::insert_new_keyframe(data::map
     }
 
     // Queue up the keyframe to the mapping module
-    add_keyframe(keyfrm);
     return keyfrm;
 }
 
-void keyframe_inserter::add_keyframe(const std::shared_ptr<data::keyframe>& keyfrm) {
-    auto future = mapper_->async_add_keyframe(keyfrm);
+void keyframe_inserter::insert_new_keyframe(data::map_database* map_db,
+                                            data::frame& curr_frm) {
+    SPDLOG_TRACE("keyframe_inserter: insert_new_keyframe (curr_frm={})", curr_frm.id_);
+    // insert the new keyframe
+    const auto ref_keyfrm = create_new_keyframe(map_db, curr_frm);
+    auto future_add_keyframe = mapper_->async_add_keyframe(ref_keyfrm);
     if (wait_for_local_bundle_adjustment_) {
-        future.get();
+        future_add_keyframe.get();
+    }
+    // set the reference keyframe with the new keyframe
+    if (ref_keyfrm) {
+        curr_frm.ref_keyfrm_ = ref_keyfrm;
     }
 }
 

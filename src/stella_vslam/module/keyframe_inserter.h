@@ -48,13 +48,10 @@ public:
     /**
      * Insert the new keyframe derived from the current frame
      */
-    std::shared_ptr<data::keyframe> insert_new_keyframe(data::map_database* map_db, data::frame& curr_frm);
+    void insert_new_keyframe(data::map_database* map_db, data::frame& curr_frm);
 
 private:
-    /**
-     * Queue the new keyframe to the mapping module
-     */
-    void add_keyframe(const std::shared_ptr<data::keyframe>& keyfrm);
+    std::shared_ptr<data::keyframe> create_new_keyframe(data::map_database* map_db, data::frame& curr_frm);
 
     //! mapping module
     mapping_module* mapper_ = nullptr;

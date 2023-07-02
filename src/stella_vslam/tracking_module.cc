@@ -137,7 +137,7 @@ std::shared_ptr<Mat44_t> tracking_module::feed_frame(data::frame curr_frm) {
 
         // check to insert the new keyframe derived from the current frame
         if (succeeded && !is_stopped_keyframe_insertion_ && new_keyframe_is_needed(num_tracked_lms, num_reliable_lms, min_num_obs_thr)) {
-            insert_new_keyframe();
+            keyfrm_inserter_.insert_new_keyframe(map_db_, curr_frm_);
         }
     }
 
@@ -591,16 +591,6 @@ bool tracking_module::new_keyframe_is_needed(unsigned int num_tracked_lms,
 
     // check the new keyframe is needed
     return keyfrm_inserter_.new_keyframe_is_needed(map_db_, curr_frm_, num_tracked_lms, num_reliable_lms, *curr_frm_.ref_keyfrm_, min_num_obs_thr);
-}
-
-void tracking_module::insert_new_keyframe() {
-    SPDLOG_TRACE("tracking_module: insert_new_keyframe (curr_frm_={})", curr_frm_.id_);
-    // insert the new keyframe
-    const auto ref_keyfrm = keyfrm_inserter_.insert_new_keyframe(map_db_, curr_frm_);
-    // set the reference keyframe with the new keyframe
-    if (ref_keyfrm) {
-        curr_frm_.ref_keyfrm_ = ref_keyfrm;
-    }
 }
 
 std::future<void> tracking_module::async_stop_keyframe_insertion() {
