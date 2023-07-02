@@ -133,6 +133,20 @@ struct id_less<std::weak_ptr<T>> {
     }
 };
 
+template<class T, class U>
+struct less_number_and_id_object_pairs {
+    bool operator()(const std::pair<T, std::shared_ptr<U>>& a, const std::pair<T, std::shared_ptr<U>>& b) {
+        return a.first < b.first || (a.first == b.first && a.second != nullptr && (b.second == nullptr || a.second->id_ < b.second->id_));
+    }
+};
+
+template<class T, class U>
+struct greater_number_and_id_object_pairs {
+    bool operator()(const std::pair<T, std::shared_ptr<U>>& a, const std::pair<T, std::shared_ptr<U>>& b) {
+        return a.first > b.first || (a.first == b.first && a.second != nullptr && (b.second == nullptr || a.second->id_ < b.second->id_));
+    }
+};
+
 template<class T>
 using id_ordered_set = std::set<T, id_less<T>>;
 

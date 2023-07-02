@@ -44,13 +44,16 @@ private:
                               unsigned int keyframe_id_threshold);
 
     //! Count the number of shared landmarks between the current frame and each of the neighbor keyframes
-    keyframe_to_num_shared_lms_t count_num_shared_lms(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
-                                                      const unsigned int num_keypts,
-                                                      unsigned int keyframe_id_threshold) const;
+    auto count_num_shared_lms(
+        const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
+        const unsigned int num_keypts,
+        unsigned int keyframe_id_threshold) const
+        -> std::vector<std::pair<unsigned int, std::shared_ptr<data::keyframe>>>;
 
     //! Find the first-order local keyframes
-    auto find_first_local_keyframes(const keyframe_to_num_shared_lms_t& keyfrm_weights,
-                                    std::unordered_set<unsigned int>& already_found_ids)
+    auto find_first_local_keyframes(
+        const std::vector<std::pair<unsigned int, std::shared_ptr<data::keyframe>>>& keyfrm_weights,
+        std::unordered_set<unsigned int>& already_found_ids)
         -> std::vector<std::shared_ptr<data::keyframe>>;
 
     //! Find the second-order local keyframes
