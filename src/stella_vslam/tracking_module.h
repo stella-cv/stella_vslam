@@ -190,9 +190,6 @@ protected:
                                 unsigned int num_reliable_lms,
                                 const unsigned int min_num_obs_thr) const;
 
-    //! Insert the new keyframe derived from the current frame
-    void insert_new_keyframe();
-
     //! mapping module
     mapping_module* mapper_ = nullptr;
     //! global optimization module
