@@ -542,6 +542,13 @@ void mapping_module::reset() {
     std::lock_guard<std::mutex> lock(mtx_reset_);
     spdlog::info("reset mapping module");
     keyfrms_queue_.clear();
+    {
+        std::lock_guard<std::mutex> lock_keyfrm_queue(mtx_keyfrm_queue_);
+        while (!promise_add_keyfrm_queue_.empty()) {
+            promise_add_keyfrm_queue_.front().set_value();
+            promise_add_keyfrm_queue_.pop_front();
+        }
+    }
     local_map_cleaner_->reset();
     reset_is_requested_ = false;
     promise_reset_.set_value();
