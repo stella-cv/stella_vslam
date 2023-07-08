@@ -228,14 +228,47 @@ RUN set -x && \
   mkdir -p build && \
   cd build && \
   cmake \
-    -DUSE_PANGOLIN_VIEWER=ON \
-    -DBUILD_EXAMPLES=ON \
-    -DUSE_STACK_TRACE_LOGGER=ON \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     .. && \
   make -j${NUM_THREADS} && \
+  make install && \
   rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \
   chmod -R 777 ./*
 
-WORKDIR /stella_vslam/build/
+ARG PANGOLIN_VIEWER_COMMIT=f3564675d420bcdbe6380b29b5e2f2b623987dd0
+WORKDIR /tmp
+RUN set -x && \
+  git clone https://github.com/stella-cv/pangolin_viewer.git && \
+  cd pangolin_viewer && \
+  git checkout -q ${PANGOLIN_VIEWER_COMMIT} && \
+  git submodule update --init --recursive && \
+  mkdir -p build && \
+  cd build && \
+  cmake \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
+    .. && \
+  make -j${NUM_THREADS} && \
+  make install && \
+  cd /tmp && \
+  rm -rf *
+
+ARG EXAMPLES_COMMIT=1c0433867cba5d110fd94bbc609468650a2f7885
+WORKDIR /stella_vslam_examples
+RUN set -x && \
+  git clone https://github.com/stella-cv/stella_vslam_examples.git && \
+  cd stella_vslam_examples && \
+  git checkout -q ${EXAMPLES_COMMIT} && \
+  git submodule update --init --recursive && \
+  mkdir -p build && \
+  cd build && \
+  cmake \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
+    -DUSE_STACK_TRACE_LOGGER=ON \
+    -DUSE_PANGOLIN_VIEWER=ON \
+    .. && \
+  make -j${NUM_THREADS}
+
+WORKDIR /stella_vslam_examples/build/
 ENTRYPOINT ["/bin/bash"]

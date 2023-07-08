@@ -1,19 +1,11 @@
 include(CMakeFindDependencyMacro)
 
 find_dependency(Threads)
+find_dependency(OpenMP)
 find_dependency(OpenCV)
 find_dependency(Eigen3)
 find_dependency(g2o)
 find_dependency(yaml-cpp)
-
-if(@USE_PANGOLIN_VIEWER@)
-    find_dependency(Pangolin)
-endif()
-
-if(@USE_SOCKET_PUBLISHER@)
-    find_dependency(sioclient)
-    find_dependency(Protobuf)
-endif()
 
 if(@BOW_FRAMEWORK@ MATCHES "DBoW2")
     find_dependency(DBoW2)

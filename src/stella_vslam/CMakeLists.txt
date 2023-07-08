@@ -231,8 +231,6 @@ install(FILES ${HEADERS}
 # Install 3rd party headers
 install(FILES ${json_INCLUDE_DIR}/nlohmann/json.hpp ${json_INCLUDE_DIR}/nlohmann/json_fwd.hpp
         DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/json/include/nlohmann)
-install(DIRECTORY ${tinycolormap_INCLUDE_DIR}
-        DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/tinycolormap)
 install(DIRECTORY ${spdlog_INCLUDE_DIR}
         DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/spdlog)
 
