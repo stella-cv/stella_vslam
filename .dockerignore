@@ -12,7 +12,6 @@ README.md
 wercker.yml
 docs/
 test/
-viewer/
 
 # build directory
 build/
