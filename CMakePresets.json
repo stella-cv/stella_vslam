@@ -13,14 +13,6 @@
       "generator": "Visual Studio 16 2019",
       "binaryDir": "${sourceDir}/build/msvc-x64-static-debug",
       "cacheVariables": {
-        "BUILD_EXAMPLES": {
-          "type": "BOOL",
-          "value": "OFF"
-        },
-        "USE_PANGOLIN_VIEWER": {
-          "type": "BOOL",
-          "value": "OFF"
-        },
         "CMAKE_CXX_FLAGS": {
           "type": "STRING",
           "value": "/DNOMINMAX=1 /bigobj /W4 /MTd /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127 /Zo /EHsc"
@@ -50,14 +42,6 @@
       "generator": "Visual Studio 16 2019",
       "binaryDir": "${sourceDir}/build/msvc-x64-static-release",
       "cacheVariables": {
-        "BUILD_EXAMPLES": {
-          "type": "BOOL",
-          "value": "OFF"
-        },
-        "USE_PANGOLIN_VIEWER": {
-          "type": "BOOL",
-          "value": "OFF"
-        },
         "CMAKE_CXX_FLAGS": {
           "type": "STRING",
           "value": "/DNOMINMAX=1 /bigobj /W4 /MT /source-charset:utf-8 /execution-charset:utf-8 /wd4251 /wd4244 /wd4305 /wd4267 /wd4127 /O2 /EHsc"

@@ -35,29 +35,6 @@ jobs:
           style: file
           inplace: False
 
-  build_with_gui:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-    container:
-      image: ghcr.io/ymd-stella/stella-cv/stella_vslam:cv-4.x
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-      - name: cmake and make with pangolin viewer
-        run: |
-          mkdir build
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_PANGOLIN_VIEWER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
-          make -j $(($(nproc) / 2))
-      - name: cmake and make with socket publisher
-        run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=None -DBUILD_EXAMPLES=ON -DUSE_SOCKET_PUBLISHER=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON ..
-          make -j $(($(nproc) / 2))
-
   build_without_gui_cv3:
     runs-on: ubuntu-latest
     defaults:
@@ -73,7 +50,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
+          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
           make -j $(($(nproc) / 2))
       - name: unit test
         run: |
@@ -81,7 +58,7 @@ jobs:
           export BOW_VOCAB=/datasets/orb_vocab/orb_vocab.fbow
           ctest -V
 
-  build_without_gui:
+  build:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -98,11 +75,35 @@ jobs:
       - name: Save cpuinfo
         run: |
           cp /proc/cpuinfo artifact
-      - name: cmake and make
+      - name: cmake and make library
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
+          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
+          make -j $(($(nproc) / 2))
+          make install
+      - uses: actions/checkout@v3
+        with:
+          repository: stella-cv/pangolin_viewer
+          path: pangolin_viewer
+          submodules: recursive
+      - name: cmake and make pangolin_viewer
+        run: |
+          mkdir -p pangolin_viewer/build
+          cd pangolin_viewer/build
+          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_PANGOLIN_VIEWER=ON ..
+          make -j $(($(nproc) / 2))
+          make install
+      - uses: actions/checkout@v3
+        with:
+          repository: stella-cv/stella_vslam_examples
+          path: stella_vslam_examples
+          submodules: recursive
+      - name: cmake and make examples
+        run: |
+          mkdir -p stella_vslam_examples/build
+          cd stella_vslam_examples/build
+          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_STACK_TRACE_LOGGER=ON -DUSE_PANGOLIN_VIEWER=ON ..
           make -j $(($(nproc) / 2))
       - name: unit test
         run: |
@@ -129,51 +130,51 @@ jobs:
       - name: SLAM test (monocular) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
-          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_01_mono.msg
+          ../stella_vslam_examples/build/run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_01_mono.msg --viewer=none
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_mono_slam.txt
           mv track_times.txt ../artifact/track_times_MH_01_mono_slam.txt
-          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_gtsam.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_01_mono_gtsam.msg
+          ../stella_vslam_examples/build/run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_gtsam.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_01_mono_gtsam.msg --viewer=none
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_mono_gtsam_slam.txt
           mv track_times.txt ../artifact/track_times_MH_01_mono_gtsam_slam.txt
-          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_sqlite3.yaml --frame-skip 2 --no-sleep --log-level=debug --map-db-out MH_01_mono_sqlite3.db
+          ../stella_vslam_examples/build/run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_sqlite3.yaml --frame-skip 2 --no-sleep --log-level=debug --map-db-out MH_01_mono_sqlite3.db --viewer=none
       - name: SLAM test (stereo) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
-          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_01_stereo.msg
+          ../stella_vslam_examples/build/run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_01_stereo.msg --viewer=none
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_stereo_slam.txt
           mv track_times.txt ../artifact/track_times_MH_01_stereo_slam.txt
-          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_stereo_gtsam.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_01_stereo_gtsam.msg
+          ../stella_vslam_examples/build/run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_stereo_gtsam.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_01_stereo_gtsam.msg --viewer=none
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_stereo_gtsam_slam.txt
           mv track_times.txt ../artifact/track_times_MH_01_stereo_gtsam_slam.txt
       - name: Localization test (monocular) with EuRoC MAV dataset (MH_01)
         run: |
           cd build
-          ./run_euroc_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_01_mono.msg
+          ../stella_vslam_examples/build/run_euroc_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_01_mono.msg --viewer=none
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_mono_localization.txt
           mv track_times.txt ../artifact/track_times_MH_01_mono_localization.txt
-          ./run_euroc_slam --temporal-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_temporal_mapping.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_01_mono.msg
+          ../stella_vslam_examples/build/run_euroc_slam --temporal-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_temporal_mapping.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_01_mono.msg --viewer=none
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_01_mono_localization_temporal_mapping.txt
           mv track_times.txt ../artifact/track_times_MH_01_mono_localization_temporal_mapping.txt
-          ./run_euroc_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_sqlite3.yaml --frame-skip 2 --no-sleep --log-level=debug --map-db-in MH_01_mono_sqlite3.db
+          ../stella_vslam_examples/build/run_euroc_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_01 -c ../EuRoC_mono_sqlite3.yaml --frame-skip 2 --no-sleep --log-level=debug --map-db-in MH_01_mono_sqlite3.db --viewer=none
       - name: SLAM test (monocular) with EuRoC MAV dataset (MH_04)
         run: |
           cd build
-          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_04_mono.msg
+          ../stella_vslam_examples/build/run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_04_mono.msg --viewer=none
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_04_mono_slam.txt
           mv track_times.txt ../artifact/track_times_MH_04_mono_slam.txt
       - name: SLAM test (stereo) with EuRoC MAV dataset (MH_04)
         run: |
           cd build
-          ./run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_04_stereo.msg
+          ../stella_vslam_examples/build/run_euroc_slam -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_stereo.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-out MH_04_stereo.msg --viewer=none
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_04_stereo_slam.txt
           mv track_times.txt ../artifact/track_times_MH_04_stereo_slam.txt
       - name: Localization test (monocular) with EuRoC MAV dataset (MH_04)
         run: |
           cd build
-          ./run_euroc_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_04_mono.msg
+          ../stella_vslam_examples/build/run_euroc_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../example/euroc/EuRoC_mono.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_04_mono.msg --viewer=none
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_04_mono_localization.txt
           mv track_times.txt ../artifact/track_times_MH_04_mono_localization.txt
-          ./run_euroc_slam --temporal-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../EuRoC_mono_temporal_mapping.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_04_mono.msg
+          ../stella_vslam_examples/build/run_euroc_slam --temporal-mapping -v /datasets/orb_vocab/orb_vocab.fbow -d /datasets/EuRoC/MH_04 -c ../EuRoC_mono_temporal_mapping.yaml --frame-skip 2 --no-sleep --log-level=debug --eval-log-dir . --map-db-in MH_04_mono.msg --viewer=none
           mv frame_trajectory.txt ../artifact/frame_trajectory_MH_04_mono_localization_temporal_mapping.txt
           mv track_times.txt ../artifact/track_times_MH_04_mono_localization_temporal_mapping.txt
       - name: download openvslam_test_dataset
@@ -190,22 +191,22 @@ jobs:
       - name: SLAM test with equirectangular dataset (1)
         run: |
           cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/1/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db-out equirectangular_map.msg -t 0.0
+          ../stella_vslam_examples/build/run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/1/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db-out equirectangular_map.msg -t 0.0 --viewer=none
           mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_1.txt
           mv track_times.txt ../artifact/track_times_equirectangular_1.txt
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/1/equirectangular/video.mp4 -c ../equirectangular_gtsam.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db-out equirectangular_gtsam_map.msg -t 0.0
+          ../stella_vslam_examples/build/run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/1/equirectangular/video.mp4 -c ../equirectangular_gtsam.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db-out equirectangular_gtsam_map.msg -t 0.0 --viewer=none
           mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_gtsam_1.txt
           mv track_times.txt ../artifact/track_times_equirectangular_gtsam_1.txt
       - name: SLAM test with equirectangular dataset (2)
         run: |
           cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/2/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db-out equirectangular_map.msg -t 0.0
+          ../stella_vslam_examples/build/run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/2/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db-out equirectangular_map.msg -t 0.0 --viewer=none
           mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_2.txt
           mv track_times.txt ../artifact/track_times_equirectangular_2.txt
       - name: SLAM test with equirectangular dataset (3)
         run: |
           cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/3/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db-out equirectangular_map.msg -t 0.0
+          ../stella_vslam_examples/build/run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ../openvslam_test_dataset/3/equirectangular/video.mp4 -c ../equirectangular.yaml --no-sleep --log-level=debug --eval-log-dir . --map-db-out equirectangular_map.msg -t 0.0 --viewer=none
           mv frame_trajectory.txt ../artifact/frame_trajectory_equirectangular_3.txt
           mv track_times.txt ../artifact/track_times_equirectangular_3.txt
       - name: Evaluation
@@ -291,11 +292,23 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
-      - name: cmake and make
+      - name: cmake and make library
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_EXAMPLES=ON -DUSE_STACK_TRACE_LOGGER=ON -DBUILD_TESTS=ON -DUSE_OPENMP=OFF ..
+          cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DUSE_OPENMP=OFF ..
+          make -j $(($(nproc) / 2))
+          make install
+      - uses: actions/checkout@v3
+        with:
+          repository: stella-cv/stella_vslam_examples
+          path: stella_vslam_examples
+          submodules: recursive
+      - name: cmake and make examples
+        run: |
+          mkdir -p stella_vslam_examples/build
+          cd stella_vslam_examples/build
+          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_STACK_TRACE_LOGGER=ON ..
           make -j $(($(nproc) / 2))
       - name: download a dataset
         run: |
@@ -306,11 +319,11 @@ jobs:
       - name: mapping test with the tutorial
         run: |
           cd build
-          ./run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --log-level=debug --eval-log-dir . --map-db-out map.msg
+          ../stella_vslam_examples/build/run_video_slam -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --log-level=debug --eval-log-dir . --map-db-out map.msg --viewer=none
       - name: localization test with the tutorial
         run: |
           cd build
-          ./run_video_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --log-level=debug --eval-log-dir . --map-db-in map.msg
+          ../stella_vslam_examples/build/run_video_slam --disable-mapping -v /datasets/orb_vocab/orb_vocab.fbow -m ./video_for_ci_1/video.mp4 -c ../example/aist/equirectangular.yaml --frame-skip 3 --no-sleep --log-level=debug --eval-log-dir . --map-db-in map.msg --viewer=none
 
   rosdep_humble:
     runs-on: ubuntu-latest
