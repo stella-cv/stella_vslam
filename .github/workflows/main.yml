@@ -91,7 +91,7 @@ jobs:
         run: |
           mkdir -p pangolin_viewer/build
           cd pangolin_viewer/build
-          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_PANGOLIN_VIEWER=ON ..
+          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
           make -j $(($(nproc) / 2))
           make install
       - uses: actions/checkout@v3
@@ -103,7 +103,7 @@ jobs:
         run: |
           mkdir -p stella_vslam_examples/build
           cd stella_vslam_examples/build
-          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_STACK_TRACE_LOGGER=ON -DUSE_PANGOLIN_VIEWER=ON ..
+          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUSE_STACK_TRACE_LOGGER=ON ..
           make -j $(($(nproc) / 2))
       - name: unit test
         run: |
