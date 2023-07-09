@@ -243,7 +243,6 @@ RUN set -x && \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
     -DUSE_STACK_TRACE_LOGGER=ON \
-    -DUSE_PANGOLIN_VIEWER=ON \
     .. && \
   make -j${NUM_THREADS}
 
