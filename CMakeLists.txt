@@ -130,6 +130,15 @@ else()
     message(STATUS "aruco: disabled")
 endif()
 
+# spdlog
+find_package(spdlog QUIET)
+if(spdlog_FOUND)
+  message(STATUS "Use spdlog on system: ${spdlog_VERSION}")
+else()
+  set(spdlog_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/spdlog/include)
+  include_directories(${spdlog_INCLUDE_DIR})
+endif()
+
 # ----- Install configuration -----
 
 include(CMakePackageConfigHelpers)
