@@ -1,8 +1,5 @@
 # ----- Find dependencies -----
 
-# spdlog
-set(spdlog_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/spdlog/include)
-
 # json
 set(json_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/3rd/json/include)
 
@@ -179,10 +176,10 @@ target_include_directories(${PROJECT_NAME}
                            PUBLIC
                            "$<BUILD_INTERFACE:${json_INCLUDE_DIR}>"
                            "$<BUILD_INTERFACE:${tinycolormap_INCLUDE_DIR}>"
-                           "$<BUILD_INTERFACE:${spdlog_INCLUDE_DIR}>"
+                           "$<$<NOT:$<BOOL:${spdlog_FOUND}>>:$<BUILD_INTERFACE:${spdlog_INCLUDE_DIR}>>"
                            "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>"
                            "$<INSTALL_INTERFACE:include/stella_vslam/3rd/json/include>"
-                           "$<INSTALL_INTERFACE:include/stella_vslam/3rd/spdlog/include>"
+                           "$<$<NOT:$<BOOL:${spdlog_FOUND}>>:$<INSTALL_INTERFACE:include/stella_vslam/3rd/spdlog/include>>"
                            "$<INSTALL_INTERFACE:include/>")
 
 # Link to required libraries
@@ -209,6 +206,7 @@ target_link_libraries(${PROJECT_NAME}
                       ${CXSPARSE_LIBRARIES}
                       ${SUITESPARSE_LIBRARIES}
                       ${BoW_LIBRARY}
+                      "$<$<BOOL:${spdlog_FOUND}>:spdlog::spdlog>"
                       PRIVATE
                       ${LAPACK_LIBRARIES})
 
@@ -231,8 +229,10 @@ install(FILES ${HEADERS}
 # Install 3rd party headers
 install(FILES ${json_INCLUDE_DIR}/nlohmann/json.hpp ${json_INCLUDE_DIR}/nlohmann/json_fwd.hpp
         DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/json/include/nlohmann)
-install(DIRECTORY ${spdlog_INCLUDE_DIR}
-        DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/spdlog)
+if(NOT spdlog_FOUND)
+  install(DIRECTORY ${spdlog_INCLUDE_DIR}
+          DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/3rd/spdlog)
+endif()
 
 # ----- Append subdirectory -----
 
