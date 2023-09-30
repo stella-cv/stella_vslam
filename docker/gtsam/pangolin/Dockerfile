@@ -254,7 +254,7 @@ RUN set -x && \
   rm -rf *
 
 ARG EXAMPLES_COMMIT=1c0433867cba5d110fd94bbc609468650a2f7885
-WORKDIR /stella_vslam_examples
+WORKDIR /
 RUN set -x && \
   git clone https://github.com/stella-cv/stella_vslam_examples.git && \
   cd stella_vslam_examples && \
