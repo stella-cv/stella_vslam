@@ -56,6 +56,7 @@ void bow_database::clear() {
 }
 
 std::vector<std::shared_ptr<keyframe>> bow_database::acquire_keyframes(const bow_vector& bow_vec, const float min_score,
+                                                                       const float num_common_words_thr_ratio,
                                                                        const std::set<std::shared_ptr<keyframe>>& keyfrms_to_reject) {
     // Step 1.
     // Count up the number of nodes, words which are shared with query_keyframe, for all the keyframes in DoW database
@@ -74,7 +75,7 @@ std::vector<std::shared_ptr<keyframe>> bow_database::acquire_keyframes(const bow
             max_num_common_words = keyfrm_num_common_words_pair.second;
         }
     }
-    const auto min_num_common_words_thr = static_cast<unsigned int>(0.8f * max_num_common_words);
+    const auto min_num_common_words_thr = static_cast<unsigned int>(num_common_words_thr_ratio * max_num_common_words);
 
     // Step 2.
     // Collect keyframe candidates which have more shared words than min_num_common_words_thr

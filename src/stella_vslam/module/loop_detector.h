@@ -192,6 +192,8 @@ private:
 
     //! Use fixed random seed for RANSAC if true
     const bool use_fixed_seed_;
+
+    const float num_common_words_thr_ratio_ = 0.8f;
 };
 
 } // namespace module

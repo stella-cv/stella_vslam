@@ -28,7 +28,8 @@ loop_detector::loop_detector(data::bow_database* bow_db, data::bow_vocabulary* b
       num_matches_thr_brute_force_(yaml_node["num_matches_thr_robust_matcher"].as<unsigned int>(0)),
       num_optimized_inliers_thr_(yaml_node["num_optimized_inliers_thr"].as<unsigned int>(20)),
       top_n_covisibilities_to_search_(yaml_node["top_n_covisibilities_to_search"].as<unsigned int>(0)),
-      use_fixed_seed_(yaml_node["use_fixed_seed"].as<bool>(false)) {
+      use_fixed_seed_(yaml_node["use_fixed_seed"].as<bool>(false)),
+      num_common_words_thr_ratio_(yaml_node["num_common_words_thr_ratio"].as<float>(0.8f)) {
     spdlog::debug("CONSTRUCT: loop_detector");
 }
 
@@ -116,7 +117,7 @@ bool loop_detector::detect_loop_candidates_impl() {
         }
     }
 
-    const auto init_loop_candidates = bow_db_->acquire_keyframes(cur_keyfrm_->bow_vec_, min_score, keyfrms_to_reject);
+    const auto init_loop_candidates = bow_db_->acquire_keyframes(cur_keyfrm_->bow_vec_, min_score, num_common_words_thr_ratio_, keyfrms_to_reject);
 
     // 1-3. if no candidates are found, cannot perform the loop correction
 
