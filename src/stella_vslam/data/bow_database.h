@@ -51,6 +51,7 @@ public:
      * Acquire keyframes over score
      */
     std::vector<std::shared_ptr<keyframe>> acquire_keyframes(const bow_vector& bow_vec, const float min_score = 0.0f,
+                                                             const float num_common_words_thr_ratio = 0.8f,
                                                              const std::set<std::shared_ptr<keyframe>>& keyfrms_to_reject = {});
 
 protected:

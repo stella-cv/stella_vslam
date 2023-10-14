@@ -18,13 +18,15 @@ relocalizer::relocalizer(const std::shared_ptr<optimize::pose_optimizer>& pose_o
                          const unsigned int min_num_bow_matches, const unsigned int min_num_valid_obs,
                          const bool use_fixed_seed,
                          const bool search_neighbor,
-                         const unsigned int top_n_covisibilities_to_search)
+                         const unsigned int top_n_covisibilities_to_search,
+                         const float num_common_words_thr_ratio)
     : min_num_bow_matches_(min_num_bow_matches), min_num_valid_obs_(min_num_valid_obs),
       bow_matcher_(bow_match_lowe_ratio, false), proj_matcher_(proj_match_lowe_ratio, false),
       robust_matcher_(robust_match_lowe_ratio, false),
       pose_optimizer_(pose_optimizer), use_fixed_seed_(use_fixed_seed),
       search_neighbor_(search_neighbor),
-      top_n_covisibilities_to_search_(top_n_covisibilities_to_search) {
+      top_n_covisibilities_to_search_(top_n_covisibilities_to_search),
+      num_common_words_thr_ratio_(num_common_words_thr_ratio) {
     spdlog::debug("CONSTRUCT: module::relocalizer");
 }
 
@@ -37,7 +39,8 @@ relocalizer::relocalizer(const std::shared_ptr<optimize::pose_optimizer>& pose_o
                   yaml_node["min_num_valid_obs"].as<unsigned int>(50),
                   yaml_node["use_fixed_seed"].as<bool>(false),
                   yaml_node["search_neighbor"].as<bool>(true),
-                  yaml_node["top_n_covisibilities_to_search"].as<unsigned int>(10)) {
+                  yaml_node["top_n_covisibilities_to_search"].as<unsigned int>(10),
+                  yaml_node["num_common_words_thr_ratio"].as<float>(0.8f)) {
 }
 
 relocalizer::~relocalizer() {
@@ -46,7 +49,7 @@ relocalizer::~relocalizer() {
 
 bool relocalizer::relocalize(data::bow_database* bow_db, data::frame& curr_frm) {
     // Acquire relocalization candidates
-    const auto reloc_candidates = bow_db->acquire_keyframes(curr_frm.bow_vec_);
+    const auto reloc_candidates = bow_db->acquire_keyframes(curr_frm.bow_vec_, 0.0f, num_common_words_thr_ratio_);
     if (reloc_candidates.empty()) {
         return false;
     }
