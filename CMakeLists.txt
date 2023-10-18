@@ -28,7 +28,6 @@ option(BUILD_SHARED_LIBS "Build stella_vslam as a shared library" ON)
 
 # ----- Build selection -----
 
-set(INSTALL_PANGOLIN_VIEWER OFF CACHE BOOL "Install PangolinViewer library")
 set(BUILD_TESTS OFF CACHE BOOL "Build tests")
 set(BOW_FRAMEWORK "FBoW" CACHE STRING "DBoW2 or FBoW")
 set_property(CACHE BOW_FRAMEWORK PROPERTY STRINGS "DBoW2" "FBoW")
