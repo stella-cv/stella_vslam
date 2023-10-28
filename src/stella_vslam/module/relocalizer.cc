@@ -19,14 +19,16 @@ relocalizer::relocalizer(const std::shared_ptr<optimize::pose_optimizer>& pose_o
                          const bool use_fixed_seed,
                          const bool search_neighbor,
                          const unsigned int top_n_covisibilities_to_search,
-                         const float num_common_words_thr_ratio)
+                         const float num_common_words_thr_ratio,
+                         const unsigned int max_num_ransac_iter)
     : min_num_bow_matches_(min_num_bow_matches), min_num_valid_obs_(min_num_valid_obs),
       bow_matcher_(bow_match_lowe_ratio, false), proj_matcher_(proj_match_lowe_ratio, false),
       robust_matcher_(robust_match_lowe_ratio, false),
       pose_optimizer_(pose_optimizer), use_fixed_seed_(use_fixed_seed),
       search_neighbor_(search_neighbor),
       top_n_covisibilities_to_search_(top_n_covisibilities_to_search),
-      num_common_words_thr_ratio_(num_common_words_thr_ratio) {
+      num_common_words_thr_ratio_(num_common_words_thr_ratio),
+      max_num_ransac_iter_(max_num_ransac_iter) {
     spdlog::debug("CONSTRUCT: module::relocalizer");
 }
 
@@ -40,7 +42,8 @@ relocalizer::relocalizer(const std::shared_ptr<optimize::pose_optimizer>& pose_o
                   yaml_node["use_fixed_seed"].as<bool>(false),
                   yaml_node["search_neighbor"].as<bool>(true),
                   yaml_node["top_n_covisibilities_to_search"].as<unsigned int>(10),
-                  yaml_node["num_common_words_thr_ratio"].as<float>(0.8f)) {
+                  yaml_node["num_common_words_thr_ratio"].as<float>(0.8f),
+                  yaml_node["max_num_ransac_iter"].as<unsigned int>(30)) {
 }
 
 relocalizer::~relocalizer() {
@@ -188,7 +191,7 @@ bool relocalizer::relocalize_by_pnp_solver(data::frame& curr_frm,
 
     // 1. Estimate the camera pose using EPnP (+ RANSAC)
 
-    pnp_solver->find_via_ransac(30, false);
+    pnp_solver->find_via_ransac(max_num_ransac_iter_, false);
     if (!pnp_solver->solution_is_valid()) {
         spdlog::debug("solution is not valid. candidate keyframe id is {}", candidate_keyfrm->id_);
         return false;
