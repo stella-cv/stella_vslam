@@ -28,7 +28,8 @@ public:
                          const bool use_fixed_seed = false,
                          const bool search_neighbor = true,
                          const unsigned int top_n_covisibilities_to_search = 10,
-                         const float num_common_words_thr_ratio = 0.8f);
+                         const float num_common_words_thr_ratio = 0.8f,
+                         const unsigned int max_num_ransac_iter = 30);
 
     explicit relocalizer(const std::shared_ptr<optimize::pose_optimizer>& pose_optimizer, const YAML::Node& yaml_node);
 
@@ -93,6 +94,8 @@ private:
     const unsigned int top_n_covisibilities_to_search_ = 10;
 
     const float num_common_words_thr_ratio_ = 0.8f;
+
+    const unsigned int max_num_ransac_iter_ = 30;
 };
 
 } // namespace module
