@@ -20,7 +20,8 @@ relocalizer::relocalizer(const std::shared_ptr<optimize::pose_optimizer>& pose_o
                          const bool search_neighbor,
                          const unsigned int top_n_covisibilities_to_search,
                          const float num_common_words_thr_ratio,
-                         const unsigned int max_num_ransac_iter)
+                         const unsigned int max_num_ransac_iter,
+                         const unsigned int max_num_local_keyfrms)
     : min_num_bow_matches_(min_num_bow_matches), min_num_valid_obs_(min_num_valid_obs),
       bow_matcher_(bow_match_lowe_ratio, false), proj_matcher_(proj_match_lowe_ratio, false),
       robust_matcher_(robust_match_lowe_ratio, false),
@@ -28,7 +29,8 @@ relocalizer::relocalizer(const std::shared_ptr<optimize::pose_optimizer>& pose_o
       search_neighbor_(search_neighbor),
       top_n_covisibilities_to_search_(top_n_covisibilities_to_search),
       num_common_words_thr_ratio_(num_common_words_thr_ratio),
-      max_num_ransac_iter_(max_num_ransac_iter) {
+      max_num_ransac_iter_(max_num_ransac_iter),
+      max_num_local_keyfrms_(max_num_local_keyfrms) {
     spdlog::debug("CONSTRUCT: module::relocalizer");
 }
 
@@ -43,7 +45,8 @@ relocalizer::relocalizer(const std::shared_ptr<optimize::pose_optimizer>& pose_o
                   yaml_node["search_neighbor"].as<bool>(true),
                   yaml_node["top_n_covisibilities_to_search"].as<unsigned int>(10),
                   yaml_node["num_common_words_thr_ratio"].as<float>(0.8f),
-                  yaml_node["max_num_ransac_iter"].as<unsigned int>(30)) {
+                  yaml_node["max_num_ransac_iter"].as<unsigned int>(30),
+                  yaml_node["max_num_local_keyfrms"].as<unsigned int>(60)) {
 }
 
 relocalizer::~relocalizer() {
@@ -296,8 +299,7 @@ bool relocalizer::refine_pose(data::frame& curr_frm,
 bool relocalizer::refine_pose_by_local_map(data::frame& curr_frm,
                                            const std::shared_ptr<stella_vslam::data::keyframe>& candidate_keyfrm) const {
     // Create local map
-    constexpr unsigned int max_num_local_keyfrms = 10;
-    auto local_map_updater = module::local_map_updater(max_num_local_keyfrms);
+    auto local_map_updater = module::local_map_updater(max_num_local_keyfrms_);
     if (!local_map_updater.acquire_local_map(curr_frm.get_landmarks(), curr_frm.frm_obs_.num_keypts_)) {
         return false;
     }
