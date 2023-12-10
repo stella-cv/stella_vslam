@@ -13,6 +13,7 @@ namespace module {
 keyframe_inserter::keyframe_inserter(const double max_interval,
                                      const double min_interval,
                                      const double max_distance,
+                                     const double min_distance,
                                      const double lms_ratio_thr_almost_all_lms_are_tracked,
                                      const double lms_ratio_thr_view_changed,
                                      const unsigned int enough_lms_thr,
@@ -20,6 +21,7 @@ keyframe_inserter::keyframe_inserter(const double max_interval,
     : max_interval_(max_interval),
       min_interval_(min_interval),
       max_distance_(max_distance),
+      min_distance_(min_distance),
       lms_ratio_thr_almost_all_lms_are_tracked_(lms_ratio_thr_almost_all_lms_are_tracked),
       lms_ratio_thr_view_changed_(lms_ratio_thr_view_changed),
       enough_lms_thr_(enough_lms_thr),
@@ -29,6 +31,7 @@ keyframe_inserter::keyframe_inserter(const YAML::Node& yaml_node)
     : keyframe_inserter(yaml_node["max_interval"].as<double>(1.0),
                         yaml_node["min_interval"].as<double>(0.1),
                         yaml_node["max_distance"].as<double>(-1.0),
+                        yaml_node["min_distance"].as<double>(-1.0),
                         yaml_node["lms_ratio_thr_almost_all_lms_are_tracked"].as<double>(0.9),
                         yaml_node["lms_ratio_thr_view_changed"].as<double>(0.5),
                         yaml_node["enough_lms_thr"].as<unsigned int>(100),
@@ -77,6 +80,10 @@ bool keyframe_inserter::new_keyframe_is_needed(data::map_database* map_db,
     if (max_distance_ > 0.0) {
         max_distance_traveled = last_inserted_keyfrm && (last_inserted_keyfrm->get_trans_wc() - curr_frm.get_trans_wc()).norm() > max_distance_;
     }
+    bool min_distance_traveled = true;
+    if (min_distance_ > 0.0) {
+        min_distance_traveled = !last_inserted_keyfrm || (last_inserted_keyfrm->get_trans_wc() - curr_frm.get_trans_wc()).norm() > min_distance_;
+    }
     // New keyframe is needed if the field-of-view of the current frame is changed a lot
     const bool view_changed = num_reliable_lms < num_reliable_lms_ref * lms_ratio_thr_view_changed_;
     // const bool view_changed = num_tracked_lms < num_tracked_lms_on_ref_keyfrm * lms_ratio_thr_view_changed_;
@@ -100,7 +107,7 @@ bool keyframe_inserter::new_keyframe_is_needed(data::map_database* map_db,
     SPDLOG_TRACE("keyframe_inserter: almost_all_lms_are_tracked={}", almost_all_lms_are_tracked);
     SPDLOG_TRACE("keyframe_inserter: mapper_is_skipping_localBA={}", mapper_is_skipping_localBA);
     return (max_interval_elapsed || max_distance_traveled || view_changed || not_enough_lms)
-           && (!enough_keyfrms || min_interval_elapsed)
+           && (!enough_keyfrms || (min_interval_elapsed && min_distance_traveled))
            && !tracking_is_unstable
            && !almost_all_lms_are_tracked
            && !mapper_is_skipping_localBA;
