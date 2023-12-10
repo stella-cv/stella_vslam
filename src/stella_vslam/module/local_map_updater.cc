@@ -27,7 +27,7 @@ bool local_map_updater::acquire_local_map(const std::vector<std::shared_ptr<data
                                           const unsigned int num_keypts,
                                           unsigned int keyframe_id_threshold) {
     const auto local_keyfrms_was_found = find_local_keyframes(frm_lms, num_keypts, keyframe_id_threshold);
-    const auto local_lms_was_found = find_local_landmarks(frm_lms, num_keypts);
+    const auto local_lms_was_found = find_local_landmarks(frm_lms, num_keypts, keyframe_id_threshold);
     return local_keyfrms_was_found && local_lms_was_found;
 }
 
@@ -42,7 +42,7 @@ bool local_map_updater::find_local_keyframes(const std::vector<std::shared_ptr<d
 
     std::unordered_set<unsigned int> already_found_keyfrm_ids;
     const auto first_local_keyfrms = find_first_local_keyframes(num_shared_lms_and_keyfrm, already_found_keyfrm_ids);
-    const auto second_local_keyfrms = find_second_local_keyframes(first_local_keyfrms, already_found_keyfrm_ids);
+    const auto second_local_keyfrms = find_second_local_keyframes(first_local_keyfrms, already_found_keyfrm_ids, keyframe_id_threshold);
     local_keyfrms_ = first_local_keyfrms;
     std::copy(second_local_keyfrms.begin(), second_local_keyfrms.end(), std::back_inserter(local_keyfrms_));
     return true;
@@ -120,17 +120,21 @@ auto local_map_updater::find_first_local_keyframes(
 }
 
 auto local_map_updater::find_second_local_keyframes(const std::vector<std::shared_ptr<data::keyframe>>& first_local_keyframes,
-                                                    std::unordered_set<unsigned int>& already_found_keyfrm_ids) const
+                                                    std::unordered_set<unsigned int>& already_found_keyfrm_ids,
+                                                    unsigned int keyframe_id_threshold) const
     -> std::vector<std::shared_ptr<data::keyframe>> {
     std::vector<std::shared_ptr<data::keyframe>> second_local_keyfrms;
     second_local_keyfrms.reserve(4 * first_local_keyframes.size());
 
     // add the second-order keyframes to the local landmarks
-    auto add_second_local_keyframe = [this, &second_local_keyfrms, &already_found_keyfrm_ids](const std::shared_ptr<data::keyframe>& keyfrm) {
+    auto add_second_local_keyframe = [this, &second_local_keyfrms, &already_found_keyfrm_ids, keyframe_id_threshold](const std::shared_ptr<data::keyframe>& keyfrm) {
         if (!keyfrm) {
             return false;
         }
         if (keyfrm->will_be_erased()) {
+            return false;
+        }
+        if (keyframe_id_threshold > 0 && keyfrm->id_ >= keyframe_id_threshold) {
             return false;
         }
         // avoid duplication
@@ -151,16 +155,18 @@ auto local_map_updater::find_second_local_keyframes(const std::vector<std::share
         // covisibilities of the neighbor keyframe
         const auto neighbors = keyfrm->graph_node_->get_top_n_covisibilities(10);
         for (const auto& neighbor : neighbors) {
-            if (add_second_local_keyframe(neighbor)) {
-                break;
+            add_second_local_keyframe(neighbor);
+            if (max_num_local_keyfrms_ < first_local_keyframes.size() + second_local_keyfrms.size()) {
+                return second_local_keyfrms;
             }
         }
 
         // children of the spanning tree
         const auto spanning_children = keyfrm->graph_node_->get_spanning_children();
         for (const auto& child : spanning_children) {
-            if (add_second_local_keyframe(child)) {
-                break;
+            add_second_local_keyframe(child);
+            if (max_num_local_keyfrms_ < first_local_keyframes.size() + second_local_keyfrms.size()) {
+                return second_local_keyfrms;
             }
         }
 
@@ -173,7 +179,8 @@ auto local_map_updater::find_second_local_keyframes(const std::vector<std::share
 }
 
 bool local_map_updater::find_local_landmarks(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
-                                             const unsigned int num_keypts) {
+                                             const unsigned int num_keypts,
+                                             unsigned int keyframe_id_threshold) {
     local_lms_.clear();
     local_lms_.reserve(50 * local_keyfrms_.size());
 
@@ -204,6 +211,22 @@ bool local_map_updater::find_local_landmarks(const std::vector<std::shared_ptr<d
                 continue;
             }
             already_found_lms_ids.insert(lm->id_);
+
+            if (keyframe_id_threshold > 0) {
+                const auto observations = lm->get_observations();
+                unsigned int temporal_observations = 0;
+                for (auto obs : observations) {
+                    auto keyfrm = obs.first.lock();
+                    if (keyfrm->id_ >= keyframe_id_threshold) {
+                        ++temporal_observations;
+                    }
+                }
+                const double temporal_ratio_thr = 0.5;
+                double temporal_ratio = static_cast<double>(temporal_observations) / observations.size();
+                if (temporal_ratio > temporal_ratio_thr) {
+                    continue;
+                }
+            }
 
             local_lms_.push_back(lm);
         }

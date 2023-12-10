@@ -58,12 +58,14 @@ private:
 
     //! Find the second-order local keyframes
     auto find_second_local_keyframes(const std::vector<std::shared_ptr<data::keyframe>>& first_local_keyframes,
-                                     std::unordered_set<unsigned int>& already_found_ids) const
+                                     std::unordered_set<unsigned int>& already_found_ids,
+                                     unsigned int keyframe_id_threshold) const
         -> std::vector<std::shared_ptr<data::keyframe>>;
 
     //! Find the local landmarks
     bool find_local_landmarks(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
-                              const unsigned int num_keypts);
+                              const unsigned int num_keypts,
+                              unsigned int keyframe_id_threshold);
 
     // maximum number of the local keyframes
     const unsigned int max_num_local_keyfrms_;
