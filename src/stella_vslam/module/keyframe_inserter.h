@@ -22,6 +22,7 @@ public:
     explicit keyframe_inserter(const double max_interval = 1.0,
                                const double min_interval = 0.1,
                                const double max_distance = -1.0,
+                               const double min_distance = -1.0,
                                const double lms_ratio_thr_almost_all_lms_are_tracked = 0.9,
                                const double lms_ratio_thr_view_changed = 0.8,
                                const unsigned int enough_lms_thr = 100,
@@ -60,6 +61,7 @@ private:
     const double max_interval_ = 1.0;
     const double min_interval_ = 0.1;
     const double max_distance_ = -1.0;
+    const double min_distance_ = -1.0;
 
     //! Ratio-threshold of "the number of 3D points observed in the current frame" / "that of 3D points observed in the last keyframe"
     const double lms_ratio_thr_almost_all_lms_are_tracked_ = 0.9;
