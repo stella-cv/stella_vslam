@@ -73,6 +73,32 @@ cv::Mat frame_publisher::draw_frame() {
     return img;
 }
 
+tracker_state_t frame_publisher::get_tracking_state() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return tracking_state_;
+}
+
+std::vector<cv::KeyPoint> frame_publisher::get_keypoints() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return curr_keypts_;
+}
+
+bool frame_publisher::get_mapping_is_enabled() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return mapping_is_enabled_;
+}
+
+std::vector<std::shared_ptr<data::landmark>> frame_publisher::get_landmarks() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    return curr_lms_;
+}
+
+cv::Mat frame_publisher::get_image() {
+    cv::Mat img;
+    img_.copyTo(img);
+    return img;
+}
+
 unsigned int frame_publisher::draw_tracked_points(cv::Mat& img, const std::vector<cv::KeyPoint>& curr_keypts,
                                                   const std::vector<std::shared_ptr<data::landmark>>& curr_lms,
                                                   const bool mapping_is_enabled,

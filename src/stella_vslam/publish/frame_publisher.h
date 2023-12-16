@@ -51,6 +51,16 @@ public:
      */
     cv::Mat draw_frame();
 
+    tracker_state_t get_tracking_state();
+
+    std::vector<cv::KeyPoint> get_keypoints();
+
+    bool get_mapping_is_enabled();
+
+    std::vector<std::shared_ptr<data::landmark>> get_landmarks();
+
+    cv::Mat get_image();
+
 protected:
     unsigned int draw_tracked_points(cv::Mat& img, const std::vector<cv::KeyPoint>& curr_keypts,
                                      const std::vector<std::shared_ptr<data::landmark>>& curr_lms,
