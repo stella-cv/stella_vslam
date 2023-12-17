@@ -51,7 +51,7 @@ public:
      */
     cv::Mat draw_frame();
 
-    tracker_state_t get_tracking_state();
+    std::string get_tracking_state();
 
     std::vector<cv::KeyPoint> get_keypoints();
 
