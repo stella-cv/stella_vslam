@@ -437,6 +437,8 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
 }
 
 std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
+    check_reset_request();
+
     assert(camera_->setup_type_ == camera::setup_type_t::Monocular);
     if (img.empty()) {
         spdlog::warn("preprocess: empty image");
@@ -446,6 +448,8 @@ std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const 
 }
 
 std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
+    check_reset_request();
+
     assert(camera_->setup_type_ == camera::setup_type_t::Stereo);
     if (left_img.empty() || right_img.empty()) {
         spdlog::warn("preprocess: empty image");
@@ -455,6 +459,8 @@ std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, cons
 }
 
 std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask) {
+    check_reset_request();
+
     assert(camera_->setup_type_ == camera::setup_type_t::RGBD);
     if (rgb_img.empty() || depthmap.empty()) {
         spdlog::warn("preprocess: empty image");
@@ -464,8 +470,6 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
 }
 
 std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Mat& img) {
-    check_reset_request();
-
     const auto start = std::chrono::system_clock::now();
 
     const auto cam_pose_wc = tracker_->feed_frame(frm);
