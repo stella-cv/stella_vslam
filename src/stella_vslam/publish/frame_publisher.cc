@@ -73,9 +73,19 @@ cv::Mat frame_publisher::draw_frame() {
     return img;
 }
 
-tracker_state_t frame_publisher::get_tracking_state() {
+std::string frame_publisher::get_tracking_state() {
     std::lock_guard<std::mutex> lock(mtx_);
-    return tracking_state_;
+    std::string state_str;
+    if (tracking_state_ == tracker_state_t::Initializing) {
+        state_str = "Initializing";
+    }
+    else if (tracking_state_ == tracker_state_t::Lost) {
+        state_str = "Lost";
+    }
+    else if (tracking_state_ == tracker_state_t::Tracking) {
+        state_str = "Tracking";
+    }
+    return state_str;
 }
 
 std::vector<cv::KeyPoint> frame_publisher::get_keypoints() {
