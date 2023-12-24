@@ -30,7 +30,7 @@ public:
                                            const std::vector<std::shared_ptr<data::landmark>>& local_landmarks,
                                            eigen_alloc_unord_map<unsigned int, Vec2_t>& lm_to_reproj,
                                            std::unordered_map<unsigned int, float>& lm_to_x_right,
-                                           std::unordered_map<unsigned int, int>& lm_to_scale,
+                                           std::unordered_map<unsigned int, unsigned int>& lm_to_scale,
                                            const float margin = 5.0) const;
 
     //! last frameで観測している3次元点をcurrent frameに再投影し，frame.landmarks_に対応情報を記録する

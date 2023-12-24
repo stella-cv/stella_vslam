@@ -332,7 +332,7 @@ bool relocalizer::refine_pose_by_local_map(data::frame& curr_frm,
         unsigned int pred_scale_level;
         eigen_alloc_unord_map<unsigned int, Vec2_t> lm_to_reproj;
         std::unordered_map<unsigned int, float> lm_to_x_right;
-        std::unordered_map<unsigned int, int> lm_to_scale;
+        std::unordered_map<unsigned int, unsigned int> lm_to_scale;
         for (const auto& lm : local_landmarks) {
             if (curr_landmark_ids.count(lm->id_)) {
                 continue;

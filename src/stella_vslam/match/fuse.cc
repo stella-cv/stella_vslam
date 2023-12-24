@@ -69,7 +69,9 @@ unsigned int fuse::detect_duplication(const std::shared_ptr<data::keyframe>& key
 
         // Acquire keypoints in the cell where the reprojected 3D points exist
         const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm->orb_params_->num_levels_, keyfrm->orb_params_->log_scale_factor_);
-        const auto indices = keyfrm->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm->orb_params_->scale_factors_.at(pred_scale_level));
+        const int min_level = std::max(0, static_cast<int>(pred_scale_level) - 1);
+        const int max_level = std::min(keyfrm->orb_params_->num_levels_ - 1, pred_scale_level + 1);
+        const auto indices = keyfrm->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm->orb_params_->scale_factors_.at(pred_scale_level), min_level, max_level);
 
         if (indices.empty()) {
             continue;
@@ -87,14 +89,8 @@ unsigned int fuse::detect_duplication(const std::shared_ptr<data::keyframe>& key
             }
             const auto& undist_keypt = keyfrm->frm_obs_.undist_keypts_.at(idx);
 
-            const auto scale_level = static_cast<unsigned int>(undist_keypt.octave);
-
-            // TODO: shoud determine the scale with 'keyfrm-> get_keypts_in_cell ()'
-            if (scale_level + 1 < pred_scale_level || pred_scale_level < scale_level) {
-                continue;
-            }
-
             if (do_reprojection_matching) {
+                const auto scale_level = static_cast<unsigned int>(undist_keypt.octave);
                 if (!keyfrm->frm_obs_.stereo_x_right_.empty() && keyfrm->frm_obs_.stereo_x_right_.at(idx) >= 0) {
                     // Compute reprojection error with 3 degrees of freedom if a stereo match exists
                     const auto e_x = reproj(0) - undist_keypt.pt.x;
