@@ -143,7 +143,8 @@ std::vector<unsigned int> get_keypoints_in_cell(const camera::base* camera, cons
         return indices;
     }
 
-    const bool check_level = (0 < min_level) || (0 <= max_level);
+    const bool check_min_level = 0 <= min_level;
+    const bool check_max_level = 0 <= max_level;
 
     for (int cell_idx_x = min_cell_idx_x; cell_idx_x <= max_cell_idx_x; ++cell_idx_x) {
         for (int cell_idx_y = min_cell_idx_y; cell_idx_y <= max_cell_idx_y; ++cell_idx_y) {
@@ -155,13 +156,11 @@ std::vector<unsigned int> get_keypoints_in_cell(const camera::base* camera, cons
             for (unsigned int idx : keypt_indices_in_cell) {
                 const auto& undist_keypt = undist_keypts.at(idx);
 
-                if (check_level) {
-                    if (undist_keypt.octave < min_level) {
-                        continue;
-                    }
-                    if (0 <= max_level && max_level < undist_keypt.octave) {
-                        continue;
-                    }
+                if (check_min_level && undist_keypt.octave < min_level) {
+                    continue;
+                }
+                if (check_max_level && max_level < undist_keypt.octave) {
+                    continue;
                 }
 
                 const float dist_x = undist_keypt.pt.x - ref_x;
