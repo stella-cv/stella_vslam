@@ -24,7 +24,7 @@ find_package(g2o REQUIRED
              g2o::csparse)
 
 # gtsam
-set(USE_GTSAM ON CACHE BOOL "Enable gtsam")
+set(USE_GTSAM OFF CACHE BOOL "Enable gtsam")
 unset(GTSAM_INCLUDE_DIRS CACHE)
 find_path(GTSAM_INCLUDE_DIRS NAMES gtsam
           PATHS /usr/local/include/)
