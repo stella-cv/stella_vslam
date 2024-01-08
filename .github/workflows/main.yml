@@ -79,7 +79,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON ..
+          cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON -DUSE_GTSAM=ON ..
           make -j $(($(nproc) / 2))
           make install
       - uses: actions/checkout@v3
