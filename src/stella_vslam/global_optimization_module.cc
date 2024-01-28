@@ -399,7 +399,7 @@ void global_optimization_module::replace_duplicated_landmarks(const std::vector<
     {
         std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
-        for (unsigned int idx = 0; idx < cur_keyfrm_->frm_obs_.num_keypts_; ++idx) {
+        for (unsigned int idx = 0; idx < cur_keyfrm_->frm_obs_.undist_keypts_.size(); ++idx) {
             auto curr_match_lm_in_cand = curr_match_lms_observed_in_cand.at(idx);
             if (!curr_match_lm_in_cand) {
                 continue;

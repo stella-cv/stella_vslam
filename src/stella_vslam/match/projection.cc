@@ -117,7 +117,7 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
 
     // Reproject the 3D points associated to the keypoints of the last frame,
     // then acquire the 2D-3D matches
-    for (unsigned int idx_last = 0; idx_last < last_frm.frm_obs_.num_keypts_; ++idx_last) {
+    for (unsigned int idx_last = 0; idx_last < last_frm.frm_obs_.undist_keypts_.size(); ++idx_last) {
         const auto& lm = last_frm.get_landmark(idx_last);
         if (!lm) {
             continue;

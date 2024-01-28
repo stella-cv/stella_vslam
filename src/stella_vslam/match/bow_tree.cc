@@ -11,7 +11,7 @@ namespace match {
 unsigned int bow_tree::match_frame_and_keyframe(const std::shared_ptr<data::keyframe>& keyfrm, data::frame& frm, std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm) const {
     unsigned int num_matches = 0;
 
-    matched_lms_in_frm = std::vector<std::shared_ptr<data::landmark>>(frm.frm_obs_.num_keypts_, nullptr);
+    matched_lms_in_frm = std::vector<std::shared_ptr<data::landmark>>(frm.frm_obs_.undist_keypts_.size(), nullptr);
 
     const auto keyfrm_lms = keyfrm->get_landmarks();
 

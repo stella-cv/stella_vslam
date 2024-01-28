@@ -63,7 +63,7 @@ unsigned int pose_optimizer_g2o::optimize(const Mat44_t& cam_pose_cw, const data
     frm_vtx->setFixed(false);
     optimizer.addVertex(frm_vtx);
 
-    const unsigned int num_keypts = frm_obs.num_keypts_;
+    const unsigned int num_keypts = frm_obs.undist_keypts_.size();
     outlier_flags.resize(num_keypts);
     std::fill(outlier_flags.begin(), outlier_flags.end(), false);
 

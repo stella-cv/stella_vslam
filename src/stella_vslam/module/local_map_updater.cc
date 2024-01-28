@@ -24,17 +24,15 @@ std::shared_ptr<data::keyframe> local_map_updater::get_nearest_covisibility() co
 }
 
 bool local_map_updater::acquire_local_map(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
-                                          const unsigned int num_keypts,
                                           unsigned int keyframe_id_threshold) {
-    const auto local_keyfrms_was_found = find_local_keyframes(frm_lms, num_keypts, keyframe_id_threshold);
-    const auto local_lms_was_found = find_local_landmarks(frm_lms, num_keypts, keyframe_id_threshold);
+    const auto local_keyfrms_was_found = find_local_keyframes(frm_lms, keyframe_id_threshold);
+    const auto local_lms_was_found = find_local_landmarks(frm_lms, keyframe_id_threshold);
     return local_keyfrms_was_found && local_lms_was_found;
 }
 
 bool local_map_updater::find_local_keyframes(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
-                                             const unsigned int num_keypts,
                                              unsigned int keyframe_id_threshold) {
-    const auto num_shared_lms_and_keyfrm = count_num_shared_lms(frm_lms, num_keypts, keyframe_id_threshold);
+    const auto num_shared_lms_and_keyfrm = count_num_shared_lms(frm_lms, keyframe_id_threshold);
     if (num_shared_lms_and_keyfrm.empty()) {
         SPDLOG_TRACE("find_local_keyframes: empty");
         return false;
@@ -50,7 +48,6 @@ bool local_map_updater::find_local_keyframes(const std::vector<std::shared_ptr<d
 
 auto local_map_updater::count_num_shared_lms(
     const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
-    const unsigned int num_keypts,
     unsigned int keyframe_id_threshold) const
     -> std::vector<std::pair<unsigned int, std::shared_ptr<data::keyframe>>> {
     std::vector<std::pair<unsigned int, std::shared_ptr<data::keyframe>>> num_shared_lms_and_keyfrm;
@@ -58,7 +55,7 @@ auto local_map_updater::count_num_shared_lms(
     // count the number of sharing landmarks between the current frame and each of the neighbor keyframes
     // key: keyframe, value: number of sharing landmarks
     keyframe_to_num_shared_lms_t keyfrm_to_num_shared_lms;
-    for (unsigned int idx = 0; idx < num_keypts; ++idx) {
+    for (unsigned int idx = 0; idx < frm_lms.size(); ++idx) {
         auto& lm = frm_lms.at(idx);
         if (!lm) {
             continue;
@@ -179,13 +176,12 @@ auto local_map_updater::find_second_local_keyframes(const std::vector<std::share
 }
 
 bool local_map_updater::find_local_landmarks(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
-                                             const unsigned int num_keypts,
                                              unsigned int keyframe_id_threshold) {
     local_lms_.clear();
     local_lms_.reserve(50 * local_keyfrms_.size());
 
     std::unordered_set<unsigned int> already_found_lms_ids;
-    for (unsigned int idx = 0; idx < num_keypts; ++idx) {
+    for (unsigned int idx = 0; idx < frm_lms.size(); ++idx) {
         auto& lm = frm_lms.at(idx);
         if (!lm) {
             continue;

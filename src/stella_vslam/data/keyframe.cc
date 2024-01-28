@@ -35,7 +35,7 @@ keyframe::keyframe(const unsigned int id, const double timestamp,
       timestamp_(timestamp), camera_(camera),
       orb_params_(orb_params), frm_obs_(frm_obs),
       bow_vec_(bow_vec), bow_feat_vec_(bow_feat_vec),
-      landmarks_(std::vector<std::shared_ptr<landmark>>(frm_obs_.num_keypts_, nullptr)) {
+      landmarks_(std::vector<std::shared_ptr<landmark>>(frm_obs_.undist_keypts_.size(), nullptr)) {
     // set pose parameters (pose_wc_, trans_wc_) using pose_cw_
     set_pose_cw(pose_cw);
 
@@ -137,7 +137,7 @@ std::shared_ptr<keyframe> keyframe::from_stmt(sqlite3_stmt* stmt,
     std::vector<std::vector<std::vector<unsigned int>>> keypt_indices_in_cells;
     data::assign_keypoints_to_grid(camera, undist_keypts, keypt_indices_in_cells);
     // Construct frame_observation
-    frame_observation frm_obs{num_keypts, descriptors, undist_keypts, bearings, stereo_x_right, depths, keypt_indices_in_cells};
+    frame_observation frm_obs{descriptors, undist_keypts, bearings, stereo_x_right, depths, keypt_indices_in_cells};
     // Compute BoW
     data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
     auto keyfrm = data::keyframe::make_keyframe(
@@ -180,7 +180,7 @@ nlohmann::json keyframe::to_json() const {
             {"rot_cw", convert_rotation_to_json(pose_cw_.block<3, 3>(0, 0))},
             {"trans_cw", convert_translation_to_json(pose_cw_.block<3, 1>(0, 3))},
             // features and observations
-            {"n_keypts", frm_obs_.num_keypts_},
+            {"n_keypts", frm_obs_.undist_keypts_.size()},
             {"undist_keypts", convert_keypoints_to_json(frm_obs_.undist_keypts_)},
             {"x_rights", frm_obs_.stereo_x_right_},
             {"depths", frm_obs_.depths_},
@@ -415,7 +415,7 @@ float keyframe::compute_median_depth(const bool abs) const {
     }
 
     std::vector<float> depths;
-    depths.reserve(frm_obs_.num_keypts_);
+    depths.reserve(frm_obs_.undist_keypts_.size());
     const Vec3_t rot_cw_z_row = pose_cw.block<1, 3>(2, 0);
     const float trans_cw_z = pose_cw(2, 3);
 

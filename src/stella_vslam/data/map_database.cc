@@ -395,7 +395,7 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     std::vector<std::vector<std::vector<unsigned int>>> keypt_indices_in_cells;
     data::assign_keypoints_to_grid(camera, undist_keypts, keypt_indices_in_cells);
     // Construct frame_observation
-    frame_observation frm_obs{num_keypts, descriptors, undist_keypts, bearings, stereo_x_right, depths, keypt_indices_in_cells};
+    frame_observation frm_obs{descriptors, undist_keypts, bearings, stereo_x_right, depths, keypt_indices_in_cells};
     // Compute BoW
     data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
     auto keyfrm = data::keyframe::make_keyframe(
@@ -603,7 +603,7 @@ void map_database::load_association_from_stmt(sqlite3_stmt* stmt) {
     auto keyfrm_id = sqlite3_column_int64(stmt, column_id);
     assert(keyframes_.count(keyfrm_id));
     column_id++;
-    std::vector<int> lm_ids(keyframes_.at(keyfrm_id)->frm_obs_.num_keypts_, -1);
+    std::vector<int> lm_ids(keyframes_.at(keyfrm_id)->frm_obs_.undist_keypts_.size(), -1);
     p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
     std::memcpy(lm_ids.data(), p, sqlite3_column_bytes(stmt, column_id));
     column_id++;

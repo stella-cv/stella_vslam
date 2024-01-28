@@ -34,19 +34,16 @@ public:
 
     //! Acquire the new local map
     bool acquire_local_map(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
-                           const unsigned int num_keypts,
                            unsigned int keyframe_id_threshold = 0);
 
 private:
     //! Find the local keyframes
     bool find_local_keyframes(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
-                              const unsigned int num_keypts,
                               unsigned int keyframe_id_threshold);
 
     //! Count the number of shared landmarks between the current frame and each of the neighbor keyframes
     auto count_num_shared_lms(
         const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
-        const unsigned int num_keypts,
         unsigned int keyframe_id_threshold) const
         -> std::vector<std::pair<unsigned int, std::shared_ptr<data::keyframe>>>;
 
@@ -64,7 +61,6 @@ private:
 
     //! Find the local landmarks
     bool find_local_landmarks(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
-                              const unsigned int num_keypts,
                               unsigned int keyframe_id_threshold);
 
     // maximum number of the local keyframes

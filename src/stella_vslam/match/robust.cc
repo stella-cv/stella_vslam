@@ -30,9 +30,9 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
     // Save the matching information
     // Discard the already matched keypoints in keyframe 2
     // to acquire a unique association to each keypoint in keyframe 1
-    std::vector<bool> is_already_matched_in_keyfrm_2(keyfrm_2->frm_obs_.num_keypts_, false);
+    std::vector<bool> is_already_matched_in_keyfrm_2(keyfrm_2->frm_obs_.undist_keypts_.size(), false);
     // Save the keypoint idx in keyframe 2 which is already associated to the keypoint idx in keyframe 1
-    std::vector<int> matched_indices_2_in_keyfrm_1(keyfrm_1->frm_obs_.num_keypts_, -1);
+    std::vector<int> matched_indices_2_in_keyfrm_1(keyfrm_1->frm_obs_.undist_keypts_.size(), -1);
 
     data::bow_feature_vector::const_iterator itr_1 = keyfrm_1->bow_feat_vec_.begin();
     data::bow_feature_vector::const_iterator itr_2 = keyfrm_2->bow_feat_vec_.begin();
@@ -157,7 +157,7 @@ unsigned int robust::match_keyframes(const std::shared_ptr<data::keyframe>& keyf
                                      std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm,
                                      bool validate_with_essential_solver, bool use_fixed_seed) const {
     // Initialization
-    const auto num_frm_keypts = keyfrm1->frm_obs_.num_keypts_;
+    const auto num_frm_keypts = keyfrm1->frm_obs_.undist_keypts_.size();
     const auto keyfrm_lms = keyfrm2->get_landmarks();
     unsigned int num_inlier_matches = 0;
     matched_lms_in_frm = std::vector<std::shared_ptr<data::landmark>>(num_frm_keypts, nullptr);
@@ -205,7 +205,7 @@ unsigned int robust::match_frame_and_keyframe(data::frame& frm, const std::share
                                               std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm,
                                               bool use_fixed_seed) const {
     // Initialization
-    const auto num_frm_keypts = frm.frm_obs_.num_keypts_;
+    const auto num_frm_keypts = frm.frm_obs_.undist_keypts_.size();
     const auto keyfrm_lms = keyfrm->get_landmarks();
     unsigned int num_inlier_matches = 0;
     matched_lms_in_frm = std::vector<std::shared_ptr<data::landmark>>(num_frm_keypts, nullptr);
@@ -237,13 +237,15 @@ unsigned int robust::match_frame_and_keyframe(data::frame& frm, const std::share
     return num_inlier_matches;
 }
 
-unsigned int robust::brute_force_match(const data::frame_observation& frm_obs, const std::shared_ptr<data::keyframe>& keyfrm, std::vector<std::pair<int, int>>& matches) const {
+unsigned int robust::brute_force_match(const data::frame_observation& frm_obs,
+                                       const std::shared_ptr<data::keyframe>& keyfrm,
+                                       std::vector<std::pair<int, int>>& matches) const {
     unsigned int num_matches = 0;
 
     // 1. Acquire the frame and keyframe information
 
-    const auto num_keypts_1 = frm_obs.num_keypts_;
-    const auto num_keypts_2 = keyfrm->frm_obs_.num_keypts_;
+    const auto num_keypts_1 = frm_obs.undist_keypts_.size();
+    const auto num_keypts_2 = keyfrm->frm_obs_.undist_keypts_.size();
     const auto keypts_1 = frm_obs.undist_keypts_;
     const auto keypts_2 = keyfrm->frm_obs_.undist_keypts_;
     const auto lms_2 = keyfrm->get_landmarks();
