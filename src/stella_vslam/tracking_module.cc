@@ -402,7 +402,7 @@ void tracking_module::update_motion_model() {
 
 void tracking_module::replace_landmarks_in_last_frm(nondeterministic::unordered_map<std::shared_ptr<data::landmark>, std::shared_ptr<data::landmark>>& replaced_lms) {
     std::lock_guard<std::mutex> lock(mtx_last_frm_);
-    for (unsigned int idx = 0; idx < last_frm_.frm_obs_.num_keypts_; ++idx) {
+    for (unsigned int idx = 0; idx < last_frm_.frm_obs_.undist_keypts_.size(); ++idx) {
         const auto& lm = last_frm_.get_landmark(idx);
         if (!lm) {
             continue;
@@ -436,7 +436,7 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
     curr_frm_.set_pose_cw(optimized_pose);
 
     // Reject outliers
-    for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.num_keypts_; ++idx) {
+    for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.undist_keypts_.size(); ++idx) {
         if (!outlier_flags.at(idx)) {
             continue;
         }
@@ -446,7 +446,7 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
     // count up the number of tracked landmarks
     num_tracked_lms = 0;
     num_reliable_lms = 0;
-    for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.num_keypts_; ++idx) {
+    for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.undist_keypts_.size(); ++idx) {
         const auto& lm = curr_frm_.get_landmark(idx);
         if (!lm) {
             continue;
@@ -487,7 +487,7 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
 
 bool tracking_module::update_local_map(unsigned int fixed_keyframe_id_threshold) {
     // clean landmark associations
-    for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.num_keypts_; ++idx) {
+    for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.undist_keypts_.size(); ++idx) {
         const auto& lm = curr_frm_.get_landmark(idx);
         if (!lm) {
             continue;
@@ -501,7 +501,7 @@ bool tracking_module::update_local_map(unsigned int fixed_keyframe_id_threshold)
     // acquire the current local map
     local_landmarks_.clear();
     auto local_map_updater = module::local_map_updater(max_num_local_keyfrms_);
-    if (!local_map_updater.acquire_local_map(curr_frm_.get_landmarks(), curr_frm_.frm_obs_.num_keypts_, fixed_keyframe_id_threshold)) {
+    if (!local_map_updater.acquire_local_map(curr_frm_.get_landmarks(), fixed_keyframe_id_threshold)) {
         return false;
     }
     // update the variables

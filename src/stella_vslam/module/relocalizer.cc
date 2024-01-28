@@ -223,7 +223,7 @@ bool relocalizer::optimize_pose(data::frame& curr_frm,
     }
 
     // Reject outliers
-    for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; idx++) {
+    for (unsigned int idx = 0; idx < curr_frm.frm_obs_.undist_keypts_.size(); idx++) {
         if (!outlier_flags.at(idx)) {
             continue;
         }
@@ -256,7 +256,7 @@ bool relocalizer::refine_pose(data::frame& curr_frm,
 
     // Exclude the already-associated landmarks
     std::set<std::shared_ptr<data::landmark>> already_found_landmarks1;
-    for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
+    for (unsigned int idx = 0; idx < curr_frm.frm_obs_.undist_keypts_.size(); ++idx) {
         const auto& lm = curr_frm.get_landmark(idx);
         if (!lm) {
             continue;
@@ -286,7 +286,7 @@ bool relocalizer::refine_pose(data::frame& curr_frm,
     }
 
     // Reject outliers
-    for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
+    for (unsigned int idx = 0; idx < curr_frm.frm_obs_.undist_keypts_.size(); ++idx) {
         if (!outlier_flags2.at(idx)) {
             continue;
         }
@@ -300,7 +300,7 @@ bool relocalizer::refine_pose_by_local_map(data::frame& curr_frm,
                                            const std::shared_ptr<stella_vslam::data::keyframe>& candidate_keyfrm) const {
     // Create local map
     auto local_map_updater = module::local_map_updater(max_num_local_keyfrms_);
-    if (!local_map_updater.acquire_local_map(curr_frm.get_landmarks(), curr_frm.frm_obs_.num_keypts_)) {
+    if (!local_map_updater.acquire_local_map(curr_frm.get_landmarks())) {
         return false;
     }
     auto local_keyfrms = local_map_updater.get_local_keyframes();
@@ -367,7 +367,7 @@ bool relocalizer::refine_pose_by_local_map(data::frame& curr_frm,
         curr_frm.set_pose_cw(optimized_pose);
 
         // Reject outliers
-        for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
+        for (unsigned int idx = 0; idx < curr_frm.frm_obs_.undist_keypts_.size(); ++idx) {
             if (!outlier_flags.at(idx)) {
                 continue;
             }

@@ -343,7 +343,7 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
     curr_frm.ref_keyfrm_ = curr_keyfrm;
     map_db_->update_frame_statistics(curr_frm, false);
 
-    for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
+    for (unsigned int idx = 0; idx < curr_frm.frm_obs_.undist_keypts_.size(); ++idx) {
         // add a new landmark if tht corresponding depth is valid
         const auto z = curr_frm.frm_obs_.depths_.at(idx);
         if (z <= 0) {

@@ -143,8 +143,8 @@ std::shared_ptr<data::keyframe> keyframe_inserter::create_new_keyframe(
 
     // Save the valid depth and index pairs
     std::vector<std::pair<float, unsigned int>> depth_idx_pairs;
-    depth_idx_pairs.reserve(curr_frm.frm_obs_.num_keypts_);
-    for (unsigned int idx = 0; idx < curr_frm.frm_obs_.num_keypts_; ++idx) {
+    depth_idx_pairs.reserve(curr_frm.frm_obs_.undist_keypts_.size());
+    for (unsigned int idx = 0; idx < curr_frm.frm_obs_.undist_keypts_.size(); ++idx) {
         assert(!curr_frm.frm_obs_.depths_.empty());
         const auto depth = curr_frm.frm_obs_.depths_.at(idx);
         // Add if the depth is valid

@@ -68,7 +68,7 @@ unsigned int pose_optimizer_gtsam::optimize(const Mat44_t& cam_pose_cw, const da
     values.insert(gtsam::Symbol('x', 0),
                   gtsam::Pose3(util::converter::inverse_pose(normalized_cam_pose_cw)));
 
-    const unsigned int num_keypts = frm_obs.num_keypts_;
+    const unsigned int num_keypts = frm_obs.undist_keypts_.size();
     outlier_flags.resize(num_keypts);
     std::fill(outlier_flags.begin(), outlier_flags.end(), false);
 
