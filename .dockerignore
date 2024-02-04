@@ -11,7 +11,6 @@ README.md
 .travis.yml
 wercker.yml
 docs/
-test/
 
 # build directory
 build/

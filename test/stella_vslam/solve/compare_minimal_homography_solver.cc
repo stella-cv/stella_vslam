@@ -39,9 +39,11 @@ TEST(homography_solver, linear_solve) {
     create_keypoints(rot_2, trans_2, cam_matrix_2, landmarks, keypts_2);
 
     // solve with SVD
-    Mat33_t H_21;
-    solve::homography_solver::compute_H_21(keypts_1, keypts_2, H_21);
-    const Mat33_t H_12 = H_21.inverse();
+    const Mat33_t H_21_8pt = solve::homography_solver::compute_H_21(eight_keypts_1, eight_keypts_2);
+    const Mat33_t H_12_8pt = H_21_8pt.inverse();
+
+    const Mat33_t H_21_4pt = solve::homography_solver::compute_H_21(four_keypts_1, four_keypts_2);
+    const Mat33_t H_12_4pt = H_21_4pt.inverse();
 
     // check symmetric transform error
     for (unsigned int i = 0; i < num_landmarks; ++i) {

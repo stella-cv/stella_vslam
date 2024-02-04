@@ -3,6 +3,8 @@
 #include "stella_vslam/util/random_array.h"
 #include "stella_vslam/util/trigonometric.h"
 
+#include "stella_vslam/solve/essential_minimal.h"
+
 namespace stella_vslam {
 namespace solve {
 
@@ -28,8 +30,10 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
     is_inlier_match_ = std::vector<bool>(num_matches, false);
 
     // minimum set of keypoint matches
-    eigen_alloc_vector<Vec3_t> min_set_bearings_1(min_set_size);
-    eigen_alloc_vector<Vec3_t> min_set_bearings_2(min_set_size);
+    // eigen_alloc_vector<Vec3_t> min_set_bearings_1(min_set_size);
+    // eigen_alloc_vector<Vec3_t> min_set_bearings_2(min_set_size);
+    Eigen::Matrix<double, 5, 3> min_set_bearings_1 = Eigen::Matrix<double, 5, 3>::Zero();
+    Eigen::Matrix<double, 5, 3> min_set_bearings_2 = Eigen::Matrix<double, 5, 3>::Zero();
 
     // shared variables in RANSAC loop
     // essential matrix from shot 1 to shot 2
@@ -44,12 +48,21 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
         const auto indices = util::create_random_array(min_set_size, 0U, num_matches - 1, random_engine_);
         for (unsigned int i = 0; i < min_set_size; ++i) {
             const auto idx = indices.at(i);
-            min_set_bearings_1.at(i) = bearings_1_.at(matches_12_.at(idx).first);
-            min_set_bearings_2.at(i) = bearings_2_.at(matches_12_.at(idx).second);
+            min_set_bearings_1(i,0) = bearings_1_.at(matches_12_.at(idx).first)(0);
+            min_set_bearings_1(i,1) = bearings_1_.at(matches_12_.at(idx).first)(1);
+            min_set_bearings_1(i,2) = bearings_1_.at(matches_12_.at(idx).first)(2);
+            min_set_bearings_2(i,0) = bearings_2_.at(matches_12_.at(idx).second)(0);
+            min_set_bearings_2(i,1) = bearings_2_.at(matches_12_.at(idx).second)(1);
+            min_set_bearings_2(i,2) = bearings_2_.at(matches_12_.at(idx).second)(2);
         }
 
         // 2-2. Compute an essential matrix
-        E_21_in_sac = compute_E_21(min_set_bearings_1, min_set_bearings_2);
+        // E_21_in_sac = compute_E_21(min_set_bearings_1, min_set_bearings_2);
+        E_21_in_sac = minimal_solver::computeE_iterative(min_set_bearings_1, min_set_bearings_2);
+        if(E_21_in_sac.norm() == 0){
+            // estimation failed
+            continue;
+        }
 
         // 2-3. Check inliers and compute a cost
         float cost_in_sac;

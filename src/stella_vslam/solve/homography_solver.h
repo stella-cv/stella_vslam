@@ -46,7 +46,7 @@ public:
     }
 
     //! Compute a homography matrix with 4-point algorithm
-    static Mat33_t compute_H_21(const std::vector<cv::Point2f>& keypts_1, const std::vector<cv::Point2f>& keypts_2);
+    static bool compute_H_21(const std::vector<cv::Point2f>& keypts_1, const std::vector<cv::Point2f>& keypts_2, Mat33_t& H21);
 
     //! Decompose a homography matrix to eight pairs of rotation and translation
     static bool decompose(const Mat33_t& H_21, const Mat33_t& cam_matrix_1, const Mat33_t& cam_matrix_2,
