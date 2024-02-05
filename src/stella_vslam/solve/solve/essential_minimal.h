@@ -59,9 +59,9 @@ Matrix3d taylor_expm(const Matrix<double, 3, 3>& A) {
     return result;
 }
 
-std::pair<Matrix<double, Dynamic, 5>, Matrix<double, Dynamic, 1>> calc_Jr(const Matrix<double, 5, 1>& a,
-                                                            const Matrix<double, Dynamic, 3>& q1,
-                                                            const Matrix<double, Dynamic, 3>& q2) {
+std::pair<Matrix<double, 5, 5>, Matrix<double, 5, 1>> calc_Jr(const Matrix<double, 5, 1>& a,
+                                                            const Matrix<double, 5, 3>& q1,
+                                                            const Matrix<double, 5, 3>& q2) {
     const Matrix3d R = taylor_expm(a[0] * G1 + a[1] * G2 + a[2] * G3);
     const Matrix3d Rt = taylor_expm(a[3] * G1 + a[4] * G2);
 
@@ -74,13 +74,13 @@ std::pair<Matrix<double, Dynamic, 5>, Matrix<double, Dynamic, 1>> calc_Jr(const 
     Matrix<double, 5, 1> r = (q2 * E * q1.transpose()).diagonal();
 
     // Jacobian
-    MatrixXd J = MatrixXd::Zero(q1.rows(), 5);
-    const auto q2tx = q2 * tx;
-    const auto Rq1 = R * q1.transpose();
+    Matrix<double, 5, 5> J = Matrix<double, 5, 5>::Zero();
+    const Matrix<double, 5, 3> q2tx = q2 * tx;
+    const Matrix<double, 3, 5> Rq1 = R * q1.transpose();
     const Matrix3d tmp4 = skew((Rt * G1 * tr).array());
     const Matrix3d tmp5 = skew((Rt * G2 * tr).array());
 
-    for (int i = 0; i < q1.rows(); ++i) {
+    for (int i = 0; i < 5; ++i) {
         J(i, 0) = q2tx.row(i) * G1 * Rq1.col(i);
         J(i, 1) = q2tx.row(i) * G2 * Rq1.col(i);
         J(i, 2) = q2tx.row(i) * G3 * Rq1.col(i);
@@ -91,8 +91,8 @@ std::pair<Matrix<double, Dynamic, 5>, Matrix<double, Dynamic, 1>> calc_Jr(const 
     return {J, r};
 }
 
-Matrix3d computeE_iterative(const Eigen::Matrix<double, Dynamic, 3>& q1,
-                      const Eigen::Matrix<double, Dynamic, 3>& q2) {
+Matrix3d computeE_iterative(const Eigen::Matrix<double, 5, 3>& q1,
+                      const Eigen::Matrix<double, 5, 3>& q2) {
 
     // Initial Guess (equivalent to Identity rotation and translation)
     Matrix<double, 5, 1> a;
@@ -102,7 +102,7 @@ Matrix3d computeE_iterative(const Eigen::Matrix<double, Dynamic, 3>& q1,
     const int max_iter = 10;
     const double tol = 0.005;
     int iter = 0;
-    Matrix<double, Dynamic, 1> last_r;
+    Matrix<double, 5, 1> last_r;
 
     for (iter = 0; iter < max_iter; ++iter) {
         // TODO: Remove c++17 feature
@@ -136,7 +136,6 @@ Matrix3d computeE_iterative(const Eigen::Matrix<double, Dynamic, 3>& q1,
 
     return E;
 }
-
 } // namespace minimal_solver
 
 #endif // STELLA_VSLAM_SOLVE_MINIMAL_ESSENTIAL_SOLVER_H

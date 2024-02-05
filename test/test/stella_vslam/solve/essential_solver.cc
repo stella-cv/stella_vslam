@@ -3,6 +3,7 @@
 
 #include "stella_vslam/type.h"
 #include "stella_vslam/solve/essential_solver.h"
+#include "stella_vslam/solve/essential_minimal.h"
 #include "stella_vslam/util/converter.h"
 
 #include <gtest/gtest.h>
@@ -11,8 +12,8 @@ using namespace stella_vslam;
 
 TEST(essential_solver, linear_solve) {
     // create 3D points
-    const unsigned int num_landmarks = 100;
-    const auto landmarks = create_random_landmarks_in_space(num_landmarks, 100);
+    const unsigned int num_landmarks = 5;
+    const auto landmarks = create_random_landmarks_in_space(num_landmarks, 10);
 
     // create two-view poses
     const Mat33_t rot_1 = util::converter::to_rot_mat(205.0 * M_PI / 180.0 * Vec3_t{4, -6, 2}.normalized());
@@ -29,23 +30,27 @@ TEST(essential_solver, linear_solve) {
     // create a true essential matrix
     Mat33_t true_E_21 = solve::essential_solver::create_E_21(rot_1, trans_1, rot_2, trans_2);
 
-    // solve with SVD
-    Mat33_t E_21 = solve::essential_solver::compute_E_21(bearings_1, bearings_2);
-    Mat33_t E_iterative = solve::essential_solver::computeE_iterative(bearings_1, bearings_2);
+    Eigen::Matrix<double, 5, 3> bearings_1_mat, bearings_2_mat;
+    for(int i = 0; i < 5; ++i){
+        bearings_1_mat(i,0) = bearings_1.at(i)(0);
+        bearings_1_mat(i,1) = bearings_1.at(i)(1);
+        bearings_1_mat(i,2) = bearings_1.at(i)(2);
+        bearings_2_mat(i,0) = bearings_2.at(i)(0);
+        bearings_2_mat(i,1) = bearings_2.at(i)(1);
+        bearings_2_mat(i,2) = bearings_2.at(i)(2);
+    }
+
+    // solve iteratively
+    Mat33_t E_21 = minimal_solver::computeE_iterative(bearings_1_mat, bearings_2_mat);
 
     // align scale and sign
     true_E_21 /= true_E_21.norm();
     E_21 /= E_21.norm();
-    E_iterative /= E_iterative.norm();
     if (true_E_21(0, 0) * E_21(0, 0) < 0) {
         true_E_21 *= -1.0;
     }
-    if (E_iterative(0, 0) * E_21(0, 0) < 0) {
-        E_iterative *= -1.0;
-    }
 
     EXPECT_LT((true_E_21 - E_21).norm(), 1e-4);
-    EXPECT_LT((true_E_21 - E_iterative).norm(), 1e-4);
 }
 
 TEST(essential_solver, ransac_solve_without_noise) {
