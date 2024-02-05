@@ -12,6 +12,56 @@
 
 using namespace stella_vslam;
 
+TEST(essential_solver, linear_solve) {
+    // create 3D points
+    const unsigned int num_landmarks = 100;
+    const auto landmarks = create_random_landmarks_in_space(num_landmarks, 100);
+
+    // create two-view poses
+    const Mat33_t rot_1 = util::converter::to_rot_mat(205.0 * M_PI / 180.0 * Vec3_t{4, -6, 2}.normalized());
+    const Vec3_t trans_1 = Vec3_t(-28.1, -63.3, 43.4);
+    const Mat33_t rot_2 = util::converter::to_rot_mat(-15.0 * M_PI / 180.0 * Vec3_t{5, 1, -3}.normalized());
+    const Vec3_t trans_2 = Vec3_t(-30.4, -45.5, -49.6);
+
+    // create bearing vectors from two-view poses and 3D points
+    eigen_alloc_vector<Vec3_t> bearings_1, good_bearings_1;
+    eigen_alloc_vector<Vec3_t> bearings_2, good_bearings_2;
+    create_bearing_vectors(rot_1, trans_1, landmarks, bearings_1);
+    create_bearing_vectors(rot_2, trans_2, landmarks, bearings_2);
+    for (int i = 0; i < num_landmarks; ++i) {
+        if (bearings_1.at(i)(2) > 0 && bearings_2.at(i)(2) > 0) {
+            good_bearings_1.push_back(bearings_1.at(i));
+            good_bearings_2.push_back(bearings_2.at(i));
+        }
+    }
+
+    // create a true essential matrix
+    Mat33_t true_E_21 = solve::essential_solver::create_E_21(rot_1, trans_1, rot_2, trans_2);
+
+    Eigen::MatrixXd bearings_1_mat = Eigen::MatrixXd::Zero(good_bearings_1.size(), 3);
+    Eigen::MatrixXd bearings_2_mat = Eigen::MatrixXd::Zero(good_bearings_1.size(), 3);
+    for (int i = 0; i < good_bearings_1.size(); ++i) {
+        bearings_1_mat(i, 0) = good_bearings_1.at(i)(0);
+        bearings_1_mat(i, 1) = good_bearings_1.at(i)(1);
+        bearings_1_mat(i, 2) = good_bearings_1.at(i)(2);
+        bearings_2_mat(i, 0) = good_bearings_2.at(i)(0);
+        bearings_2_mat(i, 1) = good_bearings_2.at(i)(1);
+        bearings_2_mat(i, 2) = good_bearings_2.at(i)(2);
+    }
+
+    // solve iteratively
+    Mat33_t E_21 = minimal_solver::computeE_iterative_lm(bearings_1_mat, bearings_2_mat);
+
+    // align scale and sign
+    true_E_21 /= true_E_21.norm();
+    E_21 /= E_21.norm();
+    if (true_E_21(0, 0) * E_21(0, 0) < 0) {
+        true_E_21 *= -1.0;
+    }
+
+    EXPECT_LT((true_E_21 - E_21).norm(), 1e-4);
+}
+
 TEST(essential_solver, ransac_solve_without_noise) {
     // create 3D points
     const unsigned int num_landmarks = 200;

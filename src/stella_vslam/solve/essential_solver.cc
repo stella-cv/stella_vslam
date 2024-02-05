@@ -58,7 +58,7 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
 
         // 2-2. Compute an essential matrix
         // E_21_in_sac = compute_E_21(min_set_bearings_1, min_set_bearings_2);
-        E_21_in_sac = minimal_solver::computeE_iterative(min_set_bearings_1, min_set_bearings_2);
+        E_21_in_sac = minimal_solver::computeE_iterative_gn(min_set_bearings_1, min_set_bearings_2);
         if(E_21_in_sac.norm() == 0){
             // estimation failed
             continue;
@@ -94,7 +94,7 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
             inlier_bearing_2.push_back(bearings_2_.at(matches_12_.at(i).second));
         }
     }
-    best_E_21_ = solve::essential_solver::compute_E_21(inlier_bearing_1, inlier_bearing_2);
+    best_E_21_ = solve::essential_solver::computeE_iterative_lm(inlier_bearing_1, inlier_bearing_2);
     check_inliers(best_E_21_, is_inlier_match_, best_cost_);
 }
 

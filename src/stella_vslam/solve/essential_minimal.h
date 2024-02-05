@@ -91,7 +91,63 @@ std::pair<Matrix<double, Dynamic, 5>, Matrix<double, Dynamic, 1>> calc_Jr(const 
     return {J, r};
 }
 
-Matrix3d computeE_iterative(const Eigen::Matrix<double, Dynamic, 3>& q1,
+Matrix3d computeE_iterative_lm(const Eigen::Matrix<double, Dynamic, 3>& q1,
+                      const Eigen::Matrix<double, Dynamic, 3>& q2) {
+
+    // Initial Guess (equivalent to Identity rotation and translation)
+    // TODO: Pass in existing a
+    Matrix<double, 5, 1> a;
+    a << 0, 0, 0, 0, 0;
+
+    // Perform N iterations of LM (we do not need tight convergence yet)
+    const int max_iter = 10;
+    const double tol = 0.005;
+    const double damping_factor = 0.01; // Damping factor for LM
+    int iter = 0;
+    Matrix<double, Dynamic, 1> last_r;
+
+    for (iter = 0; iter < max_iter; ++iter) {
+        // TODO: Remove c++17 feature
+        auto [J, r] = calc_Jr(a, q1, q2);
+
+        // LM update step
+        MatrixXd A = J.transpose() * J;
+        VectorXd b = J.transpose() * r;
+        VectorXd delta = (A + damping_factor * MatrixXd::Identity(A.rows(), A.cols())).ldlt().solve(b);
+
+        a -= delta;
+
+        double error_delta = 1;
+        if (last_r.size() > 0) {
+            error_delta = (r - last_r).norm();
+        }
+        last_r = r;
+
+        if (error_delta < tol) {
+            break;
+        }
+        
+        // Adjust damping factor based on error_delta
+        if (error_delta > tol) {
+            damping_factor *= 2.0;
+        } else {
+            damping_factor /= 2.0;
+        }
+    }
+
+    // TODO: What if it didnt converge? LM should only be used to refine E based on inlier's though
+    const Matrix3d R = taylor_expm(a[0] * G1 + a[1] * G2 + a[2] * G3);
+    const Matrix3d Rt = taylor_expm(a[3] * G1 + a[4] * G2);
+
+    const Vector3d tvec = Rt * tr;
+    const Matrix3d tx = skew(tvec);
+
+    Matrix3d E = tx * R;
+    
+    return E;
+}
+
+Matrix3d computeE_iterative_gn(const Eigen::Matrix<double, Dynamic, 3>& q1,
                       const Eigen::Matrix<double, Dynamic, 3>& q2) {
 
     // Initial Guess (equivalent to Identity rotation and translation)
