@@ -56,7 +56,8 @@ private:
     //! Check inliers of the epipolar constraint
     //! (Note: inlier flags are set to `inlier_match`)
     unsigned int check_inliers(const Mat33_t& E_21, std::vector<bool>& is_inlier_match, float& cost);
-
+    unsigned int sampson_inliers(const Mat33_t& E_21, std::vector<bool>& is_inlier_match, float& cost);
+    
     //! bearing vectors of shot 1
     const eigen_alloc_vector<Vec3_t>& bearings_1_;
     //! bearing vectors of shot 2

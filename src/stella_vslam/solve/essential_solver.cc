@@ -3,7 +3,8 @@
 #include "stella_vslam/util/random_array.h"
 #include "stella_vslam/util/trigonometric.h"
 
-#include "stella_vslam/solve/essential_minimal.h"
+// #include "stella_vslam/solve/essential_iterative.h"
+#include "stella_vslam/solve/essential_5pt.h"
 
 namespace stella_vslam {
 namespace solve {
@@ -32,8 +33,8 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
     // minimum set of keypoint matches
     // eigen_alloc_vector<Vec3_t> min_set_bearings_1(min_set_size);
     // eigen_alloc_vector<Vec3_t> min_set_bearings_2(min_set_size);
-    Eigen::Matrix<double, 5, 3> min_set_bearings_1 = Eigen::Matrix<double, 5, 3>::Zero();
-    Eigen::Matrix<double, 5, 3> min_set_bearings_2 = Eigen::Matrix<double, 5, 3>::Zero();
+    solver_5pt::Mat3X min_set_bearings_1 = solver_5pt::Mat3X::Zero(3, min_set_size);
+    solver_5pt::Mat3X min_set_bearings_2 = solver_5pt::Mat3X::Zero(3, min_set_size);
 
     // shared variables in RANSAC loop
     // essential matrix from shot 1 to shot 2
@@ -48,31 +49,33 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
         const auto indices = util::create_random_array(min_set_size, 0U, num_matches - 1, random_engine_);
         for (unsigned int i = 0; i < min_set_size; ++i) {
             const auto idx = indices.at(i);
-            min_set_bearings_1(i,0) = bearings_1_.at(matches_12_.at(idx).first)(0);
-            min_set_bearings_1(i,1) = bearings_1_.at(matches_12_.at(idx).first)(1);
-            min_set_bearings_1(i,2) = bearings_1_.at(matches_12_.at(idx).first)(2);
-            min_set_bearings_2(i,0) = bearings_2_.at(matches_12_.at(idx).second)(0);
-            min_set_bearings_2(i,1) = bearings_2_.at(matches_12_.at(idx).second)(1);
-            min_set_bearings_2(i,2) = bearings_2_.at(matches_12_.at(idx).second)(2);
+            min_set_bearings_1(0, i) = bearings_1_.at(matches_12_.at(idx).first)(0);
+            min_set_bearings_1(1, i) = bearings_1_.at(matches_12_.at(idx).first)(1);
+            min_set_bearings_1(2, i) = bearings_1_.at(matches_12_.at(idx).first)(2);
+            min_set_bearings_2(0, i) = bearings_2_.at(matches_12_.at(idx).second)(0);
+            min_set_bearings_2(1, i) = bearings_2_.at(matches_12_.at(idx).second)(1);
+            min_set_bearings_2(2, i) = bearings_2_.at(matches_12_.at(idx).second)(2);
         }
 
-        // 2-2. Compute an essential matrix
+        // 2-2. Compute an essential matrix via Gauss Newton as its cheaper than lm and
+        // achives our goal of sifting through outliers
         // E_21_in_sac = compute_E_21(min_set_bearings_1, min_set_bearings_2);
-        E_21_in_sac = minimal_solver::computeE_iterative_gn(min_set_bearings_1, min_set_bearings_2);
-        if(E_21_in_sac.norm() == 0){
-            // estimation failed
-            continue;
-        }
+        std::vector<solver_5pt::Mat3> E_mats;
+        // E_mats.push_back(compute_E_21(min_set_bearings_1, min_set_bearings_2));
+        E_mats.reserve(10);
+        solver_5pt::FivePointsRelativePose(min_set_bearings_1, min_set_bearings_2, &E_mats);
 
-        // 2-3. Check inliers and compute a cost
-        float cost_in_sac;
-        unsigned int num_inliers = check_inliers(E_21_in_sac, is_inlier_match_in_sac, cost_in_sac);
+        for (const auto& E_in_sac : E_mats) {
+            // 2-3. Check inliers and compute a cost
+            float cost_in_sac;
+            unsigned int num_inliers = check_inliers(E_in_sac, is_inlier_match_in_sac, cost_in_sac);
 
-        // 2-4. Update the best model
-        if (num_inliers > min_set_size && best_cost_ > cost_in_sac) {
-            best_cost_ = cost_in_sac;
-            best_E_21_ = E_21_in_sac;
-            is_inlier_match_ = is_inlier_match_in_sac;
+            // 2-4. Update the best model
+            if (num_inliers > min_set_size && best_cost_ > cost_in_sac) {
+                best_cost_ = cost_in_sac;
+                best_E_21_ = E_in_sac;
+                is_inlier_match_ = is_inlier_match_in_sac;
+            }
         }
     }
 
@@ -82,7 +85,8 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
         return;
     }
 
-    // 3. Recompute an essential matrix only with the inlier matches
+    // 3. Recompute an essential matrix only with the inlier matches and the
+    // non-minimal solver
 
     eigen_alloc_vector<Vec3_t> inlier_bearing_1;
     eigen_alloc_vector<Vec3_t> inlier_bearing_2;
@@ -94,7 +98,8 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
             inlier_bearing_2.push_back(bearings_2_.at(matches_12_.at(i).second));
         }
     }
-    best_E_21_ = solve::essential_solver::computeE_iterative_lm(inlier_bearing_1, inlier_bearing_2);
+
+    best_E_21_ = compute_E_21(inlier_bearing_1, inlier_bearing_2);
     check_inliers(best_E_21_, is_inlier_match_, best_cost_);
 }
 
