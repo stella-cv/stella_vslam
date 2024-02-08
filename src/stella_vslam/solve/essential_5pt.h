@@ -7,6 +7,8 @@
 #include <numeric>
 #include <Eigen/Dense>
 
+#include "stella_vslam/type.h"
+
 namespace solver_5pt {
 
 // In the following code, polynomials are expressed as vectors containing
@@ -66,15 +68,15 @@ using Vec = Eigen::VectorXd;
 /// 3xN matrix using double internal format
 using Mat3X = Eigen::Matrix<double, 3, Eigen::Dynamic>;
 
-inline void EncodeEpipolarEquation(const Mat3X& x1, const Mat3X& x2, Mat* A) {
-    for (int i = 0; i < x1.cols(); ++i) {
-        A->row(i) << x2(0, i) * x1.col(i).transpose(),
-            x2(1, i) * x1.col(i).transpose(),
-            x2(2, i) * x1.col(i).transpose();
+inline void EncodeEpipolarEquation(const stella_vslam::eigen_alloc_vector<Vec3>& x1, const stella_vslam::eigen_alloc_vector<Vec3>& x2, Mat* A) {
+    for (size_t i = 0; i < x1.size(); ++i) {
+        A->row(i) << x2.at(i)(0) * x1.at(i).transpose(),
+            x2.at(i)(1) * x1.at(i).transpose(),
+            x2.at(i)(2) * x1.at(i).transpose();
     }
 }
 
-Mat FivePointsNullspaceBasis(const Mat3X &x1, const Mat3X &x2) {
+Mat FivePointsNullspaceBasis(const stella_vslam::eigen_alloc_vector<Vec3> &x1, const stella_vslam::eigen_alloc_vector<Vec3> &x2) {
   Mat epipolar_constraint = Eigen::Matrix<double,9, 9>::Constant(0.0);
   EncodeEpipolarEquation(x1, x2, &epipolar_constraint);
   Eigen::SelfAdjointEigenSolver<Mat> solver
@@ -209,8 +211,8 @@ Mat FivePointsPolynomialConstraints(const Mat &E_basis) {
   return M;
 }
 
-void FivePointsRelativePose(const Mat3X &x1,
-                            const Mat3X &x2,
+void FivePointsRelativePose(const stella_vslam::eigen_alloc_vector<Vec3> &x1,
+                            const stella_vslam::eigen_alloc_vector<Vec3> &x2,
                             std::vector<Mat3> *Es) {
   // Step 1: Nullspace Extraction.
   const Eigen::Matrix<double, 9, 4> E_basis = FivePointsNullspaceBasis(x1, x2);
