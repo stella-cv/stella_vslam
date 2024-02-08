@@ -43,8 +43,8 @@ public:
         return is_inlier_match_;
     }
 
-    //! Compute an essential matrix with 8-point algorithm
-    static Mat33_t compute_E_21(const eigen_alloc_vector<Vec3_t>& bearings_1, const eigen_alloc_vector<Vec3_t>& bearings_2);
+    //! Compute an essential matrix with 8-point algorithm (accepts 8 or more corresponding sets of bearing vectors)
+    static Mat33_t compute_E_21_nonminimal(const eigen_alloc_vector<Vec3_t>& bearings_1, const eigen_alloc_vector<Vec3_t>& bearings_2);
 
     //! Decompose an essential matrix to four pairs of rotation and translation
     static bool decompose(const Mat33_t& E_21, eigen_alloc_vector<Mat33_t>& init_rots, eigen_alloc_vector<Vec3_t>& init_transes);

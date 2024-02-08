@@ -50,6 +50,8 @@ using Mat77_t = MatRC_t<7, 7>;
 
 using Mat34_t = MatRC_t<3, 4>;
 
+using Mat3X_t = MatRC_t<3, 4>;
+
 using MatX_t = Eigen::MatrixXd;
 
 // Eigen vector types
@@ -68,6 +70,8 @@ using Vec5_t = VecR_t<5>;
 using Vec6_t = VecR_t<6>;
 
 using Vec7_t = VecR_t<7>;
+
+using Vec9_t = VecR_t<9>;
 
 using VecX_t = Eigen::VectorXd;
 

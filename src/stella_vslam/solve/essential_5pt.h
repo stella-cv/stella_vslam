@@ -9,7 +9,7 @@
 
 #include "stella_vslam/type.h"
 
-namespace solver_5pt {
+namespace stella_vslam {
 
 // In the following code, polynomials are expressed as vectors containing
 // their coeficients in the basis of monomials:
@@ -48,27 +48,7 @@ enum
   coef_1
 };
 
-/// 4d vector using double internal format
-using Vec3 = Eigen::Matrix<double, 3, 1>;
-using Vec4 = Eigen::Matrix<double, 4, 1>;
-
-/// 9d vector using double internal format
-using Vec9 = Eigen::Matrix<double, 9, 1>;
-
-/// 3x3 matrix using double internal format
-using Mat3 = Eigen::Matrix<double, 3, 3>;
-
-//-- General purpose Matrix and Vector
-/// Unconstrained matrix using double internal format
-using Mat = Eigen::MatrixXd;
-
-/// Unconstrained vector using double internal format
-using Vec = Eigen::VectorXd;
-
-/// 3xN matrix using double internal format
-using Mat3X = Eigen::Matrix<double, 3, Eigen::Dynamic>;
-
-inline void EncodeEpipolarEquation(const stella_vslam::eigen_alloc_vector<Vec3>& x1, const stella_vslam::eigen_alloc_vector<Vec3>& x2, Mat* A) {
+inline void EncodeEpipolarEquation(const eigen_alloc_vector<Vec3_t>& x1, const eigen_alloc_vector<Vec3_t>& x2, MatX_t* A) {
     for (size_t i = 0; i < x1.size(); ++i) {
         A->row(i) << x2.at(i)(0) * x1.at(i).transpose(),
             x2.at(i)(1) * x1.at(i).transpose(),
@@ -76,16 +56,30 @@ inline void EncodeEpipolarEquation(const stella_vslam::eigen_alloc_vector<Vec3>&
     }
 }
 
-Mat FivePointsNullspaceBasis(const stella_vslam::eigen_alloc_vector<Vec3> &x1, const stella_vslam::eigen_alloc_vector<Vec3> &x2) {
-  Mat epipolar_constraint = Eigen::Matrix<double,9, 9>::Constant(0.0);
+MatX_t FivePointsNullspaceBasis(const eigen_alloc_vector<Vec3_t> &x1, const eigen_alloc_vector<Vec3_t> &x2, bool& success) {
+  MatX_t epipolar_constraint = Eigen::Matrix<double,9, 9>::Constant(0.0);
   EncodeEpipolarEquation(x1, x2, &epipolar_constraint);
-  Eigen::SelfAdjointEigenSolver<Mat> solver
-    (epipolar_constraint.transpose() * epipolar_constraint);
-  return solver.eigenvectors().leftCols<4>();
+
+  // Extract the null space from a minimal sampling (using LU) or non-minimal
+  // sampling (using SVD).
+  success = false;
+  MatX_t null_space;
+  if (x1.size() == 5) {
+    const Eigen::FullPivLU<MatX_t> lu(epipolar_constraint);
+    success = (lu.dimensionOfKernel() >= 4);
+    null_space = lu.kernel();
+  } else {
+    const Eigen::JacobiSVD<MatX_t> svd(
+        epipolar_constraint.transpose() * epipolar_constraint,
+        Eigen::ComputeFullV);
+    null_space = svd.matrixV().rightCols<4>();
+    success = true;
+  }
+  return null_space;
 }
 
-Vec o1(const Vec &a, const Vec &b) {
-  Vec res = Vec::Zero(20);
+VecX_t o1(const VecX_t &a, const VecX_t &b) {
+  VecX_t res = VecX_t::Zero(20);
 
   res(coef_xx) = a(coef_x) * b(coef_x);
   res(coef_xy) = a(coef_x) * b(coef_y)
@@ -107,8 +101,8 @@ Vec o1(const Vec &a, const Vec &b) {
   return res;
 }
 
-Vec o2(const Vec &a, const Vec &b) {
-  Vec res(20);
+VecX_t o2(const VecX_t &a, const VecX_t &b) {
+  VecX_t res(20);
 
   res(coef_xxx) = a(coef_xx) * b(coef_x);
   res(coef_xxy) = a(coef_xx) * b(coef_y)
@@ -154,12 +148,12 @@ Vec o2(const Vec &a, const Vec &b) {
   return res;
 }
 
-Mat FivePointsPolynomialConstraints(const Mat &E_basis) {
+MatX_t FivePointsPolynomialConstraints(const MatX_t &E_basis) {
   // Build the polynomial form of E (equation (8) in Stewenius et al. [1])
-  Vec E[3][3];
+  VecX_t E[3][3];
   for (int i = 0; i < 3; ++i) {
     for (int j = 0; j < 3; ++j) {
-      E[i][j] = Vec::Zero(20);
+      E[i][j] = VecX_t::Zero(20);
       E[i][j](coef_x) = E_basis(3 * i + j, 0);
       E[i][j](coef_y) = E_basis(3 * i + j, 1);
       E[i][j](coef_z) = E_basis(3 * i + j, 2);
@@ -168,7 +162,7 @@ Mat FivePointsPolynomialConstraints(const Mat &E_basis) {
   }
 
   // The constraint matrix.
-  Mat M(10, 20);
+  MatX_t M(10, 20);
   int mrow = 0;
 
   // Determinant constraint det(E) = 0; equation (19) of Nister [2].
@@ -178,7 +172,7 @@ Mat FivePointsPolynomialConstraints(const Mat &E_basis) {
 
   // Cubic singular values constraint.
   // Equation (20).
-  Vec EET[3][3];
+  VecX_t EET[3][3];
   for (int i = 0; i < 3; ++i) {    // Since EET is symmetric, we only compute
     for (int j = 0; j < 3; ++j) {  // its upper triangular part.
       if (i <= j) {
@@ -192,8 +186,8 @@ Mat FivePointsPolynomialConstraints(const Mat &E_basis) {
   }
 
   // Equation (21).
-  Vec (&L)[3][3] = EET;
-  const Vec trace  = 0.5 * (EET[0][0] + EET[1][1] + EET[2][2]);
+  VecX_t (&L)[3][3] = EET;
+  const VecX_t trace  = 0.5 * (EET[0][0] + EET[1][1] + EET[2][2]);
   for (const int i : {0,1,2}) {
     L[i][i] -= trace;
   }
@@ -201,7 +195,7 @@ Mat FivePointsPolynomialConstraints(const Mat &E_basis) {
   // Equation (23).
   for (const int i : {0,1,2}) {
     for (const int j : {0,1,2}) {
-      Vec LEij = o2(L[i][0], E[0][j])
+      VecX_t LEij = o2(L[i][0], E[0][j])
                + o2(L[i][1], E[1][j])
                + o2(L[i][2], E[2][j]);
       M.row(mrow++) = LEij;
@@ -211,11 +205,15 @@ Mat FivePointsPolynomialConstraints(const Mat &E_basis) {
   return M;
 }
 
-void FivePointsRelativePose(const stella_vslam::eigen_alloc_vector<Vec3> &x1,
-                            const stella_vslam::eigen_alloc_vector<Vec3> &x2,
-                            std::vector<Mat3> *Es) {
+void compute_E_21_minimal(const eigen_alloc_vector<Vec3_t> &x1,
+                            const eigen_alloc_vector<Vec3_t> &x2,
+                            std::vector<Mat33_t> *Es) {
   // Step 1: Nullspace Extraction.
-  const Eigen::Matrix<double, 9, 4> E_basis = FivePointsNullspaceBasis(x1, x2);
+  bool success;
+  const Eigen::Matrix<double, 9, 4> E_basis = FivePointsNullspaceBasis(x1, x2, success);
+  if(!success){
+    return;
+  }
 
   // Step 2: Constraint Expansion.
   const Eigen::Matrix<double, 10, 20> E_constraints = FivePointsPolynomialConstraints(E_basis);
@@ -248,8 +246,8 @@ void FivePointsRelativePose(const stella_vslam::eigen_alloc_vector<Vec3> &x1,
     if (eigenvalues(s).imag() != 0) {
       continue;
     }
-    Mat3 E;
-    Eigen::Map<Vec9 >(E.data()) =
+    Mat33_t E;
+    Eigen::Map<Vec9_t >(E.data()) =
         E_basis * eigenvectors.col(s).tail<4>().real();
     Es->emplace_back(E.transpose());
   }

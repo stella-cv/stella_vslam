@@ -32,7 +32,7 @@ TEST(essential_solver, linear_solve) {
     Mat33_t true_E_21 = solve::essential_solver::create_E_21(rot_1, trans_1, rot_2, trans_2);
 
     // solve with SVD
-    Mat33_t E_21 = solve::essential_solver::compute_E_21(bearings_1, bearings_2);
+    Mat33_t E_21 = solve::essential_solver::compute_E_21_nonminimal(bearings_1, bearings_2);
 
     // align scale and sign
     true_E_21 /= true_E_21.norm();
@@ -91,12 +91,6 @@ TEST(essential_solver, ransac_solve_without_noise) {
         true_E_21 *= -1.0;
     }
     
-
-    std::cout << "true_E_21" << std::endl;
-    std::cout << true_E_21 << std::endl;
-    std::cout << "E_21" << std::endl;
-    std::cout << E_21 << std::endl;
-
     EXPECT_LT((true_E_21 - E_21).norm(), 1e-4);
 }
 

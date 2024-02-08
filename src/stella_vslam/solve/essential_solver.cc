@@ -52,9 +52,9 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
         }
 
         // 2-2. Compute candidate essential matrices with the minimal solver
-        std::vector<solver_5pt::Mat3> E_mats;
+        std::vector<Mat33_t> E_mats;
         E_mats.reserve(10); // minimal solver will yield up to 10 feasible E matrices
-        solver_5pt::FivePointsRelativePose(min_set_bearings_1, min_set_bearings_2, &E_mats);
+        compute_E_21_minimal(min_set_bearings_1, min_set_bearings_2, &E_mats);
 
         // see if any of the candidates are better than best_E_21_
         for (const auto& E_in_sac : E_mats) {
@@ -77,7 +77,7 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
         return;
     }
 
-    // 3. Recompute an essential matrix only with the inlier matches and the
+    // 3. Recompute an essential matrix with only the inlier matches and the
     // non-minimal solver
 
     eigen_alloc_vector<Vec3_t> inlier_bearing_1;
@@ -91,11 +91,11 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
         }
     }
 
-    best_E_21_ = compute_E_21(inlier_bearing_1, inlier_bearing_2);
+    best_E_21_ = compute_E_21_nonminimal(inlier_bearing_1, inlier_bearing_2);
     check_inliers(best_E_21_, is_inlier_match_, best_cost_);
 }
 
-Mat33_t essential_solver::compute_E_21(const eigen_alloc_vector<Vec3_t>& bearings_1, const eigen_alloc_vector<Vec3_t>& bearings_2) {
+Mat33_t essential_solver::compute_E_21_nonminimal(const eigen_alloc_vector<Vec3_t>& bearings_1, const eigen_alloc_vector<Vec3_t>& bearings_2) {
     assert(bearings_1.size() == bearings_2.size());
 
     const auto num_points = bearings_1.size();
