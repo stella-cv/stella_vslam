@@ -53,11 +53,14 @@ public:
     static Mat33_t create_E_21(const Mat33_t& rot_1w, const Vec3_t& trans_1w, const Mat33_t& rot_2w, const Vec3_t& trans_2w);
 
 private:
+    //! Compute an essential matrix with 5-point algorithm from Stewenius et al. (accepts 5 or more corresponding sets of bearing vectors). but works best
+    // when used with RANSAC since it can produce up to 10 feasible essential matrices that need to be validated
+    void compute_E_21_minimal(const eigen_alloc_vector<Vec3_t>& x1, const eigen_alloc_vector<Vec3_t>& x2, std::vector<Mat33_t>* Es);
+
     //! Check inliers of the epipolar constraint
     //! (Note: inlier flags are set to `inlier_match`)
     unsigned int check_inliers(const Mat33_t& E_21, std::vector<bool>& is_inlier_match, float& cost);
-    unsigned int sampson_inliers(const Mat33_t& E_21, std::vector<bool>& is_inlier_match, float& cost);
-    
+
     //! bearing vectors of shot 1
     const eigen_alloc_vector<Vec3_t>& bearings_1_;
     //! bearing vectors of shot 2

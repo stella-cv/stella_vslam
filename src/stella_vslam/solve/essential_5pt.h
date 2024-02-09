@@ -1,255 +1,201 @@
-#pragma once
+#ifndef STELLA_VSLAM_SOLVE_ESSENTIAL_5PT_H
+#define STELLA_VSLAM_SOLVE_ESSENTIAL_5PT_H
 
-#include <iostream>
-#include <vector>
-#include <cmath>
-#include <algorithm>
-#include <numeric>
 #include <Eigen/Dense>
 
 #include "stella_vslam/type.h"
 
+/**
+ * This file contains helper functions to compute the essential matrix from 5 bearing vector correspondences.
+ * The code is adapted from the OpenMVG and TheiaSfm implementations of Stewenius's et. al's algorithm from
+ * "Recent developments on direct relative orientation".
+ * 
+ */
+
 namespace stella_vslam {
 
-// In the following code, polynomials are expressed as vectors containing
-// their coeficients in the basis of monomials:
-//
-//  [xxx xxy xyy yyy xxz xyz yyz xzz yzz zzz xx xy yy xz yz zz x y z 1]
-//
-// Note that there is an error in Stewenius' paper.  In equation (9) they
-// propose to use the basis:
-//
-//  [xxx xxy xxz xyy xyz xzz yyy yyz yzz zzz xx xy xz yy yz zz x y z 1]
-//
-// But this is not the basis used in the rest of the paper, neither in
-// the code they provide. I (pau) have spend 4 hours debugging and
-// reverse engineering their code to find the problem. :(
-enum
-{
-  coef_xxx,
-  coef_xxy,
-  coef_xyy,
-  coef_yyy,
-  coef_xxz,
-  coef_xyz,
-  coef_yyz,
-  coef_xzz,
-  coef_yzz,
-  coef_zzz,
-  coef_xx,
-  coef_xy,
-  coef_yy,
-  coef_xz,
-  coef_yz,
-  coef_zz,
-  coef_x,
-  coef_y,
-  coef_z,
-  coef_1
+// Polynomial coefficients
+// slightly different from the paper, which seems to have a typo here
+enum {
+    poly_xxx,
+    poly_xxy,
+    poly_xyy,
+    poly_yyy,
+    poly_xxz,
+    poly_xyz,
+    poly_yyz,
+    poly_xzz,
+    poly_yzz,
+    poly_zzz,
+    poly_xx,
+    poly_xy,
+    poly_yy,
+    poly_xz,
+    poly_yz,
+    poly_zz,
+    poly_x,
+    poly_y,
+    poly_z,
+    poly_1
 };
 
-inline void EncodeEpipolarEquation(const eigen_alloc_vector<Vec3_t>& x1, const eigen_alloc_vector<Vec3_t>& x2, MatX_t* A) {
+MatX_t find_nullspace_of_epipolar_constraint(const eigen_alloc_vector<Vec3_t>& x1, const eigen_alloc_vector<Vec3_t>& x2, bool& success) {
+    Eigen::Matrix<double, 9, 9> epipolar_constraint = Eigen::Matrix<double, 9, 9>::Constant(0.0);
+    // form the epipolar constraint from the bearing vectors
     for (size_t i = 0; i < x1.size(); ++i) {
-        A->row(i) << x2.at(i)(0) * x1.at(i).transpose(),
+        epipolar_constraint.row(i) << x2.at(i)(0) * x1.at(i).transpose(),
             x2.at(i)(1) * x1.at(i).transpose(),
             x2.at(i)(2) * x1.at(i).transpose();
     }
-}
 
-MatX_t FivePointsNullspaceBasis(const eigen_alloc_vector<Vec3_t> &x1, const eigen_alloc_vector<Vec3_t> &x2, bool& success) {
-  MatX_t epipolar_constraint = Eigen::Matrix<double,9, 9>::Constant(0.0);
-  EncodeEpipolarEquation(x1, x2, &epipolar_constraint);
-
-  // Extract the null space from a minimal sampling (using LU) or non-minimal
-  // sampling (using SVD).
-  success = false;
-  MatX_t null_space;
-  if (x1.size() == 5) {
-    const Eigen::FullPivLU<MatX_t> lu(epipolar_constraint);
-    success = (lu.dimensionOfKernel() >= 4);
-    null_space = lu.kernel();
-  } else {
-    const Eigen::JacobiSVD<MatX_t> svd(
-        epipolar_constraint.transpose() * epipolar_constraint,
-        Eigen::ComputeFullV);
-    null_space = svd.matrixV().rightCols<4>();
-    success = true;
-  }
-  return null_space;
-}
-
-VecX_t o1(const VecX_t &a, const VecX_t &b) {
-  VecX_t res = VecX_t::Zero(20);
-
-  res(coef_xx) = a(coef_x) * b(coef_x);
-  res(coef_xy) = a(coef_x) * b(coef_y)
-               + a(coef_y) * b(coef_x);
-  res(coef_xz) = a(coef_x) * b(coef_z)
-               + a(coef_z) * b(coef_x);
-  res(coef_yy) = a(coef_y) * b(coef_y);
-  res(coef_yz) = a(coef_y) * b(coef_z)
-               + a(coef_z) * b(coef_y);
-  res(coef_zz) = a(coef_z) * b(coef_z);
-  res(coef_x)  = a(coef_x) * b(coef_1)
-               + a(coef_1) * b(coef_x);
-  res(coef_y)  = a(coef_y) * b(coef_1)
-               + a(coef_1) * b(coef_y);
-  res(coef_z)  = a(coef_z) * b(coef_1)
-               + a(coef_1) * b(coef_z);
-  res(coef_1)  = a(coef_1) * b(coef_1);
-
-  return res;
-}
-
-VecX_t o2(const VecX_t &a, const VecX_t &b) {
-  VecX_t res(20);
-
-  res(coef_xxx) = a(coef_xx) * b(coef_x);
-  res(coef_xxy) = a(coef_xx) * b(coef_y)
-                + a(coef_xy) * b(coef_x);
-  res(coef_xxz) = a(coef_xx) * b(coef_z)
-                + a(coef_xz) * b(coef_x);
-  res(coef_xyy) = a(coef_xy) * b(coef_y)
-                + a(coef_yy) * b(coef_x);
-  res(coef_xyz) = a(coef_xy) * b(coef_z)
-                + a(coef_yz) * b(coef_x)
-                + a(coef_xz) * b(coef_y);
-  res(coef_xzz) = a(coef_xz) * b(coef_z)
-                + a(coef_zz) * b(coef_x);
-  res(coef_yyy) = a(coef_yy) * b(coef_y);
-  res(coef_yyz) = a(coef_yy) * b(coef_z)
-                + a(coef_yz) * b(coef_y);
-  res(coef_yzz) = a(coef_yz) * b(coef_z)
-                + a(coef_zz) * b(coef_y);
-  res(coef_zzz) = a(coef_zz) * b(coef_z);
-  res(coef_xx)  = a(coef_xx) * b(coef_1)
-                + a(coef_x)  * b(coef_x);
-  res(coef_xy)  = a(coef_xy) * b(coef_1)
-                + a(coef_x)  * b(coef_y)
-                + a(coef_y)  * b(coef_x);
-  res(coef_xz)  = a(coef_xz) * b(coef_1)
-                + a(coef_x)  * b(coef_z)
-                + a(coef_z)  * b(coef_x);
-  res(coef_yy)  = a(coef_yy) * b(coef_1)
-                + a(coef_y)  * b(coef_y);
-  res(coef_yz)  = a(coef_yz) * b(coef_1)
-                + a(coef_y)  * b(coef_z)
-                + a(coef_z)  * b(coef_y);
-  res(coef_zz)  = a(coef_zz) * b(coef_1)
-                + a(coef_z)  * b(coef_z);
-  res(coef_x)   = a(coef_x)  * b(coef_1)
-                + a(coef_1)  * b(coef_x);
-  res(coef_y)   = a(coef_y)  * b(coef_1)
-                + a(coef_1)  * b(coef_y);
-  res(coef_z)   = a(coef_z)  * b(coef_1)
-                + a(coef_1)  * b(coef_z);
-  res(coef_1)   = a(coef_1)  * b(coef_1);
-
-  return res;
-}
-
-MatX_t FivePointsPolynomialConstraints(const MatX_t &E_basis) {
-  // Build the polynomial form of E (equation (8) in Stewenius et al. [1])
-  VecX_t E[3][3];
-  for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < 3; ++j) {
-      E[i][j] = VecX_t::Zero(20);
-      E[i][j](coef_x) = E_basis(3 * i + j, 0);
-      E[i][j](coef_y) = E_basis(3 * i + j, 1);
-      E[i][j](coef_z) = E_basis(3 * i + j, 2);
-      E[i][j](coef_1) = E_basis(3 * i + j, 3);
+    // Extract the null space from a minimal sampling (using LU) or non-minimal
+    // sampling (using SVD).
+    success = false;
+    MatX_t null_space;
+    if (x1.size() == 5) {
+        const Eigen::FullPivLU<MatX_t> lu(epipolar_constraint);
+        success = (lu.dimensionOfKernel() >= 4);
+        null_space = lu.kernel();
     }
-  }
-
-  // The constraint matrix.
-  MatX_t M(10, 20);
-  int mrow = 0;
-
-  // Determinant constraint det(E) = 0; equation (19) of Nister [2].
-  M.row(mrow++) = o2(o1(E[0][1], E[1][2]) - o1(E[0][2], E[1][1]), E[2][0]) +
-                  o2(o1(E[0][2], E[1][0]) - o1(E[0][0], E[1][2]), E[2][1]) +
-                  o2(o1(E[0][0], E[1][1]) - o1(E[0][1], E[1][0]), E[2][2]);
-
-  // Cubic singular values constraint.
-  // Equation (20).
-  VecX_t EET[3][3];
-  for (int i = 0; i < 3; ++i) {    // Since EET is symmetric, we only compute
-    for (int j = 0; j < 3; ++j) {  // its upper triangular part.
-      if (i <= j) {
-        EET[i][j] = o1(E[i][0], E[j][0])
-                  + o1(E[i][1], E[j][1])
-                  + o1(E[i][2], E[j][2]);
-      } else {
-        EET[i][j] = EET[j][i];
-      }
+    else {
+        const Eigen::JacobiSVD<MatX_t> svd(
+            epipolar_constraint.transpose() * epipolar_constraint,
+            Eigen::ComputeFullV);
+        null_space = svd.matrixV().rightCols<4>();
+        success = true;
     }
-  }
-
-  // Equation (21).
-  VecX_t (&L)[3][3] = EET;
-  const VecX_t trace  = 0.5 * (EET[0][0] + EET[1][1] + EET[2][2]);
-  for (const int i : {0,1,2}) {
-    L[i][i] -= trace;
-  }
-
-  // Equation (23).
-  for (const int i : {0,1,2}) {
-    for (const int j : {0,1,2}) {
-      VecX_t LEij = o2(L[i][0], E[0][j])
-               + o2(L[i][1], E[1][j])
-               + o2(L[i][2], E[2][j]);
-      M.row(mrow++) = LEij;
-    }
-  }
-
-  return M;
+    return null_space;
 }
 
-void compute_E_21_minimal(const eigen_alloc_vector<Vec3_t> &x1,
-                            const eigen_alloc_vector<Vec3_t> &x2,
-                            std::vector<Mat33_t> *Es) {
-  // Step 1: Nullspace Extraction.
-  bool success;
-  const Eigen::Matrix<double, 9, 4> E_basis = FivePointsNullspaceBasis(x1, x2, success);
-  if(!success){
-    return;
-  }
+// Multiply two degree one polynomials of variables x, y, z.
+// E.g. p1 = a[0]x + a[1]y + a[2]z + a[3]
+Eigen::Matrix<double, 1, 20> deg_one_poly_product(const VecX_t& a, const VecX_t& b) {
+    Eigen::Matrix<double, 1, 20> product = VecX_t::Zero(20);
 
-  // Step 2: Constraint Expansion.
-  const Eigen::Matrix<double, 10, 20> E_constraints = FivePointsPolynomialConstraints(E_basis);
+    product(poly_xx) = a(poly_x) * b(poly_x); // x*x'
+    product(poly_xy)
+        = a(poly_x) * b(poly_y) + a(poly_y) * b(poly_x);              // x*y' + y*x'
+    product(poly_xz) = a(poly_x) * b(poly_z) + a(poly_z) * b(poly_x); // x*z' + z*x'
+    product(poly_yy) = a(poly_y) * b(poly_y);                         // y * y'
+    product(poly_yz) = a(poly_y) * b(poly_z) + a(poly_z) * b(poly_y); // y*z' + z * y'
+    product(poly_zz) = a(poly_z) * b(poly_z);                         // z * z'
+    product(poly_x) = a(poly_x) * b(poly_1) + a(poly_1) * b(poly_x);  // x * c' + c * x'
+    product(poly_y) = a(poly_y) * b(poly_1) + a(poly_1) * b(poly_y);  // y * c' + c * y'
+    product(poly_z) = a(poly_z) * b(poly_1) + a(poly_1) * b(poly_z);  // z * c' + c * z'
+    product(poly_1) = a(poly_1) * b(poly_1);                          // c * c'
 
-  // Step 3: Gauss-Jordan Elimination (done thanks to a LU decomposition).
-  using Mat10 = Eigen::Matrix<double, 10, 10>;
-  Eigen::FullPivLU<Mat10> c_lu(E_constraints.block<10, 10>(0, 0));
-  const Mat10 M = c_lu.solve(E_constraints.block<10, 10>(0, 10));
-
-  // For next steps we follow the matlab code given in Stewenius et al [1].
-
-  // Build action matrix.
-
-  const Mat10 & B = M.topRightCorner<10,10>();
-  Mat10 At = Mat10::Zero(10,10);
-  At.block<3, 10>(0, 0) = B.block<3, 10>(0, 0);
-  At.row(3) = B.row(4);
-  At.row(4) = B.row(5);
-  At.row(5) = B.row(7);
-  At(6,0) = At(7,1) = At(8,3) = At(9,6) = -1;
-
-  Eigen::EigenSolver<Mat10> eigensolver(At);
-  const auto& eigenvectors = eigensolver.eigenvectors();
-  const auto& eigenvalues = eigensolver.eigenvalues();
-
-  // Build essential matrices for the real solutions.
-  Es->reserve(10);
-  for (int s = 0; s < 10; ++s) {
-    // Only consider real solutions.
-    if (eigenvalues(s).imag() != 0) {
-      continue;
-    }
-    Mat33_t E;
-    Eigen::Map<Vec9_t >(E.data()) =
-        E_basis * eigenvectors.col(s).tail<4>().real();
-    Es->emplace_back(E.transpose());
-  }
+    return product;
 }
-} // namespace minimal_solver
+
+// Multiply a 2 deg poly (in x, y, z) and a one deg poly
+Eigen::Matrix<double, 1, 20> deg_two_poly_product(const VecX_t& a, const VecX_t& b) {
+    Eigen::Matrix<double, 1, 20> product(20);
+
+    product(poly_xxx) = a(poly_xx) * b(poly_x);
+    product(poly_xxy) = a(poly_xx) * b(poly_y)
+                        + a(poly_xy) * b(poly_x);
+    product(poly_xxz) = a(poly_xx) * b(poly_z)
+                        + a(poly_xz) * b(poly_x);
+    product(poly_xyy) = a(poly_xy) * b(poly_y)
+                        + a(poly_yy) * b(poly_x);
+    product(poly_xyz) = a(poly_xy) * b(poly_z)
+                        + a(poly_yz) * b(poly_x)
+                        + a(poly_xz) * b(poly_y);
+    product(poly_xzz) = a(poly_xz) * b(poly_z)
+                        + a(poly_zz) * b(poly_x);
+    product(poly_yyy) = a(poly_yy) * b(poly_y);
+    product(poly_yyz) = a(poly_yy) * b(poly_z)
+                        + a(poly_yz) * b(poly_y);
+    product(poly_yzz) = a(poly_yz) * b(poly_z)
+                        + a(poly_zz) * b(poly_y);
+    product(poly_zzz) = a(poly_zz) * b(poly_z);
+    product(poly_xx) = a(poly_xx) * b(poly_1)
+                       + a(poly_x) * b(poly_x);
+    product(poly_xy) = a(poly_xy) * b(poly_1)
+                       + a(poly_x) * b(poly_y)
+                       + a(poly_y) * b(poly_x);
+    product(poly_xz) = a(poly_xz) * b(poly_1)
+                       + a(poly_x) * b(poly_z)
+                       + a(poly_z) * b(poly_x);
+    product(poly_yy) = a(poly_yy) * b(poly_1)
+                       + a(poly_y) * b(poly_y);
+    product(poly_yz) = a(poly_yz) * b(poly_1)
+                       + a(poly_y) * b(poly_z)
+                       + a(poly_z) * b(poly_y);
+    product(poly_zz) = a(poly_zz) * b(poly_1)
+                       + a(poly_z) * b(poly_z);
+    product(poly_x) = a(poly_x) * b(poly_1)
+                      + a(poly_1) * b(poly_x);
+    product(poly_y) = a(poly_y) * b(poly_1)
+                      + a(poly_1) * b(poly_y);
+    product(poly_z) = a(poly_z) * b(poly_1)
+                      + a(poly_1) * b(poly_z);
+    product(poly_1) = a(poly_1) * b(poly_1);
+
+    return product;
+}
+
+Eigen::Matrix<double, 10, 20> form_polynomial_constraint_matrix(const MatX_t& E_basis) {
+    // Build the polynomial form of E
+    VecX_t E[3][3];
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            E[i][j] = VecX_t::Zero(20);
+            E[i][j](poly_x) = E_basis(3 * i + j, 0);
+            E[i][j](poly_y) = E_basis(3 * i + j, 1);
+            E[i][j](poly_z) = E_basis(3 * i + j, 2);
+            E[i][j](poly_1) = E_basis(3 * i + j, 3);
+        }
+    }
+
+    // The constraint matrix we want to construct here.
+    Eigen::Matrix<double, 10, 20> M;
+    int mrow = 0;
+
+    // Theorem 1: Determinant constraint det(E) = 0 is the first part of M
+    M.row(mrow++) = (
+        deg_two_poly_product(deg_one_poly_product(E[0][1], E[1][2]) - deg_one_poly_product(E[0][2], E[1][1]), E[2][0]) + 
+        deg_two_poly_product(deg_one_poly_product(E[0][2], E[1][0]) - deg_one_poly_product(E[0][0], E[1][2]), E[2][1]) + 
+        deg_two_poly_product(deg_one_poly_product(E[0][0], E[1][1]) - deg_one_poly_product(E[0][1], E[1][0]), E[2][2])
+    );
+
+    // Theorem 2: the trace constraint: EEtE - 1/2 trace(EEt)E = 0
+
+    // EEt
+    Eigen::Matrix<double, 1, 20> EET[3][3];
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            if (i <= j) {
+                EET[i][j] = deg_one_poly_product(E[i][0], E[j][0])
+                            + deg_one_poly_product(E[i][1], E[j][1])
+                            + deg_one_poly_product(E[i][2], E[j][2]);
+            }
+            else {
+                // EET is symmetric
+                EET[i][j] = EET[j][i];
+            }
+        }
+    }
+
+    // EEt - 1/2 trace(EEt)
+    Eigen::Matrix<double, 1, 20>(&trace_constraint)[3][3] = EET;
+    const Eigen::Matrix<double, 1, 20> trace = 0.5 * (EET[0][0] + EET[1][1] + EET[2][2]);
+    for (const int i : {0, 1, 2}) {
+        trace_constraint[i][i] -= trace;
+    }
+
+    // (EEt - 1/2 trace(EEt)) * E --> EEtE - 1/2 trace(EEt)E = 0
+    for (const int i : {0, 1, 2}) {
+        for (const int j : {0, 1, 2}) {
+            M.row(mrow++) = deg_two_poly_product(trace_constraint[i][0], E[0][j])
+                            + deg_two_poly_product(trace_constraint[i][1], E[1][j])
+                            + deg_two_poly_product(trace_constraint[i][2], E[2][j]);
+        }
+    }
+
+    return M;
+}
+
+} // namespace stella_vslam
+
+#endif // STELLA_VSLAM_SOLVE_ESSENTIAL_5PT_H

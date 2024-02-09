@@ -3,7 +3,6 @@
 #include "stella_vslam/util/random_array.h"
 #include "stella_vslam/util/trigonometric.h"
 
-// #include "stella_vslam/solve/essential_iterative.h"
 #include "stella_vslam/solve/essential_5pt.h"
 
 namespace stella_vslam {
@@ -51,9 +50,8 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
             min_set_bearings_2.at(i) = bearings_2_.at(matches_12_.at(idx).second);
         }
 
-        // 2-2. Compute candidate essential matrices with the minimal solver
+        // 2-2. Compute candidate essential matrices with the minimal solver (there will be at most 10)
         std::vector<Mat33_t> E_mats;
-        E_mats.reserve(10); // minimal solver will yield up to 10 feasible E matrices
         compute_E_21_minimal(min_set_bearings_1, min_set_bearings_2, &E_mats);
 
         // see if any of the candidates are better than best_E_21_
@@ -126,6 +124,60 @@ Mat33_t essential_solver::compute_E_21_nonminimal(const eigen_alloc_vector<Vec3_
     const Mat33_t E_21 = U * lambda.asDiagonal() * V.transpose();
 
     return E_21;
+}
+
+void compute_E_21_minimal(const eigen_alloc_vector<Vec3_t>& x1,
+                          const eigen_alloc_vector<Vec3_t>& x2,
+                          std::vector<Mat33_t>* Es) {
+    // Step 1: Extract the Nullspace from the epipolar constraint.
+    bool success;
+    const Eigen::Matrix<double, 9, 4> E_basis = find_nullspace_of_epipolar_constraint(x1, x2, success);
+    if (!success) {
+        return;
+    }
+
+    // Step 2: Use the epipolar constaints to build a matrix representing
+    // ten, 3rd order polynomial equations in the 3 unknowns x,y,z 
+    // (this ends up being a lot of polynomial math to get us to a constraint matrix 
+    // we can solve).
+    const Eigen::Matrix<double, 10, 20> E_constraints = form_polynomial_constraint_matrix(E_basis);
+
+    // Step 3: Apply Gauss-Jordan Elimination to the constraint matrix.
+    using Mat10_t = Eigen::Matrix<double, 10, 10>;
+    Eigen::FullPivLU<Mat10> c_lu(E_constraints.block<10, 10>(0, 0));
+    const Mat10_t eliminated_matrix = c_lu.solve(E_constraints.block<10, 10>(0, 10));
+
+    // Solving the eliminated matrix like in the matlab code shown in the paper 
+
+    // Build the "action matrix"
+    Mat10_t action_matrix = Matrix10d::Zero();
+    action_matrix.block<3, 10>(0, 0) = eliminated_matrix.block<3, 10>(0, 0);
+    action_matrix.row(3) = eliminated_matrix.row(4);
+    action_matrix.row(4) = eliminated_matrix.row(5);
+    action_matrix.row(5) = eliminated_matrix.row(7);
+    action_matrix(6, 0) = -1.0;
+    action_matrix(7, 1) = -1.0;
+    action_matrix(8, 3) = -1.0;
+    action_matrix(9, 6) = -1.0;
+
+    // Get the solutions to the constraint matrix (various solutions
+    // for our 3 unknowns)
+    Eigen::EigenSolver<Mat10> eigensolver(action_matrix);
+    const auto& eigenvectors = eigensolver.eigenvectors();
+    const auto& eigenvalues = eigensolver.eigenvalues();
+
+    // Build essential matrices by substituting in the real solutions (there can be up to 10
+    // since we solved a 10th degree polynomial)
+    Es->reserve(10);
+    for (int s = 0; s < 10; ++s) {
+        // Only consider real solutions.
+        if (eigenvalues(s).imag() != 0) {
+            continue;
+        }
+        Mat33_t E;
+        Eigen::Map<Vec9_t>(E.data()) = E_basis * eigenvectors.col(s).tail<4>().real();
+        Es->emplace_back(E.transpose());
+    }
 }
 
 bool essential_solver::decompose(const Mat33_t& E_21, eigen_alloc_vector<Mat33_t>& init_rots, eigen_alloc_vector<Vec3_t>& init_transes) {
