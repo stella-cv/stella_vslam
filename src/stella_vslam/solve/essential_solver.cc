@@ -52,7 +52,7 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
         }
 
         // 2-2. Compute candidate essential matrices with the minimal solver (there will be at most 10)
-        const std::vector<Mat33_t> E_mats = compute_E_21_minimal(min_set_bearings_1, min_set_bearings_2, &E_mats);
+        const std::vector<Mat33_t> E_mats = compute_E_21_minimal(min_set_bearings_1, min_set_bearings_2);
 
         // see if any of the candidates are better than best_E_21_
         for (const auto& E_in_sac : E_mats) {
@@ -148,13 +148,13 @@ std::vector<Mat33_t> essential_solver::compute_E_21_minimal(const eigen_alloc_ve
     const Eigen::Matrix<double, 10, 20> constraint_matrix = form_polynomial_constraint_matrix(E_basis);
 
     // Step 3: Apply Gauss-Jordan Elimination to the constraint matrix.
-    Eigen::FullPivLU<Mat10> c_lu(constraint_matrix.block<10, 10>(0, 0));
+    Eigen::FullPivLU<Mat10_t> c_lu(constraint_matrix.block<10, 10>(0, 0));
     const Mat10_t eliminated_matrix = c_lu.solve(constraint_matrix.block<10, 10>(0, 10));
 
     // Solving the eliminated matrix like in the matlab code shown in Stewenius et al.
 
     // Build the "action matrix"
-    Mat10_t action_matrix = Matrix10d::Zero();
+    Mat10_t action_matrix = Mat10_t::Zero();
     action_matrix.block<3, 10>(0, 0) = eliminated_matrix.block<3, 10>(0, 0);
     action_matrix.row(3) = eliminated_matrix.row(4);
     action_matrix.row(4) = eliminated_matrix.row(5);
@@ -166,7 +166,7 @@ std::vector<Mat33_t> essential_solver::compute_E_21_minimal(const eigen_alloc_ve
 
     // Get the solutions to the constraint matrix (i.e. the 10 sets of solutions
     // for our 3 unknowns)
-    Eigen::EigenSolver<Mat10> eigensolver(action_matrix);
+    Eigen::EigenSolver<Mat10_t> eigensolver(action_matrix);
     const auto& eig_vecs = eigensolver.eigenvectors();
     const auto& eig_vals = eigensolver.eigenvalues();
 

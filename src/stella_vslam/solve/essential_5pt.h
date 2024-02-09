@@ -209,13 +209,13 @@ Eigen::Matrix<double, 10, 20> form_polynomial_constraint_matrix(const Eigen::Mat
     // EEt - 1/2 trace(EEt)
     Vec20_t(&trace_constraint)[3][3] = EET;
     const Vec20_t trace = 0.5 * (EET[0][0] + EET[1][1] + EET[2][2]);
-    for (const int i : {0, 1, 2}) {
-        trace_constraint[i][i] -= trace;Vec20_t
+    for (int i = 0; i < 3; ++i) {
+        trace_constraint[i][i] -= trace;
     }
 
     // (EEt - 1/2 trace(EEt)) * E --> EEtE - 1/2 trace(EEt)E = 0
-    for (const int i : {0, 1, 2}) {
-        for (const int j : {0, 1, 2}) {
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
             M.row(mrow++) = deg_two_poly_product(trace_constraint[i][0], E[0][j])
                             + deg_two_poly_product(trace_constraint[i][1], E[1][j])
                             + deg_two_poly_product(trace_constraint[i][2], E[2][j]);
