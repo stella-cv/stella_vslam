@@ -145,11 +145,11 @@ std::vector<Mat33_t> essential_solver::compute_E_21_minimal(const eigen_alloc_ve
     // ten, 3rd order polynomial equations in the 3 unknowns x,y,z 
     // (this ends up being a lot of polynomial math to get us to a constraint matrix 
     // we can solve).
-    const Eigen::Matrix<double, 10, 20> E_constraints = form_polynomial_constraint_matrix(E_basis);
+    const Eigen::Matrix<double, 10, 20> constraint_matrix = form_polynomial_constraint_matrix(E_basis);
 
     // Step 3: Apply Gauss-Jordan Elimination to the constraint matrix.
-    Eigen::FullPivLU<Mat10> c_lu(E_constraints.block<10, 10>(0, 0));
-    const Mat10_t eliminated_matrix = c_lu.solve(E_constraints.block<10, 10>(0, 10));
+    Eigen::FullPivLU<Mat10> c_lu(constraint_matrix.block<10, 10>(0, 0));
+    const Mat10_t eliminated_matrix = c_lu.solve(constraint_matrix.block<10, 10>(0, 10));
 
     // Solving the eliminated matrix like in the matlab code shown in Stewenius et al.
 
@@ -167,18 +167,18 @@ std::vector<Mat33_t> essential_solver::compute_E_21_minimal(const eigen_alloc_ve
     // Get the solutions to the constraint matrix (i.e. the 10 sets of solutions
     // for our 3 unknowns)
     Eigen::EigenSolver<Mat10> eigensolver(action_matrix);
-    const auto& eigenvectors = eigensolver.eigenvectors();
-    const auto& eigenvalues = eigensolver.eigenvalues();
+    const auto& eig_vecs = eigensolver.eigenvectors();
+    const auto& eig_vals = eigensolver.eigenvalues();
 
     // Build essential matrices by substituting in the real solutions (there can be up to 10
     // since we solved a 10th degree polynomial)
     for (int s = 0; s < 10; ++s) {
         // Only consider real solutions.
-        if (eigenvalues(s).imag() != 0) {
+        if (eig_vals(s).imag() != 0) {
             continue;
         }
         Mat33_t E;
-        Eigen::Map<Vec9_t>(E.data()) = E_basis * eigenvectors.col(s).tail<4>().real();
+        Eigen::Map<Vec9_t>(E.data()) = E_basis * eig_vecs.col(s).tail<4>().real();
         E_mats.emplace_back(E.transpose());
     }
     return E_mats;

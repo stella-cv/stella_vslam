@@ -27,7 +27,7 @@
 
 /**
  * This file contains helper functions to compute the essential matrix from 5 bearing vector correspondences.
- * The code is adapted from the libmv implementation of Stewenius's et. al's algorithm from
+ * The code is adapted from the libmv implementation (MIT license cited above) of Stewenius's et. al's algorithm from
  * "Recent developments on direct relative orientation".
  *
  */
