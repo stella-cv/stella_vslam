@@ -27,6 +27,7 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
 
     // RANSAC variables
     best_cost_ = std::numeric_limits<float>::max();
+    unsigned int best_num_inliers = std::numeric_limits<unsigned int>::max();
     is_inlier_match_ = std::vector<bool>(num_matches, false);
 
     // minimum set of keypoint matches
@@ -65,13 +66,14 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
                 best_cost_ = cost_in_sac;
                 best_E_21_ = E_in_sac;
                 is_inlier_match_ = is_inlier_match_in_sac;
+                best_num_inliers = num_inliers;
             }
         }
     }
 
     solution_is_valid_ = best_cost_ < std::numeric_limits<float>::max();
 
-    if (!recompute || !solution_is_valid_) {
+    if (!recompute || !solution_is_valid_ || best_num_inliers < 8) {
         return;
     }
 
