@@ -125,7 +125,7 @@ TEST(essential_solver, ransac_solve_with_outlier) {
 
     // solve via RANSAC
     solve::essential_solver solver(bearings_1, bearings_2, matches_12);
-    solver.find_via_ransac(100, true);
+    solver.find_via_ransac(100, false);
     Mat33_t E_21 = solver.get_best_E_21();
 
     // check that solution is valid
