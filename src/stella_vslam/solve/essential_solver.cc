@@ -52,8 +52,7 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
         }
 
         // 2-2. Compute candidate essential matrices with the minimal solver (there will be at most 10)
-        std::vector<Mat33_t> E_mats;
-        compute_E_21_minimal(min_set_bearings_1, min_set_bearings_2, &E_mats);
+        const std::vector<Mat33_t> E_mats = compute_E_21_minimal(min_set_bearings_1, min_set_bearings_2, &E_mats);
 
         // see if any of the candidates are better than best_E_21_
         for (const auto& E_in_sac : E_mats) {
@@ -73,6 +72,8 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
 
     solution_is_valid_ = best_cost_ < std::numeric_limits<float>::max();
 
+    // we need a valid solution with at least 8 inliers to do the refinement
+    // since it uses the 8pt algorithm
     if (!recompute || !solution_is_valid_ || best_num_inliers < 8) {
         return;
     }
@@ -128,28 +129,29 @@ Mat33_t essential_solver::compute_E_21_nonminimal(const eigen_alloc_vector<Vec3_
     return E_21;
 }
 
-void compute_E_21_minimal(const eigen_alloc_vector<Vec3_t>& x1,
-                          const eigen_alloc_vector<Vec3_t>& x2,
-                          std::vector<Mat33_t>* Es) {
-    // Step 1: Extract the Nullspace from the epipolar constraint.
+std::vector<Mat33_t> essential_solver::compute_E_21_minimal(const eigen_alloc_vector<Vec3_t>& x1,
+                          const eigen_alloc_vector<Vec3_t>& x2) {
+    std::vector<Mat33_t> E_mats;
+    E_mats.reserve(10);
+    
+    // Extract the Nullspace from the epipolar constraint.
     bool success;
     const Eigen::Matrix<double, 9, 4> E_basis = find_nullspace_of_epipolar_constraint(x1, x2, success);
     if (!success) {
-        return;
+        return E_mats;
     }
 
-    // Step 2: Use the epipolar constaints to build a matrix representing
+    // Use the epipolar constaints to build a matrix representing
     // ten, 3rd order polynomial equations in the 3 unknowns x,y,z 
     // (this ends up being a lot of polynomial math to get us to a constraint matrix 
     // we can solve).
     const Eigen::Matrix<double, 10, 20> E_constraints = form_polynomial_constraint_matrix(E_basis);
 
     // Step 3: Apply Gauss-Jordan Elimination to the constraint matrix.
-    using Mat10_t = Eigen::Matrix<double, 10, 10>;
     Eigen::FullPivLU<Mat10> c_lu(E_constraints.block<10, 10>(0, 0));
     const Mat10_t eliminated_matrix = c_lu.solve(E_constraints.block<10, 10>(0, 10));
 
-    // Solving the eliminated matrix like in the matlab code shown in the paper 
+    // Solving the eliminated matrix like in the matlab code shown in Stewenius et al.
 
     // Build the "action matrix"
     Mat10_t action_matrix = Matrix10d::Zero();
@@ -162,7 +164,7 @@ void compute_E_21_minimal(const eigen_alloc_vector<Vec3_t>& x1,
     action_matrix(8, 3) = -1.0;
     action_matrix(9, 6) = -1.0;
 
-    // Get the solutions to the constraint matrix (various solutions
+    // Get the solutions to the constraint matrix (i.e. the 10 sets of solutions
     // for our 3 unknowns)
     Eigen::EigenSolver<Mat10> eigensolver(action_matrix);
     const auto& eigenvectors = eigensolver.eigenvectors();
@@ -170,7 +172,6 @@ void compute_E_21_minimal(const eigen_alloc_vector<Vec3_t>& x1,
 
     // Build essential matrices by substituting in the real solutions (there can be up to 10
     // since we solved a 10th degree polynomial)
-    Es->reserve(10);
     for (int s = 0; s < 10; ++s) {
         // Only consider real solutions.
         if (eigenvalues(s).imag() != 0) {
@@ -178,8 +179,9 @@ void compute_E_21_minimal(const eigen_alloc_vector<Vec3_t>& x1,
         }
         Mat33_t E;
         Eigen::Map<Vec9_t>(E.data()) = E_basis * eigenvectors.col(s).tail<4>().real();
-        Es->emplace_back(E.transpose());
+        E_mats.emplace_back(E.transpose());
     }
+    return E_mats;
 }
 
 bool essential_solver::decompose(const Mat33_t& E_21, eigen_alloc_vector<Mat33_t>& init_rots, eigen_alloc_vector<Vec3_t>& init_transes) {

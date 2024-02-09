@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "stella_vslam/solve/common.h"
 #include "stella_vslam/solve/homography_solver.h"
 #include "stella_vslam/util/converter.h"
@@ -100,10 +98,12 @@ void homography_solver::find_via_ransac(const unsigned int max_num_iter, const b
             inlier_normalized_keypts_2.push_back(normalized_keypts_2.at(matches_12_.at(i).second));
         }
     }
-    // TODO: what to do if this fails?
+
     Mat33_t normalized_H_21;
-    solve::homography_solver::compute_H_21(inlier_normalized_keypts_1, inlier_normalized_keypts_2, normalized_H_21);
-    best_H_21_ = transform_2_inv * normalized_H_21 * transform_1;
+    bool refinement_success = solve::homography_solver::compute_H_21(inlier_normalized_keypts_1, inlier_normalized_keypts_2, normalized_H_21);
+    if(refinement_success){
+        best_H_21_ = transform_2_inv * normalized_H_21 * transform_1;
+    }
     check_inliers(best_H_21_, is_inlier_match_, best_cost_);
 }
 
@@ -128,9 +128,8 @@ bool homography_solver::compute_H_21(const std::vector<cv::Point2f>& keypts_1, c
 
     const Eigen::JacobiSVD<CoeffMatrix> svd(A, Eigen::ComputeFullU | Eigen::ComputeFullV);
 
-    // check if A is degenerate (this can happen if we picked collinear points)
+    // check if A is degenerate (this can happen if we picked too many collinear points)
     if(svd.rank() < 8){
-        std::cout << "Rank " << svd.rank() << " < 8 matrix provided!" << std::endl;
         return false;
     }
 

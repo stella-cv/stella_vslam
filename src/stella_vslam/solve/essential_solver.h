@@ -55,7 +55,7 @@ public:
 private:
     //! Compute an essential matrix with 5-point algorithm from Stewenius et al. (accepts 5 or more corresponding sets of bearing vectors). but works best
     // when used with RANSAC since it can produce up to 10 feasible essential matrices that need to be validated
-    void compute_E_21_minimal(const eigen_alloc_vector<Vec3_t>& x1, const eigen_alloc_vector<Vec3_t>& x2, std::vector<Mat33_t>* Es);
+    std::vector<Mat33_t> essential_solver::compute_E_21_minimal(const eigen_alloc_vector<Vec3_t>& x1, const eigen_alloc_vector<Vec3_t>& x2);
 
     //! Check inliers of the epipolar constraint
     //! (Note: inlier flags are set to `inlier_match`)
