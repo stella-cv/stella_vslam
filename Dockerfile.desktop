@@ -204,10 +204,10 @@ WORKDIR /stella_vslam/
 # RUN set -x && \
 #   mkdir -p build && \
 #   cd build && \
-  # cmake \
-  #   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-  #   -DBUILD_TESTS=ON \
-  #   .. && \
+  cmake \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DBUILD_TESTS=ON \
+    .. && \
 #   make -j${NUM_THREADS} && \
 #   make install && \
 #   rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \
