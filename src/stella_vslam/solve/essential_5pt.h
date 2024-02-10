@@ -95,7 +95,7 @@ MatX_t find_nullspace_of_epipolar_constraint(const eigen_alloc_vector<Vec3_t>& x
  * Multiply two degree one polynomials of variables x, y, z.
  * using GrLex order
  * [... xx xy yy xz yz zz x y z 1]
-*/
+ */
 Vec20_t deg_one_poly_product(const Vec20_t& poly1, const Vec20_t& poly2) {
     Vec20_t product = Vec20_t::Zero();
 
@@ -117,7 +117,7 @@ Vec20_t deg_one_poly_product(const Vec20_t& poly1, const Vec20_t& poly2) {
 /**
  * Multiply a 2 deg poly, poly1 and a one deg poly, poly2 (in x, y, z) using GrLex order
  * [xxx xxy xyy yyy xxz xyz yyz xzz yzz zzz xx xy yy xz yz zz x y z 1]
-*/
+ */
 Vec20_t deg_two_poly_product(const VecX_t& poly1, const VecX_t& poly2) {
     Vec20_t product(20);
 
@@ -183,9 +183,9 @@ Eigen::Matrix<double, 10, 20> form_polynomial_constraint_matrix(const Eigen::Mat
     int mrow = 0;
 
     // Theorem 1: Determinant constraint det(E) = 0 is the first part of M
-    M.row(mrow++) = (deg_two_poly_product(deg_one_poly_product(E[0][1], E[1][2]) - deg_one_poly_product(E[0][2], E[1][1]), E[2][0]) + 
-                    deg_two_poly_product(deg_one_poly_product(E[0][2], E[1][0]) - deg_one_poly_product(E[0][0], E[1][2]), E[2][1]) + 
-                    deg_two_poly_product(deg_one_poly_product(E[0][0], E[1][1]) - deg_one_poly_product(E[0][1], E[1][0]), E[2][2]));
+    M.row(mrow++) = deg_two_poly_product(deg_one_poly_product(E[0][1], E[1][2]) - deg_one_poly_product(E[0][2], E[1][1]), E[2][0])
+                    + deg_two_poly_product(deg_one_poly_product(E[0][2], E[1][0]) - deg_one_poly_product(E[0][0], E[1][2]), E[2][1])
+                    + deg_two_poly_product(deg_one_poly_product(E[0][0], E[1][1]) - deg_one_poly_product(E[0][1], E[1][0]), E[2][2]);
 
     // Theorem 2: the trace constraint: EEtE - 1/2 trace(EEt)E = 0
     // is the rest of M

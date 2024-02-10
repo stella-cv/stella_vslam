@@ -63,7 +63,7 @@ void homography_solver::find_via_ransac(const unsigned int max_num_iter, const b
         // 2-2. Compute a homography matrix
         Mat33_t normalized_H_21;
         const bool sample_is_not_degenerate = compute_H_21(min_set_keypts_1, min_set_keypts_2, normalized_H_21);
-        if(!sample_is_not_degenerate){
+        if (!sample_is_not_degenerate) {
             continue;
         }
         H_21_in_sac = transform_2_inv * normalized_H_21 * transform_1;
@@ -101,7 +101,7 @@ void homography_solver::find_via_ransac(const unsigned int max_num_iter, const b
 
     Mat33_t normalized_H_21;
     bool refinement_success = solve::homography_solver::compute_H_21(inlier_normalized_keypts_1, inlier_normalized_keypts_2, normalized_H_21);
-    if(refinement_success){
+    if (refinement_success) {
         best_H_21_ = transform_2_inv * normalized_H_21 * transform_1;
         check_inliers(best_H_21_, is_inlier_match_, best_cost_);
     }
@@ -129,7 +129,7 @@ bool homography_solver::compute_H_21(const std::vector<cv::Point2f>& keypts_1, c
     const Eigen::JacobiSVD<CoeffMatrix> svd(A, Eigen::ComputeFullU | Eigen::ComputeFullV);
 
     // check if A is degenerate (this can happen if we picked too many collinear points)
-    if(svd.rank() < 8){
+    if (svd.rank() < 8) {
         return false;
     }
 

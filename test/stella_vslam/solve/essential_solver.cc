@@ -225,10 +225,10 @@ TEST(essential_solver, compare_ransac_solvers_with_progressive_outlier_ratio) {
             if (E_21_5pt(0, 0) * E_21_8pt(0, 0) < 0) {
                 E_21_8pt *= -1.0;
             }
-            error_sums_5pt[outlier_iter]+= (true_E_21 - E_21_5pt).norm();
-            error_sums_8pt[outlier_iter]+= (true_E_21 - E_21_8pt).norm();
-            time_sums_5pt[outlier_iter]+= execution_time_5pt;
-            time_sums_8pt[outlier_iter]+= execution_time_8pt;
+            error_sums_5pt[outlier_iter] += (true_E_21 - E_21_5pt).norm();
+            error_sums_8pt[outlier_iter] += (true_E_21 - E_21_8pt).norm();
+            time_sums_5pt[outlier_iter] += execution_time_5pt;
+            time_sums_8pt[outlier_iter] += execution_time_8pt;
         }
 
         std::cout << "Iteration: " << outlier_iter << std::endl;
