@@ -247,6 +247,5 @@ RUN set -x && \
     .. && \
   make -j${NUM_THREADS}
 
-# WORKDIR /stella_vslam_examples/build/
-WORKDIR /stella_vslam/build/test
+WORKDIR /stella_vslam_examples/build/
 ENTRYPOINT ["/bin/bash"]

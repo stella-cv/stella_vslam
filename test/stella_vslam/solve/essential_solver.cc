@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 
 #include "helper/bearing_vector.h"
 #include "helper/landmark.h"
@@ -90,7 +91,7 @@ TEST(essential_solver, ransac_solve_without_noise) {
     if (true_E_21(0, 0) * E_21(0, 0) < 0) {
         true_E_21 *= -1.0;
     }
-    
+
     EXPECT_LT((true_E_21 - E_21).norm(), 1e-4);
 }
 
@@ -139,6 +140,106 @@ TEST(essential_solver, ransac_solve_with_outlier) {
     }
 
     EXPECT_LT((true_E_21 - E_21).norm(), 1e-2);
+}
+
+TEST(essential_solver, compare_ransac_solvers_with_progressive_outlier_ratio) {
+    // create two-view poses
+    const unsigned int num_landmarks = 200;
+    const Mat33_t rot_1 = util::converter::to_rot_mat(54.0 * M_PI / 180.0 * Vec3_t{5, 3, -2}.normalized());
+    const Vec3_t trans_1 = Vec3_t(40.3, -31.6, 58.4);
+    const Mat33_t rot_2 = util::converter::to_rot_mat(-21.0 * M_PI / 180.0 * Vec3_t{-2, -5, 6}.normalized());
+    const Vec3_t trans_2 = Vec3_t(-45.4, 11.5, -24.6);
+
+    std::vector<double> outlier_ratios{0.0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
+
+    // containers for data
+    std::vector<double> error_sums_5pt(outlier_ratios.size(), 0.0);
+    std::vector<double> error_sums_8pt(outlier_ratios.size(), 0.0);
+
+    std::vector<double> time_sums_5pt(outlier_ratios.size(), 0.0);
+    std::vector<double> time_sums_8pt(outlier_ratios.size(), 0.0);
+
+    // this test compares the essential solver with progressively more outliers
+    // the test is rerun numerous times for statistical relevance
+    size_t outlier_iter = 0;
+    size_t num_test_runs = 50;
+    for (const double outlier_ratio : outlier_ratios) {
+        for (size_t run_index = 0; run_index < num_test_runs; ++run_index) {
+            // create 3D points
+            const auto landmarks = create_random_landmarks_in_space(num_landmarks, 100);
+
+            // create bearing vectors from two-view poses and 3D points
+            eigen_alloc_vector<Vec3_t> bearings_1;
+            eigen_alloc_vector<Vec3_t> bearings_2;
+            create_bearing_vectors(rot_1, trans_1, landmarks, bearings_1);
+            add_noise(bearings_1, 0.05, outlier_ratio);
+            create_bearing_vectors(rot_2, trans_2, landmarks, bearings_2);
+            add_noise(bearings_2, 0.05, outlier_ratio);
+
+            // create a true essential matrix
+            Mat33_t true_E_21 = solve::essential_solver::create_E_21(rot_1, trans_1, rot_2, trans_2);
+
+            // create matching information
+            std::vector<std::pair<int, int>> matches_12(num_landmarks);
+            for (unsigned int i = 0; i < num_landmarks; ++i) {
+                matches_12.at(i).first = i;
+                matches_12.at(i).second = i;
+            }
+
+            // solve via RANSAC
+            solve::essential_solver solver_5pt(bearings_1, bearings_2, matches_12);
+            solve::essential_solver solver_8pt(bearings_1, bearings_2, matches_12);
+
+            // Get initial time
+            auto start_time_5pt = std::chrono::high_resolution_clock::now();
+
+            solver_5pt.find_via_ransac(100, false, 5);
+            Mat33_t E_21_5pt = solver_5pt.get_best_E_21();
+
+            // Get final time
+            auto end_time_5pt = std::chrono::high_resolution_clock::now();
+
+            // Calculate elapsed time
+            auto duration_5pt = std::chrono::duration_cast<std::chrono::milliseconds>(end_time_5pt - start_time_5pt);
+            double execution_time_5pt = duration_5pt.count() / 1000.0; // Convert to seconds
+
+            auto start_time_8pt = std::chrono::high_resolution_clock::now();
+
+            solver_8pt.find_via_ransac(100, false, 8);
+            Mat33_t E_21_8pt = solver_8pt.get_best_E_21();
+
+            // Get final time
+            auto end_time_8pt = std::chrono::high_resolution_clock::now();
+
+            // Calculate elapsed time
+            auto duration_8pt = std::chrono::duration_cast<std::chrono::milliseconds>(end_time_8pt - start_time_8pt);
+            double execution_time_8pt = duration_8pt.count() / 1000.0; // Convert to seconds
+
+            // align scale and sign
+            true_E_21 /= true_E_21.norm();
+            E_21_5pt /= E_21_5pt.norm();
+            E_21_8pt /= E_21_8pt.norm();
+            if (true_E_21(0, 0) * E_21_5pt(0, 0) < 0) {
+                true_E_21 *= -1.0;
+            }
+            if (E_21_5pt(0, 0) * E_21_8pt(0, 0) < 0) {
+                E_21_8pt *= -1.0;
+            }
+            error_sums_5pt[outlier_iter]+= (true_E_21 - E_21_5pt).norm();
+            error_sums_8pt[outlier_iter]+= (true_E_21 - E_21_8pt).norm();
+            time_sums_5pt[outlier_iter]+= execution_time_5pt;
+            time_sums_8pt[outlier_iter]+= execution_time_8pt;
+        }
+
+        std::cout << "Iteration: " << outlier_iter << std::endl;
+        std::cout << "Outlier ratio: " << outlier_ratio << std::endl;
+        std::cout << "5pt runtime [s]: " << time_sums_5pt[outlier_iter] / num_test_runs << std::endl;
+        std::cout << "8pt runtime [s]: " << time_sums_8pt[outlier_iter] / num_test_runs << std::endl;
+        std::cout << "5pt E error: " << error_sums_5pt[outlier_iter] / num_test_runs << std::endl;
+        std::cout << "8pt E error: " << error_sums_8pt[outlier_iter] / num_test_runs << std::endl;
+        outlier_iter++;
+    }
+    EXPECT_TRUE(true);
 }
 
 TEST(essential_solver, decompose) {

@@ -21,7 +21,7 @@ public:
     virtual ~essential_solver() = default;
 
     //! Find the most reliable essential matrix via RANSAC
-    void find_via_ransac(const unsigned int max_num_iter, const bool recompute = true);
+    void find_via_ransac(const unsigned int max_num_iter, const bool recompute = true, const unsigned int min_set_size = 5);
 
     //! Check if the solution is valid or not
     bool solution_is_valid() const {

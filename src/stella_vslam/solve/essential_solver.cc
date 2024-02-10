@@ -13,13 +13,12 @@ essential_solver::essential_solver(const eigen_alloc_vector<Vec3_t>& bearings_1,
     : bearings_1_(bearings_1), bearings_2_(bearings_2), matches_12_(matches_12),
       random_engine_(util::create_random_engine(use_fixed_seed)) {}
 
-void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bool recompute) {
+void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bool recompute, const unsigned int min_set_size) {
     const auto num_matches = static_cast<unsigned int>(matches_12_.size());
 
     // 1. Prepare for RANSAC
 
-    // minimum number of samples (= 5)
-    const unsigned int min_set_size = 5;
+    // minimum number of samples
     if (num_matches < min_set_size) {
         solution_is_valid_ = false;
         return;
@@ -51,8 +50,13 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
             min_set_bearings_2.at(i) = bearings_2_.at(matches_12_.at(idx).second);
         }
 
-        // 2-2. Compute candidate essential matrices with the minimal solver (there will be at most 10)
-        const std::vector<Mat33_t> E_mats = compute_E_21_minimal(min_set_bearings_1, min_set_bearings_2);
+        // 2-2. Compute candidate essential matrices with the minimal solver
+        std::vector<Mat33_t> E_mats;
+        if(min_set_size == 5){
+            E_mats = compute_E_21_minimal(min_set_bearings_1, min_set_bearings_2);
+        } else{
+            E_mats.push_back(compute_E_21_nonminimal(min_set_bearings_1, min_set_bearings_2));
+        }
 
         // see if any of the candidates are better than best_E_21_
         for (const auto& E_in_sac : E_mats) {
@@ -130,10 +134,10 @@ Mat33_t essential_solver::compute_E_21_nonminimal(const eigen_alloc_vector<Vec3_
 }
 
 std::vector<Mat33_t> essential_solver::compute_E_21_minimal(const eigen_alloc_vector<Vec3_t>& x1,
-                          const eigen_alloc_vector<Vec3_t>& x2) {
+                                                            const eigen_alloc_vector<Vec3_t>& x2) {
     std::vector<Mat33_t> E_mats;
     E_mats.reserve(10);
-    
+
     // Extract the Nullspace from the epipolar constraint.
     bool success;
     const Eigen::Matrix<double, 9, 4> E_basis = find_nullspace_of_epipolar_constraint(x1, x2, success);
@@ -142,8 +146,8 @@ std::vector<Mat33_t> essential_solver::compute_E_21_minimal(const eigen_alloc_ve
     }
 
     // Use the epipolar constaints to build a matrix representing
-    // ten, 3rd order polynomial equations in the 3 unknowns x,y,z 
-    // (this ends up being a lot of polynomial math to get us to a constraint matrix 
+    // ten, 3rd order polynomial equations in the 3 unknowns x,y,z
+    // (this ends up being a lot of polynomial math to get us to a constraint matrix
     // we can solve).
     const Eigen::Matrix<double, 10, 20> constraint_matrix = form_polynomial_constraint_matrix(E_basis);
 
