@@ -206,7 +206,6 @@ RUN set -x && \
   cd build && \
   cmake \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-    -DBUILD_TESTS=ON \
     .. && \
   make -j${NUM_THREADS} && \
   make install && \

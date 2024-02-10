@@ -40,7 +40,9 @@ TEST(homography_solver, linear_solve) {
 
     // solve with SVD
     Mat33_t H_21;
-    solve::homography_solver::compute_H_21(keypts_1, keypts_2, H_21);
+    const bool success = solve::homography_solver::compute_H_21(keypts_1, keypts_2, H_21);
+    EXPECT_TRUE(success);
+
     const Mat33_t H_12 = H_21.inverse();
 
     // check symmetric transform error
