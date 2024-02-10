@@ -45,7 +45,8 @@ public:
         return is_inlier_match_;
     }
 
-    //! Compute a homography matrix with 4-point algorithm
+    //! Compute a homography matrix with DLT algorithm (requires at least 4, non-collinear points)
+    // returns true if successful and false otherwise (H21 is meaningless if this function returns false)
     static bool compute_H_21(const std::vector<cv::Point2f>& keypts_1, const std::vector<cv::Point2f>& keypts_2, Mat33_t& H21);
 
     //! Decompose a homography matrix to eight pairs of rotation and translation

@@ -1,9 +1,8 @@
+#include "stella_vslam/solve/essential_5pt.h"
 #include "stella_vslam/solve/essential_solver.h"
 #include "stella_vslam/util/converter.h"
 #include "stella_vslam/util/random_array.h"
 #include "stella_vslam/util/trigonometric.h"
-
-#include "stella_vslam/solve/essential_5pt.h"
 
 namespace stella_vslam {
 namespace solve {
@@ -26,7 +25,7 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
 
     // RANSAC variables
     best_cost_ = std::numeric_limits<float>::max();
-    unsigned int best_num_inliers = std::numeric_limits<unsigned int>::max();
+    unsigned int best_num_inliers = 0;
     is_inlier_match_ = std::vector<bool>(num_matches, false);
 
     // minimum set of keypoint matches

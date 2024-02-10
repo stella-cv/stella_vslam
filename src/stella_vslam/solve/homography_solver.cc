@@ -103,8 +103,8 @@ void homography_solver::find_via_ransac(const unsigned int max_num_iter, const b
     bool refinement_success = solve::homography_solver::compute_H_21(inlier_normalized_keypts_1, inlier_normalized_keypts_2, normalized_H_21);
     if(refinement_success){
         best_H_21_ = transform_2_inv * normalized_H_21 * transform_1;
+        check_inliers(best_H_21_, is_inlier_match_, best_cost_);
     }
-    check_inliers(best_H_21_, is_inlier_match_, best_cost_);
 }
 
 bool homography_solver::compute_H_21(const std::vector<cv::Point2f>& keypts_1, const std::vector<cv::Point2f>& keypts_2, Mat33_t& H_21) {
@@ -136,8 +136,6 @@ bool homography_solver::compute_H_21(const std::vector<cv::Point2f>& keypts_1, c
     const Eigen::Matrix<Mat33_t::Scalar, 9, 1> v = svd.matrixV().col(8);
     // need transpose() because elements are contained as col-major after it was constructed from a pointer
     H_21 = Mat33_t(v.data()).transpose();
-    // normalize
-    H_21 /= H_21(8,0);
     return true;
 }
 
