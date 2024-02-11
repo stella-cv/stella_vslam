@@ -51,7 +51,8 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
 
         // 2-2. Compute candidate essential matrices with the minimal solver
         std::vector<Mat33_t> E_mats;
-        if (min_set_size == 5) {
+        assert(min_set_size >= 5);
+        if (min_set_size < 8) {
             E_mats = compute_E_21_minimal(min_set_bearings_1, min_set_bearings_2);
         }
         else {
