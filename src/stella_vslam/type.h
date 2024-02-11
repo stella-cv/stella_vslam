@@ -69,6 +69,8 @@ using Vec6_t = VecR_t<6>;
 
 using Vec7_t = VecR_t<7>;
 
+using Vec9_t = VecR_t<9>;
+
 using VecX_t = Eigen::VectorXd;
 
 // Eigen Quaternion type

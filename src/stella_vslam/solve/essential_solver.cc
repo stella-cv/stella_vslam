@@ -1,3 +1,4 @@
+#include "stella_vslam/solve/essential_5pt.h"
 #include "stella_vslam/solve/essential_solver.h"
 #include "stella_vslam/util/converter.h"
 #include "stella_vslam/util/random_array.h"
@@ -11,13 +12,12 @@ essential_solver::essential_solver(const eigen_alloc_vector<Vec3_t>& bearings_1,
     : bearings_1_(bearings_1), bearings_2_(bearings_2), matches_12_(matches_12),
       random_engine_(util::create_random_engine(use_fixed_seed)) {}
 
-void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bool recompute) {
+void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bool recompute, const unsigned int min_set_size) {
     const auto num_matches = static_cast<unsigned int>(matches_12_.size());
 
     // 1. Prepare for RANSAC
 
-    // minimum number of samples (= 8)
-    constexpr unsigned int min_set_size = 8;
+    // minimum number of samples
     if (num_matches < min_set_size) {
         solution_is_valid_ = false;
         return;
@@ -25,6 +25,7 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
 
     // RANSAC variables
     best_cost_ = std::numeric_limits<float>::max();
+    unsigned int best_num_inliers = 0;
     is_inlier_match_ = std::vector<bool>(num_matches, false);
 
     // minimum set of keypoint matches
@@ -48,28 +49,42 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
             min_set_bearings_2.at(i) = bearings_2_.at(matches_12_.at(idx).second);
         }
 
-        // 2-2. Compute an essential matrix
-        E_21_in_sac = compute_E_21(min_set_bearings_1, min_set_bearings_2);
+        // 2-2. Compute candidate essential matrices with the minimal solver
+        std::vector<Mat33_t> E_mats;
+        assert(min_set_size >= 5);
+        if (min_set_size < 8) {
+            E_mats = compute_E_21_minimal(min_set_bearings_1, min_set_bearings_2);
+        }
+        else {
+            E_mats.push_back(compute_E_21_nonminimal(min_set_bearings_1, min_set_bearings_2));
+        }
 
-        // 2-3. Check inliers and compute a cost
-        float cost_in_sac;
-        unsigned int num_inliers = check_inliers(E_21_in_sac, is_inlier_match_in_sac, cost_in_sac);
+        // see if any of the candidates are better than best_E_21_
+        for (const auto& E_in_sac : E_mats) {
+            // 2-3. Check inliers and compute a cost
+            float cost_in_sac;
+            unsigned int num_inliers = check_inliers(E_in_sac, is_inlier_match_in_sac, cost_in_sac);
 
-        // 2-4. Update the best model
-        if (num_inliers > min_set_size && best_cost_ > cost_in_sac) {
-            best_cost_ = cost_in_sac;
-            best_E_21_ = E_21_in_sac;
-            is_inlier_match_ = is_inlier_match_in_sac;
+            // 2-4. Update the best model
+            if (num_inliers > min_set_size && best_cost_ > cost_in_sac) {
+                best_cost_ = cost_in_sac;
+                best_E_21_ = E_in_sac;
+                is_inlier_match_ = is_inlier_match_in_sac;
+                best_num_inliers = num_inliers;
+            }
         }
     }
 
     solution_is_valid_ = best_cost_ < std::numeric_limits<float>::max();
 
-    if (!recompute || !solution_is_valid_) {
+    // we need a valid solution with at least 8 inliers to do the refinement
+    // since it uses the 8pt algorithm
+    if (!recompute || !solution_is_valid_ || best_num_inliers < 8) {
         return;
     }
 
-    // 3. Recompute an essential matrix only with the inlier matches
+    // 3. Recompute an essential matrix with only the inlier matches and the
+    // non-minimal solver
 
     eigen_alloc_vector<Vec3_t> inlier_bearing_1;
     eigen_alloc_vector<Vec3_t> inlier_bearing_2;
@@ -81,11 +96,12 @@ void essential_solver::find_via_ransac(const unsigned int max_num_iter, const bo
             inlier_bearing_2.push_back(bearings_2_.at(matches_12_.at(i).second));
         }
     }
-    best_E_21_ = solve::essential_solver::compute_E_21(inlier_bearing_1, inlier_bearing_2);
+
+    best_E_21_ = compute_E_21_nonminimal(inlier_bearing_1, inlier_bearing_2);
     check_inliers(best_E_21_, is_inlier_match_, best_cost_);
 }
 
-Mat33_t essential_solver::compute_E_21(const eigen_alloc_vector<Vec3_t>& bearings_1, const eigen_alloc_vector<Vec3_t>& bearings_2) {
+Mat33_t essential_solver::compute_E_21_nonminimal(const eigen_alloc_vector<Vec3_t>& bearings_1, const eigen_alloc_vector<Vec3_t>& bearings_2) {
     assert(bearings_1.size() == bearings_2.size());
 
     const auto num_points = bearings_1.size();
@@ -116,6 +132,61 @@ Mat33_t essential_solver::compute_E_21(const eigen_alloc_vector<Vec3_t>& bearing
     const Mat33_t E_21 = U * lambda.asDiagonal() * V.transpose();
 
     return E_21;
+}
+
+std::vector<Mat33_t> essential_solver::compute_E_21_minimal(const eigen_alloc_vector<Vec3_t>& x1,
+                                                            const eigen_alloc_vector<Vec3_t>& x2) {
+    std::vector<Mat33_t> E_mats;
+    E_mats.reserve(10);
+
+    // Extract the Nullspace from the epipolar constraint.
+    bool success;
+    const Eigen::Matrix<double, 9, 4> E_basis = find_nullspace_of_epipolar_constraint(x1, x2, success);
+    if (!success) {
+        return E_mats;
+    }
+
+    // Use the epipolar constaints to build a matrix representing
+    // ten, 3rd order polynomial equations in the 3 unknowns x,y,z
+    // (this ends up being a lot of polynomial math to get us to a constraint matrix
+    // we can solve).
+    const Eigen::Matrix<double, 10, 20> constraint_matrix = form_polynomial_constraint_matrix(E_basis);
+
+    // Step 3: Apply Gauss-Jordan Elimination to the constraint matrix.
+    Eigen::FullPivLU<Mat10_t> c_lu(constraint_matrix.block<10, 10>(0, 0));
+    const Mat10_t eliminated_matrix = c_lu.solve(constraint_matrix.block<10, 10>(0, 10));
+
+    // Solving the eliminated matrix like in the matlab code shown in Stewenius et al.
+
+    // Build the "action matrix"
+    Mat10_t action_matrix = Mat10_t::Zero();
+    action_matrix.block<3, 10>(0, 0) = eliminated_matrix.block<3, 10>(0, 0);
+    action_matrix.row(3) = eliminated_matrix.row(4);
+    action_matrix.row(4) = eliminated_matrix.row(5);
+    action_matrix.row(5) = eliminated_matrix.row(7);
+    action_matrix(6, 0) = -1.0;
+    action_matrix(7, 1) = -1.0;
+    action_matrix(8, 3) = -1.0;
+    action_matrix(9, 6) = -1.0;
+
+    // Get the solutions to the constraint matrix (i.e. the 10 sets of solutions
+    // for our 3 unknowns)
+    Eigen::EigenSolver<Mat10_t> eigensolver(action_matrix);
+    const auto& eig_vecs = eigensolver.eigenvectors();
+    const auto& eig_vals = eigensolver.eigenvalues();
+
+    // Build essential matrices by substituting in the real solutions (there can be up to 10
+    // since we solved a 10th degree polynomial)
+    for (int s = 0; s < 10; ++s) {
+        // Only consider real solutions.
+        if (eig_vals(s).imag() != 0) {
+            continue;
+        }
+        Mat33_t E;
+        Eigen::Map<Vec9_t>(E.data()) = E_basis * eig_vecs.col(s).tail<4>().real();
+        E_mats.emplace_back(E.transpose());
+    }
+    return E_mats;
 }
 
 bool essential_solver::decompose(const Mat33_t& E_21, eigen_alloc_vector<Mat33_t>& init_rots, eigen_alloc_vector<Vec3_t>& init_transes) {

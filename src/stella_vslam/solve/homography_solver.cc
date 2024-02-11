@@ -27,9 +27,9 @@ void homography_solver::find_via_ransac(const unsigned int max_num_iter, const b
 
     // 1. Prepare for RANSAC
 
-    // minimum number of samples (= 8)
-    constexpr unsigned int min_set_size = 8;
-    if (num_matches < min_set_size) {
+    // minimum number of samples (= 4), but we will require more for robustness
+    constexpr unsigned int min_set_size = 4;
+    if (num_matches < min_set_size * 2) {
         solution_is_valid_ = false;
         return;
     }
@@ -61,7 +61,11 @@ void homography_solver::find_via_ransac(const unsigned int max_num_iter, const b
         }
 
         // 2-2. Compute a homography matrix
-        const Mat33_t normalized_H_21 = compute_H_21(min_set_keypts_1, min_set_keypts_2);
+        Mat33_t normalized_H_21;
+        const bool sample_is_not_degenerate = compute_H_21(min_set_keypts_1, min_set_keypts_2, normalized_H_21);
+        if (!sample_is_not_degenerate) {
+            continue;
+        }
         H_21_in_sac = transform_2_inv * normalized_H_21 * transform_1;
 
         // 2-3. Check inliers and compute a score
@@ -94,12 +98,16 @@ void homography_solver::find_via_ransac(const unsigned int max_num_iter, const b
             inlier_normalized_keypts_2.push_back(normalized_keypts_2.at(matches_12_.at(i).second));
         }
     }
-    const Mat33_t normalized_H_21 = solve::homography_solver::compute_H_21(inlier_normalized_keypts_1, inlier_normalized_keypts_2);
-    best_H_21_ = transform_2_inv * normalized_H_21 * transform_1;
-    check_inliers(best_H_21_, is_inlier_match_, best_cost_);
+
+    Mat33_t normalized_H_21;
+    bool refinement_success = solve::homography_solver::compute_H_21(inlier_normalized_keypts_1, inlier_normalized_keypts_2, normalized_H_21);
+    if (refinement_success) {
+        best_H_21_ = transform_2_inv * normalized_H_21 * transform_1;
+        check_inliers(best_H_21_, is_inlier_match_, best_cost_);
+    }
 }
 
-Mat33_t homography_solver::compute_H_21(const std::vector<cv::Point2f>& keypts_1, const std::vector<cv::Point2f>& keypts_2) {
+bool homography_solver::compute_H_21(const std::vector<cv::Point2f>& keypts_1, const std::vector<cv::Point2f>& keypts_2, Mat33_t& H_21) {
     // https://www.uio.no/studier/emner/matnat/its/UNIK4690/v16/forelesninger/lecture_4_3-estimating-homographies-from-feature-correspondences.pdf
 
     assert(keypts_1.size() == keypts_2.size());
@@ -120,11 +128,15 @@ Mat33_t homography_solver::compute_H_21(const std::vector<cv::Point2f>& keypts_1
 
     const Eigen::JacobiSVD<CoeffMatrix> svd(A, Eigen::ComputeFullU | Eigen::ComputeFullV);
 
+    // check if A is degenerate (this can happen if we picked too many collinear points)
+    if (svd.rank() < 8) {
+        return false;
+    }
+
     const Eigen::Matrix<Mat33_t::Scalar, 9, 1> v = svd.matrixV().col(8);
     // need transpose() because elements are contained as col-major after it was constructed from a pointer
-    const Mat33_t H_21 = Mat33_t(v.data()).transpose();
-
-    return H_21;
+    H_21 = Mat33_t(v.data()).transpose();
+    return true;
 }
 
 bool homography_solver::decompose(const Mat33_t& H_21, const Mat33_t& cam_matrix_1, const Mat33_t& cam_matrix_2,

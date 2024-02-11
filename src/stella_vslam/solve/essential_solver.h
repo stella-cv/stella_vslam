@@ -21,7 +21,7 @@ public:
     virtual ~essential_solver() = default;
 
     //! Find the most reliable essential matrix via RANSAC
-    void find_via_ransac(const unsigned int max_num_iter, const bool recompute = true);
+    void find_via_ransac(const unsigned int max_num_iter, const bool recompute = true, const unsigned int min_set_size = 5);
 
     //! Check if the solution is valid or not
     bool solution_is_valid() const {
@@ -43,8 +43,8 @@ public:
         return is_inlier_match_;
     }
 
-    //! Compute an essential matrix with 8-point algorithm
-    static Mat33_t compute_E_21(const eigen_alloc_vector<Vec3_t>& bearings_1, const eigen_alloc_vector<Vec3_t>& bearings_2);
+    //! Compute an essential matrix with 8-point algorithm (accepts 8 or more corresponding sets of bearing vectors)
+    static Mat33_t compute_E_21_nonminimal(const eigen_alloc_vector<Vec3_t>& bearings_1, const eigen_alloc_vector<Vec3_t>& bearings_2);
 
     //! Decompose an essential matrix to four pairs of rotation and translation
     static bool decompose(const Mat33_t& E_21, eigen_alloc_vector<Mat33_t>& init_rots, eigen_alloc_vector<Vec3_t>& init_transes);
@@ -53,6 +53,10 @@ public:
     static Mat33_t create_E_21(const Mat33_t& rot_1w, const Vec3_t& trans_1w, const Mat33_t& rot_2w, const Vec3_t& trans_2w);
 
 private:
+    //! Compute essential matrices with 5-point algorithm from Stewenius et al. (accepts 5 or more corresponding sets of bearing vectors). but works best
+    // when used with RANSAC since it can produce up to 10 feasible essential matrices that need to be validated
+    std::vector<Mat33_t> compute_E_21_minimal(const eigen_alloc_vector<Vec3_t>& x1, const eigen_alloc_vector<Vec3_t>& x2);
+
     //! Check inliers of the epipolar constraint
     //! (Note: inlier flags are set to `inlier_match`)
     unsigned int check_inliers(const Mat33_t& E_21, std::vector<bool>& is_inlier_match, float& cost);

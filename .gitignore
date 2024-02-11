@@ -9,6 +9,7 @@ cmake-build-release/
 */.python-version
 *.user
 *~
+.vscode/
 
 # Prerequisites
 *.d
