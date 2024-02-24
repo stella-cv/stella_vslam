@@ -19,8 +19,9 @@
 namespace stella_vslam {
 namespace optimize {
 
-graph_optimizer::graph_optimizer(const bool fix_scale)
-    : fix_scale_(fix_scale) {}
+graph_optimizer::graph_optimizer(const YAML::Node& yaml_node, const bool fix_scale)
+    : fix_scale_(fix_scale),
+      min_num_shared_lms_(yaml_node["min_num_shared_lms"].as<unsigned int>(100)) {}
 
 void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfrm, const std::shared_ptr<data::keyframe>& curr_keyfrm,
                                const module::keyframe_Sim3_pairs_t& non_corrected_Sim3s,
@@ -65,8 +66,6 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
     eigen_alloc_unord_map<unsigned int, g2o::Sim3> Sim3s_cw;
     // Save the added vertices
     std::unordered_map<unsigned int, internal::sim3::shot_vertex*> vertices;
-
-    constexpr int min_num_shared_lms = 100;
 
     for (auto keyfrm : all_keyfrms) {
         if (keyfrm->will_be_erased()) {
@@ -140,7 +139,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
             // Except the current vs loop edges,
             // Add the loop edges only over the minimum number of shared landmarks threshold
             if (!(id1 == curr_keyfrm->id_ && id2 == loop_keyfrm->id_)
-                && keyfrm->graph_node_->get_num_shared_landmarks(connected_keyfrm) < min_num_shared_lms) {
+                && keyfrm->graph_node_->get_num_shared_landmarks(connected_keyfrm) < min_num_shared_lms_) {
                 continue;
             }
 
@@ -207,7 +206,7 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
         }
 
         // Add the covisibility information over the minimum number of shared landmarks threshold
-        const auto connected_keyfrms = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(min_num_shared_lms);
+        const auto connected_keyfrms = keyfrm->graph_node_->get_covisibilities_over_min_num_shared_lms(min_num_shared_lms_);
         for (auto connected_keyfrm : connected_keyfrms) {
             // null check
             if (!connected_keyfrm || !parent_node) {

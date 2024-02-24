@@ -262,6 +262,8 @@ private:
 
     //! thread for running loop BA
     std::unique_ptr<std::thread> thread_for_loop_BA_ = nullptr;
+
+    unsigned int thr_neighbor_keyframes_ = 15;
 };
 
 } // namespace stella_vslam

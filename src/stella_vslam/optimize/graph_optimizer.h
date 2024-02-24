@@ -20,9 +20,10 @@ class graph_optimizer {
 public:
     /**
      * Constructor
+     * @param yaml_node
      * @param fix_scale
      */
-    explicit graph_optimizer(const bool fix_scale);
+    explicit graph_optimizer(const YAML::Node& yaml_node, const bool fix_scale);
 
     /**
      * Destructor
@@ -46,6 +47,8 @@ public:
 private:
     //! SE3 optimization or Sim3 optimization
     const bool fix_scale_;
+
+    unsigned int min_num_shared_lms_ = 100;
 };
 
 } // namespace optimize
