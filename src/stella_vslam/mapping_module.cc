@@ -300,8 +300,14 @@ void mapping_module::create_new_landmarks(std::atomic<bool>& abort_create_new_la
 
         // if the scene scale is much smaller than the baseline, abort the triangulation
         if (use_baseline_dist_thr_ratio_) {
-            const float median_depth_in_ngh = ngh_keyfrm->compute_median_depth(true);
-            if (baseline_dist < baseline_dist_thr_ratio_ * median_depth_in_ngh) {
+            float median_scale_in_ngh;
+            if (ngh_keyfrm->camera_->model_type_ == camera::model_type_t::Equirectangular) {
+                median_scale_in_ngh = ngh_keyfrm->compute_median_distance();
+            }
+            else {
+                median_scale_in_ngh = ngh_keyfrm->compute_median_depth(true);
+            }
+            if (baseline_dist < baseline_dist_thr_ratio_ * median_scale_in_ngh) {
                 continue;
             }
         }
