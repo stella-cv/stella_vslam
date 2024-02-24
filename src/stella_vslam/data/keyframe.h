@@ -202,6 +202,11 @@ public:
     float compute_median_depth(const bool abs = false) const;
 
     /**
+     * Compute median of distances
+     */
+    float compute_median_distance() const;
+
+    /**
      * Whether or not the camera setting is capable of obtaining depth information
      */
     bool depth_is_available() const;

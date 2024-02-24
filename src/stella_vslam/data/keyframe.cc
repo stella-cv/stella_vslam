@@ -433,6 +433,36 @@ float keyframe::compute_median_depth(const bool abs) const {
     return depths.at((depths.size() - 1) / 2);
 }
 
+float keyframe::compute_median_distance() const {
+    std::vector<std::shared_ptr<landmark>> landmarks;
+    Mat44_t pose_cw;
+    {
+        std::lock_guard<std::mutex> lock1(mtx_observations_);
+        std::lock_guard<std::mutex> lock2(mtx_pose_);
+        landmarks = landmarks_;
+        pose_cw = pose_cw_;
+    }
+
+    std::vector<float> distances;
+    distances.reserve(frm_obs_.undist_keypts_.size());
+    const Mat33_t rot_cw = pose_cw.block<3, 3>(0, 0);
+    const Vec3_t trans_cw = pose_cw.block<3, 1>(0, 3);
+
+    for (const auto& lm : landmarks) {
+        if (!lm) {
+            continue;
+        }
+        const Vec3_t pos_w = lm->get_pos_in_world();
+        const Vec3_t pos_c = rot_cw * pos_w + trans_cw;
+        float distance = pos_c.norm();
+        distances.push_back(distance);
+    }
+
+    std::sort(distances.begin(), distances.end());
+
+    return distances.at((distances.size() - 1) / 2);
+}
+
 bool keyframe::depth_is_available() const {
     return camera_->setup_type_ != camera::setup_type_t::Monocular;
 }
