@@ -276,8 +276,7 @@ void mapping_module::create_new_landmarks(std::atomic<bool>& abort_create_new_la
     // in order to triangulate landmarks between `cur_keyfrm_` and each of the covisibilities
     const auto cur_covisibilities = cur_keyfrm_->graph_node_->get_top_n_covisibilities(num_covisibilities_for_landmark_generation_);
 
-    // lowe's_ratio will not be used
-    match::robust robust_matcher(0.0, false);
+    match::robust robust_matcher(0.95, false);
 
     // camera center of the current keyframe
     const Vec3_t cur_cam_center = cur_keyfrm_->get_trans_wc();
