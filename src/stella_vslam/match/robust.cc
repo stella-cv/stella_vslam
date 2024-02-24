@@ -65,6 +65,7 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
                 // Find a keypoint in keyframe 2 that has the minimum hamming distance
                 unsigned int best_hamm_dist = HAMMING_DIST_THR_LOW;
                 int best_idx_2 = -1;
+                unsigned int second_best_hamm_dist = MAX_HAMMING_DIST;
 
                 for (const auto idx_2 : keyfrm_2_indices) {
                     // Ignore if the keypoint is associated any 3D points
@@ -113,12 +114,23 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
                     const bool is_inlier = check_epipolar_constraint(bearing_1, bearing_2, E_12,
                                                                      keyfrm_1->orb_params_->scale_factors_.at(keypt_1.octave));
                     if (is_inlier) {
-                        best_idx_2 = idx_2;
-                        best_hamm_dist = hamm_dist;
+                        if (hamm_dist < best_hamm_dist) {
+                            second_best_hamm_dist = best_hamm_dist;
+                            best_hamm_dist = hamm_dist;
+                            best_idx_2 = idx_2;
+                        }
+                        else if (hamm_dist < second_best_hamm_dist) {
+                            second_best_hamm_dist = hamm_dist;
+                        }
                     }
                 }
 
                 if (best_idx_2 < 0) {
+                    continue;
+                }
+
+                // Ratio test
+                if (lowe_ratio_ * second_best_hamm_dist < static_cast<float>(best_hamm_dist)) {
                     continue;
                 }
 
