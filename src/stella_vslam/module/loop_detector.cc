@@ -57,7 +57,16 @@ bool loop_detector::detect_loop_candidates() {
 }
 
 void loop_detector::add_loop_candidate(const std::shared_ptr<data::keyframe>& keyfrm) {
-    loop_candidates_to_validate_.insert(keyfrm);
+    if (top_n_covisibilities_to_search_ > 0) {
+        loop_candidates_to_validate_.insert(keyfrm);
+        auto covisibilities = keyfrm->graph_node_->get_top_n_covisibilities(top_n_covisibilities_to_search_);
+        for (const auto& covisibility : covisibilities) {
+            loop_candidates_to_validate_.insert(covisibility);
+        }
+    }
+    else {
+        loop_candidates_to_validate_.insert(keyfrm);
+    }
 }
 
 bool loop_detector::detect_loop_candidates_impl() {
