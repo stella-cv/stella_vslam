@@ -269,6 +269,10 @@ private:
 
     //! Number of temporal keyframes
     const unsigned int num_temporal_keyframes_ = 15;
+
+    // The default inlier threshold value is 0.2 degree
+    // (e.g. for the camera with width of 900-pixel and 90-degree FOV, 0.2 degree is equivalent to 2 pixel in the horizontal direction)
+    float residual_rad_thr_ = 0.2 * M_PI / 180.0;
 };
 
 } // namespace stella_vslam

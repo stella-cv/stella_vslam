@@ -24,8 +24,11 @@ public:
 
     ~robust() final = default;
 
-    unsigned int match_for_triangulation(const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2, const Mat33_t& E_12,
-                                         std::vector<std::pair<unsigned int, unsigned int>>& matched_idx_pairs) const;
+    unsigned int match_for_triangulation(const std::shared_ptr<data::keyframe>& keyfrm_1,
+                                         const std::shared_ptr<data::keyframe>& keyfrm_2,
+                                         const Mat33_t& E_12,
+                                         std::vector<std::pair<unsigned int, unsigned int>>& matched_idx_pairs,
+                                         const float residual_rad_thr) const;
 
     unsigned int match_keyframes(const std::shared_ptr<data::keyframe>& keyfrm1, const std::shared_ptr<data::keyframe>& keyfrm2,
                                  std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm,
@@ -39,7 +42,8 @@ public:
 
 private:
     bool check_epipolar_constraint(const Vec3_t& bearing_1, const Vec3_t& bearing_2,
-                                   const Mat33_t& E_12, const float bearing_1_scale_factor = 1.0) const;
+                                   const Mat33_t& E_12, float residual_rad_thr,
+                                   const float bearing_1_scale_factor = 1.0) const;
 };
 
 } // namespace match

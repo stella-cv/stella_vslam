@@ -26,7 +26,8 @@ mapping_module::mapping_module(const YAML::Node& yaml_node, data::map_database* 
       num_covisibilities_for_landmark_generation_(yaml_node["num_covisibilities_for_landmark_generation"].as<unsigned int>(10)),
       num_covisibilities_for_landmark_fusion_(yaml_node["num_covisibilities_for_landmark_fusion"].as<unsigned int>(10)),
       erase_temporal_keyframes_(yaml_node["erase_temporal_keyframes"].as<bool>(false)),
-      num_temporal_keyframes_(yaml_node["num_temporal_keyframes"].as<unsigned int>(15)) {
+      num_temporal_keyframes_(yaml_node["num_temporal_keyframes"].as<unsigned int>(15)),
+      residual_rad_thr_(yaml_node["residual_deg_thr"].as<float>(0.2) * M_PI / 180.0) {
     spdlog::debug("CONSTRUCT: mapping_module");
 
     spdlog::debug("load mapping parameters");
@@ -326,7 +327,7 @@ void mapping_module::create_new_landmarks(std::atomic<bool>& abort_create_new_la
 
         // vector of matches (idx in the current, idx in the neighbor)
         std::vector<std::pair<unsigned int, unsigned int>> matches;
-        robust_matcher.match_for_triangulation(cur_keyfrm_, ngh_keyfrm, E_ngh_to_cur, matches);
+        robust_matcher.match_for_triangulation(cur_keyfrm_, ngh_keyfrm, E_ngh_to_cur, matches, residual_rad_thr_);
 
         // triangulation
         triangulate_with_two_keyframes(cur_keyfrm_, ngh_keyfrm, matches);
