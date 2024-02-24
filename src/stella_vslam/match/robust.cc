@@ -11,8 +11,11 @@
 namespace stella_vslam {
 namespace match {
 
-unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2, const Mat33_t& E_12,
-                                             std::vector<std::pair<unsigned int, unsigned int>>& matched_idx_pairs) const {
+unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyframe>& keyfrm_1,
+                                             const std::shared_ptr<data::keyframe>& keyfrm_2,
+                                             const Mat33_t& E_12,
+                                             std::vector<std::pair<unsigned int, unsigned int>>& matched_idx_pairs,
+                                             const float residual_rad_thr) const {
     unsigned int num_matches = 0;
 
     // Project the center of keyframe 1 to keyframe 2
@@ -112,7 +115,8 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
 
                     // Check consistency in Matrix E
                     const bool is_inlier = check_epipolar_constraint(bearing_1, bearing_2, E_12,
-                                                                     keyfrm_1->orb_params_->scale_factors_.at(keypt_1.octave));
+                                                                     keyfrm_1->orb_params_->scale_factors_.at(keypt_1.octave),
+                                                                     residual_rad_thr);
                     if (is_inlier) {
                         if (hamm_dist < best_hamm_dist) {
                             second_best_hamm_dist = best_hamm_dist;
@@ -348,22 +352,16 @@ unsigned int robust::brute_force_match(const data::frame_observation& frm_obs,
 }
 
 bool robust::check_epipolar_constraint(const Vec3_t& bearing_1, const Vec3_t& bearing_2,
-                                       const Mat33_t& E_12, const float bearing_1_scale_factor) const {
+                                       const Mat33_t& E_12, float residual_rad_thr,
+                                       const float bearing_1_scale_factor) const {
     // Normal vector of the epipolar plane on keyframe 1
     const Vec3_t epiplane_in_1 = E_12 * bearing_2;
 
     // Acquire the angle formed by the normal vector and the bearing
-    const auto cos_residual = epiplane_in_1.dot(bearing_1) / epiplane_in_1.norm();
-    const auto residual_rad = M_PI / 2.0 - std::abs(std::acos(cos_residual));
-
-    // The Inlier threshold value is 0.2 degree
-    // (e.g. for the camera with width of 900-pixel and 90-degree FOV, 0.2 degree is equivalent to 2 pixel in the horizontal direction)
-    // TODO: should prameterize the threshold
-    constexpr double residual_deg_thr = 0.2;
-    constexpr double residual_rad_thr = residual_deg_thr * M_PI / 180.0;
+    const auto cos_residual = std::min(1.0, std::max(-1.0, epiplane_in_1.dot(bearing_1) / epiplane_in_1.norm()));
+    const auto residual_rad = std::abs(M_PI / 2.0 - std::acos(cos_residual));
 
     // The larger keypoint scale permits less constraints
-    // TODO: should consider the threshold weighting
     return residual_rad < residual_rad_thr * bearing_1_scale_factor;
 }
 
