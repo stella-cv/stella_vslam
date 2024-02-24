@@ -76,16 +76,23 @@ bool keyframe_inserter::new_keyframe_is_needed(data::map_database* map_db,
     if (min_interval_ > 0.0) {
         min_interval_elapsed = !last_inserted_keyfrm || last_inserted_keyfrm->timestamp_ + min_interval_ <= curr_frm.timestamp_;
     }
+    float distance_traveled = -1.0;
+    if (last_inserted_keyfrm) {
+        distance_traveled = (last_inserted_keyfrm->get_trans_wc() - curr_frm.get_trans_wc()).norm();
+    }
     bool max_distance_traveled = false;
     if (max_distance_ > 0.0) {
-        max_distance_traveled = last_inserted_keyfrm && (last_inserted_keyfrm->get_trans_wc() - curr_frm.get_trans_wc()).norm() > max_distance_;
+        max_distance_traveled = last_inserted_keyfrm && distance_traveled > max_distance_;
     }
     bool min_distance_traveled = true;
     if (min_distance_ > 0.0) {
-        min_distance_traveled = !last_inserted_keyfrm || (last_inserted_keyfrm->get_trans_wc() - curr_frm.get_trans_wc()).norm() > min_distance_;
+        min_distance_traveled = !last_inserted_keyfrm || distance_traveled > min_distance_;
     }
     // New keyframe is needed if the field-of-view of the current frame is changed a lot
-    const bool view_changed = num_reliable_lms < num_reliable_lms_ref * lms_ratio_thr_view_changed_;
+    bool view_changed = false;
+    if (lms_ratio_thr_view_changed_ > 0.0) {
+        view_changed = num_reliable_lms < num_reliable_lms_ref * lms_ratio_thr_view_changed_;
+    }
     // const bool view_changed = num_tracked_lms < num_tracked_lms_on_ref_keyfrm * lms_ratio_thr_view_changed_;
     const bool not_enough_lms = num_reliable_lms < enough_lms_thr_;
 
@@ -94,7 +101,10 @@ bool keyframe_inserter::new_keyframe_is_needed(data::map_database* map_db,
     // and concurrently the ratio of the reliable 3D points larger than the threshold ratio
     constexpr unsigned int num_tracked_lms_thr_unstable = 15;
     bool tracking_is_unstable = num_tracked_lms < num_tracked_lms_thr_unstable;
-    bool almost_all_lms_are_tracked = num_reliable_lms > num_reliable_lms_ref * lms_ratio_thr_almost_all_lms_are_tracked_;
+    bool almost_all_lms_are_tracked = false;
+    if (lms_ratio_thr_almost_all_lms_are_tracked_ > 0.0) {
+        almost_all_lms_are_tracked = num_reliable_lms > num_reliable_lms_ref * lms_ratio_thr_almost_all_lms_are_tracked_;
+    }
     SPDLOG_TRACE("keyframe_inserter: num_reliable_lms_ref={}", num_reliable_lms_ref);
     SPDLOG_TRACE("keyframe_inserter: num_reliable_lms={}", num_reliable_lms);
     SPDLOG_TRACE("keyframe_inserter: max_interval_elapsed={}", max_interval_elapsed);
