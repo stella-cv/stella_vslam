@@ -18,7 +18,8 @@ global_optimization_module::global_optimization_module(data::map_database* map_d
     : loop_detector_(new module::loop_detector(bow_db, bow_vocab, util::yaml_optional_ref(yaml_node, "LoopDetector"), fix_scale)),
       loop_bundle_adjuster_(new module::loop_bundle_adjuster(map_db)),
       map_db_(map_db),
-      graph_optimizer_(new optimize::graph_optimizer(fix_scale)) {
+      graph_optimizer_(new optimize::graph_optimizer(util::yaml_optional_ref(yaml_node, "GraphOptimizer"), fix_scale)),
+      thr_neighbor_keyframes_(util::yaml_optional_ref(yaml_node, "GlobalOptimizer")["thr_neighbor_keyframes"].as<unsigned int>(15)) {
     spdlog::debug("CONSTRUCT: global_optimization_module");
 }
 
@@ -235,7 +236,7 @@ void global_optimization_module::correct_loop() {
 
     SPDLOG_TRACE("global_optimization_module: compute the Sim3 of the covisibilities of the current keyframe whose Sim3 is already estimated by the loop detector");
     // acquire the covisibilities of the current keyframe
-    std::vector<std::shared_ptr<data::keyframe>> curr_neighbors = cur_keyfrm_->graph_node_->get_covisibilities();
+    std::vector<std::shared_ptr<data::keyframe>> curr_neighbors = cur_keyfrm_->graph_node_->get_covisibilities_over_min_num_shared_lms(thr_neighbor_keyframes_);
     curr_neighbors.push_back(cur_keyfrm_);
 
     // Sim3 camera poses BEFORE loop correction

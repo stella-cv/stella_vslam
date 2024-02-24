@@ -42,5 +42,11 @@ LoopDetector:
   reject_by_graph_distance: true
   min_distance_on_graph: 50
 
+GraphOptimizer:
+  min_num_shared_lms: 200
+
+GlobalOptimizer:
+  thr_neighbor_keyframes: 100
+
 System:
   map_format: "msgpack"
