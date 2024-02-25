@@ -310,7 +310,7 @@ data::frame system::create_monocular_frame(const cv::Mat& img, const double time
         marker_detector_->detect(img_gray, markers_2d);
     }
 
-    return data::frame(timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    return data::frame(next_frame_id_++, timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
 }
 
 data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
@@ -368,7 +368,7 @@ data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& 
         marker_detector_->detect(img_gray, markers_2d);
     }
 
-    return data::frame(timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    return data::frame(next_frame_id_++, timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
 }
 
 data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask) {
@@ -430,7 +430,7 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
         marker_detector_->detect(img_gray, markers_2d);
     }
 
-    return data::frame(timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    return data::frame(next_frame_id_++, timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
 }
 
 std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {
