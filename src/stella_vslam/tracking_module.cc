@@ -105,8 +105,6 @@ void tracking_module::reset() {
     bow_db_->clear();
     map_db_->clear();
 
-    data::frame::next_id_ = 0;
-
     last_reloc_frm_id_ = 0;
     last_reloc_frm_timestamp_ = 0.0;
 

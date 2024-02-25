@@ -231,6 +231,9 @@ private:
     //! mapping thread
     std::unique_ptr<std::thread> mapping_thread_ = nullptr;
 
+    //! next frame ID
+    std::atomic<unsigned int> next_frame_id_{0};
+
     //! global optimization module
     global_optimization_module* global_optimizer_ = nullptr;
     //! global optimization thread

@@ -44,13 +44,14 @@ public:
 
     /**
      * Constructor for monocular frame
+     * @param frame_id
      * @param timestamp
      * @param camera
      * @param orb_params
      * @param frm_obs
      * @param markers_2d
      */
-    frame(const double timestamp, camera::base* camera, feature::orb_params* orb_params,
+    frame(const unsigned int frame_id, const double timestamp, camera::base* camera, feature::orb_params* orb_params,
           const frame_observation frm_obs, const std::unordered_map<unsigned int, marker2d>& markers_2d);
 
     /**
@@ -161,9 +162,6 @@ public:
 
     //! current frame ID
     unsigned int id_;
-
-    //! next frame ID
-    static std::atomic<unsigned int> next_id_;
 
     //! timestamp
     double timestamp_;
