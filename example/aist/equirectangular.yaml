@@ -32,6 +32,7 @@ Mapping:
   redundant_obs_ratio_thr: 0.95
   num_covisibilities_for_landmark_generation: 20
   num_covisibilities_for_landmark_fusion: 20
+  residual_deg_thr: 0.4
 
 Tracking:
   backend: "g2o"
