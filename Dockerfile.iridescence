@@ -186,7 +186,7 @@ RUN set -x && \
   chmod -R 777 ./*
 
 # Build and install Iridescence
-ARG IRIDESCENCE_COMMIT=fd0cd952a6e92d52ed4da5a574caf1db2f17c3aa
+ARG IRIDESCENCE_COMMIT=085322e0c949f75b67d24d361784e85ad7f197ab
 RUN set -x && \
   git clone https://github.com/koide3/iridescence && \
   cd iridescence && \
@@ -203,7 +203,7 @@ RUN set -x && \
   cd /tmp && \
   rm -rf *
 
-ARG IRIDESCENCE_VIEWER_COMMIT=2ec89382e7b57a9261d2d800f6c735bc6f01cfe6
+ARG IRIDESCENCE_VIEWER_COMMIT=48042838c5cea3bf0eefb33fcf28f2945f4888c3
 WORKDIR /tmp
 RUN set -x && \
   git clone https://github.com/stella-cv/iridescence_viewer.git && \
@@ -221,7 +221,7 @@ RUN set -x && \
   cd /tmp && \
   rm -rf *
 
-ARG EXAMPLES_COMMIT=b86009e2ed004f275c5bacd48e7c641a722914e1
+ARG EXAMPLES_COMMIT=b9d58a96ec5ae2434fd4ace5588c63984b0c1400
 WORKDIR /
 RUN set -x && \
   git clone https://github.com/stella-cv/stella_vslam_examples.git && \
