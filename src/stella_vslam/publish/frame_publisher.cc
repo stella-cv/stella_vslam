@@ -109,6 +109,10 @@ cv::Mat frame_publisher::get_image() {
     return img;
 }
 
+double frame_publisher::get_tracking_time_elapsed_ms() {
+    return elapsed_ms_;
+}
+
 unsigned int frame_publisher::draw_tracked_points(cv::Mat& img, const std::vector<cv::KeyPoint>& curr_keypts,
                                                   const std::vector<std::shared_ptr<data::landmark>>& curr_lms,
                                                   const bool mapping_is_enabled,
