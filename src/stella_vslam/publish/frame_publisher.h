@@ -61,6 +61,8 @@ public:
 
     cv::Mat get_image();
 
+    double get_tracking_time_elapsed_ms();
+
 protected:
     unsigned int draw_tracked_points(cv::Mat& img, const std::vector<cv::KeyPoint>& curr_keypts,
                                      const std::vector<std::shared_ptr<data::landmark>>& curr_lms,
