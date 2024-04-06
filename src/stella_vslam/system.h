@@ -127,7 +127,7 @@ public:
     //-----------------------------------------
     // data feeding methods
 
-    std::shared_ptr<Mat44_t> feed_frame(const data::frame& frm, const cv::Mat& img);
+    std::shared_ptr<Mat44_t> feed_frame(const data::frame& frm, const cv::Mat& img, double extraction_time_elapsed_ms);
 
     //! Feed a monocular frame to SLAM system
     //! (NOTE: distorted images are acceptable if calibrated)

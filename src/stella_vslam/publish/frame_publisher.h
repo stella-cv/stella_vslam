@@ -43,7 +43,8 @@ public:
                 tracker_state_t tracking_state,
                 std::vector<cv::KeyPoint>& keypts,
                 const cv::Mat& img,
-                double elapsed_ms);
+                double tracking_time_elapsed_ms,
+                double extraction_time_elapsed_ms);
 
     /**
      * Get the current image with tracking information
@@ -62,6 +63,8 @@ public:
     cv::Mat get_image();
 
     double get_tracking_time_elapsed_ms();
+
+    double get_extraction_time_elapsed_ms();
 
 protected:
     unsigned int draw_tracked_points(cv::Mat& img, const std::vector<cv::KeyPoint>& curr_keypts,
@@ -93,7 +96,10 @@ protected:
     std::vector<cv::KeyPoint> curr_keypts_;
 
     //! elapsed time for tracking
-    double elapsed_ms_ = 0.0;
+    double tracking_time_elapsed_ms_ = 0.0;
+
+    //! elapsed time for feature extraction
+    double extraction_time_elapsed_ms_ = 0.0;
 
     //! mapping module status
     bool mapping_is_enabled_;

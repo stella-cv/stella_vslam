@@ -441,7 +441,11 @@ std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const 
         spdlog::warn("preprocess: empty image");
         return nullptr;
     }
-    return feed_frame(create_monocular_frame(img, timestamp, mask), img);
+    const auto start = std::chrono::system_clock::now();
+    auto frm = create_monocular_frame(img, timestamp, mask);
+    const auto end = std::chrono::system_clock::now();
+    double extraction_time_elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    return feed_frame(frm, img, extraction_time_elapsed_ms);
 }
 
 std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
@@ -452,7 +456,11 @@ std::shared_ptr<Mat44_t> system::feed_stereo_frame(const cv::Mat& left_img, cons
         spdlog::warn("preprocess: empty image");
         return nullptr;
     }
-    return feed_frame(create_stereo_frame(left_img, right_img, timestamp, mask), left_img);
+    const auto start = std::chrono::system_clock::now();
+    auto frm = create_stereo_frame(left_img, right_img, timestamp, mask);
+    const auto end = std::chrono::system_clock::now();
+    double extraction_time_elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    return feed_frame(frm, left_img, extraction_time_elapsed_ms);
 }
 
 std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask) {
@@ -463,23 +471,28 @@ std::shared_ptr<Mat44_t> system::feed_RGBD_frame(const cv::Mat& rgb_img, const c
         spdlog::warn("preprocess: empty image");
         return nullptr;
     }
-    return feed_frame(create_RGBD_frame(rgb_img, depthmap, timestamp, mask), rgb_img);
+    const auto start = std::chrono::system_clock::now();
+    auto frm = create_RGBD_frame(rgb_img, depthmap, timestamp, mask);
+    const auto end = std::chrono::system_clock::now();
+    double extraction_time_elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    return feed_frame(frm, rgb_img, extraction_time_elapsed_ms);
 }
 
-std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Mat& img) {
+std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Mat& img, const double extraction_time_elapsed_ms) {
     const auto start = std::chrono::system_clock::now();
 
     const auto cam_pose_wc = tracker_->feed_frame(frm);
 
     const auto end = std::chrono::system_clock::now();
-    double elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    double tracking_time_elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     frame_publisher_->update(tracker_->curr_frm_.get_landmarks(),
                              !mapper_->is_paused(),
                              tracker_->tracking_state_,
                              keypts_,
                              img,
-                             elapsed_ms);
+                             tracking_time_elapsed_ms,
+                             extraction_time_elapsed_ms);
     if (tracker_->tracking_state_ == tracker_state_t::Tracking && cam_pose_wc) {
         map_publisher_->set_current_cam_pose(util::converter::inverse_pose(*cam_pose_wc));
     }
