@@ -110,7 +110,11 @@ cv::Mat frame_publisher::get_image() {
 }
 
 double frame_publisher::get_tracking_time_elapsed_ms() {
-    return elapsed_ms_;
+    return tracking_time_elapsed_ms_;
+}
+
+double frame_publisher::get_extraction_time_elapsed_ms() {
+    return extraction_time_elapsed_ms_;
 }
 
 unsigned int frame_publisher::draw_tracked_points(cv::Mat& img, const std::vector<cv::KeyPoint>& curr_keypts,
@@ -154,13 +158,15 @@ void frame_publisher::update(const std::vector<std::shared_ptr<data::landmark>>&
                              tracker_state_t tracking_state,
                              std::vector<cv::KeyPoint>& keypts,
                              const cv::Mat& img,
-                             double elapsed_ms) {
+                             double tracking_time_elapsed_ms,
+                             double extraction_time_elapsed_ms) {
     std::lock_guard<std::mutex> lock(mtx_);
 
     img.copyTo(img_);
 
     curr_keypts_ = keypts;
-    elapsed_ms_ = elapsed_ms;
+    tracking_time_elapsed_ms_ = tracking_time_elapsed_ms;
+    extraction_time_elapsed_ms_ = extraction_time_elapsed_ms;
     mapping_is_enabled_ = mapping_is_enabled;
     tracking_state_ = tracking_state;
     curr_lms_ = curr_lms;
