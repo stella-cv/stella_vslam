@@ -14,9 +14,9 @@ namespace stella_vslam {
 namespace feature {
 
 orb_extractor::orb_extractor(const orb_params* orb_params,
-                             const unsigned int min_size,
+                             const unsigned int min_area,
                              const std::vector<std::vector<float>>& mask_rects)
-    : orb_params_(orb_params), mask_rects_(mask_rects), min_size_(min_size) {
+    : orb_params_(orb_params), mask_rects_(mask_rects), min_area_sqrt_(std::sqrt(min_area)) {
     // resize buffers according to the number of levels
     image_pyramid_.resize(orb_params_->num_levels_);
 }
@@ -224,9 +224,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
         std::vector<cv::KeyPoint>& keypts_at_level = all_keypts.at(level);
 
         // Distribute keypoints via tree
-        keypts_at_level = distribute_keypoints_via_tree(keypts_to_distribute,
-                                                        min_border_x, max_border_x, min_border_y, max_border_y,
-                                                        scale_factor);
+        keypts_at_level = distribute_keypoints(keypts_to_distribute, min_border_x, max_border_x, min_border_y, max_border_y, scale_factor);
         SPDLOG_TRACE("keypts_at_level {} filtered={} raw={}", level, keypts_at_level.size(), keypts_to_distribute.size());
 
         // Keypoint size is patch size modified by the scale factor
@@ -248,153 +246,43 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
     }
 }
 
-std::vector<cv::KeyPoint> orb_extractor::distribute_keypoints_via_tree(const std::vector<cv::KeyPoint>& keypts_to_distribute,
-                                                                       const int min_x, const int max_x, const int min_y, const int max_y,
-                                                                       const float scale_factor) const {
-    auto nodes = initialize_nodes(keypts_to_distribute, min_x, max_x, min_y, max_y);
+std::vector<cv::KeyPoint> orb_extractor::distribute_keypoints(const std::vector<cv::KeyPoint>& keypts_to_distribute,
+                                                              const int min_x, const int max_x, const int min_y, const int max_y,
+                                                              const float scale_factor) const {
+    double scaled_min_area_sqrt = min_area_sqrt_ / scale_factor;
+    unsigned int num_x_grid = std::ceil((max_x - min_x) / scaled_min_area_sqrt);
+    unsigned int num_y_grid = std::ceil((max_y - min_y) / scaled_min_area_sqrt);
+    double delta_x = static_cast<double>(max_x - min_x) / num_x_grid;
+    double delta_y = static_cast<double>(max_y - min_y) / num_y_grid;
+    std::vector<cv::KeyPoint> result_keypts;
+    result_keypts.reserve(num_x_grid * num_y_grid);
+    std::unordered_map<unsigned int, std::pair<cv::KeyPoint, double>> keypt_response_map;
+    std::vector<std::vector<cv::KeyPoint>> keypts_on_grid(num_x_grid * num_y_grid);
 
-    // Forkable leaf nodes list
-    // The pool is used when a forking makes nodes more than a limited number
-    std::vector<std::pair<int, orb_extractor_node*>> leaf_nodes_pool;
-    leaf_nodes_pool.reserve(nodes.size() * 10);
-
-    while (true) {
-        const unsigned int prev_size = nodes.size();
-
-        auto iter = nodes.begin();
-        leaf_nodes_pool.clear();
-
-        // Fork node and remove the old one from nodes
-        while (iter != nodes.end()) {
-            if (iter->keypts_.size() == 1 || iter->size() * scale_factor * scale_factor <= min_size_) {
-                iter++;
-                continue;
-            }
-
-            // Divide node and assign to the leaf node pool
-            const auto child_nodes = iter->divide_node();
-            assign_child_nodes(child_nodes, nodes, leaf_nodes_pool);
-            // Remove the old node
-            iter = nodes.erase(iter);
-        }
-
-        // Stop iteration when the number of nodes is over the designated size or new node is not generated
-        if (nodes.size() == prev_size) {
-            break;
-        }
-    }
-
-    return find_keypoints_with_max_response(nodes);
-}
-
-std::list<orb_extractor_node> orb_extractor::initialize_nodes(const std::vector<cv::KeyPoint>& keypts_to_distribute,
-                                                              const int min_x, const int max_x, const int min_y, const int max_y) const {
-    // The aspect ratio of the target area for keypoint detection
-    const auto ratio = static_cast<double>(max_x - min_x) / (max_y - min_y);
-    // The width and height of the patches allocated to the initial node
-    double delta_x, delta_y;
-    // The number of columns or rows
-    unsigned int num_x_grid, num_y_grid;
-
-    if (ratio > 1) {
-        // If the aspect ratio is greater than 1, the patches are made in a horizontal direction
-        num_x_grid = std::round(ratio);
-        num_y_grid = 1;
-        delta_x = static_cast<double>(max_x - min_x) / num_x_grid;
-        delta_y = max_y - min_y;
-    }
-    else {
-        // If the aspect ratio is equal to or less than 1, the patches are made in a vertical direction
-        num_x_grid = 1;
-        num_y_grid = std::round(1 / ratio);
-        delta_x = max_x - min_y;
-        delta_y = static_cast<double>(max_y - min_y) / num_y_grid;
-    }
-
-    // The number of the initial nodes
-    const unsigned int num_initial_nodes = num_x_grid * num_y_grid;
-
-    // A list of node
-    std::list<orb_extractor_node> nodes;
-
-    // Initial node objects
-    std::vector<orb_extractor_node*> initial_nodes;
-    initial_nodes.resize(num_initial_nodes);
-
-    // Create initial node substances
-    for (unsigned int i = 0; i < num_initial_nodes; ++i) {
-        orb_extractor_node node;
-
-        // x / y index of the node's patch in the grid
-        const unsigned int ix = i % num_x_grid;
-        const unsigned int iy = i / num_x_grid;
-
-        node.pt_begin_ = cv::Point2i(delta_x * ix, delta_y * iy);
-        node.pt_end_ = cv::Point2i(delta_x * (ix + 1), delta_y * (iy + 1));
-        node.keypts_.reserve(keypts_to_distribute.size());
-
-        nodes.push_back(node);
-        initial_nodes.at(i) = &nodes.back();
-    }
-
-    // Assign all keypoints to initial nodes which own keypoint's position
     for (const auto& keypt : keypts_to_distribute) {
-        // x / y index of the patch where the keypt is placed
         const unsigned int ix = keypt.pt.x / delta_x;
         const unsigned int iy = keypt.pt.y / delta_y;
-
-        const unsigned int node_idx = ix + iy * num_x_grid;
-        initial_nodes.at(node_idx)->keypts_.push_back(keypt);
+        const unsigned int idx = ix + iy * num_x_grid;
+        keypts_on_grid[idx].push_back(keypt);
     }
 
-    auto iter = nodes.begin();
-    while (iter != nodes.end()) {
-        // Remove empty nodes
-        if (iter->keypts_.empty()) {
-            iter = nodes.erase(iter);
+    for (unsigned int i = 0; i < keypts_on_grid.size(); ++i) {
+        auto& keypts = keypts_on_grid[i];
+        if (keypts.empty()) {
             continue;
         }
-        iter++;
-    }
+        auto& selected_keypt = keypts.at(0);
+        double max_response = selected_keypt.response;
 
-    return nodes;
-}
-
-void orb_extractor::assign_child_nodes(const std::array<orb_extractor_node, 4>& child_nodes, std::list<orb_extractor_node>& nodes,
-                                       std::vector<std::pair<int, orb_extractor_node*>>& leaf_nodes) const {
-    for (const auto& child_node : child_nodes) {
-        if (child_node.keypts_.empty()) {
-            continue;
-        }
-        nodes.push_front(child_node);
-        if (child_node.keypts_.size() == 1) {
-            continue;
-        }
-        leaf_nodes.emplace_back(std::make_pair(child_node.keypts_.size(), &nodes.front()));
-        // Keep the self iterator to remove from std::list randomly
-        nodes.front().iter_ = nodes.begin();
-    }
-}
-
-std::vector<cv::KeyPoint> orb_extractor::find_keypoints_with_max_response(std::list<orb_extractor_node>& nodes) const {
-    // A vector contains result keypoint
-    std::vector<cv::KeyPoint> result_keypts;
-    result_keypts.reserve(nodes.size());
-
-    // Store keypoints which has maximum response in the node patch
-    for (auto& node : nodes) {
-        auto& node_keypts = node.keypts_;
-        auto& keypt = node_keypts.at(0);
-        double max_response = keypt.response;
-
-        for (unsigned int k = 1; k < node_keypts.size(); ++k) {
-            if (node_keypts.at(k).response > max_response) {
-                keypt = node_keypts.at(k);
-                max_response = node_keypts.at(k).response;
+        for (unsigned int k = 1; k < keypts.size(); ++k) {
+            const auto& keypt = keypts[k];
+            if (keypt.response > max_response) {
+                selected_keypt = keypt;
+                max_response = keypt.response;
             }
         }
 
-        result_keypts.push_back(keypt);
+        result_keypts.push_back(selected_keypt);
     }
 
     return result_keypts;
