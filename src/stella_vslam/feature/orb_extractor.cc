@@ -77,6 +77,16 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
     keypts.reserve(num_keypts);
 
     unsigned int offset = 0;
+    std::vector<unsigned int> offsets;
+    offsets.push_back(0);
+    for (unsigned int level = 0; level < orb_params_->num_levels_ - 1; ++level) {
+        offset += all_keypts.at(level).size();
+        offsets.push_back(offset);
+    }
+
+#ifdef USE_OPENMP
+#pragma omp parallel for schedule(dynamic)
+#endif
     for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
         auto& keypts_at_level = all_keypts.at(level);
         const auto num_keypts_at_level = keypts_at_level.size();
@@ -85,16 +95,26 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
             continue;
         }
 
-        cv::Mat blurred_image = image_pyramid_.at(level).clone();
-        cv::GaussianBlur(blurred_image, blurred_image, cv::Size(7, 7), 2, 2, cv::BORDER_REFLECT_101);
+        cv::Mat blurred_image;
+        cv::GaussianBlur(image_pyramid_.at(level), blurred_image, cv::Size(7, 7), 2, 2, cv::BORDER_REFLECT_101);
 
-        cv::Mat descriptors_at_level = descriptors.rowRange(offset, offset + num_keypts_at_level);
-        compute_orb_descriptors(blurred_image, keypts_at_level, descriptors_at_level);
+        cv::Mat descriptors_at_level = descriptors.rowRange(offsets[level], offsets[level] + num_keypts_at_level);
+        descriptors_at_level = cv::Mat::zeros(num_keypts_at_level, 32, CV_8UC1);
 
-        offset += num_keypts_at_level;
+        // To enable parallelization, set the environment variable OMP_MAX_ACTIVE_LEVELS to 2.
+#ifdef USE_OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+        for (unsigned int i = 0; i < keypts_at_level.size(); ++i) {
+            compute_orb_descriptor(keypts_at_level[i], blurred_image, descriptors_at_level.ptr(i));
+        }
 
         correct_keypoint_scale(keypts_at_level, level);
+    }
 
+    // Collect keypoints for every scale
+    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
+        auto& keypts_at_level = all_keypts.at(level);
         keypts.insert(keypts.end(), keypts_at_level.begin(), keypts_at_level.end());
     }
 }
@@ -137,7 +157,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
     constexpr unsigned int cell_size = 64;
 
 #ifdef USE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 #endif
     for (int64_t level = 0; level < orb_params_->num_levels_; ++level) {
         const float scale_factor = orb_params_->scale_factors_.at(level);
@@ -150,13 +170,15 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
         const unsigned int width = max_border_x - min_border_x;
         const unsigned int height = max_border_y - min_border_y;
 
-        const unsigned int num_cols = std::ceil(width / cell_size) + 1;
-        const unsigned int num_rows = std::ceil(height / cell_size) + 1;
+        const unsigned int num_cols = width / cell_size + 1;
+        const unsigned int num_rows = height / cell_size + 1;
 
         std::vector<cv::KeyPoint> keypts_to_distribute;
+        keypts_to_distribute.reserve(500);
 
+        // To enable parallelization, set the environment variable OMP_MAX_ACTIVE_LEVELS to 2.
 #ifdef USE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for schedule(static)
 #endif
         for (int64_t i = 0; i < num_rows; ++i) {
             const unsigned int min_y = min_border_y + i * cell_size;
@@ -168,9 +190,6 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
                 max_y = max_border_y;
             }
 
-#ifdef USE_OPENMP
-#pragma omp parallel for
-#endif
             for (int64_t j = 0; j < num_cols; ++j) {
                 const unsigned int min_x = min_border_x + j * cell_size;
                 if (max_border_x - overlap <= min_x) {
@@ -203,20 +222,28 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
                     continue;
                 }
 
-                // Collect keypoints for every scale
+                for (auto& keypt : keypts_in_cell) {
+                    keypt.pt.x += j * cell_size;
+                    keypt.pt.y += i * cell_size;
+                }
+
+                if (!mask.empty()) {
+                    std::vector<cv::KeyPoint> keypts_in_cell_masked;
+                    for (auto&& keypt : keypts_in_cell) {
+                        // Check if the keypoint is in the mask
+                        if (is_in_mask(min_border_y + keypt.pt.y, min_border_x + keypt.pt.x, scale_factor)) {
+                            continue;
+                        }
+                        keypts_in_cell_masked.push_back(std::move(keypt));
+                    }
+                    keypts_in_cell = std::move(keypts_in_cell_masked);
+                }
+
 #ifdef USE_OPENMP
 #pragma omp critical
 #endif
                 {
-                    for (auto& keypt : keypts_in_cell) {
-                        keypt.pt.x += j * cell_size;
-                        keypt.pt.y += i * cell_size;
-                        // Check if the keypoint is in the mask
-                        if (!mask.empty() && is_in_mask(min_border_y + keypt.pt.y, min_border_x + keypt.pt.x, scale_factor)) {
-                            continue;
-                        }
-                        keypts_to_distribute.push_back(keypt);
-                    }
+                    keypts_to_distribute.insert(keypts_to_distribute.end(), keypts_in_cell.begin(), keypts_in_cell.end());
                 }
             }
         }
@@ -238,10 +265,7 @@ void orb_extractor::compute_fast_keypoints(std::vector<std::vector<cv::KeyPoint>
             keypt.octave = level;
             keypt.size = scaled_patch_size;
         }
-    }
 
-    // Compute orientations
-    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
         compute_orientation(image_pyramid_.at(level), all_keypts.at(level));
     }
 }
@@ -306,14 +330,6 @@ void orb_extractor::correct_keypoint_scale(std::vector<cv::KeyPoint>& keypts_at_
 
 float orb_extractor::ic_angle(const cv::Mat& image, const cv::Point2f& point) const {
     return orb_impl_.ic_angle(image, point);
-}
-
-void orb_extractor::compute_orb_descriptors(const cv::Mat& image, const std::vector<cv::KeyPoint>& keypts, cv::Mat& descriptors) const {
-    descriptors = cv::Mat::zeros(keypts.size(), 32, CV_8UC1);
-
-    for (unsigned int i = 0; i < keypts.size(); ++i) {
-        compute_orb_descriptor(keypts.at(i), image, descriptors.ptr(i));
-    }
 }
 
 void orb_extractor::compute_orb_descriptor(const cv::KeyPoint& keypt, const cv::Mat& image, uchar* desc) const {
