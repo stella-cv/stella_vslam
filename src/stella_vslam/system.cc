@@ -83,6 +83,9 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
         extractor_right_ = new feature::orb_extractor(orb_params_, min_size, mask_rectangles);
     }
 
+    num_grid_cols_ = preprocessing_params["num_grid_cols"].as<unsigned int>(64);
+    num_grid_rows_ = preprocessing_params["num_grid_rows"].as<unsigned int>(48);
+
     if (cfg->marker_model_) {
         if (marker_detector::aruco::is_valid()) {
             spdlog::debug("marker detection: enabled");
@@ -204,6 +207,13 @@ bool system::load_map_database(const std::string& path) const {
     pause_other_threads();
     spdlog::debug("load_map_database: {}", path);
     bool ok = map_database_io_->load(path, cam_db_, orb_params_db_, map_db_, bow_db_, bow_vocab_);
+    auto keyfrms = map_db_->get_all_keyframes();
+    for (const auto& keyfrm : keyfrms) {
+        keyfrm->frm_obs_.num_grid_cols_ = num_grid_cols_;
+        keyfrm->frm_obs_.num_grid_rows_ = num_grid_rows_;
+        data::assign_keypoints_to_grid(keyfrm->camera_, keyfrm->frm_obs_.undist_keypts_, keyfrm->frm_obs_.keypt_indices_in_cells_,
+                                       keyfrm->frm_obs_.num_grid_cols_, keyfrm->frm_obs_.num_grid_rows_);
+    }
     resume_other_threads();
     return ok;
 }
@@ -302,7 +312,10 @@ data::frame system::create_monocular_frame(const cv::Mat& img, const double time
     camera_->convert_keypoints_to_bearings(frm_obs.undist_keypts_, frm_obs.bearings_);
 
     // Assign all the keypoints into grid
-    data::assign_keypoints_to_grid(camera_, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_);
+    frm_obs.num_grid_cols_ = num_grid_cols_;
+    frm_obs.num_grid_rows_ = num_grid_rows_;
+    data::assign_keypoints_to_grid(camera_, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_,
+                                   frm_obs.num_grid_cols_, frm_obs.num_grid_rows_);
 
     // Detect marker
     std::unordered_map<unsigned int, data::marker2d> markers_2d;
@@ -360,7 +373,10 @@ data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& 
     camera_->convert_keypoints_to_bearings(frm_obs.undist_keypts_, frm_obs.bearings_);
 
     // Assign all the keypoints into grid
-    data::assign_keypoints_to_grid(camera_, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_);
+    frm_obs.num_grid_cols_ = num_grid_cols_;
+    frm_obs.num_grid_rows_ = num_grid_rows_;
+    data::assign_keypoints_to_grid(camera_, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_,
+                                   frm_obs.num_grid_cols_, frm_obs.num_grid_rows_);
 
     // Detect marker
     std::unordered_map<unsigned int, data::marker2d> markers_2d;
@@ -422,7 +438,10 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
     camera_->convert_keypoints_to_bearings(frm_obs.undist_keypts_, frm_obs.bearings_);
 
     // Assign all the keypoints into grid
-    data::assign_keypoints_to_grid(camera_, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_);
+    frm_obs.num_grid_cols_ = num_grid_cols_;
+    frm_obs.num_grid_rows_ = num_grid_rows_;
+    data::assign_keypoints_to_grid(camera_, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_,
+                                   frm_obs.num_grid_cols_, frm_obs.num_grid_rows_);
 
     // Detect marker
     std::unordered_map<unsigned int, data::marker2d> markers_2d;

@@ -42,3 +42,5 @@ Mapping:
 
 System:
   map_format: "msgpack"
+  num_grid_cols: 48
+  num_grid_rows: 27

@@ -269,7 +269,7 @@ public:
     //-----------------------------------------
     // constant observations
 
-    const frame_observation frm_obs_;
+    frame_observation frm_obs_;
 
     //! observed markers 2D (ID to marker2d map)
     std::unordered_map<unsigned int, marker2d> markers_2d_;

@@ -2,6 +2,10 @@
 # https://vision.in.tum.de/data/datasets/visual-inertial-dataset#geometric_calibration
 # pinhole (512x512)
 
+System:
+  num_grid_cols: 16
+  num_grid_rows: 16
+
 #==============#
 # Camera Model #
 #==============#

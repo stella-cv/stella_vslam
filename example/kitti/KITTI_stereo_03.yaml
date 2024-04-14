@@ -1,5 +1,9 @@
 # KITTI stereo model for seq.03
 
+System:
+  num_grid_cols: 40
+  num_grid_rows: 13
+
 #==============#
 # Camera Model #
 #==============#

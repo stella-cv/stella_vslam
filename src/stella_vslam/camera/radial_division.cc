@@ -24,9 +24,6 @@ radial_division::radial_division(const std::string& name, const setup_type_t& se
     eigen_cam_matrix_ << fx_, 0, cx_, 0, fy_, cy_, 0, 0, 1;
 
     img_bounds_ = compute_image_bounds();
-
-    inv_cell_width_ = static_cast<double>(num_grid_cols_) / (img_bounds_.max_x_ - img_bounds_.min_x_);
-    inv_cell_height_ = static_cast<double>(num_grid_rows_) / (img_bounds_.max_y_ - img_bounds_.min_y_);
 }
 
 radial_division::radial_division(const YAML::Node& yaml_node)
@@ -167,8 +164,6 @@ nlohmann::json radial_division::to_json() const {
         {"rows", rows_},
         {"fps", fps_},
         {"focal_x_baseline", focal_x_baseline_},
-        {"num_grid_cols", num_grid_cols_},
-        {"num_grid_rows", num_grid_rows_},
         {"fx", fx_},
         {"fy", fy_},
         {"cx", cx_},

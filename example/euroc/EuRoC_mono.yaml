@@ -56,6 +56,8 @@ LoopDetector:
 
 System:
   map_format: "msgpack"
+  num_grid_cols: 47
+  num_grid_rows: 30
 
 PangolinViewer:
   keyframe_size: 0.07

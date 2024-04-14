@@ -58,8 +58,7 @@ public:
     //! Constructor
     base(const std::string& name, const setup_type_t setup_type, const model_type_t model_type, const color_order_t color_order,
          const unsigned int cols, const unsigned int rows, const double fps,
-         const double focal_x_baseline, const double true_baseline, const double depth_thr,
-         const unsigned int num_grid_cols = 64, const unsigned int num_grid_rows = 48);
+         const double focal_x_baseline, const double true_baseline, const double depth_thr);
 
     //! Destructor
     virtual ~base();
@@ -120,21 +119,11 @@ public:
     //! if a stereo-triangulated point is farther than this threshold, it is invalid)
     const double depth_thr_;
 
-    //! number of columns of grid to accelerate reprojection matching
-    const unsigned int num_grid_cols_;
-    //! number of rows of grid to accelerate reprojection matching
-    const unsigned int num_grid_rows_;
-
     //---------------------------
     // To be set in derived classes
 
     //! information of image boundary
     image_bounds img_bounds_;
-
-    //! cell width of grid pattern
-    double inv_cell_width_ = std::numeric_limits<double>::quiet_NaN();
-    //! cell height of grid pattern
-    double inv_cell_height_ = std::numeric_limits<double>::quiet_NaN();
 
     //-------------------------
     // To be implemented in derived classes

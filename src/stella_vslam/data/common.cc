@@ -81,13 +81,17 @@ cv::Mat convert_json_to_descriptors(const nlohmann::json& json_descriptors) {
 }
 
 void assign_keypoints_to_grid(const camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts,
-                              std::vector<std::vector<std::vector<unsigned int>>>& keypt_indices_in_cells) {
+                              std::vector<std::vector<std::vector<unsigned int>>>& keypt_indices_in_cells,
+                              unsigned int num_grid_cols, unsigned int num_grid_rows) {
+    double inv_cell_width = static_cast<double>(num_grid_cols) / (camera->img_bounds_.max_x_ - camera->img_bounds_.min_x_);
+    double inv_cell_height = static_cast<double>(num_grid_rows) / (camera->img_bounds_.max_y_ - camera->img_bounds_.min_y_);
+
     // Pre-allocate memory
     const unsigned int num_keypts = undist_keypts.size();
-    const unsigned int num_to_reserve = 0.5 * num_keypts / (camera->num_grid_cols_ * camera->num_grid_rows_);
-    keypt_indices_in_cells.resize(camera->num_grid_cols_);
+    const unsigned int num_to_reserve = 0.5 * num_keypts / (num_grid_cols * num_grid_rows);
+    keypt_indices_in_cells.resize(num_grid_cols);
     for (auto& keypt_indices_in_row : keypt_indices_in_cells) {
-        keypt_indices_in_row.resize(camera->num_grid_rows_);
+        keypt_indices_in_row.resize(num_grid_rows);
         for (auto& keypt_indices_in_cell : keypt_indices_in_row) {
             keypt_indices_in_cell.reserve(num_to_reserve);
         }
@@ -97,51 +101,60 @@ void assign_keypoints_to_grid(const camera::base* camera, const std::vector<cv::
     for (unsigned int idx = 0; idx < num_keypts; ++idx) {
         const auto& keypt = undist_keypts.at(idx);
         int cell_idx_x, cell_idx_y;
-        if (get_cell_indices(camera, keypt, cell_idx_x, cell_idx_y)) {
+        if (get_cell_indices(camera, keypt, num_grid_cols, num_grid_rows, inv_cell_width, inv_cell_height, cell_idx_x, cell_idx_y)) {
             keypt_indices_in_cells.at(cell_idx_x).at(cell_idx_y).push_back(idx);
         }
     }
 }
 
-auto assign_keypoints_to_grid(const camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts)
+auto assign_keypoints_to_grid(const camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts,
+                              unsigned int num_grid_cols, unsigned int num_grid_rows)
     -> std::vector<std::vector<std::vector<unsigned int>>> {
     std::vector<std::vector<std::vector<unsigned int>>> keypt_indices_in_cells;
-    assign_keypoints_to_grid(camera, undist_keypts, keypt_indices_in_cells);
+    assign_keypoints_to_grid(camera, undist_keypts, keypt_indices_in_cells, num_grid_cols, num_grid_rows);
     return keypt_indices_in_cells;
 }
 
 std::vector<unsigned int> get_keypoints_in_cell(const camera::base* camera, const data::frame_observation& frm_obs,
                                                 const float ref_x, const float ref_y, const float margin,
                                                 const int min_level, const int max_level) {
-    return get_keypoints_in_cell(camera, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_, ref_x, ref_y, margin, min_level, max_level);
+    return get_keypoints_in_cell(camera, frm_obs.undist_keypts_, frm_obs.keypt_indices_in_cells_,
+                                 ref_x, ref_y, margin,
+                                 frm_obs.num_grid_cols_, frm_obs.num_grid_rows_,
+                                 min_level, max_level);
 }
 
 std::vector<unsigned int> get_keypoints_in_cell(const camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts,
                                                 const std::vector<std::vector<std::vector<unsigned int>>>& keypt_indices_in_cells,
                                                 const float ref_x, const float ref_y, const float margin,
+                                                const unsigned int num_grid_cols, const unsigned int num_grid_rows,
                                                 const int min_level, const int max_level) {
-    std::vector<unsigned int> indices;
-    indices.reserve(undist_keypts.size());
+    double inv_cell_width = static_cast<double>(num_grid_cols) / (camera->img_bounds_.max_x_ - camera->img_bounds_.min_x_);
+    double inv_cell_height = static_cast<double>(num_grid_rows) / (camera->img_bounds_.max_y_ - camera->img_bounds_.min_y_);
 
-    const int min_cell_idx_x = std::max(0, cvFloor((ref_x - camera->img_bounds_.min_x_ - margin) * camera->inv_cell_width_));
-    if (static_cast<int>(camera->num_grid_cols_) <= min_cell_idx_x) {
+    std::vector<unsigned int> indices;
+
+    const int min_cell_idx_x = std::max(0, cvFloor((ref_x - camera->img_bounds_.min_x_ - margin) * inv_cell_width));
+    if (static_cast<int>(num_grid_cols) <= min_cell_idx_x) {
         return indices;
     }
 
-    const int max_cell_idx_x = std::min(static_cast<int>(camera->num_grid_cols_ - 1), cvCeil((ref_x - camera->img_bounds_.min_x_ + margin) * camera->inv_cell_width_));
+    const int max_cell_idx_x = std::min(static_cast<int>(num_grid_cols - 1), cvCeil((ref_x - camera->img_bounds_.min_x_ + margin) * inv_cell_width));
     if (max_cell_idx_x < 0) {
         return indices;
     }
 
-    const int min_cell_idx_y = std::max(0, cvFloor((ref_y - camera->img_bounds_.min_y_ - margin) * camera->inv_cell_height_));
-    if (static_cast<int>(camera->num_grid_rows_) <= min_cell_idx_y) {
+    const int min_cell_idx_y = std::max(0, cvFloor((ref_y - camera->img_bounds_.min_y_ - margin) * inv_cell_height));
+    if (static_cast<int>(num_grid_rows) <= min_cell_idx_y) {
         return indices;
     }
 
-    const int max_cell_idx_y = std::min(static_cast<int>(camera->num_grid_rows_ - 1), cvCeil((ref_y - camera->img_bounds_.min_y_ + margin) * camera->inv_cell_height_));
+    const int max_cell_idx_y = std::min(static_cast<int>(num_grid_rows - 1), cvCeil((ref_y - camera->img_bounds_.min_y_ + margin) * inv_cell_height));
     if (max_cell_idx_y < 0) {
         return indices;
     }
+
+    indices.reserve(undist_keypts.size());
 
     const bool check_min_level = 0 <= min_level;
     const bool check_max_level = 0 <= max_level;

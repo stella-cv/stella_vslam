@@ -15,10 +15,9 @@ struct frame_observation {
     frame_observation() = default;
     frame_observation(const cv::Mat& descriptors,
                       const std::vector<cv::KeyPoint>& undist_keypts, const eigen_alloc_vector<Vec3_t>& bearings,
-                      const std::vector<float>& stereo_x_right, const std::vector<float>& depths,
-                      const std::vector<std::vector<std::vector<unsigned int>>>& keypt_indices_in_cells)
+                      const std::vector<float>& stereo_x_right, const std::vector<float>& depths)
         : descriptors_(descriptors), undist_keypts_(undist_keypts), bearings_(bearings),
-          stereo_x_right_(stereo_x_right), depths_(depths), keypt_indices_in_cells_(keypt_indices_in_cells) {}
+          stereo_x_right_(stereo_x_right), depths_(depths) {}
 
     //! descriptors
     cv::Mat descriptors_;
@@ -32,6 +31,10 @@ struct frame_observation {
     std::vector<float> depths_;
     //! keypoint indices in each of the cells
     std::vector<std::vector<std::vector<unsigned int>>> keypt_indices_in_cells_;
+    //! number of columns of grid to accelerate reprojection matching
+    unsigned int num_grid_cols_;
+    //! number of rows of grid to accelerate reprojection matching
+    unsigned int num_grid_rows_;
 };
 
 } // namespace data
