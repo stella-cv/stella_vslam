@@ -22,17 +22,20 @@ namespace stella_vslam {
 tracking_module::tracking_module(const std::shared_ptr<config>& cfg, camera::base* camera, data::map_database* map_db,
                                  data::bow_vocabulary* bow_vocab, data::bow_database* bow_db)
     : camera_(camera),
-      reloc_distance_threshold_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["reloc_distance_threshold"].as<double>(0.2)),
-      reloc_angle_threshold_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["reloc_angle_threshold"].as<double>(0.45)),
-      init_retry_threshold_time_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["init_retry_threshold_time"].as<double>(5.0)),
-      enable_auto_relocalization_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["enable_auto_relocalization"].as<bool>(true)),
-      enable_temporal_keyframe_only_tracking_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["enable_temporal_keyframe_only_tracking"].as<bool>(false)),
-      use_robust_matcher_for_relocalization_request_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["use_robust_matcher_for_relocalization_request"].as<bool>(false)),
-      max_num_local_keyfrms_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")["max_num_local_keyfrms"].as<unsigned int>(60)),
+      tracking_yaml_(util::yaml_optional_ref(cfg->yaml_node_, "Tracking")),
+      reloc_distance_threshold_(tracking_yaml_["reloc_distance_threshold"].as<double>(0.2)),
+      reloc_angle_threshold_(tracking_yaml_["reloc_angle_threshold"].as<double>(0.45)),
+      init_retry_threshold_time_(tracking_yaml_["init_retry_threshold_time"].as<double>(5.0)),
+      enable_auto_relocalization_(tracking_yaml_["enable_auto_relocalization"].as<bool>(true)),
+      enable_temporal_keyframe_only_tracking_(tracking_yaml_["enable_temporal_keyframe_only_tracking"].as<bool>(false)),
+      use_robust_matcher_for_relocalization_request_(tracking_yaml_["use_robust_matcher_for_relocalization_request"].as<bool>(false)),
+      max_num_local_keyfrms_(tracking_yaml_["max_num_local_keyfrms"].as<unsigned int>(60)),
+      margin_local_map_projection_(tracking_yaml_["margin_local_map_projection"].as<float>(5.0)),
+      margin_local_map_projection_unstable_(tracking_yaml_["margin_local_map_projection_unstable"].as<float>(20.0)),
       map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
       initializer_(map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
-      pose_optimizer_(optimize::pose_optimizer_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Tracking"))),
-      frame_tracker_(camera_, pose_optimizer_, 10, initializer_.get_use_fixed_seed()),
+      pose_optimizer_(optimize::pose_optimizer_factory::create(tracking_yaml_)),
+      frame_tracker_(camera_, pose_optimizer_, 10, initializer_.get_use_fixed_seed(), tracking_yaml_["margin_last_frame_projection"].as<float>(20.0)),
       relocalizer_(pose_optimizer_, util::yaml_optional_ref(cfg->yaml_node_, "Relocalizer")),
       keyfrm_inserter_(util::yaml_optional_ref(cfg->yaml_node_, "KeyframeInserter")) {
     spdlog::debug("CONSTRUCT: tracking_module");
@@ -571,10 +574,8 @@ bool tracking_module::search_local_landmarks() {
     // acquire more 2D-3D matches by projecting the local landmarks to the current frame
     match::projection projection_matcher(0.8);
     const float margin = (curr_frm_.id_ < last_reloc_frm_id_ + 2)
-                             ? 20.0
-                             : ((camera_->setup_type_ == camera::setup_type_t::RGBD)
-                                    ? 10.0
-                                    : 5.0);
+                             ? margin_local_map_projection_unstable_
+                             : margin_local_map_projection_;
     projection_matcher.match_frame_and_landmarks(curr_frm_, local_landmarks_, lm_to_reproj, lm_to_x_right, lm_to_scale, margin);
     return true;
 }
