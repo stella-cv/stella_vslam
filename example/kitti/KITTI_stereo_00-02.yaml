@@ -32,6 +32,9 @@ Camera:
 # Tracking Parameters #
 #=====================#
 
+Tracking:
+  margin_last_frame_projection: 10.0
+
 Preprocessing:
   min_size: 800
 

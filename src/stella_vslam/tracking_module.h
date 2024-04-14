@@ -111,6 +111,9 @@ public:
     //! camera model
     camera::base* camera_;
 
+    //! yaml node
+    YAML::Node tracking_yaml_;
+
     //! closest keyframes thresholds (by distance and angle) to relocalize with when updating by pose
     double reloc_distance_threshold_ = 0.2;
     double reloc_angle_threshold_ = 0.45;
@@ -129,6 +132,10 @@ public:
 
     //! Max number of local keyframes for tracking
     unsigned int max_num_local_keyfrms_ = 60;
+
+    //! margin for projection matcher
+    float margin_local_map_projection_ = 5.0;
+    float margin_local_map_projection_unstable_ = 20.0;
 
     //-----------------------------------------
     // variables
