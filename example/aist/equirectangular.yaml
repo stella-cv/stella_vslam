@@ -51,3 +51,5 @@ GlobalOptimizer:
 
 System:
   map_format: "msgpack"
+  num_grid_cols: 96
+  num_grid_rows: 48

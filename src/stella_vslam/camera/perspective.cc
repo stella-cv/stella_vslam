@@ -25,9 +25,6 @@ perspective::perspective(const std::string& name, const setup_type_t& setup_type
     eigen_dist_params_ << k1_, k2_, p1_, p2_, k3_;
 
     img_bounds_ = compute_image_bounds();
-
-    inv_cell_width_ = static_cast<double>(num_grid_cols_) / (img_bounds_.max_x_ - img_bounds_.min_x_);
-    inv_cell_height_ = static_cast<double>(num_grid_rows_) / (img_bounds_.max_y_ - img_bounds_.min_y_);
 }
 
 perspective::perspective(const YAML::Node& yaml_node)
@@ -180,8 +177,6 @@ nlohmann::json perspective::to_json() const {
             {"rows", rows_},
             {"fps", fps_},
             {"focal_x_baseline", focal_x_baseline_},
-            {"num_grid_cols", num_grid_cols_},
-            {"num_grid_rows", num_grid_rows_},
             {"fx", fx_},
             {"fy", fy_},
             {"cx", cx_},

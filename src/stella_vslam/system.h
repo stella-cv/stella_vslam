@@ -247,6 +247,11 @@ private:
     //! ORB extractor only when used in initializing
     feature::orb_extractor* ini_extractor_left_ = nullptr;
 
+    //! number of columns of grid to accelerate reprojection matching
+    unsigned int num_grid_cols_ = 64;
+    //! number of rows of grid to accelerate reprojection matching
+    unsigned int num_grid_rows_ = 48;
+
     //! marker detector
     marker_detector::base* marker_detector_ = nullptr;
 

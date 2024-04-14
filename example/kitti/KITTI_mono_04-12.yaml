@@ -1,5 +1,9 @@
 # KITTI monocular model for seq.04-12
 
+System:
+  num_grid_cols: 40
+  num_grid_rows: 13
+
 #==============#
 # Camera Model #
 #==============#

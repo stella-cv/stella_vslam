@@ -12,9 +12,6 @@ equirectangular::equirectangular(const std::string& name, const color_order_t& c
     spdlog::debug("CONSTRUCT: camera::equirectangular");
 
     img_bounds_ = compute_image_bounds();
-
-    inv_cell_width_ = static_cast<double>(num_grid_cols_) / (img_bounds_.max_x_ - img_bounds_.min_x_);
-    inv_cell_height_ = static_cast<double>(num_grid_rows_) / (img_bounds_.max_y_ - img_bounds_.min_y_);
 }
 
 equirectangular::equirectangular(const YAML::Node& yaml_node)
@@ -89,9 +86,7 @@ nlohmann::json equirectangular::to_json() const {
             {"cols", cols_},
             {"rows", rows_},
             {"fps", fps_},
-            {"focal_x_baseline", focal_x_baseline_},
-            {"num_grid_cols", num_grid_cols_},
-            {"num_grid_rows", num_grid_rows_}};
+            {"focal_x_baseline", focal_x_baseline_}};
 }
 
 std::ostream& operator<<(std::ostream& os, const equirectangular& params) {
@@ -103,8 +98,6 @@ std::ostream& operator<<(std::ostream& os, const equirectangular& params) {
     os << "- color: " << params.get_color_order_string() << std::endl;
     os << "- model: " << params.get_model_type_string() << std::endl;
     os << "- focal x baseline: " << params.focal_x_baseline_ << std::endl;
-    os << "- num grid cols: " << params.num_grid_cols_ << std::endl;
-    os << "- num grid rows: " << params.num_grid_rows_ << std::endl;
     return os;
 }
 

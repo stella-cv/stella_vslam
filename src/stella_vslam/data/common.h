@@ -36,7 +36,8 @@ cv::Mat convert_json_to_descriptors(const nlohmann::json& json_descriptors);
  * @param keypt_indices_in_cells
  */
 void assign_keypoints_to_grid(const camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts,
-                              std::vector<std::vector<std::vector<unsigned int>>>& keypt_indices_in_cells);
+                              std::vector<std::vector<std::vector<unsigned int>>>& keypt_indices_in_cells,
+                              unsigned int num_grid_cols, unsigned int num_grid_rows);
 
 /**
  * Assign all keypoints to cells to accelerate projection matching
@@ -44,7 +45,8 @@ void assign_keypoints_to_grid(const camera::base* camera, const std::vector<cv::
  * @param undist_keypts
  * @return
  */
-auto assign_keypoints_to_grid(const camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts)
+auto assign_keypoints_to_grid(const camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts,
+                              unsigned int num_grid_cols, unsigned int num_grid_rows)
     -> std::vector<std::vector<std::vector<unsigned int>>>;
 
 /**
@@ -55,11 +57,14 @@ auto assign_keypoints_to_grid(const camera::base* camera, const std::vector<cv::
  * @param cell_idx_y
  * @return
  */
-inline bool get_cell_indices(const camera::base* camera, const cv::KeyPoint& keypt, int& cell_idx_x, int& cell_idx_y) {
-    cell_idx_x = cvFloor((keypt.pt.x - camera->img_bounds_.min_x_) * camera->inv_cell_width_);
-    cell_idx_y = cvFloor((keypt.pt.y - camera->img_bounds_.min_y_) * camera->inv_cell_height_);
-    return (0 <= cell_idx_x && cell_idx_x < static_cast<int>(camera->num_grid_cols_)
-            && 0 <= cell_idx_y && cell_idx_y < static_cast<int>(camera->num_grid_rows_));
+inline bool get_cell_indices(const camera::base* camera, const cv::KeyPoint& keypt,
+                             const unsigned int num_grid_cols, const unsigned int num_grid_rows,
+                             const double inv_cell_width, const double inv_cell_height,
+                             int& cell_idx_x, int& cell_idx_y) {
+    cell_idx_x = cvFloor((keypt.pt.x - camera->img_bounds_.min_x_) * inv_cell_width);
+    cell_idx_y = cvFloor((keypt.pt.y - camera->img_bounds_.min_y_) * inv_cell_height);
+    return (0 <= cell_idx_x && cell_idx_x < static_cast<int>(num_grid_cols)
+            && 0 <= cell_idx_y && cell_idx_y < static_cast<int>(num_grid_rows));
 }
 
 /**
@@ -77,6 +82,7 @@ inline bool get_cell_indices(const camera::base* camera, const cv::KeyPoint& key
 std::vector<unsigned int> get_keypoints_in_cell(const camera::base* camera, const std::vector<cv::KeyPoint>& undist_keypts,
                                                 const std::vector<std::vector<std::vector<unsigned int>>>& keypt_indices_in_cells,
                                                 const float ref_x, const float ref_y, const float margin,
+                                                const unsigned int num_grid_cols, const unsigned int num_grid_rows,
                                                 const int min_level = -1, const int max_level = -1);
 std::vector<unsigned int> get_keypoints_in_cell(const camera::base* camera, const frame_observation& frm_obs,
                                                 const float ref_x, const float ref_y, const float margin,
