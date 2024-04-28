@@ -20,8 +20,8 @@
 namespace stella_vslam {
 namespace optimize {
 
-pose_optimizer_g2o::pose_optimizer_g2o(const unsigned int num_trials, const unsigned int num_each_iter)
-    : num_trials_(num_trials), num_each_iter_(num_each_iter) {}
+pose_optimizer_g2o::pose_optimizer_g2o(const unsigned int num_trials_robust, const unsigned int num_trials, const unsigned int num_each_iter)
+    : num_trials_robust_(num_trials_robust), num_trials_(num_trials), num_each_iter_(num_each_iter) {}
 
 unsigned int pose_optimizer_g2o::optimize(const data::frame& frm, Mat44_t& optimized_pose, std::vector<bool>& outlier_flags) const {
     auto num_valid_obs = optimize(frm.get_pose_cw(), frm.frm_obs_, frm.orb_params_, frm.camera_,
@@ -114,7 +114,12 @@ unsigned int pose_optimizer_g2o::optimize(const Mat44_t& cam_pose_cw, const data
     // 4. Perform robust Bundle Adjustment (BA)
 
     unsigned int num_bad_obs = 0;
-    for (unsigned int trial = 0; trial < num_trials_; ++trial) {
+    if (num_trials_robust_ == 0) {
+        for (auto& pose_opt_edge_wrap : pose_opt_edge_wraps) {
+            pose_opt_edge_wrap.edge_->setRobustKernel(nullptr);
+        }
+    }
+    for (unsigned int trial = 0; trial < num_trials_robust_ + num_trials_; ++trial) {
         optimizer.initializeOptimization();
         optimizer.optimize(num_each_iter_);
 
@@ -150,7 +155,7 @@ unsigned int pose_optimizer_g2o::optimize(const Mat44_t& cam_pose_cw, const data
                 }
             }
 
-            if (trial == num_trials_ - 2) {
+            if (num_trials_ != 0 && trial + 1 == num_trials_robust_) {
                 edge->setRobustKernel(nullptr);
             }
         }

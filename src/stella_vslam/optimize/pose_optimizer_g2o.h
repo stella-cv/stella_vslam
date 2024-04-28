@@ -27,10 +27,14 @@ class pose_optimizer_g2o : public pose_optimizer {
 public:
     /**
      * Constructor
+     * @param num_trials_robust
      * @param num_trials
      * @param num_each_iter
      */
-    explicit pose_optimizer_g2o(const unsigned int num_trials = 4, const unsigned int num_each_iter = 10);
+    explicit pose_optimizer_g2o(
+        unsigned int num_trials_robust = 2,
+        unsigned int num_trials = 2,
+        unsigned int num_each_iter = 10);
 
     /**
      * Destructor
@@ -53,10 +57,13 @@ public:
                           std::vector<bool>& outlier_flags) const override;
 
 private:
-    //! robust optimizationの試行回数
-    const unsigned int num_trials_ = 4;
+    //! Number of robust optimization (with outlier rejection) attempts
+    const unsigned int num_trials_robust_ = 2;
 
-    //! 毎回のoptimizationのiteration回数
+    //! Number of optimization (with outlier rejection) attempts
+    const unsigned int num_trials_ = 2;
+
+    //! Maximum number of iterations for each optimization
     const unsigned int num_each_iter_ = 10;
 };
 

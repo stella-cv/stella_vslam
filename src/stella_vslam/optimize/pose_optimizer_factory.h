@@ -18,7 +18,11 @@ public:
     static std::unique_ptr<pose_optimizer> create(const YAML::Node& yaml_node) {
         const auto& backend = yaml_node["backend"].as<std::string>("g2o");
         if (backend == "g2o") {
-            return std::unique_ptr<pose_optimizer>(new pose_optimizer_g2o());
+            YAML::Node g2o_node = util::yaml_optional_ref(yaml_node, "g2o");
+            return std::unique_ptr<pose_optimizer>(new pose_optimizer_g2o(
+                g2o_node["num_trials_robust"].as<unsigned int>(2),
+                g2o_node["num_trials"].as<unsigned int>(2),
+                g2o_node["num_each_iter"].as<unsigned int>(10)));
         }
         else if (backend == "gtsam") {
 #ifdef USE_GTSAM
