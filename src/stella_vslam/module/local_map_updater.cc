@@ -75,8 +75,18 @@ auto local_map_updater::count_num_shared_lms(
     for (auto& it : keyfrm_to_num_shared_lms) {
         num_shared_lms_and_keyfrm.emplace_back(it.second, it.first);
     }
-    std::sort(num_shared_lms_and_keyfrm.begin(), num_shared_lms_and_keyfrm.end(),
-              greater_number_and_id_object_pairs<unsigned int, data::keyframe>());
+    constexpr int margin = 5; // Keep a little more than max_num_local_keyfrms_, as keyframes may be deleted.
+    if (num_shared_lms_and_keyfrm.size() > max_num_local_keyfrms_ + margin) {
+        std::partial_sort(num_shared_lms_and_keyfrm.begin(),
+                          num_shared_lms_and_keyfrm.begin() + max_num_local_keyfrms_ + margin,
+                          num_shared_lms_and_keyfrm.end(),
+                          greater_number_and_id_object_pairs<unsigned int, data::keyframe>());
+    }
+    else {
+        std::sort(num_shared_lms_and_keyfrm.begin(),
+                  num_shared_lms_and_keyfrm.end(),
+                  greater_number_and_id_object_pairs<unsigned int, data::keyframe>());
+    }
 
     return num_shared_lms_and_keyfrm;
 }
