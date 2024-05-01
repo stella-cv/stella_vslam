@@ -143,7 +143,7 @@ auto local_map_updater::find_second_local_keyframes(const std::vector<std::share
         return true;
     };
     for (auto iter = first_local_keyframes.cbegin(); iter != first_local_keyframes.cend(); ++iter) {
-        if (max_num_local_keyfrms_ < first_local_keyframes.size() + second_local_keyfrms.size()) {
+        if (max_num_local_keyfrms_ <= first_local_keyframes.size() + second_local_keyfrms.size()) {
             break;
         }
 
@@ -153,7 +153,7 @@ auto local_map_updater::find_second_local_keyframes(const std::vector<std::share
         const auto neighbors = keyfrm->graph_node_->get_top_n_covisibilities(10);
         for (const auto& neighbor : neighbors) {
             add_second_local_keyframe(neighbor);
-            if (max_num_local_keyfrms_ < first_local_keyframes.size() + second_local_keyfrms.size()) {
+            if (max_num_local_keyfrms_ <= first_local_keyframes.size() + second_local_keyfrms.size()) {
                 return second_local_keyfrms;
             }
         }
@@ -162,7 +162,7 @@ auto local_map_updater::find_second_local_keyframes(const std::vector<std::share
         const auto spanning_children = keyfrm->graph_node_->get_spanning_children();
         for (const auto& child : spanning_children) {
             add_second_local_keyframe(child);
-            if (max_num_local_keyfrms_ < first_local_keyframes.size() + second_local_keyfrms.size()) {
+            if (max_num_local_keyfrms_ <= first_local_keyframes.size() + second_local_keyfrms.size()) {
                 return second_local_keyfrms;
             }
         }
