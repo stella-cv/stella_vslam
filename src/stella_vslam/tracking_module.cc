@@ -218,13 +218,14 @@ bool tracking_module::track(bool relocalization_is_needed,
     }
 
     // update the local map and optimize current camera pose
+    unsigned int fixed_keyframe_id_threshold = map_db_->get_fixed_keyframe_id_threshold();
+    unsigned int num_temporal_keyfrms = 0;
     if (succeeded) {
-        succeeded = track_local_map(num_tracked_lms, num_reliable_lms, min_num_obs_thr);
+        succeeded = track_local_map(num_tracked_lms, num_reliable_lms, num_temporal_keyfrms, min_num_obs_thr, fixed_keyframe_id_threshold);
     }
 
     // update the local map and optimize current camera pose without temporal keyframes
-    unsigned int fixed_keyframe_id_threshold = map_db_->get_fixed_keyframe_id_threshold();
-    if (fixed_keyframe_id_threshold > 0 && succeeded) {
+    if (fixed_keyframe_id_threshold > 0 && succeeded && num_temporal_keyfrms > 0) {
         succeeded = track_local_map_without_temporal_keyframes(num_tracked_lms, num_reliable_lms, min_num_obs_thr, fixed_keyframe_id_threshold);
     }
 
@@ -243,13 +244,15 @@ bool tracking_module::track(bool relocalization_is_needed,
 
 bool tracking_module::track_local_map(unsigned int& num_tracked_lms,
                                       unsigned int& num_reliable_lms,
-                                      const unsigned int min_num_obs_thr) {
+                                      unsigned int& num_temporal_keyfrms,
+                                      const unsigned int min_num_obs_thr,
+                                      const unsigned int fixed_keyframe_id_threshold) {
     bool succeeded = false;
     SPDLOG_TRACE("tracking_module: update_local_map (curr_frm_={})", curr_frm_.id_);
-    succeeded = update_local_map();
+    succeeded = update_local_map(fixed_keyframe_id_threshold, num_temporal_keyfrms);
 
     if (succeeded) {
-        succeeded = search_local_landmarks();
+        succeeded = search_local_landmarks(fixed_keyframe_id_threshold);
     }
 
     if (succeeded) {
@@ -269,11 +272,7 @@ bool tracking_module::track_local_map_without_temporal_keyframes(unsigned int& n
                                                                  const unsigned int fixed_keyframe_id_threshold) {
     bool succeeded = false;
     SPDLOG_TRACE("tracking_module: update_local_map without temporal keyframes (curr_frm_={})", curr_frm_.id_);
-    succeeded = update_local_map(fixed_keyframe_id_threshold);
-
-    if (succeeded) {
-        succeeded = search_local_landmarks();
-    }
+    succeeded = search_local_landmarks(fixed_keyframe_id_threshold);
 
     if (enable_temporal_keyframe_only_tracking_ && !succeeded) {
         SPDLOG_TRACE("temporal keyframe only tracking (curr_frm_={})", curr_frm_.id_);
@@ -286,7 +285,7 @@ bool tracking_module::track_local_map_without_temporal_keyframes(unsigned int& n
     }
 
     if (!succeeded) {
-        spdlog::info("local map tracking failed (curr_frm_={})", curr_frm_.id_);
+        spdlog::info("local map tracking (without temporal keyframes) failed (curr_frm_={})", curr_frm_.id_);
     }
     return succeeded;
 }
@@ -488,7 +487,8 @@ bool tracking_module::optimize_current_frame_with_local_map(unsigned int& num_tr
     return true;
 }
 
-bool tracking_module::update_local_map(unsigned int fixed_keyframe_id_threshold) {
+bool tracking_module::update_local_map(unsigned int fixed_keyframe_id_threshold,
+                                       unsigned int& num_temporal_keyfrms) {
     // clean landmark associations
     for (unsigned int idx = 0; idx < curr_frm_.frm_obs_.undist_keypts_.size(); ++idx) {
         const auto& lm = curr_frm_.get_landmark(idx);
@@ -504,7 +504,7 @@ bool tracking_module::update_local_map(unsigned int fixed_keyframe_id_threshold)
     // acquire the current local map
     local_landmarks_.clear();
     auto local_map_updater = module::local_map_updater(max_num_local_keyfrms_);
-    if (!local_map_updater.acquire_local_map(curr_frm_.get_landmarks(), fixed_keyframe_id_threshold)) {
+    if (!local_map_updater.acquire_local_map(curr_frm_.get_landmarks(), fixed_keyframe_id_threshold, num_temporal_keyfrms)) {
         return false;
     }
     // update the variables
@@ -520,7 +520,7 @@ bool tracking_module::update_local_map(unsigned int fixed_keyframe_id_threshold)
     return true;
 }
 
-bool tracking_module::search_local_landmarks() {
+bool tracking_module::search_local_landmarks(unsigned int fixed_keyframe_id_threshold) {
     // select the landmarks which can be reprojected from the ones observed in the current frame
     std::unordered_set<unsigned int> curr_landmark_ids;
     for (const auto& lm : curr_frm_.get_landmarks()) {
@@ -553,6 +553,21 @@ bool tracking_module::search_local_landmarks() {
         }
         if (lm->will_be_erased()) {
             continue;
+        }
+        if (fixed_keyframe_id_threshold > 0) {
+            const auto observations = lm->get_observations();
+            unsigned int temporal_observations = 0;
+            for (auto obs : observations) {
+                auto keyfrm = obs.first.lock();
+                if (keyfrm->id_ >= fixed_keyframe_id_threshold) {
+                    ++temporal_observations;
+                }
+            }
+            const double temporal_ratio_thr = 0.5;
+            double temporal_ratio = static_cast<double>(temporal_observations) / observations.size();
+            if (temporal_ratio > temporal_ratio_thr) {
+                continue;
+            }
         }
 
         // check the observability

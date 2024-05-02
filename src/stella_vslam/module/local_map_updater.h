@@ -33,13 +33,16 @@ public:
     std::shared_ptr<data::keyframe> get_nearest_covisibility() const;
 
     //! Acquire the new local map
+    bool acquire_local_map(const std::vector<std::shared_ptr<data::landmark>>& frm_lms);
     bool acquire_local_map(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
-                           unsigned int keyframe_id_threshold = 0);
+                           unsigned int keyframe_id_threshold,
+                           unsigned int& num_temporal_keyfrms);
 
 private:
     //! Find the local keyframes
     bool find_local_keyframes(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
-                              unsigned int keyframe_id_threshold);
+                              unsigned int keyframe_id_threshold,
+                              unsigned int& num_temporal_keyfrms);
 
     //! Count the number of shared landmarks between the current frame and each of the neighbor keyframes
     auto count_num_shared_lms(
@@ -50,18 +53,20 @@ private:
     //! Find the first-order local keyframes
     auto find_first_local_keyframes(
         const std::vector<std::pair<unsigned int, std::shared_ptr<data::keyframe>>>& keyfrm_weights,
-        std::unordered_set<unsigned int>& already_found_ids)
+        const unsigned int keyframe_id_threshold,
+        std::unordered_set<unsigned int>& already_found_keyfrm_ids,
+        unsigned int& num_temporal_keyfrms)
         -> std::vector<std::shared_ptr<data::keyframe>>;
 
     //! Find the second-order local keyframes
     auto find_second_local_keyframes(const std::vector<std::shared_ptr<data::keyframe>>& first_local_keyframes,
-                                     std::unordered_set<unsigned int>& already_found_ids,
-                                     unsigned int keyframe_id_threshold) const
+                                     unsigned int keyframe_id_threshold,
+                                     std::unordered_set<unsigned int>& already_found_keyfrm_ids,
+                                     unsigned int& num_temporal_keyfrms) const
         -> std::vector<std::shared_ptr<data::keyframe>>;
 
     //! Find the local landmarks
-    bool find_local_landmarks(const std::vector<std::shared_ptr<data::landmark>>& frm_lms,
-                              unsigned int keyframe_id_threshold);
+    bool find_local_landmarks(const std::vector<std::shared_ptr<data::landmark>>& frm_lms);
 
     // maximum number of the local keyframes
     const unsigned int max_num_local_keyfrms_;
