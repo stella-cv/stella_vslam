@@ -160,7 +160,9 @@ protected:
                const unsigned int min_num_obs_thr);
     bool track_local_map(unsigned int& num_tracked_lms,
                          unsigned int& num_reliable_lms,
-                         unsigned int min_num_obs_thr);
+                         unsigned int& num_temporal_keyfrms,
+                         unsigned int min_num_obs_thr,
+                         unsigned int fixed_keyframe_id_threshold);
     bool track_local_map_without_temporal_keyframes(unsigned int& num_tracked_lms,
                                                     unsigned int& num_reliable_lms,
                                                     unsigned int min_num_obs_thr,
@@ -187,10 +189,11 @@ protected:
                                                const unsigned int min_num_obs_thr);
 
     //! Update the local map
-    bool update_local_map(unsigned int fixed_keyframe_id_threshold = 0);
+    bool update_local_map(unsigned int fixed_keyframe_id_threshold,
+                          unsigned int& num_temporal_keyfrms);
 
     //! Acquire more 2D-3D matches using initial camera pose estimation
-    bool search_local_landmarks();
+    bool search_local_landmarks(unsigned int fixed_keyframe_id_threshold);
 
     //! Check the new keyframe is needed or not
     bool new_keyframe_is_needed(unsigned int num_tracked_lms,
