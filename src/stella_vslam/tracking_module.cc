@@ -327,7 +327,7 @@ bool tracking_module::track_current_frame() {
     bool succeeded = false;
 
     // Tracking mode
-    if (twist_is_valid_ && last_reloc_frm_id_ + 2 < curr_frm_.id_) {
+    if (twist_is_valid_) {
         // if the motion model is valid
         succeeded = frame_tracker_.motion_based_track(curr_frm_, last_frm_, twist_);
     }
@@ -362,6 +362,8 @@ bool tracking_module::relocalize_by_pose(const pose_request& request) {
         if (succeeded) {
             last_reloc_frm_id_ = curr_frm_.id_;
             last_reloc_frm_timestamp_ = curr_frm_.timestamp_;
+            // If the initial pose was given manually, use motion_based_track, expecting that the camera is not moving.
+            last_frm_ = curr_frm_;
         }
     }
     else {
