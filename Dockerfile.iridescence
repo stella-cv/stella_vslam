@@ -187,6 +187,7 @@ RUN set -x && \
 
 # Build and install Iridescence
 ARG IRIDESCENCE_COMMIT=085322e0c949f75b67d24d361784e85ad7f197ab
+WORKDIR /tmp
 RUN set -x && \
   git clone https://github.com/koide3/iridescence && \
   cd iridescence && \
