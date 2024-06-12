@@ -13,7 +13,11 @@ class Dictionary;
 } // namespace aruco
 } // namespace cv
 #else
-#include <opencv2/objdetect/aruco_detector.hpp>
+namespace cv {
+namespace aruco {
+class ArucoDetector;
+} // namespace aruco
+} // namespace cv
 #endif
 
 #include <opencv2/core/mat.hpp>
@@ -56,7 +60,7 @@ public:
     cv::Ptr<cv::aruco::DetectorParameters> parameters_;
     cv::Ptr<cv::aruco::Dictionary> dictionary_;
 #else
-    cv::aruco::ArucoDetector detector_;
+    std::shared_ptr<cv::aruco::ArucoDetector> detector_;
 #endif
 };
 
