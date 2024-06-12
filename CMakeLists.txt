@@ -115,6 +115,8 @@ message(STATUS "Use OpenCV ${OpenCV_VERSION}")
 
 # Check aruco module
 set(USE_ARUCO ON CACHE BOOL "Enable aruco")
+set(LINK_OBJDETECT OFF CACHE BOOL "Link opencv_objdetect")
+set(LINK_ARUCO OFF CACHE BOOL "Link opencv_aruco")
 list(APPEND ARUCO_CHECK_INCLUDE_DIRS
      ${OpenCV_INSTALL_PATH}/include/
      ${OpenCV_INSTALL_PATH}/include/opencv4)
@@ -122,6 +124,16 @@ unset(ARUCO_INCLUDE_DIRS CACHE)
 find_path(ARUCO_INCLUDE_DIRS NAMES aruco.hpp
           PATH_SUFFIXES opencv2
           PATHS ${ARUCO_CHECK_INCLUDE_DIRS})
+if(ARUCO_INCLUDE_DIRS)
+    set(LINK_ARUCO ON)
+else()
+    find_path(ARUCO_INCLUDE_DIRS NAMES aruco_detector.hpp
+            PATH_SUFFIXES opencv2/objdetect
+            PATHS ${ARUCO_CHECK_INCLUDE_DIRS})
+    if(ARUCO_INCLUDE_DIRS)
+        set(LINK_OBJDETECT ON)
+    endif()
+endif()
 if(USE_ARUCO AND ARUCO_INCLUDE_DIRS)
     message(STATUS "aruco: enabled (Found in ${ARUCO_INCLUDE_DIRS})")
 else()

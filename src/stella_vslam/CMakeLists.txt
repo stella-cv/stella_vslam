@@ -193,7 +193,8 @@ target_link_libraries(${PROJECT_NAME}
                       opencv_core
                       opencv_features2d
                       opencv_calib3d
-                      "$<$<BOOL:${USE_ARUCO}>:opencv_aruco>"
+                      "$<$<BOOL:${LINK_OBJDETECT}>:opencv_objdetect>"
+                      "$<$<BOOL:${LINK_ARUCO}>:opencv_aruco>"
                       g2o::core
                       g2o::stuff
                       g2o::types_sba

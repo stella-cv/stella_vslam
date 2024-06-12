@@ -10,6 +10,7 @@
 using PredefinedDictionaryType = cv::aruco::PREDEFINED_DICTIONARY_NAME;
 using PredefinedDictionaryObjectType = cv::Ptr<cv::aruco::Dictionary>;
 #else
+#include <opencv2/objdetect/aruco_detector.hpp>
 using PredefinedDictionaryType = cv::aruco::PredefinedDictionaryType;
 using PredefinedDictionaryObjectType = cv::aruco::Dictionary;
 #endif
@@ -84,7 +85,7 @@ aruco::aruco(const camera::base* camera,
     parameters_ = cv::aruco::DetectorParameters::create();
     dictionary_ = get_predefined_dictionary(aruco_marker_model->marker_size_, aruco_marker_model->max_markers_);
 #else
-    detector_ = cv::aruco::ArucoDetector(get_predefined_dictionary(aruco_marker_model->marker_size_, aruco_marker_model->max_markers_));
+    detector_ = std::make_shared<cv::aruco::ArucoDetector>(get_predefined_dictionary(aruco_marker_model->marker_size_, aruco_marker_model->max_markers_));
 #endif
 }
 
@@ -96,7 +97,7 @@ void aruco::detect_2d(const cv::_InputArray& in_image, std::vector<std::vector<c
 #if CV_MAJOR_VERSION <= 4 && CV_MINOR_VERSION < 7
     cv::aruco::detectMarkers(in_image, dictionary_, corners, ids, parameters_);
 #else
-    detector_.detectMarkers(in_image, corners, ids);
+    detector_->detectMarkers(in_image, corners, ids);
 #endif
 }
 
