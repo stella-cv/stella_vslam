@@ -169,6 +169,20 @@ else()
     message(STATUS "Determinism: DISABLED")
 endif()
 
+# Tracy
+set(USE_TRACY OFF CACHE BOOL "Enable tracy")
+if(USE_TRACY)
+    message(STATUS "tracy: ENABLED")
+    # Gperftools
+    find_package(Tracy REQUIRED)
+else()
+    message(STATUS "tracy: DISABLED")
+endif()
+if(USE_TRACY)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DTRACY_ENABLE=1)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Tracy::TracyClient)
+endif()
+
 # ----- Configure stella_vslam library -----
 
 # Include directories
