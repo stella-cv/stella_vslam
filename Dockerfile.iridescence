@@ -222,7 +222,7 @@ RUN set -x && \
   cd /tmp && \
   rm -rf *
 
-ARG EXAMPLES_COMMIT=b9d58a96ec5ae2434fd4ace5588c63984b0c1400
+ARG EXAMPLES_COMMIT=3606f68c9c3fb05a838e992230cb4a17106a7c41
 WORKDIR /
 RUN set -x && \
   git clone https://github.com/stella-cv/stella_vslam_examples.git && \
