@@ -16,7 +16,10 @@ global_optimization_module::global_optimization_module(data::map_database* map_d
                                                        data::bow_vocabulary* bow_vocab, const YAML::Node& yaml_node,
                                                        const bool fix_scale)
     : loop_detector_(new module::loop_detector(bow_db, bow_vocab, util::yaml_optional_ref(yaml_node, "LoopDetector"), fix_scale)),
-      loop_bundle_adjuster_(new module::loop_bundle_adjuster(map_db)),
+      loop_bundle_adjuster_(new module::loop_bundle_adjuster(
+          map_db,
+          util::yaml_optional_ref(yaml_node, "GlobalOptimizer")["num_iter"].as<unsigned int>(10),
+          util::yaml_optional_ref(yaml_node, "GlobalOptimizer")["use_huber_kernel"].as<bool>(false))),
       map_db_(map_db),
       graph_optimizer_(new optimize::graph_optimizer(util::yaml_optional_ref(yaml_node, "GraphOptimizer"), fix_scale)),
       thr_neighbor_keyframes_(util::yaml_optional_ref(yaml_node, "GlobalOptimizer")["thr_neighbor_keyframes"].as<unsigned int>(15)) {

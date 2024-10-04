@@ -19,7 +19,9 @@ public:
     /**
      * Constructor
      */
-    explicit loop_bundle_adjuster(data::map_database* map_db, const unsigned int num_iter = 10);
+    explicit loop_bundle_adjuster(data::map_database* map_db,
+                                  const unsigned int num_iter = 10,
+                                  const bool use_huber_kernel = false);
 
     /**
      * Destructor
@@ -55,6 +57,8 @@ private:
 
     //! number of iteration for optimization
     const unsigned int num_iter_ = 10;
+
+    const bool use_huber_kernel_ = false;
 
     //-----------------------------------------
     // thread management
