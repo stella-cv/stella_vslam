@@ -12,8 +12,10 @@
 namespace stella_vslam {
 namespace module {
 
-loop_bundle_adjuster::loop_bundle_adjuster(data::map_database* map_db, const unsigned int num_iter)
-    : map_db_(map_db), num_iter_(num_iter) {}
+loop_bundle_adjuster::loop_bundle_adjuster(data::map_database* map_db,
+                                           const unsigned int num_iter,
+                                           const bool use_huber_kernel)
+    : map_db_(map_db), num_iter_(num_iter), use_huber_kernel_(use_huber_kernel) {}
 
 void loop_bundle_adjuster::set_mapping_module(mapping_module* mapper) {
     mapper_ = mapper;
@@ -42,7 +44,7 @@ void loop_bundle_adjuster::optimize(const std::shared_ptr<data::keyframe>& curr_
     std::unordered_set<unsigned int> optimized_landmark_ids;
     eigen_alloc_unord_map<unsigned int, Vec3_t> lm_to_pos_w_after_global_BA;
     eigen_alloc_unord_map<unsigned int, Mat44_t> keyfrm_to_pose_cw_after_global_BA;
-    const auto global_BA = optimize::global_bundle_adjuster(num_iter_, false);
+    const auto global_BA = optimize::global_bundle_adjuster(num_iter_, use_huber_kernel_);
     bool ok = global_BA.optimize(curr_keyfrm->graph_node_->get_keyframes_from_root(),
                                  optimized_keyfrm_ids, optimized_landmark_ids,
                                  lm_to_pos_w_after_global_BA,
