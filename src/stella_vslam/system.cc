@@ -14,6 +14,11 @@
 #include "stella_vslam/data/marker2d.h"
 #include "stella_vslam/data/marker.h"
 #include "stella_vslam/marker_detector/aruco.h"
+#include "stella_vslam/marker_model/aruco.h"
+#ifdef USE_ARUCO_NANO
+#include "stella_vslam/marker_model/aruconano.h"
+#include "stella_vslam/marker_detector/aruconano.h"
+#endif // USE_ARUCO_NANO
 #include "stella_vslam/match/stereo.h"
 #include "stella_vslam/feature/orb_extractor.h"
 #include "stella_vslam/io/trajectory_io.h"
@@ -88,12 +93,23 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     num_grid_rows_ = preprocessing_params["num_grid_rows"].as<unsigned int>(48);
 
     if (cfg->marker_model_) {
-        if (marker_detector::aruco::is_valid()) {
-            spdlog::debug("marker detection: enabled");
-            marker_detector_ = new marker_detector::aruco(camera_, cfg->marker_model_);
+        if (dynamic_cast<marker_model::aruco*>(cfg->marker_model_.get())) {
+            if (marker_detector::aruco::is_valid()) {
+                spdlog::debug("marker detection: enabled");
+                marker_detector_ = new marker_detector::aruco(camera_, cfg->marker_model_);
+            }
+            else {
+                spdlog::warn("Valid marker_detector is not installed");
+            }
         }
+#ifdef USE_ARUCO_NANO
+        else if (dynamic_cast<marker_model::aruconano*>(cfg->marker_model_.get())) {
+            spdlog::debug("Using aruconano detector");
+            marker_detector_ = new marker_detector::aruconano(camera_, cfg->marker_model_);
+        }
+#endif // USE_ARUCO_NANO
         else {
-            spdlog::warn("Valid marker_detector is not installed");
+            spdlog::warn("Can't interpret marker model");
         }
     }
 

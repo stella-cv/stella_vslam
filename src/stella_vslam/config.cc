@@ -1,5 +1,8 @@
 #include "stella_vslam/config.h"
 #include "stella_vslam/marker_model/aruco.h"
+#ifdef USE_ARUCO_NANO
+#include "stella_vslam/marker_model/aruconano.h"
+#endif // USE_ARUCO_NANO
 #include "stella_vslam/util/string.h"
 #include "stella_vslam/util/yaml.h"
 
@@ -33,6 +36,15 @@ config::config(const YAML::Node& yaml_node, const std::string& config_file_path)
                 marker_model_yaml_node["marker_size"].as<double>(),
                 marker_model_yaml_node["max_markers"].as<double>());
         }
+
+#ifdef USE_ARUCO_NANO
+        else if (marker_model_type == "aruconano") {
+            marker_model_ = std::make_shared<marker_model::aruconano>(
+                marker_model_yaml_node["width"].as<double>(),
+                marker_model_yaml_node["dict"].as<int>(0));
+        }
+#endif // USE_ARUCO_NANO
+
         else {
             throw std::runtime_error("Invalid marker model type :" + marker_model_type);
         }

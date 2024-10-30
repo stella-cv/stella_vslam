@@ -141,6 +141,11 @@ else()
     message(STATUS "aruco: disabled")
 endif()
 
+option(USE_ARUCO_NANO "Compile with aruco nano support" OFF)
+if (USE_ARUCO_NANO)
+    add_definitions(-DUSE_ARUCO_NANO)
+endif()
+
 # spdlog
 find_package(spdlog QUIET)
 if(spdlog_FOUND)
