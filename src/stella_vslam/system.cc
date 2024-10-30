@@ -549,10 +549,15 @@ std::shared_ptr<Mat44_t> system::feed_frame(const data::frame& frm, const cv::Ma
     const auto end = std::chrono::system_clock::now();
     double tracking_time_elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
+    std::vector<data::marker2d> mkrs2d;
+    for (auto id_mkr : frm.markers_2d_)
+        mkrs2d.push_back(id_mkr.second);
+
     frame_publisher_->update(tracker_->curr_frm_.get_landmarks(),
                              !mapper_->is_paused(),
                              tracker_->tracking_state_,
                              keypts_,
+                             mkrs2d,
                              img,
                              tracking_time_elapsed_ms,
                              extraction_time_elapsed_ms);

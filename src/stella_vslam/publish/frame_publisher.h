@@ -42,6 +42,7 @@ public:
                 bool mapping_is_enabled,
                 tracker_state_t tracking_state,
                 std::vector<cv::KeyPoint>& keypts,
+                std::vector<data::marker2d>& mkrs2d,
                 const cv::Mat& img,
                 double tracking_time_elapsed_ms,
                 double extraction_time_elapsed_ms);
@@ -72,9 +73,12 @@ protected:
                                      const bool mapping_is_enabled,
                                      const float mag = 1.0) const;
 
+    void draw_markers2d(cv::Mat& img, const std::vector<data::marker2d>& mkrs2d, const float mag = 1.0);
+
     // colors (BGR)
     const cv::Scalar mapping_color_{0, 255, 255};
     const cv::Scalar localization_color_{255, 255, 0};
+    const cv::Scalar marker_color_{255, 0, 255};
 
     //! config
     std::shared_ptr<config> cfg_;
@@ -94,6 +98,8 @@ protected:
 
     //! current keypoints
     std::vector<cv::KeyPoint> curr_keypts_;
+
+    std::vector<data::marker2d> curr_mkrs2d_;
 
     //! elapsed time for tracking
     double tracking_time_elapsed_ms_ = 0.0;

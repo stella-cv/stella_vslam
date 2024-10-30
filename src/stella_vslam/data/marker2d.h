@@ -18,7 +18,8 @@ public:
 
     //! constructor
     marker2d(const std::vector<cv::Point2f>& undist_corners, const eigen_alloc_vector<Vec3_t>& bearings,
-             const Mat33_t& rot_cm, const Vec3_t& trans_cm, unsigned int id, const std::shared_ptr<marker_model::base>& marker_model);
+             const Mat33_t& rot_cm, const Vec3_t& trans_cm, unsigned int id, const std::shared_ptr<marker_model::base>& marker_model,
+             const std::vector<cv::Point2f>& dist_corners);
 
     //! Compute corner positions on the world from camera pose and corner positions on the camera
     eigen_alloc_vector<Vec3_t> compute_corners_pos_w(const Mat44_t& cam_pose_wc, const eigen_alloc_vector<Vec3_t>& corners_pos) const;
@@ -38,6 +39,8 @@ public:
 
     //! marker model
     std::shared_ptr<marker_model::base> marker_model_;
+
+    std::vector<cv::Point2f> dist_corners_; // Keep these to draw the markers
 };
 
 } // namespace data

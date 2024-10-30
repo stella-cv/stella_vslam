@@ -1,6 +1,7 @@
 #include "stella_vslam/data/landmark.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/map_database.h"
+#include "stella_vslam/data/marker.h"
 #include "stella_vslam/publish/map_publisher.h"
 
 #include <spdlog/spdlog.h>
@@ -65,6 +66,11 @@ unsigned int map_publisher::get_landmarks(std::vector<std::shared_ptr<data::land
     const auto _local_landmarks = map_db_->get_local_landmarks();
     local_landmarks = std::set<std::shared_ptr<data::landmark>>(_local_landmarks.begin(), _local_landmarks.end());
     return map_db_->get_num_landmarks();
+}
+
+unsigned int map_publisher::get_markers(std::vector<std::shared_ptr<data::marker>>& all_markers) {
+    all_markers = map_db_->get_all_markers();
+    return all_markers.size();
 }
 
 } // namespace publish

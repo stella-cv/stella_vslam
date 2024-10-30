@@ -330,7 +330,7 @@ inline marker2d get_marker_from_saved_data(const std::vector<double>& blob, size
 
     unsigned int id = (unsigned int)blob[offset++];
 
-    return marker2d(undist_corners, bearings, rot_cm, trans_cm, id, nullptr); // WARNING: marker_model is set to nullptr! Don't use yet!
+    return marker2d(undist_corners, bearings, rot_cm, trans_cm, id, nullptr, {}); // WARNING: marker_model is set to nullptr! Don't use yet!
 }
 
 void keyframe::load_saved_markers(size_t amount, const std::vector<double>& blob) {

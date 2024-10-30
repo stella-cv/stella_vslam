@@ -43,7 +43,7 @@ void base::detect(const cv::_InputArray& in_image, std::unordered_map<unsigned i
 
         // Create marker2d (if the pose is valid)
         if (reproj_error < reproj_error_threshold_) {
-            markers_2d.emplace(ids[i], data::marker2d(undist_corners, bearings, rot_cm, trans_cm, ids[i], marker_model_));
+            markers_2d.emplace(ids[i], data::marker2d(undist_corners, bearings, rot_cm, trans_cm, ids[i], marker_model_, corners[i]));
         }
     }
 }
