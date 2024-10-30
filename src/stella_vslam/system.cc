@@ -12,6 +12,7 @@
 #include "stella_vslam/data/bow_database.h"
 #include "stella_vslam/data/bow_vocabulary.h"
 #include "stella_vslam/data/marker2d.h"
+#include "stella_vslam/data/marker.h"
 #include "stella_vslam/marker_detector/aruco.h"
 #include "stella_vslam/match/stereo.h"
 #include "stella_vslam/feature/orb_extractor.h"
@@ -208,12 +209,39 @@ bool system::load_map_database(const std::string& path) const {
     spdlog::debug("load_map_database: {}", path);
     bool ok = map_database_io_->load(path, cam_db_, orb_params_db_, map_db_, bow_db_, bow_vocab_);
     auto keyfrms = map_db_->get_all_keyframes();
+
     for (const auto& keyfrm : keyfrms) {
         keyfrm->frm_obs_.num_grid_cols_ = num_grid_cols_;
         keyfrm->frm_obs_.num_grid_rows_ = num_grid_rows_;
         data::assign_keypoints_to_grid(keyfrm->camera_, keyfrm->frm_obs_.undist_keypts_, keyfrm->frm_obs_.keypt_indices_in_cells_,
                                        keyfrm->frm_obs_.num_grid_cols_, keyfrm->frm_obs_.num_grid_rows_);
     }
+
+    // Set marker model in already detected markers
+    std::shared_ptr<marker_model::base> mkr_model = nullptr;
+    if (marker_detector_) {
+        mkr_model = marker_detector_->marker_model_;
+    }
+
+    size_t mkr_count = 0;
+    for (const auto& keyfrm : keyfrms) {
+        for (auto m_it : keyfrm->markers_2d_) {
+            auto& m2d = m_it.second;
+            if (!m2d.marker_model_) {
+                m2d.marker_model_ = mkr_model;
+                mkr_count++;
+            }
+        }
+    }
+
+    for (auto mkr : map_db_->get_all_markers()) {
+        mkr->marker_model_ = mkr_model;
+        mkr_count++;
+    }
+
+    if (mkr_count != 0 && !mkr_model)
+        spdlog::error("Need to set marker model for existing markers, but marker model was not set");
+
     resume_other_threads();
     return ok;
 }

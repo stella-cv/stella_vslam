@@ -517,6 +517,10 @@ bool map_database::from_db(sqlite3* db,
     if (!ok) {
         return false;
     }
+    ok = load_markers_from_db(db, "markers");
+    if (!ok) {
+        return false;
+    }
 
     // find root node
     std::unordered_set<unsigned int> already_found_root_ids;
@@ -673,9 +677,11 @@ bool map_database::to_db(sqlite3* db) const {
     bool ok = util::sqlite3_util::drop_table(db, "keyframes");
     ok = ok && util::sqlite3_util::drop_table(db, "landmarks");
     ok = ok && util::sqlite3_util::drop_table(db, "associations");
+    ok = ok && util::sqlite3_util::drop_table(db, "markers");
     ok = ok && save_keyframes_to_db(db, "keyframes");
     ok = ok && save_landmarks_to_db(db, "landmarks");
     ok = ok && save_associations_to_db(db, "associations");
+    ok = ok && save_markers_to_db(db, "markers");
     return ok;
 }
 
@@ -805,6 +811,48 @@ bool map_database::save_associations_to_db(sqlite3* db, const std::string& table
     }
     sqlite3_finalize(stmt);
     return util::sqlite3_util::commit(db);
+}
+
+bool map_database::save_markers_to_db(sqlite3* db, const std::string& table_name) const {
+    const auto columns = data::marker::columns();
+    bool ok = util::sqlite3_util::create_table(db, table_name, columns);
+    ok = ok && util::sqlite3_util::begin(db);
+    if (!ok) {
+        return false;
+    }
+    sqlite3_stmt* stmt = util::sqlite3_util::create_insert_stmt(db, table_name, columns);
+    if (!stmt) {
+        return false;
+    }
+
+    for (const auto& id_marker : markers_) {
+        const auto mkr = id_marker.second;
+        assert(mkr);
+        bool ok = mkr->bind_to_stmt(db, stmt);
+        ok = ok && util::sqlite3_util::next(db, stmt);
+        if (!ok) {
+            return false;
+        }
+    }
+
+    sqlite3_finalize(stmt);
+    return util::sqlite3_util::commit(db);
+}
+
+bool map_database::load_markers_from_db(sqlite3* db, const std::string& table_name) {
+    sqlite3_stmt* stmt = util::sqlite3_util::create_select_stmt(db, table_name);
+    if (!stmt) {
+        return false;
+    }
+
+    int ret = SQLITE_ERROR;
+    while ((ret = sqlite3_step(stmt)) == SQLITE_ROW) {
+        auto mkr = data::marker::from_stmt(stmt, keyframes_);
+        assert(!markers_.count(mkr->id_));
+        markers_[mkr->id_] = mkr;
+    }
+    sqlite3_finalize(stmt);
+    return ret == SQLITE_DONE;
 }
 
 } // namespace data

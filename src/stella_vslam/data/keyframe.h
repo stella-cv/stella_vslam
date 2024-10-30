@@ -94,7 +94,9 @@ public:
             {"undist_keypts", "BLOB"},
             {"x_rights", "BLOB"},
             {"depths", "BLOB"},
-            {"descs", "BLOB"}};
+            {"descs", "BLOB"},
+            {"n_savedmarkers", "INTEGER"},
+            {"savedmarkers", "BLOB"}};
     };
     bool bind_to_stmt(sqlite3* db, sqlite3_stmt* stmt) const;
 
@@ -285,6 +287,9 @@ public:
     std::unique_ptr<graph_node> graph_node_ = nullptr;
 
 private:
+    std::vector<double> get_saved_markers_data() const;
+    void load_saved_markers(size_t amount, const std::vector<double>& blob);
+
     //-----------------------------------------
     // camera pose
 

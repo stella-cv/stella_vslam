@@ -3,6 +3,7 @@
 
 #include "stella_vslam/type.h"
 #include "stella_vslam/data/bow_vocabulary_fwd.h"
+#include "stella_vslam/data/marker2d.h"
 
 #include <string>
 #include <thread>

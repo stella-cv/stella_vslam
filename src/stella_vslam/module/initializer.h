@@ -33,7 +33,8 @@ public:
 
     //! Constructor
     initializer(data::map_database* map_db, data::bow_database* bow_db,
-                const YAML::Node& yaml_node);
+                const YAML::Node& yaml_node,
+                size_t required_keyframes_for_marker_initialization);
 
     //! Destructor
     ~initializer();
@@ -113,6 +114,8 @@ private:
     std::vector<cv::Point2f> prev_matched_coords_;
     //! initial matching indices (index: idx of initial frame, value: idx of current frame)
     std::vector<int> init_matches_;
+
+    size_t required_keyframes_for_marker_initialization_;
 
     //-----------------------------------------
     // for stereo or RGBD camera model

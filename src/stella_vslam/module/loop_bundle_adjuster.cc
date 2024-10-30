@@ -1,6 +1,7 @@
 #include "stella_vslam/mapping_module.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
+#include "stella_vslam/data/marker.h"
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/module/loop_bundle_adjuster.h"
 #include "stella_vslam/optimize/global_bundle_adjuster.h"
@@ -42,13 +43,18 @@ void loop_bundle_adjuster::optimize(const std::shared_ptr<data::keyframe>& curr_
 
     std::unordered_set<unsigned int> optimized_keyfrm_ids;
     std::unordered_set<unsigned int> optimized_landmark_ids;
+    std::unordered_set<unsigned int> optimized_marker_ids;
     eigen_alloc_unord_map<unsigned int, Vec3_t> lm_to_pos_w_after_global_BA;
     eigen_alloc_unord_map<unsigned int, Mat44_t> keyfrm_to_pose_cw_after_global_BA;
+    eigen_alloc_unord_map<unsigned int, std::array<Vec3_t, 4>> marker_to_pos_w_after_global_BA;
     const auto global_BA = optimize::global_bundle_adjuster(num_iter_, use_huber_kernel_);
     bool ok = global_BA.optimize(curr_keyfrm->graph_node_->get_keyframes_from_root(),
                                  optimized_keyfrm_ids, optimized_landmark_ids,
+                                 optimized_marker_ids,
                                  lm_to_pos_w_after_global_BA,
-                                 keyfrm_to_pose_cw_after_global_BA, &abort_loop_BA_);
+                                 keyfrm_to_pose_cw_after_global_BA,
+                                 marker_to_pos_w_after_global_BA,
+                                 &abort_loop_BA_);
 
     {
         std::lock_guard<std::mutex> lock1(mtx_thread_);
@@ -158,6 +164,34 @@ void loop_bundle_adjuster::optimize(const std::shared_ptr<data::keyframe>& curr_
                 lm->set_pos_in_world(rot_wc * pos_c + trans_wc);
             }
             lm->update_mean_normal_and_obs_scale_variance();
+        }
+
+        spdlog::debug("update the positions of the markers");
+
+        std::unordered_set<unsigned int> already_found_marker_ids;
+        std::vector<std::shared_ptr<data::marker>> markers;
+        for (const auto& keyfrm : keyfrms) {
+            for (const auto& mkr : keyfrm->get_markers()) {
+                if (!mkr) {
+                    continue;
+                }
+                if (already_found_marker_ids.count(mkr->id_)) {
+                    continue;
+                }
+
+                already_found_marker_ids.insert(mkr->id_);
+                markers.push_back(mkr);
+            }
+        }
+
+        for (const auto& mkr : markers) {
+            if (!optimized_marker_ids.count(mkr->id_)) // not optimized
+                continue;
+
+            // Update all corners
+            const std::array<Vec3_t, 4>& new_corners = marker_to_pos_w_after_global_BA.at(mkr->id_);
+            for (size_t c = 0; c < 4; c++)
+                mkr->corners_pos_w_[c] = new_corners[c];
         }
 
         mapper_->resume();

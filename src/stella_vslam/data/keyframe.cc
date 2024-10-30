@@ -3,6 +3,7 @@
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
 #include "stella_vslam/data/marker.h"
+#include "stella_vslam/data/marker2d.h"
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/data/bow_database.h"
 #include "stella_vslam/data/camera_database.h"
@@ -126,6 +127,17 @@ std::shared_ptr<keyframe> keyframe::from_stmt(sqlite3_stmt* stmt,
     std::memcpy(descriptors.data, p, sqlite3_column_bytes(stmt, column_id));
     column_id++;
 
+    size_t num_saved_markers = sqlite3_column_int64(stmt, column_id);
+    column_id++;
+
+#define SAVED_MARKER2D_NUMDOUBLES 33
+
+    std::vector<double> saved_markers_blob(num_saved_markers * SAVED_MARKER2D_NUMDOUBLES);
+    p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
+    assert(sqlite3_column_bytes(stmt, column_id) == saved_markers_blob.size() * sizeof(double));
+    std::memcpy(saved_markers_blob.data(), p, sqlite3_column_bytes(stmt, column_id));
+    column_id++;
+
     auto bearings = eigen_alloc_vector<Vec3_t>();
     camera->convert_keypoints_to_bearings(undist_keypts, bearings);
     assert(bearings.size() == num_keypts);
@@ -140,6 +152,11 @@ std::shared_ptr<keyframe> keyframe::from_stmt(sqlite3_stmt* stmt,
     auto keyfrm = data::keyframe::make_keyframe(
         id + next_keyframe_id, timestamp, pose_cw, camera, orb_params,
         frm_obs, bow_vec, bow_feat_vec);
+
+    keyfrm->load_saved_markers(num_saved_markers, saved_markers_blob);
+
+    // 3D marker info will be filled in later based on loaded markers
+
     return keyfrm;
 }
 
@@ -235,10 +252,105 @@ bool keyframe::bind_to_stmt(sqlite3* db, sqlite3_stmt* stmt) const {
         assert(descriptors.elemSize() == 1);
         ret = sqlite3_bind_blob(stmt, column_id++, descriptors.data, descriptors.total() * descriptors.elemSize(), SQLITE_TRANSIENT);
     }
+    size_t num_saved_markers = 0;
+    if (ret == SQLITE_OK) {
+        num_saved_markers = markers_2d_.size();
+        ret = sqlite3_bind_int64(stmt, column_id++, num_saved_markers);
+    }
+
+    if (ret == SQLITE_OK) {
+        std::vector<double> saved_markers_data = get_saved_markers_data();
+        assert(saved_markers_data.size() == SAVED_MARKER2D_NUMDOUBLES * markers_2d_.size());
+        ret = sqlite3_bind_blob(stmt, column_id++, saved_markers_data.data(), saved_markers_data.size() * sizeof(double), SQLITE_TRANSIENT);
+    }
     if (ret != SQLITE_OK) {
         spdlog::error("SQLite error (bind): {}", sqlite3_errmsg(db));
     }
     return ret == SQLITE_OK;
+}
+
+inline void get_saved_marker_data(const marker2d& m, std::vector<double>& blob) {
+    // undist_corners_
+    assert(m.undist_corners_.size() == 4);
+    for (auto& c : m.undist_corners_) {
+        blob.push_back(c.x);
+        blob.push_back(c.y);
+    }
+
+    // bearings_
+    assert(m.bearings_.size() == 4);
+    for (auto& b : m.bearings_) {
+        blob.push_back(b.x());
+        blob.push_back(b.y());
+        blob.push_back(b.z());
+    }
+
+    // rot_cm_
+    for (size_t i = 0; i < 3; i++)
+        for (size_t j = 0; j < 3; j++)
+            blob.push_back(m.rot_cm_(i, j));
+
+    // trans_cm_
+    {
+        blob.push_back(m.trans_cm_.x());
+        blob.push_back(m.trans_cm_.y());
+        blob.push_back(m.trans_cm_.z());
+    }
+    // id_
+    blob.push_back(m.id_);
+}
+
+inline marker2d get_marker_from_saved_data(const std::vector<double>& blob, size_t& offset) {
+    assert(offset < blob.size() - SAVED_MARKER2D_NUMDOUBLES);
+
+    std::vector<cv::Point2f> undist_corners;
+    for (size_t i = 0; i < 4; i++) {
+        float x = (float)blob[offset++];
+        float y = (float)blob[offset++];
+        undist_corners.push_back(cv::Point2f(x, y));
+    }
+
+    eigen_alloc_vector<Vec3_t> bearings;
+    for (size_t i = 0; i < 4; i++) {
+        double x = blob[offset++];
+        double y = blob[offset++];
+        double z = blob[offset++];
+        bearings.push_back(Vec3_t(x, y, z));
+    }
+
+    Mat33_t rot_cm;
+    for (size_t i = 0; i < 3; i++)
+        for (size_t j = 0; j < 3; j++)
+            rot_cm(i, j) = blob[offset++];
+
+    Vec3_t trans_cm;
+    trans_cm(0) = blob[offset++];
+    trans_cm(1) = blob[offset++];
+    trans_cm(2) = blob[offset++];
+
+    unsigned int id = (unsigned int)blob[offset++];
+
+    return marker2d(undist_corners, bearings, rot_cm, trans_cm, id, nullptr); // WARNING: marker_model is set to nullptr! Don't use yet!
+}
+
+void keyframe::load_saved_markers(size_t amount, const std::vector<double>& blob) {
+    markers_2d_.clear();
+
+    assert(blob.size() == SAVED_MARKER2D_NUMDOUBLES * amount);
+
+    size_t offset = 0;
+    for (size_t i = 0; i < amount; i++) {
+        auto m2d = get_marker_from_saved_data(blob, offset);
+        assert(markers_2d_.find(m2d.id_) == markers_2d_.end());
+        markers_2d_.emplace(m2d.id_, m2d);
+    }
+}
+
+std::vector<double> keyframe::get_saved_markers_data() const {
+    std::vector<double> blob;
+    for (auto& m_it : markers_2d_)
+        get_saved_marker_data(m_it.second, blob);
+    return blob;
 }
 
 void keyframe::set_pose_cw(const Mat44_t& pose_cw) {

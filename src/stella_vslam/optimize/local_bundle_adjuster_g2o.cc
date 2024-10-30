@@ -251,6 +251,7 @@ void local_bundle_adjuster_g2o::optimize(data::map_database* map_db,
     internal::marker_vertex_container marker_vtx_container(vtx_id_offset, local_mkrs.size());
     std::vector<reproj_edge_wrapper> mkr_reproj_edge_wraps;
     mkr_reproj_edge_wraps.reserve(all_keyfrms.size() * local_mkrs.size());
+    std::unordered_set<unsigned int> mkr_has_vtx;
 
     for (auto& id_local_mkr_pair : local_mkrs) {
         auto mkr = id_local_mkr_pair.second;
@@ -258,8 +259,17 @@ void local_bundle_adjuster_g2o::optimize(data::map_database* map_db,
             continue;
         }
 
+        // Use marker only if it was initialized before (or is fixed)
+        if (!mkr->keep_fixed_ && !mkr->initialized_before_)
+            continue;
+
+        // Indicate that a vertex container will be available, this can be
+        // used to guard against a race condition, should initialized_before_
+        // get changed in another thread
+        mkr_has_vtx.insert(mkr->id_);
+
         // Convert the corners to the g2o vertex, then set it to the optimizer
-        auto corner_vertices = marker_vtx_container.create_vertices(mkr, true);
+        auto corner_vertices = marker_vtx_container.create_vertices(mkr, mkr->keep_fixed_);
         for (unsigned int corner_idx = 0; corner_idx < corner_vertices.size(); ++corner_idx) {
             const auto corner_vtx = corner_vertices[corner_idx];
             optimizer.addVertex(corner_vtx);
@@ -274,14 +284,20 @@ void local_bundle_adjuster_g2o::optimize(data::map_database* map_db,
                 if (!keyfrm_vtx_container.contain(keyfrm)) {
                     continue;
                 }
+
                 const auto keyfrm_vtx = keyfrm_vtx_container.get_vertex(keyfrm);
                 const auto& mkr_2d = keyfrm->markers_2d_.at(mkr->id_);
                 const auto& undist_pt = mkr_2d.undist_corners_.at(corner_idx);
                 const float x_right = -1.0;
                 const float inv_sigma_sq = 1.0;
+
+                // TODO: what is a good sqrt_chi_sq here in case the positions should
+                //       be included in the optimization?
+                const auto sqrt_chi_sq = (mkr->keep_fixed_) ? 0.0 : sqrt_chi_sq_2D;
+
                 auto reproj_edge_wrap = reproj_edge_wrapper(keyfrm, keyfrm_vtx, nullptr, corner_vtx,
                                                             0, undist_pt.x, undist_pt.y, x_right,
-                                                            inv_sigma_sq, 0.0, false);
+                                                            inv_sigma_sq, sqrt_chi_sq, false);
                 mkr_reproj_edge_wraps.push_back(reproj_edge_wrap);
                 optimizer.addEdge(reproj_edge_wrap.edge_);
             }
@@ -391,6 +407,25 @@ void local_bundle_adjuster_g2o::optimize(data::map_database* map_db,
             auto lm_vtx = lm_vtx_container.get_vertex(local_lm);
             local_lm->set_pos_in_world(lm_vtx->estimate());
             local_lm->update_mean_normal_and_obs_scale_variance();
+        }
+
+        // Also update the marker positions
+        for (auto& id_mkr_pair : local_mkrs) {
+            auto& mkr = id_mkr_pair.second;
+            if (mkr->keep_fixed_)
+                continue;
+            if (!mkr->initialized_before_)
+                continue;
+            // It's possible that initialized_before_ got changed since it was
+            // checked the last time, this actually tests if a vtx was made
+            if (mkr_has_vtx.find(mkr->id_) == mkr_has_vtx.end())
+                continue;
+
+            for (size_t c = 0; c < 4; c++) {
+                auto vtx = marker_vtx_container.get_vertex(mkr, c);
+                auto new_pos = vtx->estimate();
+                mkr->corners_pos_w_[c] = new_pos;
+            }
         }
     }
 }

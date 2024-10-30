@@ -333,6 +333,9 @@ private:
                                   const std::shared_ptr<keyframe>& keyfrm) const;
     bool save_associations_to_db(sqlite3* db, const std::string& table_name) const;
 
+    bool load_markers_from_db(sqlite3* db, const std::string& table_name);
+    bool save_markers_to_db(sqlite3* db, const std::string& table_name) const;
+
     //! mutex for mutual exclusion controll between class methods
     mutable std::mutex mtx_map_access_;
 
