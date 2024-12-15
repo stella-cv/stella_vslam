@@ -12,7 +12,7 @@ jobs:
   # build_macos:
   #   runs-on: macos-latest
   #   steps:
-  #     - uses: actions/checkout@v3
+  #     - uses: actions/checkout@v4
   #     - name: brew install
   #       run: |
   #         brew update
@@ -25,7 +25,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: DoozyX/clang-format-lint-action@v0.18.1
         with:
           source: "."
@@ -43,7 +43,7 @@ jobs:
     container:
       image: ghcr.io/ymd-stella/stella-cv/stella_vslam:cv-3.x
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: cmake and make
@@ -66,7 +66,7 @@ jobs:
     container:
       image: ghcr.io/ymd-stella/stella-cv/stella_vslam:cv-4.x
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Create artifact directory
@@ -82,7 +82,7 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS=ON -DUSE_SSE_ORB=ON -DUSE_GTSAM=ON ..
           make -j $(($(nproc) / 2))
           make install
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: stella-cv/pangolin_viewer
           path: pangolin_viewer
@@ -94,7 +94,7 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
           make -j $(($(nproc) / 2))
           make install
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: stella-cv/stella_vslam_examples
           path: stella_vslam_examples
@@ -276,7 +276,7 @@ jobs:
             echo '|'
             echo '</details>'
           ) >> artifact/result.md
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: artifact
           path: artifact
@@ -289,7 +289,7 @@ jobs:
     container:
       image: ghcr.io/ymd-stella/stella-cv/stella_vslam:cv-4.x
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: cmake and make library
@@ -299,7 +299,7 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DUSE_OPENMP=OFF ..
           make -j $(($(nproc) / 2))
           make install
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: stella-cv/stella_vslam_examples
           path: stella_vslam_examples
@@ -333,7 +333,7 @@ jobs:
     container:
       image: ghcr.io/ymd-stella/stella-cv/ros:humble-ros-base
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: build ros2 packages
