@@ -8,6 +8,7 @@
 #include "stella_vslam/marker_model/base.h"
 #include "stella_vslam/match/area.h"
 #include "stella_vslam/module/initializer.h"
+#include "stella_vslam/module/marker_initializer.h"
 #include "stella_vslam/optimize/global_bundle_adjuster.h"
 
 #include <spdlog/spdlog.h>
@@ -25,7 +26,8 @@ initializer::initializer(data::map_database* map_db, data::bow_database* bow_db,
       reproj_err_thr_(yaml_node["reprojection_error_threshold"].as<float>(4.0)),
       num_ba_iters_(yaml_node["num_ba_iterations"].as<unsigned int>(20)),
       scaling_factor_(yaml_node["scaling_factor"].as<float>(1.0)),
-      use_fixed_seed_(yaml_node["use_fixed_seed"].as<bool>(false)) {
+      use_fixed_seed_(yaml_node["use_fixed_seed"].as<bool>(false)),
+      required_keyframes_for_marker_initialization_(yaml_node["required_keyframes_for_marker_initialization"].as<unsigned int>(3)) {
     spdlog::debug("CONSTRUCT: module::initializer");
 }
 
@@ -266,7 +268,9 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
             }
             // Set the association to the new marker
             keyfrm->add_marker(marker);
-            marker->observations_.push_back(keyfrm);
+            marker->observations_.emplace(keyfrm->id_, keyfrm);
+
+            marker_initializer::check_marker_initialization(*marker, required_keyframes_for_marker_initialization_);
         }
     };
     assign_marker_associations(init_keyfrm);

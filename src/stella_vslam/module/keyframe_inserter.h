@@ -26,7 +26,8 @@ public:
                                const double lms_ratio_thr_almost_all_lms_are_tracked = 0.9,
                                const double lms_ratio_thr_view_changed = 0.8,
                                const unsigned int enough_lms_thr = 100,
-                               const bool wait_for_local_bundle_adjustment = false);
+                               const bool wait_for_local_bundle_adjustment = false,
+                               const size_t required_keyframes_for_marker_initialization = 3);
 
     explicit keyframe_inserter(const YAML::Node& yaml_node);
 
@@ -51,6 +52,8 @@ public:
      */
     void insert_new_keyframe(data::map_database* map_db, data::frame& curr_frm);
 
+    static void check_marker_initialization(data::marker& mkr, size_t needed_observations_for_initialization);
+
 private:
     std::shared_ptr<data::keyframe> create_new_keyframe(data::map_database* map_db, data::frame& curr_frm);
 
@@ -69,6 +72,8 @@ private:
 
     const unsigned int enough_lms_thr_ = 100;
     const bool wait_for_local_bundle_adjustment_ = false;
+
+    const size_t required_keyframes_for_marker_initialization_ = 3;
 };
 
 } // namespace module

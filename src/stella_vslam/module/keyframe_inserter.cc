@@ -3,6 +3,7 @@
 #include "stella_vslam/data/marker.h"
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/marker_model/base.h"
+#include "stella_vslam/module/marker_initializer.h"
 #include "stella_vslam/module/keyframe_inserter.h"
 
 #include <spdlog/spdlog.h>
@@ -17,7 +18,8 @@ keyframe_inserter::keyframe_inserter(const double max_interval,
                                      const double lms_ratio_thr_almost_all_lms_are_tracked,
                                      const double lms_ratio_thr_view_changed,
                                      const unsigned int enough_lms_thr,
-                                     const bool wait_for_local_bundle_adjustment)
+                                     const bool wait_for_local_bundle_adjustment,
+                                     const size_t required_keyframes_for_marker_initialization)
     : max_interval_(max_interval),
       min_interval_(min_interval),
       max_distance_(max_distance),
@@ -25,7 +27,8 @@ keyframe_inserter::keyframe_inserter(const double max_interval,
       lms_ratio_thr_almost_all_lms_are_tracked_(lms_ratio_thr_almost_all_lms_are_tracked),
       lms_ratio_thr_view_changed_(lms_ratio_thr_view_changed),
       enough_lms_thr_(enough_lms_thr),
-      wait_for_local_bundle_adjustment_(wait_for_local_bundle_adjustment) {}
+      wait_for_local_bundle_adjustment_(wait_for_local_bundle_adjustment),
+      required_keyframes_for_marker_initialization_(required_keyframes_for_marker_initialization) {}
 
 keyframe_inserter::keyframe_inserter(const YAML::Node& yaml_node)
     : keyframe_inserter(yaml_node["max_interval"].as<double>(1.0),
@@ -35,7 +38,8 @@ keyframe_inserter::keyframe_inserter(const YAML::Node& yaml_node)
                         yaml_node["lms_ratio_thr_almost_all_lms_are_tracked"].as<double>(0.9),
                         yaml_node["lms_ratio_thr_view_changed"].as<double>(0.5),
                         yaml_node["enough_lms_thr"].as<unsigned int>(100),
-                        yaml_node["wait_for_local_bundle_adjustment"].as<bool>(false)) {}
+                        yaml_node["wait_for_local_bundle_adjustment"].as<bool>(false),
+                        yaml_node["required_keyframes_for_marker_initialization"].as<unsigned int>(3)) {}
 
 void keyframe_inserter::set_mapping_module(mapping_module* mapper) {
     mapper_ = mapper;
@@ -143,7 +147,9 @@ std::shared_ptr<data::keyframe> keyframe_inserter::create_new_keyframe(
         }
         // Set the association to the new marker
         keyfrm->add_marker(marker);
-        marker->observations_.push_back(keyfrm);
+        marker->observations_.emplace(keyfrm->id_, keyfrm);
+
+        marker_initializer::check_marker_initialization(*marker, required_keyframes_for_marker_initialization_);
     }
 
     // Queue up the keyframe to the mapping module

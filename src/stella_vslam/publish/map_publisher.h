@@ -14,6 +14,7 @@ namespace data {
 class keyframe;
 class landmark;
 class map_database;
+class marker;
 } // namespace data
 
 namespace publish {
@@ -63,6 +64,8 @@ public:
      */
     unsigned int get_landmarks(std::vector<std::shared_ptr<data::landmark>>& all_landmarks,
                                std::set<std::shared_ptr<data::landmark>>& local_landmarks);
+
+    unsigned int get_markers(std::vector<std::shared_ptr<data::marker>>& all_markers);
 
 private:
     //! config

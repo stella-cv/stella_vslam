@@ -114,6 +114,8 @@ private:
     //! initial matching indices (index: idx of initial frame, value: idx of current frame)
     std::vector<int> init_matches_;
 
+    size_t required_keyframes_for_marker_initialization_;
+
     //-----------------------------------------
     // for stereo or RGBD camera model
 
