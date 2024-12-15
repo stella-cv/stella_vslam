@@ -518,9 +518,9 @@ bool map_database::from_db(sqlite3* db,
     if (!ok) {
         return false;
     }
-    ok = load_markers_from_db(db, "markers");
-    if (!ok) {
-        return false;
+    bool have_markers = load_markers_from_db(db, "markers");
+    if (!have_markers) {
+        spdlog::warn("no such table: markers");
     }
 
     // find root node

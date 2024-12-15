@@ -54,7 +54,7 @@ public:
     std::shared_ptr<marker_model::base> marker_model_;
 
     //! observed keyframes
-    std::vector<std::shared_ptr<keyframe>> observations_;
+    std::unordered_map<unsigned int, std::shared_ptr<keyframe>> observations_;
 
     mutable std::mutex mtx_position_;
 };

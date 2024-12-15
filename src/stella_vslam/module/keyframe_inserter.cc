@@ -3,6 +3,7 @@
 #include "stella_vslam/data/marker.h"
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/marker_model/base.h"
+#include "stella_vslam/module/marker_initializer.h"
 #include "stella_vslam/module/keyframe_inserter.h"
 
 #include <spdlog/spdlog.h>
@@ -29,7 +30,7 @@ keyframe_inserter::keyframe_inserter(const double max_interval,
       wait_for_local_bundle_adjustment_(wait_for_local_bundle_adjustment),
       required_keyframes_for_marker_initialization_(required_keyframes_for_marker_initialization) {}
 
-keyframe_inserter::keyframe_inserter(const YAML::Node& yaml_node, size_t required_keyframes_for_marker_initialization)
+keyframe_inserter::keyframe_inserter(const YAML::Node& yaml_node)
     : keyframe_inserter(yaml_node["max_interval"].as<double>(1.0),
                         yaml_node["min_interval"].as<double>(0.1),
                         yaml_node["max_distance"].as<double>(-1.0),
@@ -38,7 +39,7 @@ keyframe_inserter::keyframe_inserter(const YAML::Node& yaml_node, size_t require
                         yaml_node["lms_ratio_thr_view_changed"].as<double>(0.5),
                         yaml_node["enough_lms_thr"].as<unsigned int>(100),
                         yaml_node["wait_for_local_bundle_adjustment"].as<bool>(false),
-                        required_keyframes_for_marker_initialization) {}
+                        yaml_node["required_keyframes_for_marker_initialization"].as<unsigned int>(3)) {}
 
 void keyframe_inserter::set_mapping_module(mapping_module* mapper) {
     mapper_ = mapper;
@@ -126,63 +127,6 @@ bool keyframe_inserter::new_keyframe_is_needed(data::map_database* map_db,
            && !mapper_is_skipping_localBA;
 }
 
-void keyframe_inserter::check_marker_initialization(data::marker& mkr, size_t needed_observations_for_initialization) {
-    if (mkr.initialized_before_)
-        return;
-
-    auto id = mkr.id_;
-    if (mkr.observations_.size() < needed_observations_for_initialization) {
-        spdlog::info("Not using marker {} yet, not enough keyframes (need {})", id, needed_observations_for_initialization);
-        return;
-    }
-
-    std::vector<std::shared_ptr<data::keyframe>> valid_keyframes;
-    for (auto& keyfrm : mkr.observations_) {
-        if (!keyfrm)
-            continue;
-        if (keyfrm->markers_2d_.find(id) == keyfrm->markers_2d_.end()) {
-            spdlog::warn("Couldn't find 2D marker {} in keyframe that should have it", id);
-            continue;
-        }
-
-        valid_keyframes.push_back(keyfrm);
-    }
-
-    if (valid_keyframes.size() < needed_observations_for_initialization) {
-        spdlog::info("Not using marker {} yet, not enough valid keyframes (need {})", id, needed_observations_for_initialization);
-        return;
-    }
-
-    // Ok, initialize the positions
-    eigen_alloc_vector<Vec3_t> corners_sum(4);
-    for (auto& v : corners_sum)
-        v = {0.0, 0.0, 0.0};
-
-    for (const auto& keyfrm : valid_keyframes) {
-        auto kf_pose = keyfrm->get_pose_wc();
-        auto m2d_it = keyfrm->markers_2d_.find(id);
-        assert(m2d_it != keyfrm->markers_2d_.end()); // We've checked this before
-        auto& m2d = m2d_it->second;
-
-        if (!m2d.marker_model_) {
-            spdlog::error("Need marker model to be set to initialize 3D marker pos from 2D corners");
-            return;
-        }
-
-        auto corners = m2d.compute_corners_pos_w(kf_pose, m2d.marker_model_->corners_pos_);
-        for (size_t i = 0; i < 4; i++)
-            corners_sum[i] += corners[i];
-    }
-
-    for (size_t i = 0; i < 4; i++)
-        corners_sum[i] /= valid_keyframes.size();
-
-    mkr.set_corner_pos(corners_sum);
-    mkr.initialized_before_ = true;
-
-    spdlog::info("Initialized corner positions for marker {} from {} keyframes", id, valid_keyframes.size());
-}
-
 std::shared_ptr<data::keyframe> keyframe_inserter::create_new_keyframe(
     data::map_database* map_db,
     data::frame& curr_frm) {
@@ -203,9 +147,9 @@ std::shared_ptr<data::keyframe> keyframe_inserter::create_new_keyframe(
         }
         // Set the association to the new marker
         keyfrm->add_marker(marker);
-        marker->observations_.push_back(keyfrm);
+        marker->observations_.emplace(keyfrm->id_, keyfrm);
 
-        check_marker_initialization(*marker, required_keyframes_for_marker_initialization_);
+        marker_initializer::check_marker_initialization(*marker, required_keyframes_for_marker_initialization_);
     }
 
     // Queue up the keyframe to the mapping module

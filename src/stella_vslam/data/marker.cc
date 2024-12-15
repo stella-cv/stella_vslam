@@ -57,9 +57,9 @@ std::shared_ptr<marker> marker::from_stmt(sqlite3_stmt* stmt,
     for (auto frame_id : frame_ids) {
         auto it = keyframes.find(frame_id);
         if (it != keyframes.end()) {
-            auto& kf = it->second;
-            mkr->observations_.push_back(kf);
-            kf->add_marker(mkr);
+            auto& keyfrm = it->second;
+            mkr->observations_.emplace(keyfrm->id_, keyfrm);
+            keyfrm->add_marker(mkr);
         }
         else
             spdlog::warn("Marker {} refers to keyframe {} which cannot be found", id, frame_id);
@@ -70,13 +70,17 @@ std::shared_ptr<marker> marker::from_stmt(sqlite3_stmt* stmt,
 
 bool marker::bind_to_stmt(sqlite3* db, sqlite3_stmt* stmt) const {
     std::vector<double> corners_pos_w;
-    for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 3; j++)
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 3; j++) {
             corners_pos_w.push_back(corners_pos_w_[i](j));
+        }
+    }
 
     std::vector<uint64_t> observations;
-    for (auto& kf : observations_)
-        observations.push_back(kf->id_);
+    for (const auto& id_keyfrm : observations_) {
+        const auto& keyfrm = id_keyfrm.second;
+        observations.push_back(keyfrm->id_);
+    }
 
     int ret = SQLITE_ERROR;
     int column_id = 1;

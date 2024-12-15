@@ -151,7 +151,8 @@ void optimize_impl(g2o::SparseOptimizer& optimizer,
             const auto corner_vtx = corner_vertices[corner_idx];
             optimizer.addVertex(corner_vtx);
 
-            for (const auto& keyfrm : mkr->observations_) {
+            for (const auto& id_keyfrm : mkr->observations_) {
+                const auto& keyfrm = id_keyfrm.second;
                 if (!keyfrm) {
                     continue;
                 }
@@ -167,8 +168,6 @@ void optimize_impl(g2o::SparseOptimizer& optimizer,
                 const float x_right = -1.0;
                 const float inv_sigma_sq = 1.0;
 
-                // TODO: what is a good sqrt_chi_sq here in case the positions should
-                //       be included in the optimization?
                 const auto sqrt_chi_sq = (mkr->keep_fixed_) ? 0.0 : sqrt_chi_sq_2D;
 
                 auto reproj_edge_wrap = reproj_edge_wrapper(keyfrm, keyfrm_vtx, nullptr, corner_vtx,

@@ -29,7 +29,7 @@ public:
                                const bool wait_for_local_bundle_adjustment = false,
                                const size_t required_keyframes_for_marker_initialization = 3);
 
-    explicit keyframe_inserter(const YAML::Node& yaml_node, size_t required_keyframes_for_marker_initialization);
+    explicit keyframe_inserter(const YAML::Node& yaml_node);
 
     virtual ~keyframe_inserter() = default;
 

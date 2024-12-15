@@ -33,8 +33,7 @@ public:
 
     //! Constructor
     initializer(data::map_database* map_db, data::bow_database* bow_db,
-                const YAML::Node& yaml_node,
-                size_t required_keyframes_for_marker_initialization);
+                const YAML::Node& yaml_node);
 
     //! Destructor
     ~initializer();

@@ -19,13 +19,6 @@
 
 namespace stella_vslam {
 
-inline size_t get_required_keyframes_for_marker_initialization(const std::shared_ptr<config>& cfg) {
-    const YAML::Node& yaml_node = util::yaml_optional_ref(cfg->yaml_node_, "MarkerModel");
-    size_t num = yaml_node["required_keyframes_for_marker_initialization"].as<unsigned int>(3);
-    spdlog::info("required_keyframes_for_marker_initialization = {}", num);
-    return num;
-}
-
 tracking_module::tracking_module(const std::shared_ptr<config>& cfg, camera::base* camera, data::map_database* map_db,
                                  data::bow_vocabulary* bow_vocab, data::bow_database* bow_db)
     : camera_(camera),
@@ -40,13 +33,11 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, camera::bas
       margin_local_map_projection_(tracking_yaml_["margin_local_map_projection"].as<float>(5.0)),
       margin_local_map_projection_unstable_(tracking_yaml_["margin_local_map_projection_unstable"].as<float>(20.0)),
       map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
-      initializer_(map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer"),
-                   get_required_keyframes_for_marker_initialization(cfg)),
+      initializer_(map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
       pose_optimizer_(optimize::pose_optimizer_factory::create(tracking_yaml_)),
       frame_tracker_(camera_, pose_optimizer_, 10, initializer_.get_use_fixed_seed(), tracking_yaml_["margin_last_frame_projection"].as<float>(20.0)),
       relocalizer_(pose_optimizer_, util::yaml_optional_ref(cfg->yaml_node_, "Relocalizer")),
-      keyfrm_inserter_(util::yaml_optional_ref(cfg->yaml_node_, "KeyframeInserter"),
-                       get_required_keyframes_for_marker_initialization(cfg)) {
+      keyfrm_inserter_(util::yaml_optional_ref(cfg->yaml_node_, "KeyframeInserter")) {
     spdlog::debug("CONSTRUCT: tracking_module");
 }
 
