@@ -4,8 +4,8 @@ set(INSTALL_GTEST OFF CACHE BOOL "Install google-test" FORCE)
 
 include(${PROJECT_SOURCE_DIR}/cmake/DownloadProject.cmake)
 download_project(PROJ googletest
-                 URL https://github.com/google/googletest/archive/release-1.10.0.tar.gz
-                 URL_HASH SHA1=9c89be7df9c5e8cb0bc20b3c4b39bf7e82686770
+                 URL https://github.com/google/googletest/releases/download/v1.15.2/googletest-1.15.2.tar.gz
+                 URL_HASH SHA1=568d58e26bd4e838449ca7ab8ebc152b3cbd210d
                  DOWNLOAD_NO_PROGRESS YES)
 add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
 
