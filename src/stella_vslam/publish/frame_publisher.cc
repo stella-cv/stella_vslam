@@ -94,6 +94,12 @@ std::string frame_publisher::get_tracking_state() {
     return state_str;
 }
 
+std::pair<std::vector<cv::KeyPoint>, std::vector<std::shared_ptr<data::landmark>>> frame_publisher::get_keypoints_and_landmarks() {
+    std::lock_guard<std::mutex> lock(mtx_);
+
+    return std::make_pair(curr_keypts_, curr_lms_);
+}
+
 std::vector<cv::KeyPoint> frame_publisher::get_keypoints() {
     std::lock_guard<std::mutex> lock(mtx_);
     return curr_keypts_;
@@ -194,6 +200,7 @@ void frame_publisher::update(const std::vector<std::shared_ptr<data::landmark>>&
 
     img.copyTo(img_);
 
+    assert(keypts.size() == curr_lms.size());
     curr_keypts_ = keypts;
     tracking_time_elapsed_ms_ = tracking_time_elapsed_ms;
     extraction_time_elapsed_ms_ = extraction_time_elapsed_ms;
