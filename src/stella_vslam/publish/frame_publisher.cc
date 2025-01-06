@@ -94,7 +94,7 @@ std::string frame_publisher::get_tracking_state() {
     return state_str;
 }
 
-std::pair<std::vector<cv::KeyPoint>, std::vector<std::shared_ptr<data::landmark>>> frame_publisher::get_landmarks_and_keypoints() {
+std::pair<std::vector<cv::KeyPoint>, std::vector<std::shared_ptr<data::landmark>>> frame_publisher::get_keypoints_and_landmarks() {
     std::lock_guard<std::mutex> lock(mtx_);
 
     return std::make_pair(curr_keypts_, curr_lms_);

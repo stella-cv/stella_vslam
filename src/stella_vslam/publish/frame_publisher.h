@@ -62,7 +62,7 @@ public:
 
     std::vector<std::shared_ptr<data::landmark>> get_landmarks();
 
-    std::pair<std::vector<cv::KeyPoint>, std::vector<std::shared_ptr<data::landmark>>> get_landmarks_and_keypoints();
+    std::pair<std::vector<cv::KeyPoint>, std::vector<std::shared_ptr<data::landmark>>> get_keypoints_and_landmarks();
 
     cv::Mat get_image();
 
