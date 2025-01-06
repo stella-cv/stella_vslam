@@ -7,6 +7,7 @@
 #include <mutex>
 #include <vector>
 #include <memory>
+#include <utility>
 
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
@@ -60,6 +61,8 @@ public:
     bool get_mapping_is_enabled();
 
     std::vector<std::shared_ptr<data::landmark>> get_landmarks();
+
+    std::pair<std::vector<cv::KeyPoint>, std::vector<std::shared_ptr<data::landmark>>> get_landmarks_and_keypoints();
 
     cv::Mat get_image();
 
