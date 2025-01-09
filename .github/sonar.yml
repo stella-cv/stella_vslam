@@ -1,0 +1,24 @@
+name: Build
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build and analyze
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysiss
+      - uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: sqp_f8c99104a54d3ebb3b3256f75a0bca0222110342
+          SONAR_HOST_URL: https://sq.beehyv.com
+        with:
+          args: >
+            -Dsonar.projectKey=PowerN-stellavslam
+            -Dsonar.projectName=stella_vslam
