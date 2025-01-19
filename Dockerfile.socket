@@ -212,7 +212,7 @@ RUN set -x && \
   rm -rf CMakeCache.txt CMakeFiles Makefile cmake_install.cmake example src && \
   chmod -R 777 ./*
 
-ARG SOCKET_PUBLISHER_COMMIT=e2aaf66b27a6477b478bc8e86992907f09f29188
+ARG SOCKET_PUBLISHER_COMMIT=72b85ed39f28bb5e346d65c78b93b4bf5616eb42
 WORKDIR /tmp
 RUN set -x && \
   git clone https://github.com/stella-cv/socket_publisher.git && \
