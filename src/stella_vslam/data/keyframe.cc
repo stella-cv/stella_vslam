@@ -240,7 +240,9 @@ std::shared_ptr<keyframe> keyframe::from_stmt(sqlite3_stmt* stmt,
     // Construct frame_observation
     frame_observation frm_obs{descriptors, undist_keypts, bearings, stereo_x_right, depths};
     // Compute BoW
-    data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
+    if (bow_vocab) {
+        data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
+    }
     // NOTE: 3D marker info will be filled in later based on loaded markers
     auto keyfrm = data::keyframe::make_keyframe(
         id + next_keyframe_id, timestamp, pose_cw, camera, orb_params,
@@ -660,7 +662,9 @@ void keyframe::prepare_for_erasing(map_database* map_db, bow_database* bow_db) {
     // 4. remove myself from the databased
 
     map_db->erase_keyframe(shared_from_this());
-    bow_db->erase_keyframe(shared_from_this());
+    if (bow_db) {
+        bow_db->erase_keyframe(shared_from_this());
+    }
 }
 
 bool keyframe::will_be_erased() {

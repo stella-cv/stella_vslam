@@ -53,7 +53,7 @@ bool map_database_io_sqlite3::load(const std::string& path,
                                    data::bow_database* bow_db,
                                    data::bow_vocabulary* bow_vocab) {
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
-    assert(cam_db && map_db && bow_db && bow_vocab);
+    assert(cam_db && map_db);
 
     // Open database
     sqlite3* db = nullptr;
@@ -69,7 +69,7 @@ bool map_database_io_sqlite3::load(const std::string& path,
     ok = ok && load_stats(db, map_db);
 
     // update bow database
-    if (ok) {
+    if (ok && bow_db) {
         const auto keyfrms = map_db->get_all_keyframes();
         for (const auto& keyfrm : keyfrms) {
             bow_db->add_keyframe(keyfrm);

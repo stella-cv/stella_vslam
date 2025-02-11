@@ -395,7 +395,9 @@ void map_database::register_keyframe(camera_database* cam_db, orb_params_databas
     // Construct frame_observation
     frame_observation frm_obs{descriptors, undist_keypts, bearings, stereo_x_right, depths};
     // Compute BoW
-    data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
+    if (bow_vocab) {
+        data::bow_vocabulary_util::compute_bow(bow_vocab, descriptors, bow_vec, bow_feat_vec);
+    }
     auto keyfrm = data::keyframe::make_keyframe(
         id, timestamp, pose_cw, camera, orb_params,
         frm_obs, bow_vec, bow_feat_vec);

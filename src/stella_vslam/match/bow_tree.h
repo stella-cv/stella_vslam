@@ -22,14 +22,22 @@ public:
 
     ~bow_tree() final = default;
 
-    //! frameで観測している特徴点とkeyframeで観測している特徴点の対応を求め，それを元にframeの特徴点と3次元点の対応情報を得る
-    //! matched_lms_in_frmには，frameの各特徴点に対応する(keyframeで観測された)3次元点が格納される
-    //! NOTE: matched_lms_in_frm.size()はframeの特徴点数と一致
+    unsigned int match_for_triangulation(const std::shared_ptr<data::keyframe>& keyfrm_1,
+                                         const std::shared_ptr<data::keyframe>& keyfrm_2,
+                                         const Mat33_t& E_12,
+                                         std::vector<std::pair<unsigned int, unsigned int>>& matched_idx_pairs,
+                                         const float residual_rad_thr) const;
+
+    //! Find the correspondence between the feature points observed in the frame and the feature points observed in the keyframe,
+    //! and obtain the correspondence between the feature points in the frame and the 3D points.
+    //! Matched_lms_in_frm stores the 3D points (observed in the keyframe) corresponding to each feature point in the frame.
+    //! NOTE: matched_lms_in_frm.size() is equal to the number of feature points in the frame
     unsigned int match_frame_and_keyframe(const std::shared_ptr<data::keyframe>& keyfrm, data::frame& frm, std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_frm) const;
 
-    //! keyframe1で観測している特徴点とkeyframe2で観測している特徴点の対応を求め，それを元にkeyframe1の特徴点と3次元点の対応情報を得る
-    //! matched_lms_in_keyfrm_1には，keyframe1の各特徴点に対応する(keyframe2で観測された)3次元点が格納される
-    //! NOTE: matched_lms_in_keyfrm_1.size()はkeyframe1の特徴点数と一致
+    //! Find the correspondence between the feature point observed in keyframe1 and the feature point observed in keyframe2,
+    //! and obtain the correspondence between the feature point in keyframe1 and the 3D points.
+    //! Matched_lms_in_keyfrm_1 stores the 3D points (observed in keyframe2) corresponding to each feature point in keyframe1
+    //! NOTE: matched_lms_in_keyfrm_1.size() matches the number of feature points in keyframe1
     unsigned int match_keyframes(const std::shared_ptr<data::keyframe>& keyfrm_1, const std::shared_ptr<data::keyframe>& keyfrm_2, std::vector<std::shared_ptr<data::landmark>>& matched_lms_in_keyfrm_1) const;
 };
 

@@ -110,7 +110,7 @@ void mapping_module::run() {
         // create and extend the map with the new keyframe
         mapping_with_new_keyframe();
         // send the new keyframe to the global optimization module
-        if (!cur_keyfrm_->graph_node_->is_spanning_root()) {
+        if (global_optimizer_ && !cur_keyfrm_->graph_node_->is_spanning_root()) {
             global_optimizer_->queue_keyframe(cur_keyfrm_);
         }
     }
@@ -247,7 +247,7 @@ void mapping_module::mapping_with_new_keyframe() {
 
 void mapping_module::store_new_keyframe() {
     // compute BoW feature vector
-    if (!cur_keyfrm_->bow_is_available()) {
+    if (bow_vocab_ && !cur_keyfrm_->bow_is_available()) {
         cur_keyfrm_->compute_bow(bow_vocab_);
     }
 
@@ -277,6 +277,7 @@ void mapping_module::create_new_landmarks(std::atomic<bool>& abort_create_new_la
     // in order to triangulate landmarks between `cur_keyfrm_` and each of the covisibilities
     const auto cur_covisibilities = cur_keyfrm_->graph_node_->get_top_n_covisibilities(num_covisibilities_for_landmark_generation_);
 
+    match::bow_tree bow_tree_matcher(0.95, false);
     match::robust robust_matcher(0.95, false);
 
     // camera center of the current keyframe
@@ -327,7 +328,12 @@ void mapping_module::create_new_landmarks(std::atomic<bool>& abort_create_new_la
 
         // vector of matches (idx in the current, idx in the neighbor)
         std::vector<std::pair<unsigned int, unsigned int>> matches;
-        robust_matcher.match_for_triangulation(cur_keyfrm_, ngh_keyfrm, E_ngh_to_cur, matches, residual_rad_thr_);
+        if (bow_db_ && bow_vocab_) {
+            bow_tree_matcher.match_for_triangulation(cur_keyfrm_, ngh_keyfrm, E_ngh_to_cur, matches, residual_rad_thr_);
+        }
+        else {
+            robust_matcher.match_for_triangulation(cur_keyfrm_, ngh_keyfrm, E_ngh_to_cur, matches, residual_rad_thr_);
+        }
 
         // triangulation
         triangulate_with_two_keyframes(cur_keyfrm_, ngh_keyfrm, matches);

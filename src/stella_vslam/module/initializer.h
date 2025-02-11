@@ -32,7 +32,7 @@ public:
     initializer() = delete;
 
     //! Constructor
-    initializer(data::map_database* map_db, data::bow_database* bow_db,
+    initializer(data::map_database* map_db,
                 const YAML::Node& yaml_node);
 
     //! Destructor
@@ -60,8 +60,6 @@ public:
 private:
     //! map database
     data::map_database* map_db_ = nullptr;
-    //! BoW database
-    data::bow_database* bow_db_ = nullptr;
     //! initializer status
     initializer_state_t state_ = initializer_state_t::NotReady;
 
