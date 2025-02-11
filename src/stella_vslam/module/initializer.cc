@@ -16,9 +16,9 @@
 namespace stella_vslam {
 namespace module {
 
-initializer::initializer(data::map_database* map_db, data::bow_database* bow_db,
+initializer::initializer(data::map_database* map_db,
                          const YAML::Node& yaml_node)
-    : map_db_(map_db), bow_db_(bow_db),
+    : map_db_(map_db),
       num_ransac_iters_(yaml_node["num_ransac_iterations"].as<unsigned int>(100)),
       min_num_valid_pts_(yaml_node["min_num_valid_pts"].as<unsigned int>(50)),
       min_num_triangulated_pts_(yaml_node["min_num_triangulated_pts"].as<unsigned int>(50)),
@@ -204,8 +204,10 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
     map_db_->add_spanning_root(init_keyfrm);
 
     // compute BoW representations
-    init_keyfrm->compute_bow(bow_vocab);
-    curr_keyfrm->compute_bow(bow_vocab);
+    if (bow_vocab) {
+        init_keyfrm->compute_bow(bow_vocab);
+        curr_keyfrm->compute_bow(bow_vocab);
+    }
 
     // add the keyframes to the map DB
     map_db_->add_keyframe(init_keyfrm);
@@ -344,7 +346,9 @@ bool initializer::create_map_for_stereo(data::bow_vocabulary* bow_vocab, data::f
     map_db_->add_spanning_root(curr_keyfrm);
 
     // compute BoW representation
-    curr_keyfrm->compute_bow(bow_vocab);
+    if (bow_vocab) {
+        curr_keyfrm->compute_bow(bow_vocab);
+    }
 
     // add to the map DB
     map_db_->add_keyframe(curr_keyfrm);

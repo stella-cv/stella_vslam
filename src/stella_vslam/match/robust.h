@@ -39,11 +39,6 @@ public:
                                           bool use_fixed_seed = false) const;
 
     unsigned int brute_force_match(const data::frame_observation& frm_obs, const std::shared_ptr<data::keyframe>& keyfrm, std::vector<std::pair<int, int>>& matches) const;
-
-private:
-    bool check_epipolar_constraint(const Vec3_t& bearing_1, const Vec3_t& bearing_2,
-                                   const Mat33_t& E_12, float residual_rad_thr,
-                                   const float bearing_1_scale_factor = 1.0) const;
 };
 
 } // namespace match

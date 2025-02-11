@@ -33,7 +33,7 @@ tracking_module::tracking_module(const std::shared_ptr<config>& cfg, camera::bas
       margin_local_map_projection_(tracking_yaml_["margin_local_map_projection"].as<float>(5.0)),
       margin_local_map_projection_unstable_(tracking_yaml_["margin_local_map_projection_unstable"].as<float>(20.0)),
       map_db_(map_db), bow_vocab_(bow_vocab), bow_db_(bow_db),
-      initializer_(map_db, bow_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
+      initializer_(map_db, util::yaml_optional_ref(cfg->yaml_node_, "Initializer")),
       pose_optimizer_(optimize::pose_optimizer_factory::create(tracking_yaml_)),
       frame_tracker_(camera_, pose_optimizer_, 10, initializer_.get_use_fixed_seed(), tracking_yaml_["margin_last_frame_projection"].as<float>(20.0)),
       relocalizer_(pose_optimizer_, util::yaml_optional_ref(cfg->yaml_node_, "Relocalizer")),
@@ -100,12 +100,20 @@ void tracking_module::reset() {
     initializer_.reset();
     keyfrm_inserter_.reset();
 
-    auto future_mapper_reset = mapper_->async_reset();
-    auto future_global_optimizer_reset = global_optimizer_->async_reset();
-    future_mapper_reset.get();
-    future_global_optimizer_reset.get();
+    if (global_optimizer_) {
+        auto future_mapper_reset = mapper_->async_reset();
+        auto future_global_optimizer_reset = global_optimizer_->async_reset();
+        future_mapper_reset.get();
+        future_global_optimizer_reset.get();
+    }
+    else {
+        auto future_mapper_reset = mapper_->async_reset();
+        future_mapper_reset.get();
+    }
 
-    bow_db_->clear();
+    if (bow_db_) {
+        bow_db_->clear();
+    }
     map_db_->clear();
 
     last_reloc_frm_id_ = 0;
@@ -194,7 +202,7 @@ bool tracking_module::track(bool relocalization_is_needed,
     curr_frm_.ref_keyfrm_ = last_frm_.ref_keyfrm_;
 
     bool succeeded = false;
-    if (relocalize_by_pose_is_requested()) {
+    if (bow_db_ && relocalize_by_pose_is_requested()) {
         // Force relocalization by pose
         succeeded = relocalize_by_pose(get_relocalize_by_pose_request());
     }
@@ -202,7 +210,7 @@ bool tracking_module::track(bool relocalization_is_needed,
         SPDLOG_TRACE("tracking_module: track_current_frame (curr_frm_={})", curr_frm_.id_);
         succeeded = track_current_frame();
     }
-    else if (enable_auto_relocalization_) {
+    else if (bow_db_ && enable_auto_relocalization_) {
         // Compute the BoW representations to perform relocalization
         SPDLOG_TRACE("tracking_module: Compute the BoW representations to perform relocalization (curr_frm_={})", curr_frm_.id_);
         if (!curr_frm_.bow_is_available()) {
@@ -332,10 +340,12 @@ bool tracking_module::track_current_frame() {
     }
     if (!succeeded) {
         // Compute the BoW representations to perform the BoW match
-        if (!curr_frm_.bow_is_available()) {
+        if (bow_vocab_ && !curr_frm_.bow_is_available()) {
             curr_frm_.compute_bow(bow_vocab_);
         }
-        succeeded = frame_tracker_.bow_match_based_track(curr_frm_, last_frm_, curr_frm_.ref_keyfrm_);
+        if (curr_frm_.bow_is_available() && curr_frm_.ref_keyfrm_->bow_is_available()) {
+            succeeded = frame_tracker_.bow_match_based_track(curr_frm_, last_frm_, curr_frm_.ref_keyfrm_);
+        }
     }
     if (!succeeded) {
         succeeded = frame_tracker_.robust_match_based_track(curr_frm_, last_frm_, curr_frm_.ref_keyfrm_);

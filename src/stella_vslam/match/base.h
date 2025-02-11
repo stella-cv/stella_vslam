@@ -1,6 +1,8 @@
 #ifndef STELLA_VSLAM_MATCH_BASE_H
 #define STELLA_VSLAM_MATCH_BASE_H
 
+#include "stella_vslam/type.h"
+
 #include <array>
 #include <algorithm>
 #include <numeric>
@@ -60,6 +62,20 @@ inline unsigned int compute_descriptor_distance_64(const cv::Mat& desc_1, const 
     }
 
     return dist;
+}
+
+inline bool check_epipolar_constraint(const Vec3_t& bearing_1, const Vec3_t& bearing_2,
+                                      const Mat33_t& E_12, float residual_rad_thr,
+                                      const float bearing_1_scale_factor) {
+    // Normal vector of the epipolar plane on keyframe 1
+    const Vec3_t epiplane_in_1 = E_12 * bearing_2;
+
+    // Acquire the angle formed by the normal vector and the bearing
+    const auto cos_residual = std::min(1.0, std::max(-1.0, epiplane_in_1.dot(bearing_1) / epiplane_in_1.norm()));
+    const auto residual_rad = std::abs(M_PI / 2.0 - std::acos(cos_residual));
+
+    // The larger keypoint scale permits less constraints
+    return residual_rad < residual_rad_thr * bearing_1_scale_factor;
 }
 
 class base {

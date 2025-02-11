@@ -29,131 +29,107 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
     // Acquire the 3D point information of the keframes
     const auto assoc_lms_in_keyfrm_1 = keyfrm_1->get_landmarks();
     const auto assoc_lms_in_keyfrm_2 = keyfrm_2->get_landmarks();
+    const auto num_keypts_1 = keyfrm_1->frm_obs_.undist_keypts_.size();
+    const auto num_keypts_2 = keyfrm_2->frm_obs_.undist_keypts_.size();
 
     // Save the matching information
     // Discard the already matched keypoints in keyframe 2
     // to acquire a unique association to each keypoint in keyframe 1
-    std::vector<bool> is_already_matched_in_keyfrm_2(keyfrm_2->frm_obs_.undist_keypts_.size(), false);
+    std::vector<bool> is_already_matched_in_keyfrm_2(num_keypts_2, false);
     // Save the keypoint idx in keyframe 2 which is already associated to the keypoint idx in keyframe 1
-    std::vector<int> matched_indices_2_in_keyfrm_1(keyfrm_1->frm_obs_.undist_keypts_.size(), -1);
+    std::vector<int> matched_indices_2_in_keyfrm_1(num_keypts_1, -1);
 
-    data::bow_feature_vector::const_iterator itr_1 = keyfrm_1->bow_feat_vec_.begin();
-    data::bow_feature_vector::const_iterator itr_2 = keyfrm_2->bow_feat_vec_.begin();
-    const data::bow_feature_vector::const_iterator itr_1_end = keyfrm_1->bow_feat_vec_.end();
-    const data::bow_feature_vector::const_iterator itr_2_end = keyfrm_2->bow_feat_vec_.end();
+    for (unsigned int idx_1 = 0; idx_1 < num_keypts_1; ++idx_1) {
+        const auto& lm_1 = assoc_lms_in_keyfrm_1.at(idx_1);
+        // Ignore if the keypoint of keyframe is associated any 3D points
+        if (lm_1) {
+            continue;
+        }
 
-    while (itr_1 != itr_1_end && itr_2 != itr_2_end) {
-        // Check if the node numbers of BoW tree match
-        if (itr_1->first == itr_2->first) {
-            // If the node numbers of BoW tree match,
-            // Check in practice if matches exist between keyframes
-            const auto& keyfrm_1_indices = itr_1->second;
-            const auto& keyfrm_2_indices = itr_2->second;
+        // Check if it's a stereo keypoint or not
+        const bool is_stereo_keypt_1 = !keyfrm_1->frm_obs_.stereo_x_right_.empty() && 0 <= keyfrm_1->frm_obs_.stereo_x_right_.at(idx_1);
 
-            for (const auto idx_1 : keyfrm_1_indices) {
-                const auto& lm_1 = assoc_lms_in_keyfrm_1.at(idx_1);
-                // 3次元点が存在"する"場合はスルー(triangulation前のmatchingであるため)
-                if (lm_1) {
-                    continue;
-                }
+        // Acquire the keypoints and ORB feature vectors
+        const auto& keypt_1 = keyfrm_1->frm_obs_.undist_keypts_.at(idx_1);
+        const Vec3_t& bearing_1 = keyfrm_1->frm_obs_.bearings_.at(idx_1);
+        const auto& desc_1 = keyfrm_1->frm_obs_.descriptors_.row(idx_1);
 
-                // Check if it's a stereo keypoint or not
-                const bool is_stereo_keypt_1 = !keyfrm_1->frm_obs_.stereo_x_right_.empty() && 0 <= keyfrm_1->frm_obs_.stereo_x_right_.at(idx_1);
+        // Find a keypoint in keyframe 2 that has the minimum hamming distance
+        unsigned int best_hamm_dist = HAMMING_DIST_THR_LOW;
+        int best_idx_2 = -1;
+        unsigned int second_best_hamm_dist = MAX_HAMMING_DIST;
 
-                // Acquire the keypoints and ORB feature vectors
-                const auto& keypt_1 = keyfrm_1->frm_obs_.undist_keypts_.at(idx_1);
-                const Vec3_t& bearing_1 = keyfrm_1->frm_obs_.bearings_.at(idx_1);
-                const auto& desc_1 = keyfrm_1->frm_obs_.descriptors_.row(idx_1);
-
-                // Find a keypoint in keyframe 2 that has the minimum hamming distance
-                unsigned int best_hamm_dist = HAMMING_DIST_THR_LOW;
-                int best_idx_2 = -1;
-                unsigned int second_best_hamm_dist = MAX_HAMMING_DIST;
-
-                for (const auto idx_2 : keyfrm_2_indices) {
-                    // Ignore if the keypoint is associated any 3D points
-                    // (because this function is used for triangulation)
-                    const auto& lm_2 = assoc_lms_in_keyfrm_2.at(idx_2);
-                    if (lm_2) {
-                        continue;
-                    }
-
-                    // Ignore if matches are already aquired
-                    if (is_already_matched_in_keyfrm_2.at(idx_2)) {
-                        continue;
-                    }
-
-                    if (check_orientation_ && std::abs(util::angle::diff(keypt_1.angle, keyfrm_2->frm_obs_.undist_keypts_.at(idx_2).angle)) > 30.0) {
-                        continue;
-                    }
-
-                    // Check if it's a stereo keypoint or not
-                    const bool is_stereo_keypt_2 = !keyfrm_2->frm_obs_.stereo_x_right_.empty() && 0 <= keyfrm_2->frm_obs_.stereo_x_right_.at(idx_2);
-
-                    // Acquire the keypoints and ORB feature vectors
-                    const Vec3_t& bearing_2 = keyfrm_2->frm_obs_.bearings_.at(idx_2);
-                    const auto& desc_2 = keyfrm_2->frm_obs_.descriptors_.row(idx_2);
-
-                    // Compute the distance
-                    const auto hamm_dist = compute_descriptor_distance_32(desc_1, desc_2);
-
-                    if (HAMMING_DIST_THR_LOW < hamm_dist || best_hamm_dist < hamm_dist) {
-                        continue;
-                    }
-
-                    if (valid_epiplane && !is_stereo_keypt_1 && !is_stereo_keypt_2) {
-                        // Do not use any keypoints near the epipole if both are not stereo keypoints
-                        const auto cos_dist = epiplane_in_keyfrm_2.dot(bearing_2);
-                        // The threshold of the minimum angle formed by the epipole and the bearing vector is 3.0 degree
-                        constexpr double cos_dist_thr = 0.99862953475;
-
-                        // Do not allow to match if the formed angle is narrower that the threshold value
-                        if (cos_dist_thr < cos_dist) {
-                            continue;
-                        }
-                    }
-
-                    // Check consistency in Matrix E
-                    const bool is_inlier = check_epipolar_constraint(bearing_1, bearing_2, E_12,
-                                                                     keyfrm_1->orb_params_->scale_factors_.at(keypt_1.octave),
-                                                                     residual_rad_thr);
-                    if (is_inlier) {
-                        if (hamm_dist < best_hamm_dist) {
-                            second_best_hamm_dist = best_hamm_dist;
-                            best_hamm_dist = hamm_dist;
-                            best_idx_2 = idx_2;
-                        }
-                        else if (hamm_dist < second_best_hamm_dist) {
-                            second_best_hamm_dist = hamm_dist;
-                        }
-                    }
-                }
-
-                if (best_idx_2 < 0) {
-                    continue;
-                }
-
-                // Ratio test
-                if (lowe_ratio_ * second_best_hamm_dist < static_cast<float>(best_hamm_dist)) {
-                    continue;
-                }
-
-                is_already_matched_in_keyfrm_2.at(best_idx_2) = true;
-                matched_indices_2_in_keyfrm_1.at(idx_1) = best_idx_2;
-                ++num_matches;
+        for (unsigned int idx_2 = 0; idx_2 < num_keypts_2; ++idx_2) {
+            // Ignore if the keypoint is associated any 3D points
+            // (because this function is used for triangulation)
+            const auto& lm_2 = assoc_lms_in_keyfrm_2.at(idx_2);
+            if (lm_2) {
+                continue;
             }
 
-            ++itr_1;
-            ++itr_2;
+            // Ignore if matches are already aquired
+            if (is_already_matched_in_keyfrm_2.at(idx_2)) {
+                continue;
+            }
+
+            if (check_orientation_ && std::abs(util::angle::diff(keypt_1.angle, keyfrm_2->frm_obs_.undist_keypts_.at(idx_2).angle)) > 30.0) {
+                continue;
+            }
+
+            // Check if it's a stereo keypoint or not
+            const bool is_stereo_keypt_2 = !keyfrm_2->frm_obs_.stereo_x_right_.empty() && 0 <= keyfrm_2->frm_obs_.stereo_x_right_.at(idx_2);
+
+            // Acquire the keypoints and ORB feature vectors
+            const Vec3_t& bearing_2 = keyfrm_2->frm_obs_.bearings_.at(idx_2);
+            const auto& desc_2 = keyfrm_2->frm_obs_.descriptors_.row(idx_2);
+
+            // Compute the distance
+            const auto hamm_dist = compute_descriptor_distance_32(desc_1, desc_2);
+
+            if (HAMMING_DIST_THR_LOW < hamm_dist || best_hamm_dist < hamm_dist) {
+                continue;
+            }
+
+            if (valid_epiplane && !is_stereo_keypt_1 && !is_stereo_keypt_2) {
+                // Do not use any keypoints near the epipole if both are not stereo keypoints
+                const auto cos_dist = epiplane_in_keyfrm_2.dot(bearing_2);
+                // The threshold of the minimum angle formed by the epipole and the bearing vector is 3.0 degree
+                constexpr double cos_dist_thr = 0.99862953475;
+
+                // Do not allow to match if the formed angle is narrower that the threshold value
+                if (cos_dist_thr < cos_dist) {
+                    continue;
+                }
+            }
+
+            // Check consistency in Matrix E
+            const bool is_inlier = check_epipolar_constraint(bearing_1, bearing_2, E_12,
+                                                             keyfrm_1->orb_params_->scale_factors_.at(keypt_1.octave),
+                                                             residual_rad_thr);
+            if (is_inlier) {
+                if (hamm_dist < best_hamm_dist) {
+                    second_best_hamm_dist = best_hamm_dist;
+                    best_hamm_dist = hamm_dist;
+                    best_idx_2 = idx_2;
+                }
+                else if (hamm_dist < second_best_hamm_dist) {
+                    second_best_hamm_dist = hamm_dist;
+                }
+            }
         }
-        else if (itr_1->first < itr_2->first) {
-            // Since the node number of keyframe 1 is smaller, increment the iterator until the node numbers match
-            itr_1 = keyfrm_1->bow_feat_vec_.lower_bound(itr_2->first);
+
+        if (best_idx_2 < 0) {
+            continue;
         }
-        else {
-            // Since the node number of keyframe 2 is smaller, increment the iterator until the node numbers match
-            itr_2 = keyfrm_2->bow_feat_vec_.lower_bound(itr_1->first);
+
+        // Ratio test
+        if (lowe_ratio_ * second_best_hamm_dist < static_cast<float>(best_hamm_dist)) {
+            continue;
         }
+
+        is_already_matched_in_keyfrm_2.at(best_idx_2) = true;
+        matched_indices_2_in_keyfrm_1.at(idx_1) = best_idx_2;
+        ++num_matches;
     }
 
     matched_idx_pairs.clear();
@@ -230,9 +206,9 @@ unsigned int robust::match_frame_and_keyframe(data::frame& frm, const std::share
     std::vector<std::pair<int, int>> matches;
     brute_force_match(frm.frm_obs_, keyfrm, matches);
 
-    // Extract only inliers with eight-point RANSAC
+    // Extract only inliers with RANSAC
     solve::essential_solver solver(frm.frm_obs_.bearings_, keyfrm->frm_obs_.bearings_, matches, use_fixed_seed);
-    solver.find_via_ransac(50, false);
+    solver.find_via_ransac(1000, true);
     if (!solver.solution_is_valid()) {
         return 0;
     }
@@ -349,20 +325,6 @@ unsigned int robust::brute_force_match(const data::frame_observation& frm_obs,
     }
 
     return num_matches;
-}
-
-bool robust::check_epipolar_constraint(const Vec3_t& bearing_1, const Vec3_t& bearing_2,
-                                       const Mat33_t& E_12, float residual_rad_thr,
-                                       const float bearing_1_scale_factor) const {
-    // Normal vector of the epipolar plane on keyframe 1
-    const Vec3_t epiplane_in_1 = E_12 * bearing_2;
-
-    // Acquire the angle formed by the normal vector and the bearing
-    const auto cos_residual = std::min(1.0, std::max(-1.0, epiplane_in_1.dot(bearing_1) / epiplane_in_1.norm()));
-    const auto residual_rad = std::abs(M_PI / 2.0 - std::acos(cos_residual));
-
-    // The larger keypoint scale permits less constraints
-    return residual_rad < residual_rad_thr * bearing_1_scale_factor;
 }
 
 } // namespace match
