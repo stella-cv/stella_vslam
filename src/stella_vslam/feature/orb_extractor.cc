@@ -15,10 +15,14 @@ namespace feature {
 
 orb_extractor::orb_extractor(const orb_params* orb_params,
                              const unsigned int min_area,
+                             const descriptor_type desc_type,
                              const std::vector<std::vector<float>>& mask_rects)
-    : orb_params_(orb_params), mask_rects_(mask_rects), min_area_sqrt_(std::sqrt(min_area)) {
+    : orb_params_(orb_params), mask_rects_(mask_rects), min_area_sqrt_(std::sqrt(min_area)), desc_type_(desc_type) {
     // resize buffers according to the number of levels
     image_pyramid_.resize(orb_params_->num_levels_);
+#ifdef USE_CUDA_EFFICIENT_DESCRIPTORS
+    hash_sift_ = cv::cuda::HashSIFT::create(1.0, cv::cuda::HashSIFT::SIZE_256_BITS);
+#endif
 }
 
 void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArray& in_image_mask,
@@ -102,11 +106,23 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
         descriptors_at_level = cv::Mat::zeros(num_keypts_at_level, 32, CV_8UC1);
 
         // To enable parallelization, set the environment variable OMP_MAX_ACTIVE_LEVELS to 2.
+        if (desc_type_ == feature::descriptor_type::ORB) {
 #ifdef USE_OPENMP
 #pragma omp parallel for schedule(static)
 #endif
-        for (unsigned int i = 0; i < keypts_at_level.size(); ++i) {
-            compute_orb_descriptor(keypts_at_level[i], blurred_image, descriptors_at_level.ptr(i));
+            for (unsigned int i = 0; i < keypts_at_level.size(); ++i) {
+                compute_orb_descriptor(keypts_at_level[i], blurred_image, descriptors_at_level.ptr(i));
+            }
+        }
+        else if (desc_type_ == feature::descriptor_type::HASH_SIFT) {
+#ifdef USE_CUDA_EFFICIENT_DESCRIPTORS
+            hash_sift_->compute(blurred_image, keypts_at_level, descriptors_at_level);
+#else
+            throw std::runtime_error("cuda_efficient_features is not available");
+#endif
+        }
+        else {
+            throw std::runtime_error("Invalid descriptor_type");
         }
 
         correct_keypoint_scale(keypts_at_level, level);

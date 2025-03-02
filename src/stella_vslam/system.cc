@@ -93,9 +93,11 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     auto mask_rectangles = util::get_rectangles(preprocessing_params["mask_rectangles"]);
 
     const auto min_size = preprocessing_params["min_size"].as<unsigned int>(800);
-    extractor_left_ = new feature::orb_extractor(orb_params_, min_size, mask_rectangles);
+    const auto desc_type_str = preprocessing_params["descriptor_type"].as<std::string>("ORB");
+    const auto desc_type = feature::descriptor_type_from_string(desc_type_str);
+    extractor_left_ = new feature::orb_extractor(orb_params_, min_size, desc_type, mask_rectangles);
     if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
-        extractor_right_ = new feature::orb_extractor(orb_params_, min_size, mask_rectangles);
+        extractor_right_ = new feature::orb_extractor(orb_params_, min_size, desc_type, mask_rectangles);
     }
 
     num_grid_cols_ = preprocessing_params["num_grid_cols"].as<unsigned int>(64);
