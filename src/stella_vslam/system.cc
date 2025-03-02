@@ -223,7 +223,9 @@ void system::shutdown() {
 
     // wait until the threads stop
     mapping_thread_->join();
-    global_optimization_thread_->join();
+    if (global_optimization_thread_) {
+        global_optimization_thread_->join();
+    }
 
     spdlog::info("shutdown SLAM system");
     system_is_running_ = false;
