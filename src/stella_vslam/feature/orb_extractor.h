@@ -7,8 +7,41 @@
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
 
+#ifdef USE_CUDA_EFFICIENT_DESCRIPTORS
+#include <cuda_efficient_descriptors.h>
+#endif
+
 namespace stella_vslam {
 namespace feature {
+
+enum class descriptor_type {
+    ORB,
+    HASH_SIFT
+};
+
+inline descriptor_type descriptor_type_from_string(const std::string& desc_type_str) {
+    if (desc_type_str == "ORB") {
+        return descriptor_type::ORB;
+    }
+    else if (desc_type_str == "HASH_SIFT" || desc_type_str == "HashSIFT") {
+        return descriptor_type::HASH_SIFT;
+    }
+    else {
+        throw std::runtime_error("Invalid descriptor_type");
+    }
+}
+
+inline std::string descriptor_type_to_string(descriptor_type desc_type) {
+    if (desc_type == descriptor_type::ORB) {
+        return "ORB";
+    }
+    else if (desc_type == descriptor_type::HASH_SIFT) {
+        return "HashSIFT";
+    }
+    else {
+        throw std::runtime_error("Invalid descriptor_type");
+    }
+}
 
 class orb_extractor {
 public:
@@ -17,6 +50,7 @@ public:
     //! Constructor
     orb_extractor(const orb_params* orb_params,
                   const unsigned int min_area,
+                  const descriptor_type desc_type = descriptor_type::ORB,
                   const std::vector<std::vector<float>>& mask_rects = {});
 
     //! Destructor
@@ -76,7 +110,13 @@ private:
     bool mask_is_initialized_ = false;
     cv::Mat rect_mask_;
 
+    descriptor_type desc_type_;
+
+    //! feature descriptor implementations
     orb_impl orb_impl_;
+#ifdef USE_CUDA_EFFICIENT_DESCRIPTORS
+    cv::Ptr<cv::cuda::HashSIFT> hash_sift_;
+#endif
 };
 
 } // namespace feature
