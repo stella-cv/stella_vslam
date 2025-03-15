@@ -1,6 +1,7 @@
 #ifndef STELLA_VSLAM_FEATURE_ORB_EXTRACTOR_H
 #define STELLA_VSLAM_FEATURE_ORB_EXTRACTOR_H
 
+#include "stella_vslam/feature/extractor.h"
 #include "stella_vslam/feature/orb_params.h"
 #include "stella_vslam/feature/orb_impl.h"
 
@@ -43,7 +44,7 @@ inline std::string descriptor_type_to_string(descriptor_type desc_type) {
     }
 }
 
-class orb_extractor {
+class orb_extractor: public extractor{
 public:
     orb_extractor() = delete;
 
@@ -58,7 +59,7 @@ public:
 
     //! Extract keypoints and each descriptor of them
     void extract(const cv::_InputArray& in_image, const cv::_InputArray& in_image_mask,
-                 std::vector<cv::KeyPoint>& keypts, const cv::_OutputArray& out_descriptors);
+                 std::vector<cv::KeyPoint>& keypts, const cv::_OutputArray& out_descriptors) override;
 
     //! parameters for ORB extraction
     const orb_params* orb_params_;
