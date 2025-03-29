@@ -1,4 +1,5 @@
 #include "stella_vslam/feature/orb_params.h"
+#include "stella_vslam/feature/default_params.h"
 
 #include <nlohmann/json.hpp>
 #include <iostream>
@@ -20,10 +21,10 @@ orb_params::orb_params(const std::string& name, const float scale_factor, const 
 
 orb_params::orb_params(const YAML::Node& yaml_node)
     : orb_params(yaml_node["name"].as<std::string>("default ORB feature extraction setting"),
-                 yaml_node["scale_factor"].as<float>(1.2),
-                 yaml_node["num_levels"].as<unsigned int>(8),
-                 yaml_node["ini_fast_threshold"].as<unsigned int>(20),
-                 yaml_node["min_fast_threshold"].as<unsigned int>(7)) {}
+                 yaml_node["scale_factor"].as<float>(default_scale_factor),
+                 yaml_node["num_levels"].as<unsigned int>(default_num_levels),
+                 yaml_node["ini_fast_threshold"].as<unsigned int>(default_ini_fast_thr),
+                 yaml_node["min_fast_threshold"].as<unsigned int>(default_min_fast_thr)) {}
 
 nlohmann::json orb_params::to_json() const {
     return {{"name", name_},

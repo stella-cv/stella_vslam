@@ -5,6 +5,17 @@
 
 namespace stella_vslam {
 namespace feature {
+sift_params::sift_params(std::string name, float scale_factor, unsigned int num_levels, double threshold, double edge_threshold)
+    : params(name, scale_factor, num_levels),
+      threshold_(threshold),
+      edge_threshold_(edge_threshold) {}
+
+sift_params::sift_params(const YAML::Node& yaml_node)
+    : sift_params(yaml_node["name"].as<std::string>(),
+                  yaml_node["scale_factor"].as<float>(),
+                  yaml_node["num_levels"].as<unsigned int>(),
+                  yaml_node["threshold"].as<double>(),
+                  yaml_node["edge_threshold"].as<double>()) {}
 nlohmann::json sift_params::to_json() const {
     return {{"name", name_},
             {"scale_factor", scale_factor_},

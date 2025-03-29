@@ -11,9 +11,13 @@ namespace feature {
 struct sift_params : public params {
     sift_params() = delete;
 
+    sift_params(std::string name, float scale_factor, unsigned int num_levels, double threshold, double edge_threshold);
     sift_params(const YAML::Node& yaml_node);
 
     ~sift_params() = default;
+
+    double threshold_;
+    double edge_threshold_;
 
     nlohmann::json to_json() const override;
 };

@@ -25,7 +25,7 @@ public:
 
                     const auto min_size = preprocessing_params["min_size"].as<unsigned int>(800);
                     const auto desc_type_str = preprocessing_params["descriptor_type"].as<std::string>("ORB");
-                    const auto desc_type = feature::descriptor_type_from_string(desc_type_str);
+                    const auto desc_type = descriptor_type_from_string(desc_type_str);
                     extractor = new orb_extractor(dynamic_cast<const orb_params*>(params), min_size, desc_type, mask_rectangles);
                     break;
                 }
