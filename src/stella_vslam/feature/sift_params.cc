@@ -1,19 +1,22 @@
 #include "stella_vslam/feature/sift_params.h"
+#include "stella_vslam/feature/default_params.h"
 
 #include <nlohmann/json.hpp>
 #include <iostream>
 
 namespace stella_vslam {
 namespace feature {
-sift_params::sift_params(std::string name, float scale_factor, unsigned int num_levels, double threshold, double edge_threshold)
+sift_params::sift_params(std::string name, float scale_factor, unsigned int num_levels, unsigned int num_sublevels, double threshold, double edge_threshold)
     : params(name, scale_factor, num_levels),
+      num_sublevels_(num_sublevels),
       threshold_(threshold),
       edge_threshold_(edge_threshold) {}
 
 sift_params::sift_params(const YAML::Node& yaml_node)
     : sift_params(yaml_node["name"].as<std::string>(),
                   yaml_node["scale_factor"].as<float>(),
-                  yaml_node["num_levels"].as<unsigned int>(),
+                  yaml_node["num_levels"].as<unsigned int>(default_num_levels),
+                  yaml_node["num_sublevels"].as<unsigned int>(),
                   yaml_node["threshold"].as<double>(),
                   yaml_node["edge_threshold"].as<double>()) {}
 nlohmann::json sift_params::to_json() const {

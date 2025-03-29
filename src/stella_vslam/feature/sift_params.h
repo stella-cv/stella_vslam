@@ -11,11 +11,12 @@ namespace feature {
 struct sift_params : public params {
     sift_params() = delete;
 
-    sift_params(std::string name, float scale_factor, unsigned int num_levels, double threshold, double edge_threshold);
+    sift_params(std::string name, float scale_factor, unsigned int num_levels, unsigned int num_sublevels, double threshold, double edge_threshold);
     sift_params(const YAML::Node& yaml_node);
 
     ~sift_params() = default;
 
+    unsigned int num_sublevels_;
     double threshold_;
     double edge_threshold_;
 
