@@ -88,7 +88,7 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
         offsets.push_back(offset);
     }
 
-#ifdef USE_OPENMP
+#if defined(USE_OPENMP) and !defined(USE_CUDA_EFFICIENT_DESCRIPTORS)
 #pragma omp parallel for schedule(dynamic)
 #endif
     for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
