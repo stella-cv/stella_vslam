@@ -15,8 +15,12 @@ namespace module {
 
 loop_bundle_adjuster::loop_bundle_adjuster(data::map_database* map_db,
                                            const unsigned int num_iter,
-                                           const bool use_huber_kernel)
-    : map_db_(map_db), num_iter_(num_iter), use_huber_kernel_(use_huber_kernel) {}
+                                           const bool use_huber_kernel,
+                                           const bool verbose)
+    : map_db_(map_db),
+      num_iter_(num_iter),
+      use_huber_kernel_(use_huber_kernel),
+      verbose_(verbose) {}
 
 void loop_bundle_adjuster::set_mapping_module(mapping_module* mapper) {
     mapper_ = mapper;
@@ -47,7 +51,7 @@ void loop_bundle_adjuster::optimize(const std::shared_ptr<data::keyframe>& curr_
     eigen_alloc_unord_map<unsigned int, Vec3_t> lm_to_pos_w_after_global_BA;
     eigen_alloc_unord_map<unsigned int, Mat44_t> keyfrm_to_pose_cw_after_global_BA;
     eigen_alloc_unord_map<unsigned int, std::array<Vec3_t, 4>> marker_to_pos_w_after_global_BA;
-    const auto global_BA = optimize::global_bundle_adjuster(num_iter_, use_huber_kernel_);
+    const auto global_BA = optimize::global_bundle_adjuster(num_iter_, use_huber_kernel_, verbose_);
     bool ok = global_BA.optimize(curr_keyfrm->graph_node_->get_keyframes_from_root(),
                                  optimized_keyfrm_ids, optimized_landmark_ids,
                                  optimized_marker_ids,
@@ -185,13 +189,15 @@ void loop_bundle_adjuster::optimize(const std::shared_ptr<data::keyframe>& curr_
         }
 
         for (const auto& mkr : markers) {
-            if (!optimized_marker_ids.count(mkr->id_)) // not optimized
+            if (!optimized_marker_ids.count(mkr->id_)) {
                 continue;
+            }
 
             // Update all corners
             const std::array<Vec3_t, 4>& new_corners = marker_to_pos_w_after_global_BA.at(mkr->id_);
-            for (size_t c = 0; c < 4; c++)
-                mkr->corners_pos_w_[c] = new_corners[c];
+            for (size_t corner_idx = 0; corner_idx < 4; corner_idx++) {
+                mkr->corners_pos_w_[corner_idx] = new_corners[corner_idx];
+            }
         }
 
         mapper_->resume();

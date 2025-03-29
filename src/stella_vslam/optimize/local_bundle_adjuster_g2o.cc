@@ -411,19 +411,20 @@ void local_bundle_adjuster_g2o::optimize(data::map_database* map_db,
         // Also update the marker positions
         for (auto& id_mkr_pair : local_mkrs) {
             auto& mkr = id_mkr_pair.second;
-            if (mkr->keep_fixed_)
+            if (mkr->keep_fixed_) {
                 continue;
-            if (!mkr->initialized_before_)
+            }
+            if (!mkr->initialized_before_) {
                 continue;
+            }
             // It's possible that initialized_before_ got changed since it was
             // checked the last time, this actually tests if a vtx was made
-            if (mkr_has_vtx.find(mkr->id_) == mkr_has_vtx.end())
+            if (mkr_has_vtx.find(mkr->id_) == mkr_has_vtx.end()) {
                 continue;
+            }
 
-            for (size_t c = 0; c < 4; c++) {
-                auto vtx = marker_vtx_container.get_vertex(mkr, c);
-                auto new_pos = vtx->estimate();
-                mkr->corners_pos_w_[c] = new_pos;
+            for (size_t corner_idx = 0; corner_idx < 4; corner_idx++) {
+                mkr->corners_pos_w_[corner_idx] = marker_vtx_container.get_vertex(mkr, corner_idx)->estimate();
             }
         }
     }

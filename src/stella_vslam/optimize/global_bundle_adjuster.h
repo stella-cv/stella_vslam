@@ -15,8 +15,12 @@ public:
      * Constructor
      * @param num_iter
      * @param use_huber_kernel
+     * @param verbose
      */
-    explicit global_bundle_adjuster(const unsigned int num_iter = 10, const bool use_huber_kernel = true);
+    explicit global_bundle_adjuster(
+        unsigned int num_iter = 10,
+        bool use_huber_kernel = true,
+        bool verbose = false);
 
     /**
      * Destructor
@@ -26,6 +30,8 @@ public:
     void optimize_for_initialization(const std::vector<std::shared_ptr<data::keyframe>>& keyfrms,
                                      const std::vector<std::shared_ptr<data::landmark>>& lms,
                                      const std::vector<std::shared_ptr<data::marker>>& markers,
+                                     float gain_threshold,
+                                     bool fix_markers,
                                      bool* const force_stop_flag = nullptr) const;
 
     /**
@@ -50,9 +56,10 @@ public:
 private:
     //! number of iterations of optimization
     unsigned int num_iter_;
-
     //! use Huber loss or not
     const bool use_huber_kernel_;
+    //! Verbosity (for g2o)
+    const bool verbose_ = false;
 };
 
 } // namespace optimize

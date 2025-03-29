@@ -87,6 +87,10 @@ private:
     const float scaling_factor_;
     //! Use fixed random seed for RANSAC if true
     const bool use_fixed_seed_;
+    //! Gain threshold (for g2o)
+    const float gain_threshold_;
+    //! Verbosity (for g2o)
+    const bool verbose_;
 
     //-----------------------------------------
     // for monocular camera model
