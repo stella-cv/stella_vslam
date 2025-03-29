@@ -112,7 +112,7 @@ unsigned int bow_tree::match_for_triangulation(const std::shared_ptr<data::keyfr
 
                     // Check consistency in Matrix E
                     const bool is_inlier = check_epipolar_constraint(bearing_1, bearing_2, E_12,
-                                                                     keyfrm_1->orb_params_->scale_factors_.at(keypt_1.octave),
+                                                                     keyfrm_1->params_->scale_factors_.at(keypt_1.octave),
                                                                      residual_rad_thr);
                     if (is_inlier) {
                         if (hamm_dist < best_hamm_dist) {

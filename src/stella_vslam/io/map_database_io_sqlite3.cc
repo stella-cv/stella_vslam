@@ -17,7 +17,7 @@ namespace io {
 
 bool map_database_io_sqlite3::save(const std::string& path,
                                    const data::camera_database* const cam_db,
-                                   const data::orb_params_database* const orb_params_db,
+                                   const data::params_database* const params_db,
                                    const data::map_database* const map_db) {
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
@@ -48,7 +48,7 @@ bool map_database_io_sqlite3::save(const std::string& path,
 
 bool map_database_io_sqlite3::load(const std::string& path,
                                    data::camera_database* cam_db,
-                                   data::orb_params_database* orb_params_db,
+                                   data::params_database* params_db,
                                    data::map_database* map_db,
                                    data::bow_database* bow_db,
                                    data::bow_vocabulary* bow_vocab) {
@@ -65,7 +65,7 @@ bool map_database_io_sqlite3::load(const std::string& path,
 
     // load from database
     bool ok = cam_db->from_db(db);
-    ok = ok && map_db->from_db(db, cam_db, orb_params_db, bow_vocab);
+    ok = ok && map_db->from_db(db, cam_db, params_db, bow_vocab);
     ok = ok && load_stats(db, map_db);
 
     // update bow database

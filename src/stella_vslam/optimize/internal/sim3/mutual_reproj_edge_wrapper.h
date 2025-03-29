@@ -70,7 +70,7 @@ inline mutual_reproj_edge_wapper<T>::mutual_reproj_edge_wapper(const std::shared
                 // 特徴点情報と再投影誤差分散をセット
                 const auto& undist_keypt_1 = shot1->frm_obs_.undist_keypts_.at(idx1);
                 const Vec2_t obs_1{undist_keypt_1.pt.x, undist_keypt_1.pt.y};
-                const float inv_sigma_sq_1 = shot1->orb_params_->inv_level_sigma_sq_.at(undist_keypt_1.octave);
+                const float inv_sigma_sq_1 = shot1->params_->inv_level_sigma_sq_.at(undist_keypt_1.octave);
                 edge_12->setMeasurement(obs_1);
                 edge_12->setInformation(Mat22_t::Identity() * inv_sigma_sq_1);
                 // 3次元点をセット
@@ -94,7 +94,7 @@ inline mutual_reproj_edge_wapper<T>::mutual_reproj_edge_wapper(const std::shared
                 // 特徴点情報と再投影誤差分散をセット
                 const auto& undist_keypt_1 = shot1->frm_obs_.undist_keypts_.at(idx1);
                 const Vec2_t obs_1{undist_keypt_1.pt.x, undist_keypt_1.pt.y};
-                const float inv_sigma_sq_1 = shot1->orb_params_->inv_level_sigma_sq_.at(undist_keypt_1.octave);
+                const float inv_sigma_sq_1 = shot1->params_->inv_level_sigma_sq_.at(undist_keypt_1.octave);
                 edge_12->setMeasurement(obs_1);
                 edge_12->setInformation(Mat22_t::Identity() * inv_sigma_sq_1);
                 // 3次元点をセット
@@ -118,7 +118,7 @@ inline mutual_reproj_edge_wapper<T>::mutual_reproj_edge_wapper(const std::shared
                 // 特徴点情報と再投影誤差分散をセット
                 const auto& undist_keypt_1 = shot1->frm_obs_.undist_keypts_.at(idx1);
                 const Vec2_t obs_1{undist_keypt_1.pt.x, undist_keypt_1.pt.y};
-                const float inv_sigma_sq_1 = shot1->orb_params_->inv_level_sigma_sq_.at(undist_keypt_1.octave);
+                const float inv_sigma_sq_1 = shot1->params_->inv_level_sigma_sq_.at(undist_keypt_1.octave);
                 edge_12->setMeasurement(obs_1);
                 edge_12->setInformation(Mat22_t::Identity() * inv_sigma_sq_1);
                 // 3次元点をセット
@@ -140,7 +140,7 @@ inline mutual_reproj_edge_wapper<T>::mutual_reproj_edge_wapper(const std::shared
                 // 特徴点情報と再投影誤差分散をセット
                 const auto& undist_keypt_1 = shot1->frm_obs_.undist_keypts_.at(idx1);
                 const Vec2_t obs_1{undist_keypt_1.pt.x, undist_keypt_1.pt.y};
-                const float inv_sigma_sq_1 = shot1->orb_params_->inv_level_sigma_sq_.at(undist_keypt_1.octave);
+                const float inv_sigma_sq_1 = shot1->params_->inv_level_sigma_sq_.at(undist_keypt_1.octave);
                 edge_12->setMeasurement(obs_1);
                 edge_12->setInformation(Mat22_t::Identity() * inv_sigma_sq_1);
                 // 3次元点をセット
@@ -177,7 +177,7 @@ inline mutual_reproj_edge_wapper<T>::mutual_reproj_edge_wapper(const std::shared
                 // 特徴点情報と再投影誤差分散をセット
                 const auto& undist_keypt_2 = shot2->frm_obs_.undist_keypts_.at(idx2);
                 const Vec2_t obs_2{undist_keypt_2.pt.x, undist_keypt_2.pt.y};
-                const float inv_sigma_sq_2 = shot2->orb_params_->inv_level_sigma_sq_.at(undist_keypt_2.octave);
+                const float inv_sigma_sq_2 = shot2->params_->inv_level_sigma_sq_.at(undist_keypt_2.octave);
                 edge_21->setMeasurement(obs_2);
                 edge_21->setInformation(Mat22_t::Identity() * inv_sigma_sq_2);
                 // 3次元点をセット
@@ -201,7 +201,7 @@ inline mutual_reproj_edge_wapper<T>::mutual_reproj_edge_wapper(const std::shared
                 // 特徴点情報と再投影誤差分散をセット
                 const auto& undist_keypt_2 = shot2->frm_obs_.undist_keypts_.at(idx2);
                 const Vec2_t obs_2{undist_keypt_2.pt.x, undist_keypt_2.pt.y};
-                const float inv_sigma_sq_2 = shot2->orb_params_->inv_level_sigma_sq_.at(undist_keypt_2.octave);
+                const float inv_sigma_sq_2 = shot2->params_->inv_level_sigma_sq_.at(undist_keypt_2.octave);
                 edge_21->setMeasurement(obs_2);
                 edge_21->setInformation(Mat22_t::Identity() * inv_sigma_sq_2);
                 // 3次元点をセット
@@ -225,7 +225,7 @@ inline mutual_reproj_edge_wapper<T>::mutual_reproj_edge_wapper(const std::shared
                 // 特徴点情報と再投影誤差分散をセット
                 const auto& undist_keypt_2 = shot2->frm_obs_.undist_keypts_.at(idx2);
                 const Vec2_t obs_2{undist_keypt_2.pt.x, undist_keypt_2.pt.y};
-                const float inv_sigma_sq_2 = shot2->orb_params_->inv_level_sigma_sq_.at(undist_keypt_2.octave);
+                const float inv_sigma_sq_2 = shot2->params_->inv_level_sigma_sq_.at(undist_keypt_2.octave);
                 edge_21->setMeasurement(obs_2);
                 edge_21->setInformation(Mat22_t::Identity() * inv_sigma_sq_2);
                 // 3次元点をセット
@@ -247,7 +247,7 @@ inline mutual_reproj_edge_wapper<T>::mutual_reproj_edge_wapper(const std::shared
                 // 特徴点情報と再投影誤差分散をセット
                 const auto& undist_keypt_2 = shot2->frm_obs_.undist_keypts_.at(idx2);
                 const Vec2_t obs_2{undist_keypt_2.pt.x, undist_keypt_2.pt.y};
-                const float inv_sigma_sq_2 = shot2->orb_params_->inv_level_sigma_sq_.at(undist_keypt_2.octave);
+                const float inv_sigma_sq_2 = shot2->params_->inv_level_sigma_sq_.at(undist_keypt_2.octave);
                 edge_21->setMeasurement(obs_2);
                 edge_21->setInformation(Mat22_t::Identity() * inv_sigma_sq_2);
                 // 3次元点をセット

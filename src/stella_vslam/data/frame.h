@@ -3,7 +3,7 @@
 
 #include "stella_vslam/type.h"
 #include "stella_vslam/camera/base.h"
-#include "stella_vslam/feature/orb_params.h"
+#include "stella_vslam/feature/params.h"
 #include "stella_vslam/util/converter.h"
 #include "stella_vslam/data/frame_observation.h"
 #include "stella_vslam/data/bow_vocabulary.h"
@@ -24,8 +24,8 @@ class base;
 } // namespace camera
 
 namespace feature {
-class orb_extractor;
-struct orb_params;
+class extractor;
+struct params;
 } // namespace feature
 
 namespace data {
@@ -47,11 +47,11 @@ public:
      * @param frame_id
      * @param timestamp
      * @param camera
-     * @param orb_params
+     * @param params
      * @param frm_obs
      * @param markers_2d
      */
-    frame(const unsigned int frame_id, const double timestamp, camera::base* camera, feature::orb_params* orb_params,
+    frame(const unsigned int frame_id, const double timestamp, camera::base* camera, feature::params* params,
           const frame_observation frm_obs, const std::unordered_map<unsigned int, marker2d>& markers_2d);
 
     /**
@@ -170,7 +170,7 @@ public:
     camera::base* camera_ = nullptr;
 
     //! ORB scale pyramid information
-    const feature::orb_params* orb_params_ = nullptr;
+    const feature::params* params_ = nullptr;
 
     //! constant observations
     frame_observation frm_obs_;

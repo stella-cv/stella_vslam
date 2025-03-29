@@ -1,19 +1,19 @@
-#ifndef STELLA_VSLAM_FEATURE_SIFT_EXTRACTOR_H
-#define STELLA_VSLAM_FEATURE_SIFT_EXTRACTOR_H
+#ifndef STELLA_VSLAM_FEATURE_AKAZE_EXTRACTOR_H
+#define STELLA_VSLAM_FEATURE_AKAZE_EXTRACTOR_H
 
 #include "stella_vslam/feature/extractor.h"
-#include "stella_vslam/feature/sift_params.h"
+#include "stella_vslam/feature/akaze_params.h"
 
 namespace stella_vslam {
 namespace feature {
-class sift_extractor : public extractor {
+class akaze_extractor : public extractor {
 private:
-    const sift_params* params_;
+    const akaze_params* params_;
 
 public:
-    sift_extractor() = delete;
-    sift_extractor(const sift_params* params);
-    ~sift_extractor() = default;
+    akaze_extractor() = delete;
+    akaze_extractor(const akaze_params* params);
+    ~akaze_extractor() = default;
 
     //! Extract keypoints and each descriptor of them
     void extract(const cv::_InputArray& in_image, const cv::_InputArray& in_image_mask,
@@ -22,4 +22,4 @@ public:
 } // namespace feature
 } // namespace stella_vslam
 
-#endif // STELLA_VSLAM_FEATURE_SIFT_EXTRACTOR_H
+#endif // STELLA_VSLAM_FEATURE_AKAZE_EXTRACTOR_H

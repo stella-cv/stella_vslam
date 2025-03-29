@@ -2,7 +2,7 @@
 #include "stella_vslam/data/frame.h"
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
-#include "stella_vslam/feature/orb_extractor.h"
+#include "stella_vslam/feature/extractor.h"
 #include "stella_vslam/match/stereo.h"
 
 #include <thread>
@@ -12,9 +12,9 @@
 namespace stella_vslam {
 namespace data {
 
-frame::frame(unsigned int frame_id, const double timestamp, camera::base* camera, feature::orb_params* orb_params,
+frame::frame(unsigned int frame_id, const double timestamp, camera::base* camera, feature::params* params,
              const frame_observation frm_obs, const std::unordered_map<unsigned int, marker2d>& markers_2d)
-    : id_(frame_id), timestamp_(timestamp), camera_(camera), orb_params_(orb_params), frm_obs_(frm_obs),
+    : id_(frame_id), timestamp_(timestamp), camera_(camera), params_(params), frm_obs_(frm_obs),
       markers_2d_(markers_2d),
       // Initialize association with 3D points
       landmarks_(std::vector<std::shared_ptr<landmark>>(frm_obs_.undist_keypts_.size(), nullptr)) {}
@@ -79,7 +79,7 @@ bool frame::can_observe(const std::shared_ptr<landmark>& lm, const float ray_cos
         return false;
     }
 
-    pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, this->orb_params_->num_levels_, this->orb_params_->log_scale_factor_);
+    pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, this->params_->num_levels_, this->params_->log_scale_factor_);
     return true;
 }
 

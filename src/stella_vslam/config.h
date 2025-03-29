@@ -1,7 +1,7 @@
 #ifndef STELLA_VSLAM_CONFIG_H
 #define STELLA_VSLAM_CONFIG_H
 
-#include "stella_vslam/feature/orb_params.h"
+#include "stella_vslam/feature/params.h"
 
 #include <yaml-cpp/yaml.h>
 

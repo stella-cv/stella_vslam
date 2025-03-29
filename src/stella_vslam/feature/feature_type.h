@@ -6,8 +6,8 @@ namespace stella_vslam {
 namespace feature {
 enum class feature_types {
     ORB,
-    SURF,
-    SIFT
+    SIFT,
+    AKAZE
 };
 //! Load model type from YAML
 static feature_types load_feature_type(const YAML::Node& yaml_node) {
@@ -15,11 +15,11 @@ static feature_types load_feature_type(const YAML::Node& yaml_node) {
     if (feature_type_str == "ORB") {
         return feature_types::ORB;
     }
-    else if (feature_type_str == "SURF") {
-        return feature_types::SURF;
-    }
     else if (feature_type_str == "SIFT") {
         return feature_types::SIFT;
+    }
+    else if (feature_type_str == "AKAZE") {
+        return feature_types::AKAZE;
     }
     throw std::runtime_error("Invalid feature type: " + feature_type_str + ". Support: ORB, SIFT and SURF");
 }

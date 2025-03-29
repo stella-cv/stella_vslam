@@ -421,7 +421,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
         }
         // Setup PnP solver
         auto pnp_solver = std::unique_ptr<solve::pnp_solver>(new solve::pnp_solver(valid_bearings, octaves, valid_points,
-                                                                                   cur_keyfrm_->orb_params_->scale_factors_,
+                                                                                   cur_keyfrm_->params_->scale_factors_,
                                                                                    10, use_fixed_seed_));
 
         pnp_solver->find_via_ransac(30, false);
@@ -443,7 +443,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
         // Pose optimization
         std::vector<bool> outlier_flags;
         Mat44_t optimized_pose;
-        auto num_valid_obs = pose_optimizer_->optimize(pnp_solver->get_best_cam_pose(), cur_keyfrm_->frm_obs_, cur_keyfrm_->orb_params_, cur_keyfrm_->camera_,
+        auto num_valid_obs = pose_optimizer_->optimize(pnp_solver->get_best_cam_pose(), cur_keyfrm_->frm_obs_, cur_keyfrm_->params_, cur_keyfrm_->camera_,
                                                        curr_match_lms_observed_in_cand, optimized_pose, outlier_flags);
 
         // Discard the candidate if the number of the inliers is less than the threshold
@@ -472,7 +472,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
 
         // Projection match based on the pre-optimized camera pose
         auto num_found = projection_matcher.match_frame_and_keyframe(optimized_pose, cur_keyfrm_->camera_, cur_keyfrm_->frm_obs_,
-                                                                     cur_keyfrm_->orb_params_, curr_match_lms_observed_in_cand,
+                                                                     cur_keyfrm_->params_, curr_match_lms_observed_in_cand,
                                                                      candidate, already_found_landmarks, 10, 100);
         // Discard the candidate if the number of the inliers is less than the threshold
         const unsigned int min_num_valid_obs1 = 25;
@@ -485,7 +485,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
         Mat44_t optimized_pose1;
         std::vector<bool> outlier_flags1;
         auto num_valid_obs1 = pose_optimizer_->optimize(optimized_pose,
-                                                        cur_keyfrm_->frm_obs_, cur_keyfrm_->orb_params_, cur_keyfrm_->camera_,
+                                                        cur_keyfrm_->frm_obs_, cur_keyfrm_->params_, cur_keyfrm_->camera_,
                                                         curr_match_lms_observed_in_cand, optimized_pose1, outlier_flags1);
 
         if (num_valid_obs1 < min_num_valid_obs1) {
@@ -503,7 +503,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
         }
         // Apply projection match again, then set the 2D-3D matches
         auto num_additional = projection_matcher.match_frame_and_keyframe(optimized_pose1, cur_keyfrm_->camera_, cur_keyfrm_->frm_obs_,
-                                                                          cur_keyfrm_->orb_params_, curr_match_lms_observed_in_cand,
+                                                                          cur_keyfrm_->params_, curr_match_lms_observed_in_cand,
                                                                           candidate, already_found_landmarks, 3, 64);
 
         const unsigned int min_num_valid_obs2 = 40;
@@ -517,7 +517,7 @@ bool loop_detector::select_loop_candidate_via_Sim3(const std::unordered_set<std:
         Mat44_t optimized_pose2;
         std::vector<bool> outlier_flags2;
         auto num_valid_obs2 = pose_optimizer_->optimize(optimized_pose1,
-                                                        cur_keyfrm_->frm_obs_, cur_keyfrm_->orb_params_, cur_keyfrm_->camera_,
+                                                        cur_keyfrm_->frm_obs_, cur_keyfrm_->params_, cur_keyfrm_->camera_,
                                                         curr_match_lms_observed_in_cand, optimized_pose2, outlier_flags2);
 
         // Discard if falling below the threshold

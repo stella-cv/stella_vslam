@@ -7,9 +7,9 @@
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/data/bow_database.h"
 #include "stella_vslam/data/camera_database.h"
-#include "stella_vslam/data/orb_params_database.h"
+#include "stella_vslam/data/params_database.h"
 #include "stella_vslam/data/bow_vocabulary.h"
-#include "stella_vslam/feature/orb_params.h"
+#include "stella_vslam/feature/params.h"
 #include "stella_vslam/util/converter.h"
 
 #include <nlohmann/json.hpp>
@@ -103,7 +103,7 @@ namespace data {
 
 keyframe::keyframe(unsigned int id, const frame& frm)
     : id_(id), timestamp_(frm.timestamp_),
-      camera_(frm.camera_), orb_params_(frm.orb_params_),
+      camera_(frm.camera_), params_(frm.params_),
       frm_obs_(frm.frm_obs_),
       bow_vec_(frm.bow_vec_), bow_feat_vec_(frm.bow_feat_vec_),
       markers_2d_(frm.markers_2d_),
@@ -114,12 +114,12 @@ keyframe::keyframe(unsigned int id, const frame& frm)
 
 keyframe::keyframe(const unsigned int id, const double timestamp,
                    const Mat44_t& pose_cw, camera::base* camera,
-                   const feature::orb_params* orb_params, const frame_observation& frm_obs,
+                   const feature::params* params, const frame_observation& frm_obs,
                    const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec,
                    std::unordered_map<unsigned int, marker2d> markers_2d)
     : id_(id),
       timestamp_(timestamp), camera_(camera),
-      orb_params_(orb_params), frm_obs_(frm_obs),
+      params_(params), frm_obs_(frm_obs),
       bow_vec_(bow_vec), bow_feat_vec_(bow_feat_vec),
       markers_2d_(markers_2d),
       landmarks_(std::vector<std::shared_ptr<landmark>>(frm_obs_.undist_keypts_.size(), nullptr)) {
@@ -148,13 +148,13 @@ std::shared_ptr<keyframe> keyframe::make_keyframe(unsigned int id, const frame& 
 std::shared_ptr<keyframe> keyframe::make_keyframe(
     const unsigned int id, const double timestamp,
     const Mat44_t& pose_cw, camera::base* camera,
-    const feature::orb_params* orb_params, const frame_observation& frm_obs,
+    const feature::params* params, const frame_observation& frm_obs,
     const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec,
     std::unordered_map<unsigned int, marker2d> markers_2d) {
     auto ptr = std::allocate_shared<keyframe>(
         Eigen::aligned_allocator<keyframe>(),
         id, timestamp,
-        pose_cw, camera, orb_params,
+        pose_cw, camera, params,
         frm_obs, bow_vec, bow_feat_vec, markers_2d);
     // covisibility graph node (connections is not assigned yet)
     ptr->graph_node_ = stella_vslam::make_unique<graph_node>(ptr);
@@ -163,7 +163,7 @@ std::shared_ptr<keyframe> keyframe::make_keyframe(
 
 std::shared_ptr<keyframe> keyframe::from_stmt(sqlite3_stmt* stmt,
                                               camera_database* cam_db,
-                                              orb_params_database* orb_params_db,
+                                              params_database* params_db,
                                               bow_vocabulary* bow_vocab,
                                               unsigned int next_keyframe_id) {
     const char* p;
@@ -180,9 +180,9 @@ std::shared_ptr<keyframe> keyframe::from_stmt(sqlite3_stmt* stmt,
     assert(camera != nullptr);
     column_id++;
     p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
-    std::string orb_params_name(p, p + sqlite3_column_bytes(stmt, column_id));
-    const auto orb_params = orb_params_db->get_orb_params(orb_params_name);
-    assert(orb_params != nullptr);
+    std::string params_name(p, p + sqlite3_column_bytes(stmt, column_id));
+    const auto params = params_db->get_params(params_name);
+    assert(params != nullptr);
     column_id++;
     Mat44_t pose_cw;
     p = reinterpret_cast<const char*>(sqlite3_column_blob(stmt, column_id));
@@ -245,7 +245,7 @@ std::shared_ptr<keyframe> keyframe::from_stmt(sqlite3_stmt* stmt,
     }
     // NOTE: 3D marker info will be filled in later based on loaded markers
     auto keyfrm = data::keyframe::make_keyframe(
-        id + next_keyframe_id, timestamp, pose_cw, camera, orb_params,
+        id + next_keyframe_id, timestamp, pose_cw, camera, params,
         frm_obs, bow_vec, bow_feat_vec, markers_2d);
 
     return keyfrm;
@@ -282,7 +282,7 @@ nlohmann::json keyframe::to_json() const {
 
     return {{"ts", timestamp_},
             {"cam", camera_->name_},
-            {"orb_params", orb_params_->name_},
+            {"params", params_->name_},
             // camera pose
             {"rot_cw", convert_rotation_to_json(pose_cw_.block<3, 3>(0, 0))},
             {"trans_cw", convert_translation_to_json(pose_cw_.block<3, 1>(0, 3))},
@@ -311,8 +311,8 @@ bool keyframe::bind_to_stmt(sqlite3* db, sqlite3_stmt* stmt) const {
         ret = sqlite3_bind_blob(stmt, column_id++, camera_name.c_str(), camera_name.size(), SQLITE_TRANSIENT);
     }
     if (ret == SQLITE_OK) {
-        const auto& orb_params_name = orb_params_->name_;
-        ret = sqlite3_bind_blob(stmt, column_id++, orb_params_name.c_str(), orb_params_name.size(), SQLITE_TRANSIENT);
+        const auto& params_name = params_->name_;
+        ret = sqlite3_bind_blob(stmt, column_id++, params_name.c_str(), params_name.size(), SQLITE_TRANSIENT);
     }
     if (ret == SQLITE_OK) {
         const Mat44_t pose_cw = get_pose_cw();

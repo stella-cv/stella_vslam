@@ -17,7 +17,7 @@ orb_extractor::orb_extractor(const orb_params* orb_params,
                              const unsigned int min_area,
                              const descriptor_type desc_type,
                              const std::vector<std::vector<float>>& mask_rects)
-    : orb_params_(orb_params), mask_rects_(mask_rects), min_area_sqrt_(std::sqrt(min_area)), desc_type_(desc_type) {
+    : extractor(), orb_params_(orb_params), mask_rects_(mask_rects), min_area_sqrt_(std::sqrt(min_area)), desc_type_(desc_type) {
     // resize buffers according to the number of levels
     image_pyramid_.resize(orb_params_->num_levels_);
 #ifdef USE_CUDA_EFFICIENT_DESCRIPTORS

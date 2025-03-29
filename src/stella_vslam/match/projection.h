@@ -43,7 +43,7 @@ public:
     unsigned int match_frame_and_keyframe(const Mat44_t& cam_pose_cw,
                                           const camera::base* camera,
                                           const data::frame_observation& frm_obs,
-                                          const feature::orb_params* orb_params,
+                                          const feature::params* params,
                                           std::vector<std::shared_ptr<data::landmark>>& frm_landmarks,
                                           const std::shared_ptr<data::keyframe>& keyfrm,
                                           const std::set<std::shared_ptr<data::landmark>>& already_matched_lms,

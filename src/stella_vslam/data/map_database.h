@@ -26,7 +26,7 @@ class keyframe;
 class landmark;
 class marker;
 class camera_database;
-class orb_params_database;
+class params_database;
 class bow_database;
 
 class map_database {
@@ -237,12 +237,12 @@ public:
     /**
      * Load keyframes and landmarks from JSON
      * @param cam_db
-     * @param orb_params_db
+     * @param params_db
      * @param bow_vocab
      * @param json_keyfrms
      * @param json_landmarks
      */
-    void from_json(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab,
+    void from_json(camera_database* cam_db, params_database* params_db, bow_vocabulary* bow_vocab,
                    const nlohmann::json& json_keyfrms, const nlohmann::json& json_landmarks);
 
     /**
@@ -257,7 +257,7 @@ public:
      */
     bool from_db(sqlite3* db,
                  camera_database* cam_db,
-                 orb_params_database* orb_params_db,
+                 params_database* params_db,
                  bow_vocabulary* bow_vocab);
 
     /**
@@ -278,12 +278,12 @@ private:
      * Decode JSON and register keyframe information to the map database
      * (NOTE: objects which are not constructed yet will be set as nullptr)
      * @param cam_db
-     * @param orb_params_db
+     * @param params_db
      * @param bow_vocab
      * @param id
      * @param json_keyfrm
      */
-    void register_keyframe(camera_database* cam_db, orb_params_database* orb_params_db, bow_vocabulary* bow_vocab,
+    void register_keyframe(camera_database* cam_db, params_database* params_db, bow_vocabulary* bow_vocab,
                            const unsigned int id, const nlohmann::json& json_keyfrm);
 
     /**
@@ -313,7 +313,7 @@ private:
     bool load_keyframes_from_db(sqlite3* db,
                                 const std::string& table_name,
                                 camera_database* cam_db,
-                                orb_params_database* orb_params_db,
+                                params_database* params_db,
                                 bow_vocabulary* bow_vocab);
     bool load_landmarks_from_db(sqlite3* db, const std::string& table_name);
     void load_association_from_stmt(sqlite3_stmt* stmt);

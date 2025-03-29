@@ -191,7 +191,7 @@ void local_bundle_adjuster_gtsam::optimize(data::map_database* map_db,
 
             const auto& undist_keypt = keyfrm->frm_obs_.undist_keypts_.at(idx);
             const float x_right = keyfrm->frm_obs_.stereo_x_right_.empty() ? -1.0f : keyfrm->frm_obs_.stereo_x_right_.at(idx);
-            const float sigma_sq = keyfrm->orb_params_->level_sigma_sq_.at(undist_keypt.octave);
+            const float sigma_sq = keyfrm->params_->level_sigma_sq_.at(undist_keypt.octave);
             // TODO: Support other models
             assert(keyfrm->camera_->model_type_ == camera::model_type_t::Perspective);
             // Create reprojection edge from keyfrm

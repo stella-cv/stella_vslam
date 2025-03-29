@@ -4,18 +4,18 @@
 #include <nlohmann/json_fwd.hpp>
 #include <yaml-cpp/yaml.h>
 #include <cmath>
+#include "stella_vslam/feature/params.h"
 
 namespace stella_vslam {
 namespace feature {
-class sift_params {
-private:
-    /* data */
-public:
+struct sift_params : public params {
     sift_params() = delete;
 
     sift_params(const YAML::Node& yaml_node);
-    
+
     ~sift_params() = default;
+
+    nlohmann::json to_json() const override;
 };
 } // namespace feature
 } // namespace stella_vslam

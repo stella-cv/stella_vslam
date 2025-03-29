@@ -7,7 +7,7 @@
 #include "stella_vslam/data/camera_database.h"
 #include "stella_vslam/data/common.h"
 #include "stella_vslam/data/frame_observation.h"
-#include "stella_vslam/data/orb_params_database.h"
+#include "stella_vslam/data/params_database.h"
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/data/bow_database.h"
 #include "stella_vslam/data/bow_vocabulary.h"
@@ -20,7 +20,9 @@
 #include "stella_vslam/marker_detector/aruconano.h"
 #endif // USE_ARUCO_NANO
 #include "stella_vslam/match/stereo.h"
-#include "stella_vslam/feature/orb_extractor.h"
+#include "stella_vslam/feature/extractor.h"
+#include "stella_vslam/feature/extractor_factory.h"
+#include "stella_vslam/feature/params_factory.h"
 #include "stella_vslam/io/trajectory_io.h"
 #include "stella_vslam/io/map_database_io_factory.h"
 #include "stella_vslam/publish/map_publisher.h"
@@ -52,8 +54,8 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     const auto system_params = util::yaml_optional_ref(cfg->yaml_node_, "System");
 
     camera_ = camera::camera_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Camera"));
-    orb_params_ = new feature::orb_params(util::yaml_optional_ref(cfg->yaml_node_, "Feature"));
-    spdlog::info("load orb_params \"{}\"", orb_params_->name_);
+    params_ = feature::params_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Feature"));
+    spdlog::info("load params \"{}\"", params_->name_);
 
     // database
     cam_db_ = new data::camera_database();
@@ -62,8 +64,8 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     if (bow_vocab_) {
         bow_db_ = new data::bow_database(bow_vocab_);
     }
-    orb_params_db_ = new data::orb_params_database();
-    orb_params_db_->add_orb_params(orb_params_);
+    params_db_ = new data::params_database();
+    params_db_->add_params(params_);
 
     // frame and map publisher
     frame_publisher_ = std::shared_ptr<publish::frame_publisher>(new publish::frame_publisher(cfg_, map_db_));
@@ -90,14 +92,9 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
             throw std::runtime_error("depthmap_factor must be greater than 0");
         }
     }
-    auto mask_rectangles = util::get_rectangles(preprocessing_params["mask_rectangles"]);
-
-    const auto min_size = preprocessing_params["min_size"].as<unsigned int>(800);
-    const auto desc_type_str = preprocessing_params["descriptor_type"].as<std::string>("ORB");
-    const auto desc_type = feature::descriptor_type_from_string(desc_type_str);
-    extractor_left_ = new feature::orb_extractor(orb_params_, min_size, desc_type, mask_rectangles);
+    extractor_left_ = feature::extractor_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Feature"), params_);
     if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
-        extractor_right_ = new feature::orb_extractor(orb_params_, min_size, desc_type, mask_rectangles);
+        extractor_right_ = feature::extractor_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Feature"), params_);;
     }
 
     num_grid_cols_ = preprocessing_params["num_grid_cols"].as<unsigned int>(64);
@@ -168,8 +165,8 @@ system::~system() {
     delete marker_detector_;
     marker_detector_ = nullptr;
 
-    delete orb_params_db_;
-    orb_params_db_ = nullptr;
+    delete params_db_;
+    params_db_ = nullptr;
 
     spdlog::debug("DESTRUCT: system");
 }
@@ -250,7 +247,7 @@ void system::save_keyframe_trajectory(const std::string& path, const std::string
 bool system::load_map_database(const std::string& path) const {
     pause_other_threads();
     spdlog::debug("load_map_database: {}", path);
-    bool ok = map_database_io_->load(path, cam_db_, orb_params_db_, map_db_, bow_db_, bow_vocab_);
+    bool ok = map_database_io_->load(path, cam_db_, params_db_, map_db_, bow_db_, bow_vocab_);
     auto keyfrms = map_db_->get_all_keyframes();
 
     for (const auto& keyfrm : keyfrms) {
@@ -292,7 +289,7 @@ bool system::load_map_database(const std::string& path) const {
 bool system::save_map_database(const std::string& path) const {
     pause_other_threads();
     spdlog::debug("save_map_database: {}", path);
-    bool ok = map_database_io_->save(path, cam_db_, orb_params_db_, map_db_);
+    bool ok = map_database_io_->save(path, cam_db_, params_db_, map_db_);
     resume_other_threads();
     return ok;
 }
@@ -400,7 +397,7 @@ data::frame system::create_monocular_frame(const cv::Mat& img, const double time
         marker_detector_->detect(img_gray, markers_2d);
     }
 
-    return data::frame(next_frame_id_++, timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    return data::frame(next_frame_id_++, timestamp, camera_, params_, frm_obs, std::move(markers_2d));
 }
 
 data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& right_img, const double timestamp, const cv::Mat& mask) {
@@ -442,7 +439,7 @@ data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& 
     // Estimate depth with stereo match
     match::stereo stereo_matcher(extractor_left_->image_pyramid_, extractor_right_->image_pyramid_,
                                  keypts_, keypts_right, frm_obs.descriptors_, descriptors_right,
-                                 orb_params_->scale_factors_, orb_params_->inv_scale_factors_,
+                                 params_->scale_factors_, params_->inv_scale_factors_,
                                  camera_->focal_x_baseline_, camera_->true_baseline_);
     stereo_matcher.compute(frm_obs.stereo_x_right_, frm_obs.depths_);
 
@@ -461,7 +458,7 @@ data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& 
         marker_detector_->detect(img_gray, markers_2d);
     }
 
-    return data::frame(next_frame_id_++, timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    return data::frame(next_frame_id_++, timestamp, camera_, params_, frm_obs, std::move(markers_2d));
 }
 
 data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& depthmap, const double timestamp, const cv::Mat& mask) {
@@ -526,7 +523,7 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
         marker_detector_->detect(img_gray, markers_2d);
     }
 
-    return data::frame(next_frame_id_++, timestamp, camera_, orb_params_, frm_obs, std::move(markers_2d));
+    return data::frame(next_frame_id_++, timestamp, camera_, params_, frm_obs, std::move(markers_2d));
 }
 
 std::shared_ptr<Mat44_t> system::feed_monocular_frame(const cv::Mat& img, const double timestamp, const cv::Mat& mask) {

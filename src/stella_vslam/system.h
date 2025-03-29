@@ -27,14 +27,14 @@ class base;
 namespace data {
 class frame;
 class camera_database;
-class orb_params_database;
+class params_database;
 class map_database;
 class bow_database;
 } // namespace data
 
 namespace feature {
-class orb_extractor;
-struct orb_params;
+class extractor;
+struct params;
 } // namespace feature
 
 namespace marker_detector {
@@ -209,10 +209,10 @@ private:
     data::camera_database* cam_db_ = nullptr;
 
     //! parameters for orb feature extraction
-    feature::orb_params* orb_params_ = nullptr;
+    feature::params* params_ = nullptr;
 
-    //! orb_params database
-    data::orb_params_database* orb_params_db_ = nullptr;
+    //! params database
+    data::params_database* params_db_ = nullptr;
 
     //! map database
     data::map_database* map_db_ = nullptr;
@@ -241,11 +241,11 @@ private:
 
     // ORB extractors
     //! ORB extractor for left/monocular image
-    feature::orb_extractor* extractor_left_ = nullptr;
+    feature::extractor* extractor_left_ = nullptr;
     //! ORB extractor for right image
-    feature::orb_extractor* extractor_right_ = nullptr;
+    feature::extractor* extractor_right_ = nullptr;
     //! ORB extractor only when used in initializing
-    feature::orb_extractor* ini_extractor_left_ = nullptr;
+    feature::extractor* ini_extractor_left_ = nullptr;
 
     //! number of columns of grid to accelerate reprojection matching
     unsigned int num_grid_cols_ = 64;

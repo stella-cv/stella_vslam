@@ -33,7 +33,7 @@ public:
      */
     bool save(const std::string& path,
               const data::camera_database* const cam_db,
-              const data::orb_params_database* const orb_params_db,
+              const data::params_database* const params_db,
               const data::map_database* const map_db) override;
 
     /**
@@ -41,7 +41,7 @@ public:
      */
     bool load(const std::string& path,
               data::camera_database* cam_db,
-              data::orb_params_database* orb_params_db,
+              data::params_database* params_db,
               data::map_database* map_db,
               data::bow_database* bow_db,
               data::bow_vocabulary* bow_vocab) override;

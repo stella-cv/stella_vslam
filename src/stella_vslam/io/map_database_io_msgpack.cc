@@ -2,7 +2,7 @@
 #include "stella_vslam/data/keyframe.h"
 #include "stella_vslam/data/landmark.h"
 #include "stella_vslam/data/camera_database.h"
-#include "stella_vslam/data/orb_params_database.h"
+#include "stella_vslam/data/params_database.h"
 #include "stella_vslam/data/bow_database.h"
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/io/map_database_io_msgpack.h"
@@ -17,19 +17,19 @@ namespace io {
 
 bool map_database_io_msgpack::save(const std::string& path,
                                    const data::camera_database* const cam_db,
-                                   const data::orb_params_database* const orb_params_db,
+                                   const data::params_database* const params_db,
                                    const data::map_database* const map_db) {
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
 
-    assert(cam_db && orb_params_db && map_db);
+    assert(cam_db && params_db && map_db);
     const auto cameras = cam_db->to_json();
-    const auto orb_params = orb_params_db->to_json();
+    const auto params = params_db->to_json();
     nlohmann::json keyfrms;
     nlohmann::json landmarks;
     map_db->to_json(keyfrms, landmarks);
 
     nlohmann::json json{{"cameras", cameras},
-                        {"orb_params", orb_params},
+                        {"params", params},
                         {"keyframes", keyfrms},
                         {"landmarks", landmarks},
                         {"keyframe_next_id", static_cast<unsigned int>(map_db->next_keyframe_id_)},
@@ -52,12 +52,12 @@ bool map_database_io_msgpack::save(const std::string& path,
 
 bool map_database_io_msgpack::load(const std::string& path,
                                    data::camera_database* cam_db,
-                                   data::orb_params_database* orb_params_db,
+                                   data::params_database* params_db,
                                    data::map_database* map_db,
                                    data::bow_database* bow_db,
                                    data::bow_vocabulary* bow_vocab) {
     std::lock_guard<std::mutex> lock(data::map_database::mtx_database_);
-    assert(cam_db && orb_params_db && map_db && bow_db && bow_vocab);
+    assert(cam_db && params_db && map_db && bow_db && bow_vocab);
 
     // load binary bytes
 
@@ -86,11 +86,11 @@ bool map_database_io_msgpack::load(const std::string& path,
     // load database
     const auto json_cameras = json.at("cameras");
     cam_db->from_json(json_cameras);
-    const auto json_orb_params = json.at("orb_params");
-    orb_params_db->from_json(json_orb_params);
+    const auto json_params = json.at("params");
+    params_db->from_json(json_params);
     const auto json_keyfrms = json.at("keyframes");
     const auto json_landmarks = json.at("landmarks");
-    map_db->from_json(cam_db, orb_params_db, bow_vocab, json_keyfrms, json_landmarks);
+    map_db->from_json(cam_db, params_db, bow_vocab, json_keyfrms, json_landmarks);
     // load next ID
     map_db->next_keyframe_id_ += json.at("keyframe_next_id").get<unsigned int>();
     map_db->next_landmark_id_ += json.at("landmark_next_id").get<unsigned int>();

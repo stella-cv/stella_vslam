@@ -12,7 +12,7 @@ two_view_triangulator::two_view_triangulator(const std::shared_ptr<data::keyfram
       cam_pose_1w_(keyfrm_1->get_pose_cw()), cam_center_1_(keyfrm_1->get_trans_wc()), camera_1_(keyfrm_1->camera_),
       rot_2w_(keyfrm_2->get_rot_cw()), rot_w2_(rot_2w_.transpose()), trans_2w_(keyfrm_2->get_trans_cw()),
       cam_pose_2w_(keyfrm_2->get_pose_cw()), cam_center_2_(keyfrm_2->get_trans_wc()), camera_2_(keyfrm_2->camera_),
-      ratio_factor_(2.0f * std::max(keyfrm_1->orb_params_->scale_factor_, keyfrm_2->orb_params_->scale_factor_)),
+      ratio_factor_(2.0f * std::max(keyfrm_1->params_->scale_factor_, keyfrm_2->params_->scale_factor_)),
       cos_rays_parallax_thr_(std::cos(rays_parallax_deg_thr * M_PI / 180.0)) {}
 
 bool two_view_triangulator::triangulate(const unsigned idx_1, const unsigned int idx_2, Vec3_t& pos_w) const {
@@ -73,16 +73,16 @@ bool two_view_triangulator::triangulate(const unsigned idx_1, const unsigned int
 
     // reject the point if reprojection errors are larger than reasonable threshold
     if (!check_reprojection_error(pos_w, rot_1w_, trans_1w_, camera_1_, keypt_1.pt, keypt_1_x_right,
-                                  keyfrm_1_->orb_params_->level_sigma_sq_.at(keypt_1.octave), is_stereo_1)
+                                  keyfrm_1_->params_->level_sigma_sq_.at(keypt_1.octave), is_stereo_1)
         || !check_reprojection_error(pos_w, rot_2w_, trans_2w_, camera_2_, keypt_2.pt, keypt_2_x_right,
-                                     keyfrm_2_->orb_params_->level_sigma_sq_.at(keypt_2.octave), is_stereo_2)) {
+                                     keyfrm_2_->params_->level_sigma_sq_.at(keypt_2.octave), is_stereo_2)) {
         return false;
     }
 
     // reject the point if the real scale factor and the predicted one are much different
     if (!check_scale_factors(pos_w,
-                             keyfrm_1_->orb_params_->scale_factors_.at(keypt_1.octave),
-                             keyfrm_2_->orb_params_->scale_factors_.at(keypt_2.octave))) {
+                             keyfrm_1_->params_->scale_factors_.at(keypt_1.octave),
+                             keyfrm_2_->params_->scale_factors_.at(keypt_2.octave))) {
         return false;
     }
 

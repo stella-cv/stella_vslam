@@ -18,7 +18,7 @@ class base;
 } // namespace camera
 
 namespace feature {
-struct orb_params;
+struct params;
 } // namespace feature
 
 namespace optimize {
@@ -50,7 +50,7 @@ public:
     unsigned int optimize(const data::keyframe* keyfrm, Mat44_t& optimized_pose, std::vector<bool>& outlier_flags) const override;
 
     unsigned int optimize(const Mat44_t& cam_pose_cw, const data::frame_observation& frm_obs,
-                          const feature::orb_params* orb_params,
+                          const feature::params* params,
                           const camera::base* camera,
                           const std::vector<std::shared_ptr<data::landmark>>& landmarks,
                           Mat44_t& optimized_pose,

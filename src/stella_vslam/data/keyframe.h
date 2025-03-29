@@ -3,7 +3,7 @@
 
 #include "stella_vslam/type.h"
 #include "stella_vslam/camera/base.h"
-#include "stella_vslam/feature/orb_params.h"
+#include "stella_vslam/feature/params.h"
 #include "stella_vslam/data/graph_node.h"
 #include "stella_vslam/data/bow_vocabulary.h"
 #include "stella_vslam/data/frame_observation.h"
@@ -33,7 +33,7 @@ class marker2d;
 class map_database;
 class bow_database;
 class camera_database;
-class orb_params_database;
+class params_database;
 
 class keyframe : public std::enable_shared_from_this<keyframe> {
 public:
@@ -50,7 +50,7 @@ public:
      */
     keyframe(const unsigned int id,
              const double timestamp, const Mat44_t& pose_cw, camera::base* camera,
-             const feature::orb_params* orb_params, const frame_observation& frm_obs,
+             const feature::params* params, const frame_observation& frm_obs,
              const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec,
              std::unordered_map<unsigned int, marker2d> markers_2d = {});
     virtual ~keyframe();
@@ -60,12 +60,12 @@ public:
     static std::shared_ptr<keyframe> make_keyframe(
         const unsigned int id,
         const double timestamp, const Mat44_t& pose_cw, camera::base* camera,
-        const feature::orb_params* orb_params, const frame_observation& frm_obs,
+        const feature::params* params, const frame_observation& frm_obs,
         const bow_vector& bow_vec, const bow_feature_vector& bow_feat_vec,
         std::unordered_map<unsigned int, marker2d> markers_2d = {});
     static std::shared_ptr<keyframe> from_stmt(sqlite3_stmt* stmt,
                                                camera_database* cam_db,
-                                               orb_params_database* orb_params_db,
+                                               params_database* params_db,
                                                bow_vocabulary* bow_vocab,
                                                unsigned int next_keyframe_id);
 
@@ -90,7 +90,7 @@ public:
             {"src_frm_id", "INTEGER"}, // removed
             {"ts", "REAL"},
             {"cam", "BLOB"},
-            {"orb_params", "BLOB"},
+            {"params", "BLOB"},
             {"pose_cw", "BLOB"},
             {"n_keypts", "INTEGER"},
             {"undist_keypts", "BLOB"},
@@ -268,7 +268,7 @@ public:
     // feature extraction parameters
 
     //! ORB feature extraction model
-    const feature::orb_params* orb_params_;
+    const feature::params* params_;
 
     //-----------------------------------------
     // constant observations

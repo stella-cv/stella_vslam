@@ -275,11 +275,11 @@ void landmark::compute_orb_scale_variance(const observations_t& observations,
     assert(!observations.empty());
     const auto idx = observations.at(ref_keyfrm);
     const auto scale_level = ref_keyfrm->frm_obs_.undist_keypts_.at(idx).octave;
-    const auto scale_factor = ref_keyfrm->orb_params_->scale_factors_.at(scale_level);
-    const auto num_scale_levels = ref_keyfrm->orb_params_->num_levels_;
+    const auto scale_factor = ref_keyfrm->params_->scale_factors_.at(scale_level);
+    const auto num_scale_levels = ref_keyfrm->params_->num_levels_;
 
     max_valid_dist = dist_ref_keyfrm_to_lm * scale_factor;
-    min_valid_dist = max_valid_dist * ref_keyfrm->orb_params_->inv_scale_factors_.at(num_scale_levels - 1);
+    min_valid_dist = max_valid_dist * ref_keyfrm->params_->inv_scale_factors_.at(num_scale_levels - 1);
 }
 
 void landmark::update_mean_normal_and_obs_scale_variance() {

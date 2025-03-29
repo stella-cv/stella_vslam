@@ -31,9 +31,9 @@ unsigned int projection::match_frame_and_landmarks(data::frame& frm,
         Vec2_t reproj = lm_to_reproj.at(local_lm->id_);
         const auto pred_scale_level = lm_to_scale.at(local_lm->id_);
         const int min_level = std::max(0, static_cast<int>(pred_scale_level) - 1);
-        const int max_level = std::min(frm.orb_params_->num_levels_ - 1, pred_scale_level + 1);
+        const int max_level = std::min(frm.params_->num_levels_ - 1, pred_scale_level + 1);
         const auto indices_in_cell = frm.get_keypoints_in_cell(reproj(0), reproj(1),
-                                                               margin * frm.orb_params_->scale_factors_.at(pred_scale_level),
+                                                               margin * frm.params_->scale_factors_.at(pred_scale_level),
                                                                min_level, max_level);
         if (indices_in_cell.empty()) {
             continue;
@@ -55,7 +55,7 @@ unsigned int projection::match_frame_and_landmarks(data::frame& frm,
 
             if (!frm.frm_obs_.stereo_x_right_.empty() && 0 < frm.frm_obs_.stereo_x_right_.at(idx)) {
                 const auto reproj_error = std::abs(lm_to_x_right.at(local_lm->id_) - frm.frm_obs_.stereo_x_right_.at(idx));
-                if (margin * frm.orb_params_->scale_factors_.at(pred_scale_level) < reproj_error) {
+                if (margin * frm.params_->scale_factors_.at(pred_scale_level) < reproj_error) {
                     continue;
                 }
             }
@@ -145,7 +145,7 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
         int max_level;
         if (assume_forward) {
             min_level = last_scale_level;
-            max_level = std::min(last_frm.orb_params_->num_levels_ - 1, last_scale_level + 1);
+            max_level = std::min(last_frm.params_->num_levels_ - 1, last_scale_level + 1);
         }
         else if (assume_backward) {
             min_level = std::max(0, static_cast<int>(last_scale_level) - 1);
@@ -153,10 +153,10 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
         }
         else {
             min_level = std::max(0, static_cast<int>(last_scale_level) - 1);
-            max_level = std::min(last_frm.orb_params_->num_levels_ - 1, last_scale_level + 1);
+            max_level = std::min(last_frm.params_->num_levels_ - 1, last_scale_level + 1);
         }
         auto indices = curr_frm.get_keypoints_in_cell(reproj(0), reproj(1),
-                                                      margin * curr_frm.orb_params_->scale_factors_.at(last_scale_level),
+                                                      margin * curr_frm.params_->scale_factors_.at(last_scale_level),
                                                       min_level, max_level);
         if (indices.empty()) {
             continue;
@@ -175,7 +175,7 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
 
             if (!curr_frm.frm_obs_.stereo_x_right_.empty() && curr_frm.frm_obs_.stereo_x_right_.at(curr_idx) > 0) {
                 const float reproj_error = std::fabs(x_right - curr_frm.frm_obs_.stereo_x_right_.at(curr_idx));
-                if (margin * curr_frm.orb_params_->scale_factors_.at(last_scale_level) < reproj_error) {
+                if (margin * curr_frm.params_->scale_factors_.at(last_scale_level) < reproj_error) {
                     continue;
                 }
             }
@@ -209,7 +209,7 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
 unsigned int projection::match_frame_and_keyframe(data::frame& curr_frm, const std::shared_ptr<data::keyframe>& keyfrm, const std::set<std::shared_ptr<data::landmark>>& already_matched_lms,
                                                   const float margin, const unsigned int hamm_dist_thr) const {
     auto lms = curr_frm.get_landmarks();
-    auto num_matches = match_frame_and_keyframe(curr_frm.get_pose_cw(), curr_frm.camera_, curr_frm.frm_obs_, curr_frm.orb_params_, lms, keyfrm, already_matched_lms, margin, hamm_dist_thr);
+    auto num_matches = match_frame_and_keyframe(curr_frm.get_pose_cw(), curr_frm.camera_, curr_frm.frm_obs_, curr_frm.params_, lms, keyfrm, already_matched_lms, margin, hamm_dist_thr);
     curr_frm.set_landmarks(lms);
     return num_matches;
 }
@@ -217,7 +217,7 @@ unsigned int projection::match_frame_and_keyframe(data::frame& curr_frm, const s
 unsigned int projection::match_frame_and_keyframe(const Mat44_t& cam_pose_cw,
                                                   const camera::base* camera,
                                                   const data::frame_observation& frm_obs,
-                                                  const feature::orb_params* orb_params,
+                                                  const feature::params* params,
                                                   std::vector<std::shared_ptr<data::landmark>>& frm_landmarks,
                                                   const std::shared_ptr<data::keyframe>& keyfrm,
                                                   const std::set<std::shared_ptr<data::landmark>>& already_matched_lms,
@@ -271,11 +271,11 @@ unsigned int projection::match_frame_and_keyframe(const Mat44_t& cam_pose_cw,
         }
 
         // Acquire keypoints in the cell where the reprojected 3D points exist
-        const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, orb_params->num_levels_, orb_params->log_scale_factor_);
+        const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, params->num_levels_, params->log_scale_factor_);
         const int min_level = std::max(0, static_cast<int>(pred_scale_level) - 1);
-        const int max_level = std::min(orb_params->num_levels_ - 1, pred_scale_level + 1);
+        const int max_level = std::min(params->num_levels_ - 1, pred_scale_level + 1);
         const auto indices = data::get_keypoints_in_cell(camera, frm_obs, reproj(0), reproj(1),
-                                                         margin * orb_params->scale_factors_.at(pred_scale_level),
+                                                         margin * params->scale_factors_.at(pred_scale_level),
                                                          min_level, max_level);
 
         if (indices.empty()) {
@@ -374,10 +374,10 @@ unsigned int projection::match_by_Sim3_transform(const std::shared_ptr<data::key
         }
 
         // Acquire keypoints in the cell where the reprojected 3D points exist
-        const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm->orb_params_->num_levels_, keyfrm->orb_params_->log_scale_factor_);
+        const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm->params_->num_levels_, keyfrm->params_->log_scale_factor_);
         const int min_level = std::max(0, static_cast<int>(pred_scale_level) - 1);
-        const int max_level = std::min(keyfrm->orb_params_->num_levels_ - 1, pred_scale_level + 1);
-        const auto indices = keyfrm->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm->orb_params_->scale_factors_.at(pred_scale_level), min_level, max_level);
+        const int max_level = std::min(keyfrm->params_->num_levels_ - 1, pred_scale_level + 1);
+        const auto indices = keyfrm->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm->params_->scale_factors_.at(pred_scale_level), min_level, max_level);
 
         if (indices.empty()) {
             continue;
@@ -499,10 +499,10 @@ unsigned int projection::match_keyframes_mutually(const std::shared_ptr<data::ke
             }
 
             // Acquire keypoints in the cell where the reprojected 3D points exist
-            const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm_2->orb_params_->num_levels_, keyfrm_2->orb_params_->log_scale_factor_);
+            const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm_2->params_->num_levels_, keyfrm_2->params_->log_scale_factor_);
             const int min_level = std::max(0, static_cast<int>(pred_scale_level) - 1);
-            const int max_level = std::min(keyfrm_2->orb_params_->num_levels_ - 1, pred_scale_level + 1);
-            const auto indices = keyfrm_2->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm_2->orb_params_->scale_factors_.at(pred_scale_level), min_level, max_level);
+            const int max_level = std::min(keyfrm_2->params_->num_levels_ - 1, pred_scale_level + 1);
+            const auto indices = keyfrm_2->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm_2->params_->scale_factors_.at(pred_scale_level), min_level, max_level);
 
             if (indices.empty()) {
                 continue;
@@ -578,10 +578,10 @@ unsigned int projection::match_keyframes_mutually(const std::shared_ptr<data::ke
             }
 
             // Acquire keypoints in the cell where the reprojected 3D points exist
-            const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm_1->orb_params_->num_levels_, keyfrm_1->orb_params_->log_scale_factor_);
+            const auto pred_scale_level = lm->predict_scale_level(cam_to_lm_dist, keyfrm_1->params_->num_levels_, keyfrm_1->params_->log_scale_factor_);
             const int min_level = std::max(0, static_cast<int>(pred_scale_level) - 1);
-            const int max_level = std::min(keyfrm_1->orb_params_->num_levels_ - 1, pred_scale_level + 1);
-            const auto indices = keyfrm_1->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm_1->orb_params_->scale_factors_.at(pred_scale_level), min_level, max_level);
+            const int max_level = std::min(keyfrm_1->params_->num_levels_ - 1, pred_scale_level + 1);
+            const auto indices = keyfrm_1->get_keypoints_in_cell(reproj(0), reproj(1), margin * keyfrm_1->params_->scale_factors_.at(pred_scale_level), min_level, max_level);
 
             if (indices.empty()) {
                 continue;
