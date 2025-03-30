@@ -13,12 +13,13 @@ struct orb_params : public params {
     orb_params() = delete;
 
     //! Constructor
-    orb_params(const std::string& name, const float scale_factor, const unsigned int num_levels,
+    orb_params(const std::string& name, const std::string& type, const float scale_factor, const unsigned int num_levels,
                const unsigned int ini_fast_thr, const unsigned int min_fast_thr);
     orb_params(const std::string& name);
 
     //! Constructor
     explicit orb_params(const YAML::Node& yaml_node);
+    explicit orb_params(const nlohmann::json& json_obj);
 
     //! Destructor
     virtual ~orb_params() = default;

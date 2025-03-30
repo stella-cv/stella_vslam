@@ -6,13 +6,14 @@
 namespace stella_vslam {
 namespace feature {
 struct params {
-    params(const std::string& name, const float scale_factor, const unsigned int num_levels);
-    params(const std::string& name, const float scale_factor, const unsigned int num_levels,
+    params(const std::string& name, const std::string& type, const float scale_factor, const unsigned int num_levels);
+    params(const std::string& name, const std::string& type, const float scale_factor, const unsigned int num_levels,
            const unsigned int ini_fast_thr, const unsigned int min_fast_thr);
     virtual ~params() = default;
 
     //! name (id for saving)
     const std::string name_;
+    const std::string type_;
 
     const float scale_factor_ = default_scale_factor;
     const float log_scale_factor_ = default_log_scale_factor;
@@ -40,7 +41,7 @@ struct params {
     //! Calculate inverses of squared sigmas at all levels
     static std::vector<float> calc_inv_level_sigma_sq(const unsigned int num_scale_levels, const float scale_factor);
 
-    virtual nlohmann::json to_json() const;
+    virtual nlohmann::json to_json() const = 0;
 };
 } // namespace feature
 } // namespace stella_vslam

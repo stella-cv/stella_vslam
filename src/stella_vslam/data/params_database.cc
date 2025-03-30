@@ -1,5 +1,6 @@
 #include "stella_vslam/data/params_database.h"
 #include "stella_vslam/feature/params.h"
+#include "stella_vslam/feature/params_factory.h"
 
 #include <spdlog/spdlog.h>
 #include <nlohmann/json.hpp>
@@ -64,11 +65,7 @@ void params_database::from_json(const nlohmann::json& json_params) {
         // This params is used for keyframes on the database.
         spdlog::info("load a params \"{}\" from JSON", params_name);
 
-        auto params = new feature::params(params_name,
-                                                  json_params.at("scale_factor").get<float>(),
-                                                  json_params.at("num_levels").get<unsigned int>(),
-                                                  json_params.at("ini_fast_threshold").get<unsigned int>(),
-                                                  json_params.at("min_fast_threshold").get<unsigned int>());
+        auto params = feature::params_factory::create(json_params);
         assert(!params_database_.count(params_name));
         params_database_[params_name] = params;
     }

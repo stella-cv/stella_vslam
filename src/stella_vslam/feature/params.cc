@@ -3,13 +3,13 @@
 namespace stella_vslam {
 namespace feature {
 
-params::params(const std::string& name, const float scale_factor, const unsigned int num_levels)
-    : name_(name), scale_factor_(scale_factor), log_scale_factor_(std::log(scale_factor)),
+params::params(const std::string& name, const std::string& type, const float scale_factor, const unsigned int num_levels)
+    : name_(name), type_(type), scale_factor_(scale_factor), log_scale_factor_(std::log(scale_factor)),
       num_levels_(num_levels) {}
 
-params::params(const std::string& name, const float scale_factor, const unsigned int num_levels,
+params::params(const std::string& name, const std::string& type, const float scale_factor, const unsigned int num_levels,
                const unsigned int ini_fast_thr, const unsigned int min_fast_thr)
-    : name_(name), scale_factor_(scale_factor), log_scale_factor_(std::log(scale_factor)),
+    : name_(name), type_(type), scale_factor_(scale_factor), log_scale_factor_(std::log(scale_factor)),
       num_levels_(num_levels), ini_fast_thr_(ini_fast_thr), min_fast_thr_(min_fast_thr) {}
 
 std::vector<float> params::calc_scale_factors(const unsigned int num_scale_levels, const float scale_factor) {

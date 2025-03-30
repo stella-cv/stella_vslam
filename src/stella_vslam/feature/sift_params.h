@@ -11,8 +11,9 @@ namespace feature {
 struct sift_params : public params {
     sift_params() = delete;
 
-    sift_params(std::string name, float scale_factor, unsigned int num_levels, unsigned int num_sublevels, double threshold, double edge_threshold);
+    sift_params(const std::string& name, const std::string& type, const float scale_factor, const unsigned int num_levels, const unsigned int num_sublevels, const double threshold, const double edge_threshold);
     sift_params(const YAML::Node& yaml_node);
+    sift_params(const nlohmann::json& json_obj);
 
     ~sift_params() = default;
 

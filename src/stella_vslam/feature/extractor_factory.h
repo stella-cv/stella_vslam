@@ -14,13 +14,12 @@ namespace stella_vslam {
 namespace feature {
 class extractor_factory {
 public:
-    static extractor* create(const YAML::Node& node, const params* params) {
-        const auto feature_type = load_feature_type(node);
+    static extractor* create(const params* params, const YAML::Node& preprocessing_params) {
+        const auto feature_type = load_feature_type(params->type_);
         extractor* extractor = nullptr;
         try {
             switch (feature_type) {
                 case feature_types::ORB: {
-                    const auto preprocessing_params = node["Preprocessing"];
                     auto mask_rectangles = util::get_rectangles(preprocessing_params["mask_rectangles"]);
 
                     const auto min_size = preprocessing_params["min_size"].as<unsigned int>(800);

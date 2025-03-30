@@ -6,15 +6,16 @@
 #include <array>
 #include <algorithm>
 #include <numeric>
+#include <iostream>
 
 #include <opencv2/core/mat.hpp>
 
 namespace stella_vslam {
 namespace match {
 
-static constexpr unsigned int HAMMING_DIST_THR_LOW = 50;
-static constexpr unsigned int HAMMING_DIST_THR_HIGH = 100;
-static constexpr unsigned int MAX_HAMMING_DIST = 256;
+static constexpr unsigned int HAMMING_DIST_THR_LOW = 90;   // 50;
+static constexpr unsigned int HAMMING_DIST_THR_HIGH = 180; // 100;
+static constexpr unsigned int MAX_HAMMING_DIST = 488;      // 256;
 
 //! ORB特徴量間のハミング距離を計算する
 inline unsigned int compute_descriptor_distance_32(const cv::Mat& desc_1, const cv::Mat& desc_2) {
@@ -30,7 +31,9 @@ inline unsigned int compute_descriptor_distance_32(const cv::Mat& desc_1, const 
 
     unsigned int dist = 0;
 
-    for (unsigned int i = 0; i < 8; ++i, ++pa, ++pb) {
+    unsigned int size = desc_1.cols / 4;
+
+    for (unsigned int i = 0; i < size; ++i, ++pa, ++pb) {
         auto v = *pa ^ *pb;
         v -= ((v >> 1) & mask_1);
         v = (v & mask_2) + ((v >> 2) & mask_2);
@@ -54,7 +57,9 @@ inline unsigned int compute_descriptor_distance_64(const cv::Mat& desc_1, const 
 
     unsigned int dist = 0;
 
-    for (unsigned int i = 0; i < 4; ++i, ++pa, ++pb) {
+    unsigned int size = desc_1.cols / 8;
+
+    for (unsigned int i = 0; i < size; ++i, ++pa, ++pb) {
         auto v = *pa ^ *pb;
         v -= (v >> 1) & mask_1;
         v = (v & mask_2) + ((v >> 2) & mask_2);

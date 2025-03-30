@@ -92,9 +92,9 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
             throw std::runtime_error("depthmap_factor must be greater than 0");
         }
     }
-    extractor_left_ = feature::extractor_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Feature"), params_);
+    extractor_left_ = feature::extractor_factory::create(params_, preprocessing_params);
     if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
-        extractor_right_ = feature::extractor_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Feature"), params_);;
+        extractor_right_ = feature::extractor_factory::create(params_, preprocessing_params);;
     }
 
     num_grid_cols_ = preprocessing_params["num_grid_cols"].as<unsigned int>(64);
