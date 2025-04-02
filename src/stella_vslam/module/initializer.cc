@@ -24,10 +24,11 @@ initializer::initializer(data::map_database* map_db,
       min_num_triangulated_pts_(yaml_node["min_num_triangulated_pts"].as<unsigned int>(50)),
       parallax_deg_thr_(yaml_node["parallax_deg_threshold"].as<float>(1.0)),
       reproj_err_thr_(yaml_node["reprojection_error_threshold"].as<float>(4.0)),
-      num_ba_iters_(yaml_node["num_ba_iterations"].as<unsigned int>(20)),
+      num_ba_iters_(yaml_node["num_ba_iterations"].as<unsigned int>(100)),
       scaling_factor_(yaml_node["scaling_factor"].as<float>(1.0)),
       use_fixed_seed_(yaml_node["use_fixed_seed"].as<bool>(false)),
-      required_keyframes_for_marker_initialization_(yaml_node["required_keyframes_for_marker_initialization"].as<unsigned int>(3)) {
+      gain_threshold_(yaml_node["gain_threshold"].as<float>(1e-5)),
+      verbose_(yaml_node["verbose"].as<bool>(false)) {
     spdlog::debug("CONSTRUCT: module::initializer");
 }
 
@@ -271,17 +272,19 @@ bool initializer::create_map_for_monocular(data::bow_vocabulary* bow_vocab, data
             // Set the association to the new marker
             keyfrm->add_marker(marker);
             marker->observations_.emplace(keyfrm->id_, keyfrm);
-
-            marker_initializer::check_marker_initialization(*marker, required_keyframes_for_marker_initialization_);
         }
     };
     assign_marker_associations(init_keyfrm);
     assign_marker_associations(curr_keyfrm);
 
     // global bundle adjustment
-    const auto global_bundle_adjuster = optimize::global_bundle_adjuster(num_ba_iters_, true);
+    const auto global_bundle_adjuster = optimize::global_bundle_adjuster(num_ba_iters_, true, verbose_);
     std::vector<std::shared_ptr<data::keyframe>> keyfrms{init_keyfrm, curr_keyfrm};
-    global_bundle_adjuster.optimize_for_initialization(keyfrms, lms, markers);
+    if (markers.size() > 0) {
+        // Adjust map scale with reference to marker width.
+        global_bundle_adjuster.optimize_for_initialization(keyfrms, lms, markers, gain_threshold_, true);
+    }
+    global_bundle_adjuster.optimize_for_initialization(keyfrms, lms, markers, gain_threshold_, false);
 
     if (indefinite_scale) {
         // scale the map so that the median of depths is 1.0

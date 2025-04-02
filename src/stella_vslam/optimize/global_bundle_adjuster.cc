@@ -4,7 +4,6 @@
 #include "stella_vslam/data/map_database.h"
 #include "stella_vslam/marker_model/base.h"
 #include "stella_vslam/optimize/global_bundle_adjuster.h"
-#include "stella_vslam/optimize/local_bundle_adjuster_g2o.h"
 #include "stella_vslam/optimize/terminate_action.h"
 #include "stella_vslam/optimize/internal/landmark_vertex_container.h"
 #include "stella_vslam/optimize/internal/marker_vertex_container.h"
@@ -35,6 +34,8 @@ void optimize_impl(g2o::SparseOptimizer& optimizer,
                    std::unordered_set<unsigned int>& mkr_has_vtx,
                    unsigned int num_iter,
                    bool use_huber_kernel,
+                   bool fix_markers,
+                   bool verbose,
                    bool* const force_stop_flag) {
     // 2. Construct an optimizer
 
@@ -137,7 +138,7 @@ void optimize_impl(g2o::SparseOptimizer& optimizer,
 
         // Only optimize if requested, and if enough keyframes were available to
         // initialize it correctly
-        if (!mkr->keep_fixed_ && !mkr->initialized_before_)
+        if (!fix_markers && !mkr->keep_fixed_ && !mkr->initialized_before_)
             continue;
 
         // Indicate that a vertex container will be available, this can be
@@ -146,7 +147,7 @@ void optimize_impl(g2o::SparseOptimizer& optimizer,
         mkr_has_vtx.insert(mkr->id_);
 
         // Convert the corners to the g2o vertex, then set it to the optimizer
-        auto corner_vertices = marker_vtx_container.create_vertices(mkr, mkr->keep_fixed_);
+        auto corner_vertices = marker_vtx_container.create_vertices(mkr, fix_markers || mkr->keep_fixed_);
         for (unsigned int corner_idx = 0; corner_idx < corner_vertices.size(); ++corner_idx) {
             const auto corner_vtx = corner_vertices[corner_idx];
             optimizer.addVertex(corner_vtx);
@@ -168,7 +169,7 @@ void optimize_impl(g2o::SparseOptimizer& optimizer,
                 const float x_right = -1.0;
                 const float inv_sigma_sq = 1.0;
 
-                const auto sqrt_chi_sq = (mkr->keep_fixed_) ? 0.0 : sqrt_chi_sq_2D;
+                const auto sqrt_chi_sq = (fix_markers || mkr->keep_fixed_) ? 0.0 : sqrt_chi_sq_2D;
 
                 auto reproj_edge_wrap = reproj_edge_wrapper(keyfrm, keyfrm_vtx, nullptr, corner_vtx,
                                                             0, undist_pt.x, undist_pt.y, x_right,
@@ -182,6 +183,7 @@ void optimize_impl(g2o::SparseOptimizer& optimizer,
     // 5. Perform optimization
 
     optimizer.initializeOptimization();
+    optimizer.setVerbose(verbose);
     optimizer.optimize(num_iter);
 
     if (force_stop_flag && *force_stop_flag) {
@@ -189,12 +191,19 @@ void optimize_impl(g2o::SparseOptimizer& optimizer,
     }
 }
 
-global_bundle_adjuster::global_bundle_adjuster(const unsigned int num_iter, const bool use_huber_kernel)
-    : num_iter_(num_iter), use_huber_kernel_(use_huber_kernel) {}
+global_bundle_adjuster::global_bundle_adjuster(
+    const unsigned int num_iter,
+    const bool use_huber_kernel,
+    const bool verbose)
+    : num_iter_(num_iter),
+      use_huber_kernel_(use_huber_kernel),
+      verbose_(verbose) {}
 
 void global_bundle_adjuster::optimize_for_initialization(const std::vector<std::shared_ptr<data::keyframe>>& keyfrms,
                                                          const std::vector<std::shared_ptr<data::landmark>>& lms,
                                                          const std::vector<std::shared_ptr<data::marker>>& markers,
+                                                         float gain_threshold,
+                                                         bool fix_markers,
                                                          bool* const force_stop_flag) const {
     std::vector<bool> is_optimized_lm(lms.size(), true);
 
@@ -205,12 +214,15 @@ void global_bundle_adjuster::optimize_for_initialization(const std::vector<std::
     internal::landmark_vertex_container lm_vtx_container(vtx_id_offset, lms.size());
     // Container of the landmark vertices
     internal::marker_vertex_container marker_vtx_container(vtx_id_offset, markers.size());
-    std::unordered_set<unsigned int> mkr_has_vtx; // Not really used here, we're not updating markers in this function
+    std::unordered_set<unsigned int> mkr_has_vtx;
 
     g2o::SparseOptimizer optimizer;
+    auto terminateAction = new terminate_action;
+    terminateAction->setGainThreshold(gain_threshold);
+    optimizer.addPostIterationAction(terminateAction);
 
     optimize_impl(optimizer, keyfrms, lms, markers, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, marker_vtx_container,
-                  mkr_has_vtx, num_iter_, use_huber_kernel_, force_stop_flag);
+                  mkr_has_vtx, num_iter_, use_huber_kernel_, fix_markers, verbose_, force_stop_flag);
 
     if (force_stop_flag && *force_stop_flag) {
         return;
@@ -246,6 +258,21 @@ void global_bundle_adjuster::optimize_for_initialization(const std::vector<std::
 
         lm->set_pos_in_world(pos_w);
         lm->update_mean_normal_and_obs_scale_variance();
+    }
+
+    for (auto& mkr : markers) {
+        if (fix_markers || mkr->keep_fixed_) // No need to update
+            continue;
+        if (!mkr->initialized_before_)
+            continue;
+        // It's possible that initialized_before_ got changed since it was
+        // checked the last time, this actually tests if a vtx was made
+        if (mkr_has_vtx.find(mkr->id_) == mkr_has_vtx.end())
+            continue;
+
+        for (size_t corner_idx = 0; corner_idx < 4; corner_idx++) {
+            mkr->corners_pos_w_[corner_idx] = marker_vtx_container.get_vertex(mkr, corner_idx)->estimate();
+        }
     }
 }
 
@@ -309,7 +336,7 @@ bool global_bundle_adjuster::optimize(const std::vector<std::shared_ptr<data::ke
     optimizer.addPostIterationAction(terminateAction);
 
     optimize_impl(optimizer, keyfrms, lms, markers, is_optimized_lm, keyfrm_vtx_container, lm_vtx_container, marker_vtx_container,
-                  mkr_has_vtx, num_iter_, use_huber_kernel_, force_stop_flag);
+                  mkr_has_vtx, num_iter_, use_huber_kernel_, false, verbose_, force_stop_flag);
 
     if (force_stop_flag && *force_stop_flag && !terminateAction->stopped_by_terminate_action_) {
         return false;
@@ -362,15 +389,16 @@ bool global_bundle_adjuster::optimize(const std::vector<std::shared_ptr<data::ke
 
         bool changed = false;
         std::array<Vec3_t, 4> new_pos_corners;
-        for (size_t c = 0; c < 4; c++) {
-            auto orig_pos = mkr->corners_pos_w_[c];
-            auto vtx = marker_vtx_container.get_vertex(mkr, c);
+        for (size_t corner_idx = 0; corner_idx < 4; corner_idx++) {
+            auto orig_pos = mkr->corners_pos_w_[corner_idx];
+            auto vtx = marker_vtx_container.get_vertex(mkr, corner_idx);
             auto new_pos = vtx->estimate();
 
-            if (orig_pos != new_pos)
+            if (orig_pos != new_pos) {
                 changed = true;
+            }
 
-            new_pos_corners[c] = new_pos;
+            new_pos_corners[corner_idx] = new_pos;
         }
 
         if (!changed)
