@@ -3,12 +3,14 @@
 
 #include "stella_vslam/feature/extractor.h"
 #include "stella_vslam/feature/akaze_params.h"
+#include <opencv2/features2d.hpp>
 
 namespace stella_vslam {
 namespace feature {
 class akaze_extractor : public extractor {
 private:
     const akaze_params* params_;
+    cv::KAZE::DiffusivityType get_diffusivity(std::string diffusity);
 
 public:
     akaze_extractor() = delete;

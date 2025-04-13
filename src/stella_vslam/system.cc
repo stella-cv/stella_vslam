@@ -94,7 +94,7 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     }
     extractor_left_ = feature::extractor_factory::create(params_, preprocessing_params);
     if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
-        extractor_right_ = feature::extractor_factory::create(params_, preprocessing_params);;
+        extractor_right_ = feature::extractor_factory::create(params_, preprocessing_params);
     }
 
     num_grid_cols_ = preprocessing_params["num_grid_cols"].as<unsigned int>(64);
@@ -369,10 +369,12 @@ data::frame system::create_monocular_frame(const cv::Mat& img, const double time
     }
     cv::Mat img_gray = img;
     util::convert_to_grayscale(img_gray, camera_->color_order_);
+    if (feature::load_feature_type(this->params_->type_) == feature::feature_types::AKAZE) {
+        util::convert_to_true_depth(img_gray, 1.);
+    }
 
     data::frame_observation frm_obs;
-
-    // Extract ORB feature
+    // Extract feature
     keypts_.clear();
     extractor_left_->extract(img_gray, mask, keypts_, frm_obs.descriptors_);
     if (keypts_.empty()) {
@@ -411,15 +413,21 @@ data::frame system::create_stereo_frame(const cv::Mat& left_img, const cv::Mat& 
     cv::Mat img_gray = left_img;
     cv::Mat right_img_gray = right_img;
     util::convert_to_grayscale(img_gray, camera_->color_order_);
+    if (feature::load_feature_type(this->params_->type_) == feature::feature_types::AKAZE) {
+        util::convert_to_true_depth(img_gray, 1.);
+    }
     util::convert_to_grayscale(right_img_gray, camera_->color_order_);
+    if (feature::load_feature_type(this->params_->type_) == feature::feature_types::AKAZE) {
+        util::convert_to_true_depth(right_img_gray, 1.);
+    }
 
     data::frame_observation frm_obs;
     //! keypoints of stereo right image
     std::vector<cv::KeyPoint> keypts_right;
-    //! ORB descriptors of stereo right image
+    //! descriptors of stereo right image
     cv::Mat descriptors_right;
 
-    // Extract ORB feature
+    // Extract feature
     keypts_.clear();
     std::thread thread_left([this, &frm_obs, &img_gray, &mask]() {
         extractor_left_->extract(img_gray, mask, keypts_, frm_obs.descriptors_);
@@ -472,11 +480,14 @@ data::frame system::create_RGBD_frame(const cv::Mat& rgb_img, const cv::Mat& dep
     cv::Mat img_gray = rgb_img;
     cv::Mat img_depth = depthmap;
     util::convert_to_grayscale(img_gray, camera_->color_order_);
+    if (feature::load_feature_type(this->params_->type_) == feature::feature_types::AKAZE) {
+        util::convert_to_true_depth(img_gray, 1.);
+    }
     util::convert_to_true_depth(img_depth, depthmap_factor_);
 
     data::frame_observation frm_obs;
 
-    // Extract ORB feature
+    // Extract feature
     keypts_.clear();
     extractor_left_->extract(img_gray, mask, keypts_, frm_obs.descriptors_);
     if (keypts_.empty()) {

@@ -1,6 +1,7 @@
 #include "stella_vslam/data/frame.h"
 #include "stella_vslam/match/area.h"
 #include "stella_vslam/util/angle.h"
+#include <opencv2/core/mat.hpp>
 
 namespace stella_vslam {
 namespace match {
@@ -19,7 +20,7 @@ unsigned int area::match_in_consistent_area(data::frame& frm_1, data::frame& frm
         const auto scale_level_1 = undist_keypt_1.octave;
 
         // Use only keypoints with the 0-th scale
-        if (0 < scale_level_1) {
+        if (0 < scale_level_1 && frm_1.frm_obs_.descriptors_.depth() == CV_8U) {
             continue;
         }
 

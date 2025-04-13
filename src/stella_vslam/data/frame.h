@@ -169,7 +169,7 @@ public:
     //! camera model
     camera::base* camera_ = nullptr;
 
-    //! ORB scale pyramid information
+    //! scale pyramid information
     const feature::params* params_ = nullptr;
 
     //! constant observations

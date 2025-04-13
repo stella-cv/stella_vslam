@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include <opencv2/core/mat.hpp>
+#include <opencv2/core.hpp>
 
 namespace stella_vslam {
 namespace match {
@@ -17,8 +18,20 @@ static constexpr unsigned int HAMMING_DIST_THR_LOW = 90;   // 50;
 static constexpr unsigned int HAMMING_DIST_THR_HIGH = 180; // 100;
 static constexpr unsigned int MAX_HAMMING_DIST = 488;      // 256;
 
+inline unsigned int compute_descriptor_distance_32_float(const cv::Mat& desc_1, const cv::Mat& desc_2) {
+    float distance = cv::norm(desc_1, desc_2, cv::NORM_L2);
+
+    return distance;
+}
+
+inline unsigned int compute_descriptor_distance_64_float(const cv::Mat& desc_1, const cv::Mat& desc_2) {
+    float distance = cv::norm(desc_1, desc_2, cv::NORM_L2);
+
+    return distance;
+}
+
 //! ORB特徴量間のハミング距離を計算する
-inline unsigned int compute_descriptor_distance_32(const cv::Mat& desc_1, const cv::Mat& desc_2) {
+inline unsigned int compute_descriptor_distance_32_bin(const cv::Mat& desc_1, const cv::Mat& desc_2) {
     // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
 
     constexpr uint32_t mask_1 = 0x55555555U;
@@ -44,7 +57,7 @@ inline unsigned int compute_descriptor_distance_32(const cv::Mat& desc_1, const 
 }
 
 //! ORB特徴量間のハミング距離を計算する
-inline unsigned int compute_descriptor_distance_64(const cv::Mat& desc_1, const cv::Mat& desc_2) {
+inline unsigned int compute_descriptor_distance_64_bin(const cv::Mat& desc_1, const cv::Mat& desc_2) {
     // https://stackoverflow.com/questions/21826292/t-sql-hamming-distance-function-capable-of-decimal-string-uint64?lq=1
 
     constexpr uint64_t mask_1 = 0x5555555555555555UL;
@@ -67,6 +80,22 @@ inline unsigned int compute_descriptor_distance_64(const cv::Mat& desc_1, const 
     }
 
     return dist;
+}
+
+inline unsigned int compute_descriptor_distance_32(const cv::Mat& desc_1, const cv::Mat& desc_2) {
+    if(desc_1.depth() == CV_8U){
+        return compute_descriptor_distance_32_bin(desc_1, desc_2);
+    }else {
+        return compute_descriptor_distance_32_float(desc_1, desc_2);
+    }
+}
+
+inline unsigned int compute_descriptor_distance_64(const cv::Mat& desc_1, const cv::Mat& desc_2) {
+    if(desc_1.depth() == CV_8U){
+        return compute_descriptor_distance_64_bin(desc_1, desc_2);
+    }else {
+        return compute_descriptor_distance_64_float(desc_1, desc_2);
+    }
 }
 
 inline bool check_epipolar_constraint(const Vec3_t& bearing_1, const Vec3_t& bearing_2,

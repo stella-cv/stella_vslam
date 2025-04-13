@@ -2,6 +2,7 @@
 #include "stella_vslam/initialize/base.h"
 #include "stella_vslam/solve/triangulator.h"
 
+#include <spdlog/spdlog.h>
 namespace stella_vslam {
 namespace initialize {
 

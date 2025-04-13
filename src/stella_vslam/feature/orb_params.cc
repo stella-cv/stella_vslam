@@ -12,12 +12,7 @@ orb_params::orb_params(const std::string& name)
 
 orb_params::orb_params(const std::string& name, const std::string& type, const float scale_factor, const unsigned int num_levels,
                        const unsigned int ini_fast_thr, const unsigned int min_fast_thr)
-    : params(name, type, scale_factor, num_levels, ini_fast_thr, min_fast_thr) {
-    scale_factors_ = calc_scale_factors(num_levels_, scale_factor_);
-    inv_scale_factors_ = calc_inv_scale_factors(num_levels_, scale_factor_);
-    level_sigma_sq_ = calc_level_sigma_sq(num_levels_, scale_factor_);
-    inv_level_sigma_sq_ = calc_inv_level_sigma_sq(num_levels_, scale_factor_);
-}
+    : params(name, type, scale_factor, num_levels, ini_fast_thr, min_fast_thr) {}
 
 orb_params::orb_params(const YAML::Node& yaml_node)
     : orb_params(yaml_node["name"].as<std::string>("default ORB feature extraction setting"),
