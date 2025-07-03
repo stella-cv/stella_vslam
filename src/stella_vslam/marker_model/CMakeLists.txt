@@ -16,4 +16,4 @@ endif()
 # Install headers
 file(GLOB HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 install(FILES ${HEADERS}
-        DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/marker)
+        DESTINATION ${STELLA_VSLAM_INCLUDE_INSTALL_DIR}/marker_model)
