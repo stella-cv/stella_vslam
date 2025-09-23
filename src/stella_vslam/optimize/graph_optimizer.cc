@@ -166,11 +166,6 @@ void graph_optimizer::optimize(const std::shared_ptr<data::keyframe>& loop_keyfr
         if (parent_node) {
             const auto id2 = parent_node->id_;
 
-            // Avoid duplication
-            if (id1 <= id2) {
-                continue;
-            }
-
             // Use only non-modified poses in the covisibility information
             // (Both camera poses should be nop-modified in order to compute the relative pose correctly)
             const auto iter2 = non_corrected_Sim3s.find(parent_node);
