@@ -120,7 +120,7 @@ unsigned int fuse::detect_duplication(const std::shared_ptr<data::keyframe>& key
 
             const auto& desc = keyfrm->frm_obs_.descriptors_.row(idx);
 
-            const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
+            const auto hamm_dist = compute_descriptor_distance(lm_desc, desc);
 
             if (hamm_dist < best_dist) {
                 best_dist = hamm_dist;

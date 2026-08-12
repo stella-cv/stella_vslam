@@ -84,7 +84,7 @@ unsigned int robust::match_for_triangulation(const std::shared_ptr<data::keyfram
             const auto& desc_2 = keyfrm_2->frm_obs_.descriptors_.row(idx_2);
 
             // Compute the distance
-            const auto hamm_dist = compute_descriptor_distance_32(desc_1, desc_2);
+            const auto hamm_dist = compute_descriptor_distance(desc_1, desc_2);
 
             if (HAMMING_DIST_THR_LOW < hamm_dist || best_hamm_dist < hamm_dist) {
                 continue;
@@ -282,7 +282,7 @@ unsigned int robust::brute_force_match(const data::frame_observation& frm_obs,
 
             const auto& desc_1 = descs_1.row(idx_1);
 
-            const auto hamm_dist = compute_descriptor_distance_32(desc_2, desc_1);
+            const auto hamm_dist = compute_descriptor_distance(desc_2, desc_1);
 
             if (hamm_dist < best_hamm_dist) {
                 second_best_hamm_dist = best_hamm_dist;

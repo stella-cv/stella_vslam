@@ -43,7 +43,7 @@ unsigned int area::match_in_consistent_area(data::frame& frm_1, data::frame& frm
 
             const auto& desc_2 = frm_2.frm_obs_.descriptors_.row(idx_2);
 
-            const auto hamm_dist = compute_descriptor_distance_32(desc_1, desc_2);
+            const auto hamm_dist = compute_descriptor_distance(desc_1, desc_2);
 
             // Ignore if the already-matched point is closer in Hamming space
             if (matched_dists_in_frm_2.at(idx_2) <= hamm_dist) {

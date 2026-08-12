@@ -62,7 +62,7 @@ unsigned int projection::match_frame_and_landmarks(data::frame& frm,
 
             const cv::Mat& desc = frm.frm_obs_.descriptors_.row(idx);
 
-            const auto dist = compute_descriptor_distance_32(lm_desc, desc);
+            const auto dist = compute_descriptor_distance(lm_desc, desc);
 
             if (dist < best_hamm_dist) {
                 second_best_hamm_dist = best_hamm_dist;
@@ -186,7 +186,7 @@ unsigned int projection::match_current_and_last_frames(data::frame& curr_frm, co
 
             const auto& desc = curr_frm.frm_obs_.descriptors_.row(curr_idx);
 
-            const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
+            const auto hamm_dist = compute_descriptor_distance(lm_desc, desc);
 
             if (hamm_dist < best_hamm_dist) {
                 best_hamm_dist = hamm_dist;
@@ -298,7 +298,7 @@ unsigned int projection::match_frame_and_keyframe(const Mat44_t& cam_pose_cw,
 
             const auto& desc = frm_obs.descriptors_.row(curr_idx);
 
-            const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
+            const auto hamm_dist = compute_descriptor_distance(lm_desc, desc);
 
             if (hamm_dist < best_hamm_dist) {
                 best_hamm_dist = hamm_dist;
@@ -396,7 +396,7 @@ unsigned int projection::match_by_Sim3_transform(const std::shared_ptr<data::key
 
             const auto& desc = keyfrm->frm_obs_.descriptors_.row(idx);
 
-            const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
+            const auto hamm_dist = compute_descriptor_distance(lm_desc, desc);
 
             if (hamm_dist < best_dist) {
                 best_dist = hamm_dist;
@@ -517,7 +517,7 @@ unsigned int projection::match_keyframes_mutually(const std::shared_ptr<data::ke
             for (const auto idx_2 : indices) {
                 const auto& desc = keyfrm_2->frm_obs_.descriptors_.row(idx_2);
 
-                const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
+                const auto hamm_dist = compute_descriptor_distance(lm_desc, desc);
 
                 if (hamm_dist < best_hamm_dist) {
                     best_hamm_dist = hamm_dist;
@@ -596,7 +596,7 @@ unsigned int projection::match_keyframes_mutually(const std::shared_ptr<data::ke
             for (const auto idx_1 : indices) {
                 const auto& desc = keyfrm_1->frm_obs_.descriptors_.row(idx_1);
 
-                const auto hamm_dist = compute_descriptor_distance_32(lm_desc, desc);
+                const auto hamm_dist = compute_descriptor_distance(lm_desc, desc);
 
                 if (hamm_dist < best_hamm_dist) {
                     best_hamm_dist = hamm_dist;

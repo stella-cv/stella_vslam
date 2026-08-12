@@ -168,7 +168,7 @@ void stereo::find_closest_keypoints_in_stereo(const unsigned int idx_left, const
 
         // Compute the hamming distance
         const auto& desc_right = descs_right_.row(idx_right);
-        const unsigned int hamm_dist = match::compute_descriptor_distance_32(desc_left, desc_right);
+        const unsigned int hamm_dist = match::compute_descriptor_distance(desc_left, desc_right);
 
         if (hamm_dist < best_hamm_dist) {
             best_idx_right = idx_right;

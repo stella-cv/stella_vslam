@@ -92,7 +92,7 @@ unsigned int bow_tree::match_for_triangulation(const std::shared_ptr<data::keyfr
                     const auto& desc_2 = keyfrm_2->frm_obs_.descriptors_.row(idx_2);
 
                     // Compute the distance
-                    const auto hamm_dist = compute_descriptor_distance_32(desc_1, desc_2);
+                    const auto hamm_dist = compute_descriptor_distance(desc_1, desc_2);
 
                     if (HAMMING_DIST_THR_LOW < hamm_dist || best_hamm_dist < hamm_dist) {
                         continue;
@@ -213,7 +213,7 @@ unsigned int bow_tree::match_frame_and_keyframe(const std::shared_ptr<data::keyf
 
                     const auto& frm_desc = frm.frm_obs_.descriptors_.row(frm_idx);
 
-                    const auto hamm_dist = compute_descriptor_distance_32(keyfrm_desc, frm_desc);
+                    const auto hamm_dist = compute_descriptor_distance(keyfrm_desc, frm_desc);
 
                     if (hamm_dist < best_hamm_dist) {
                         second_best_hamm_dist = best_hamm_dist;
@@ -318,7 +318,7 @@ unsigned int bow_tree::match_keyframes(const std::shared_ptr<data::keyframe>& ke
 
                     const auto& desc_2 = keyfrm_2->frm_obs_.descriptors_.row(idx_2);
 
-                    const auto hamm_dist = compute_descriptor_distance_32(desc_1, desc_2);
+                    const auto hamm_dist = compute_descriptor_distance(desc_1, desc_2);
 
                     if (hamm_dist < best_hamm_dist) {
                         second_best_hamm_dist = best_hamm_dist;

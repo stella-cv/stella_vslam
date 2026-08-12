@@ -226,7 +226,7 @@ void landmark::compute_descriptor() {
     for (unsigned int i = 0; i < num_descs; ++i) {
         hamm_dists.at(i).at(i) = 0;
         for (unsigned int j = i + 1; j < num_descs; ++j) {
-            const auto dist = match::compute_descriptor_distance_32(descriptors.at(i), descriptors.at(j));
+            const auto dist = match::compute_descriptor_distance(descriptors.at(i), descriptors.at(j));
             hamm_dists.at(i).at(j) = dist;
             hamm_dists.at(j).at(i) = dist;
         }
