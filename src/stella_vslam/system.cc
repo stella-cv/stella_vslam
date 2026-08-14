@@ -49,6 +49,11 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
         spdlog::debug("Running without vocabulary");
     }
 
+    // preprocessing modules (read descriptor_type early for extractor setup)
+    const auto preprocessing_params = util::yaml_optional_ref(cfg->yaml_node_, "Preprocessing");
+    const auto desc_type_str = preprocessing_params["descriptor_type"].as<std::string>("ORB");
+    const auto desc_type = feature::descriptor_type_from_string(desc_type_str);
+
     const auto system_params = util::yaml_optional_ref(cfg->yaml_node_, "System");
 
     camera_ = camera::camera_factory::create(util::yaml_optional_ref(cfg->yaml_node_, "Camera"));
@@ -82,8 +87,7 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
         global_optimizer_ = new global_optimization_module(map_db_, bow_db_, bow_vocab_, cfg_->yaml_node_, camera_->setup_type_ != camera::setup_type_t::Monocular);
     }
 
-    // preprocessing modules
-    const auto preprocessing_params = util::yaml_optional_ref(cfg->yaml_node_, "Preprocessing");
+    // depthmap factor
     if (camera_->setup_type_ == camera::setup_type_t::RGBD) {
         depthmap_factor_ = preprocessing_params["depthmap_factor"].as<double>(depthmap_factor_);
         if (depthmap_factor_ < 0.) {
@@ -93,11 +97,16 @@ system::system(const std::shared_ptr<config>& cfg, const std::string& vocab_file
     auto mask_rectangles = util::get_rectangles(preprocessing_params["mask_rectangles"]);
 
     const auto min_size = preprocessing_params["min_size"].as<unsigned int>(800);
-    const auto desc_type_str = preprocessing_params["descriptor_type"].as<std::string>("ORB");
-    const auto desc_type = feature::descriptor_type_from_string(desc_type_str);
-    extractor_left_ = new feature::orb_extractor(orb_params_, min_size, desc_type, mask_rectangles);
+
+    // LiftFeat model path (optional, ignored if not LIFTFEAT)
+    std::string onnx_model_path;
+    if (desc_type == feature::descriptor_type::LIFTFEAT) {
+        onnx_model_path = preprocessing_params["onnx_model_path"].as<std::string>("liftfeat_core.onnx");
+    }
+
+    extractor_left_ = new feature::orb_extractor(orb_params_, min_size, desc_type, mask_rectangles, onnx_model_path);
     if (camera_->setup_type_ == camera::setup_type_t::Stereo) {
-        extractor_right_ = new feature::orb_extractor(orb_params_, min_size, desc_type, mask_rectangles);
+        extractor_right_ = new feature::orb_extractor(orb_params_, min_size, desc_type, mask_rectangles, onnx_model_path);
     }
 
     num_grid_cols_ = preprocessing_params["num_grid_cols"].as<unsigned int>(64);

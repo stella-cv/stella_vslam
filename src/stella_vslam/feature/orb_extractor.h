@@ -11,12 +11,17 @@
 #include <cuda_efficient_descriptors.h>
 #endif
 
+#ifdef ONNXRUNTIME_ENABLED
+#include "stella_vslam/feature/liftfeat_extractor.h"
+#endif
+
 namespace stella_vslam {
 namespace feature {
 
 enum class descriptor_type {
     ORB,
-    HASH_SIFT
+    HASH_SIFT,
+    LIFTFEAT
 };
 
 inline descriptor_type descriptor_type_from_string(const std::string& desc_type_str) {
@@ -25,6 +30,9 @@ inline descriptor_type descriptor_type_from_string(const std::string& desc_type_
     }
     else if (desc_type_str == "HASH_SIFT" || desc_type_str == "HashSIFT") {
         return descriptor_type::HASH_SIFT;
+    }
+    else if (desc_type_str == "LIFTFEAT" || desc_type_str == "LiftFeat") {
+        return descriptor_type::LIFTFEAT;
     }
     else {
         throw std::runtime_error("Invalid descriptor_type");
@@ -37,6 +45,9 @@ inline std::string descriptor_type_to_string(descriptor_type desc_type) {
     }
     else if (desc_type == descriptor_type::HASH_SIFT) {
         return "HashSIFT";
+    }
+    else if (desc_type == descriptor_type::LIFTFEAT) {
+        return "LIFTFEAT";
     }
     else {
         throw std::runtime_error("Invalid descriptor_type");
@@ -51,7 +62,8 @@ public:
     orb_extractor(const orb_params* orb_params,
                   const unsigned int min_area,
                   const descriptor_type desc_type = descriptor_type::ORB,
-                  const std::vector<std::vector<float>>& mask_rects = {});
+                  const std::vector<std::vector<float>>& mask_rects = {},
+                  const std::string& onnx_model_path = "");
 
     //! Destructor
     virtual ~orb_extractor() = default;
@@ -100,6 +112,14 @@ private:
     //! Compute orb descriptor of a keypoint
     void compute_orb_descriptor(const cv::KeyPoint& keypt, const cv::Mat& image, uchar* desc) const;
 
+    //! Extract keypoints and descriptors for ORB / HashSIFT
+    void extract_binary_descriptor(const cv::Mat& image, const cv::Mat& image_mask,
+                                   std::vector<cv::KeyPoint>& keypts, const cv::_OutputArray& out_descriptors);
+
+    //! Extract keypoints and descriptors for LiftFeat
+    void extract_liftfeat(const cv::Mat& image, const cv::Mat& image_mask,
+                          std::vector<cv::KeyPoint>& keypts, const cv::_OutputArray& out_descriptors);
+
     //! Area of node occupied by one feature point
     unsigned int min_area_sqrt_;
 
@@ -116,6 +136,11 @@ private:
     orb_impl orb_impl_;
 #ifdef USE_CUDA_EFFICIENT_DESCRIPTORS
     cv::Ptr<cv::cuda::HashSIFT> hash_sift_;
+#endif
+
+#ifdef ONNXRUNTIME_ENABLED
+    std::unique_ptr<liftfeat_extractor> liftfeat_extractor_;
+    std::string onnx_model_path_;
 #endif
 };
 

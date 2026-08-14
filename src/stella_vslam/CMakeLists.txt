@@ -167,6 +167,16 @@ if(USE_ARUCO)
     target_compile_definitions(${PROJECT_NAME} PUBLIC USE_ARUCO)
 endif()
 
+# ONNX Runtime
+if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
+    message(STATUS "ONNX Runtime: ENABLED")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC ONNXRUNTIME_ENABLED)
+    target_include_directories(${PROJECT_NAME} PUBLIC ${ONNXRUNTIME_INCLUDE_DIR})
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${ONNXRUNTIME_LIBRARY})
+else()
+    message(STATUS "ONNX Runtime: DISABLED")
+endif()
+
 # Trace level log
 set (ENABLE_TRACE_LEVEL_LOG OFF CACHE BOOL "Enable trace level log")
 if (ENABLE_TRACE_LEVEL_LOG)

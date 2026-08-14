@@ -82,6 +82,20 @@ endif()
 
 # ----- Find dependencies -----
 
+# ONNX Runtime (公式バイナリ /usr/local にインストール済み)
+find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h
+    PATHS /usr/local/include /usr/local/include/onnxruntime
+    NO_DEFAULT_PATH)
+find_library(ONNXRUNTIME_LIBRARY onnxruntime
+    PATHS /usr/local/lib
+    NO_DEFAULT_PATH)
+if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
+    message(STATUS "ONNX Runtime: Found (include: ${ONNXRUNTIME_INCLUDE_DIR}, lib: ${ONNXRUNTIME_LIBRARY})")
+else()
+    message(STATUS "ONNX Runtime: NOT found (LiftFeat extractor disabled)")
+    set(ONNXRUNTIME_FOUND OFF)
+endif()
+
 # Threads
 find_package(Threads REQUIRED)
 

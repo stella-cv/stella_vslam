@@ -16,12 +16,24 @@ namespace feature {
 orb_extractor::orb_extractor(const orb_params* orb_params,
                              const unsigned int min_area,
                              const descriptor_type desc_type,
-                             const std::vector<std::vector<float>>& mask_rects)
+                             const std::vector<std::vector<float>>& mask_rects,
+                             const std::string& onnx_model_path)
     : orb_params_(orb_params), mask_rects_(mask_rects), min_area_sqrt_(std::sqrt(min_area)), desc_type_(desc_type) {
     // resize buffers according to the number of levels
     image_pyramid_.resize(orb_params_->num_levels_);
 #ifdef USE_CUDA_EFFICIENT_DESCRIPTORS
     hash_sift_ = cv::cuda::HashSIFT::create(1.0, cv::cuda::HashSIFT::SIZE_256_BITS);
+#endif
+#ifdef ONNXRUNTIME_ENABLED
+    if (desc_type_ == descriptor_type::LIFTFEAT && !onnx_model_path.empty()) {
+        onnx_model_path_ = onnx_model_path;
+        try {
+            liftfeat_extractor_ = std::make_unique<liftfeat_extractor>(onnx_model_path_, 0.015f, 4096);
+        }
+        catch (const std::exception& e) {
+            spdlog::warn("Failed to initialize LiftFeat extractor: {}", e.what());
+        }
+    }
 #endif
 }
 
@@ -33,7 +45,6 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
 
     // get cv::Mat of image
     const auto image = in_image.getMat();
-    assert(image.type() == CV_8UC1);
 
     // build image pyramid
     compute_image_pyramid(image);
@@ -44,94 +55,17 @@ void orb_extractor::extract(const cv::_InputArray& in_image, const cv::_InputArr
         mask_is_initialized_ = true;
     }
 
-    std::vector<std::vector<cv::KeyPoint>> all_keypts;
-
-    // select mask to use
-    if (!in_image_mask.empty()) {
-        // Use image_mask if it is available
-        const auto image_mask = in_image_mask.getMat();
-        assert(image_mask.type() == CV_8UC1);
-        compute_fast_keypoints(all_keypts, image_mask);
-    }
-    else if (!rect_mask_.empty()) {
-        // Use rectangle mask if it is available and image_mask is not used
-        assert(rect_mask_.type() == CV_8UC1);
-        compute_fast_keypoints(all_keypts, rect_mask_);
-    }
-    else {
-        // Do not use any mask if all masks are unavailable
-        compute_fast_keypoints(all_keypts, cv::Mat());
-    }
-
-    cv::Mat descriptors;
-
-    unsigned int num_keypts = 0;
-    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
-        num_keypts += all_keypts.at(level).size();
-    }
-    if (num_keypts == 0) {
-        out_descriptors.release();
-    }
-    else {
-        out_descriptors.create(num_keypts, 32, CV_8U);
-        descriptors = out_descriptors.getMat();
-    }
-
-    keypts.clear();
-    keypts.reserve(num_keypts);
-
-    unsigned int offset = 0;
-    std::vector<unsigned int> offsets;
-    offsets.push_back(0);
-    for (unsigned int level = 0; level < orb_params_->num_levels_ - 1; ++level) {
-        offset += all_keypts.at(level).size();
-        offsets.push_back(offset);
-    }
-
-#if defined(USE_OPENMP) and !defined(USE_CUDA_EFFICIENT_DESCRIPTORS)
-#pragma omp parallel for schedule(dynamic)
-#endif
-    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
-        auto& keypts_at_level = all_keypts.at(level);
-        const auto num_keypts_at_level = keypts_at_level.size();
-
-        if (num_keypts_at_level == 0) {
-            continue;
-        }
-
-        cv::Mat blurred_image;
-        cv::GaussianBlur(image_pyramid_.at(level), blurred_image, cv::Size(7, 7), 2, 2, cv::BORDER_REFLECT_101);
-
-        cv::Mat descriptors_at_level = descriptors.rowRange(offsets[level], offsets[level] + num_keypts_at_level);
-        descriptors_at_level = cv::Mat::zeros(num_keypts_at_level, 32, CV_8UC1);
-
-        // To enable parallelization, set the environment variable OMP_MAX_ACTIVE_LEVELS to 2.
-        if (desc_type_ == feature::descriptor_type::ORB) {
-#ifdef USE_OPENMP
-#pragma omp parallel for schedule(static)
-#endif
-            for (unsigned int i = 0; i < keypts_at_level.size(); ++i) {
-                compute_orb_descriptor(keypts_at_level[i], blurred_image, descriptors_at_level.ptr(i));
-            }
-        }
-        else if (desc_type_ == feature::descriptor_type::HASH_SIFT) {
-#ifdef USE_CUDA_EFFICIENT_DESCRIPTORS
-            hash_sift_->compute(blurred_image, keypts_at_level, descriptors_at_level);
+    if (desc_type_ == descriptor_type::LIFTFEAT) {
+#ifdef ONNXRUNTIME_ENABLED
+        extract_liftfeat(image, in_image_mask.getMat(), keypts, out_descriptors);
 #else
-            throw std::runtime_error("cuda_efficient_features is not available");
+        spdlog::warn("LiftFeat is selected but ONNX Runtime is not available. No keypoints will be extracted.");
+        keypts.clear();
+        out_descriptors.release();
 #endif
-        }
-        else {
-            throw std::runtime_error("Invalid descriptor_type");
-        }
-
-        correct_keypoint_scale(keypts_at_level, level);
     }
-
-    // Collect keypoints for every scale
-    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
-        auto& keypts_at_level = all_keypts.at(level);
-        keypts.insert(keypts.end(), keypts_at_level.begin(), keypts_at_level.end());
+    else {
+        extract_binary_descriptor(image, in_image_mask.getMat(), keypts, out_descriptors);
     }
 }
 
@@ -351,6 +285,135 @@ float orb_extractor::ic_angle(const cv::Mat& image, const cv::Point2f& point) co
 void orb_extractor::compute_orb_descriptor(const cv::KeyPoint& keypt, const cv::Mat& image, uchar* desc) const {
     orb_impl_.compute_orb_descriptor(keypt, image, desc);
 }
+
+void orb_extractor::extract_binary_descriptor(const cv::Mat& image, const cv::Mat& image_mask,
+                                              std::vector<cv::KeyPoint>& keypts, const cv::_OutputArray& out_descriptors) {
+    assert(image.type() == CV_8UC1);
+
+    std::vector<std::vector<cv::KeyPoint>> all_keypts;
+
+    // select mask to use
+    if (!image_mask.empty()) {
+        assert(image_mask.type() == CV_8UC1);
+        compute_fast_keypoints(all_keypts, image_mask);
+    }
+    else if (!rect_mask_.empty()) {
+        assert(rect_mask_.type() == CV_8UC1);
+        compute_fast_keypoints(all_keypts, rect_mask_);
+    }
+    else {
+        compute_fast_keypoints(all_keypts, cv::Mat());
+    }
+
+    cv::Mat descriptors;
+
+    unsigned int num_keypts = 0;
+    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
+        num_keypts += all_keypts.at(level).size();
+    }
+    if (num_keypts == 0) {
+        out_descriptors.release();
+    }
+    else {
+        out_descriptors.create(num_keypts, 32, CV_8U);
+        descriptors = out_descriptors.getMat();
+    }
+
+    keypts.clear();
+    keypts.reserve(num_keypts);
+
+    unsigned int offset = 0;
+    std::vector<unsigned int> offsets;
+    offsets.push_back(0);
+    for (unsigned int level = 0; level < orb_params_->num_levels_ - 1; ++level) {
+        offset += all_keypts.at(level).size();
+        offsets.push_back(offset);
+    }
+
+#if defined(USE_OPENMP) and !defined(USE_CUDA_EFFICIENT_DESCRIPTORS)
+#pragma omp parallel for schedule(dynamic)
+#endif
+    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
+        auto& keypts_at_level = all_keypts.at(level);
+        const auto num_keypts_at_level = keypts_at_level.size();
+
+        if (num_keypts_at_level == 0) {
+            continue;
+        }
+
+        cv::Mat blurred_image;
+        cv::GaussianBlur(image_pyramid_.at(level), blurred_image, cv::Size(7, 7), 2, 2, cv::BORDER_REFLECT_101);
+
+        cv::Mat descriptors_at_level = descriptors.rowRange(offsets[level], offsets[level] + num_keypts_at_level);
+        descriptors_at_level = cv::Mat::zeros(num_keypts_at_level, 32, CV_8UC1);
+
+        // To enable parallelization, set the environment variable OMP_MAX_ACTIVE_LEVELS to 2.
+        if (desc_type_ == feature::descriptor_type::ORB) {
+#ifdef USE_OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+            for (unsigned int i = 0; i < keypts_at_level.size(); ++i) {
+                compute_orb_descriptor(keypts_at_level[i], blurred_image, descriptors_at_level.ptr(i));
+            }
+        }
+        else if (desc_type_ == feature::descriptor_type::HASH_SIFT) {
+#ifdef USE_CUDA_EFFICIENT_DESCRIPTORS
+            hash_sift_->compute(blurred_image, keypts_at_level, descriptors_at_level);
+#else
+            throw std::runtime_error("cuda_efficient_features is not available");
+#endif
+        }
+        else {
+            throw std::runtime_error("Invalid descriptor_type");
+        }
+
+        correct_keypoint_scale(keypts_at_level, level);
+    }
+
+    // Collect keypoints for every scale
+    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
+        auto& keypts_at_level = all_keypts.at(level);
+        keypts.insert(keypts.end(), keypts_at_level.begin(), keypts_at_level.end());
+    }
+}
+
+#ifdef ONNXRUNTIME_ENABLED
+void orb_extractor::extract_liftfeat(const cv::Mat& image, const cv::Mat& image_mask,
+                                     std::vector<cv::KeyPoint>& keypts, const cv::_OutputArray& out_descriptors) {
+    std::vector<std::vector<cv::KeyPoint>> lift_keypts(orb_params_->num_levels_);
+    std::vector<cv::Mat> all_descs;
+    all_descs.reserve(orb_params_->num_levels_);
+
+    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
+        // Scale down for higher pyramid levels
+        const float scale = 1.0f / orb_params_->scale_factors_.at(level);
+        cv::Mat scaled;
+        cv::resize(image_pyramid_.at(level), scaled, cv::Size(), scale, scale, cv::INTER_LINEAR);
+        liftfeat_extractor_->extract(scaled, image_mask, lift_keypts[level], all_descs.emplace_back());
+    }
+
+    // Merge keypoints and descriptors across levels
+    keypts.clear();
+    unsigned int num_keypts = 0;
+    for (unsigned int level = 0; level < orb_params_->num_levels_; ++level) {
+        // Scale coordinates back to base image size
+        const float inv_scale = orb_params_->inv_scale_factors_.at(level);
+        for (auto& kp : lift_keypts[level]) {
+            kp.pt.x *= inv_scale;
+            kp.pt.y *= inv_scale;
+        }
+        keypts.insert(keypts.end(), lift_keypts[level].begin(), lift_keypts[level].end());
+        num_keypts += lift_keypts[level].size();
+    }
+
+    if (num_keypts == 0) {
+        out_descriptors.release();
+    }
+    else {
+        cv::vconcat(all_descs, out_descriptors.getMatRef());
+    }
+}
+#endif
 
 } // namespace feature
 } // namespace stella_vslam

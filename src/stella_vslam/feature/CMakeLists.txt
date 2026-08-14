@@ -8,6 +8,13 @@ target_sources(${PROJECT_NAME}
                ${CMAKE_CURRENT_SOURCE_DIR}/orb_extractor.cc
                ${CMAKE_CURRENT_SOURCE_DIR}/orb_impl.cc)
 
+if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
+    target_sources(${PROJECT_NAME}
+                   PRIVATE
+                   ${CMAKE_CURRENT_SOURCE_DIR}/liftfeat_extractor.h
+                   ${CMAKE_CURRENT_SOURCE_DIR}/liftfeat_extractor.cc)
+endif()
+
 # Install headers
 file(GLOB HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 install(FILES ${HEADERS}
